@@ -33,3 +33,24 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+.monitoring-sticky {
+  position: sticky;
+  z-index: 20;
+  background-color: inherit;
+}
+
+.monitoring-sticky-shadow {
+  position: sticky;
+}
+
+.monitoring-sticky-shadow::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  background: linear-gradient(to right, rgba(15, 23, 42, 0.05), transparent);
+  pointer-events: none;
+}

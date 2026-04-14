@@ -1,5 +1,7 @@
 import { useState } from "react";
 import "./App.css";
+import CustomerEditPage from "./components/CustomerEditPage";
+import CustomerCreatePage from "./components/CustomerCreatePage";
 
 const sidebarItems = [
     { key: "dashboard", label: "Dashboard", icon: "dashboard" },
@@ -9,13 +11,6 @@ const sidebarItems = [
     { key: "invoices", label: "Invoice", icon: "receipt_long" },
     { key: "archives", label: "Arsip Dokumen", icon: "inventory_2" },
     { key: "trash", label: "Tempat Sampah", icon: "delete", separated: true },
-];
-
-const mobileItems = [
-    { key: "dashboard", label: "Dashboard", icon: "dashboard" },
-    { key: "customers", label: "Pelanggan", icon: "groups", filled: true },
-    { key: "contracts", label: "Kontrak", icon: "description" },
-    { key: "monitoring", label: "Lainnya", icon: "more_horiz" },
 ];
 
 const sectionMeta = {
@@ -84,22 +79,113 @@ const customers = [
     },
 ];
 
+const monitoringMonths = [
+    "Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des",
+];
+
+const monitoringRows = [
+    {
+        no: "01",
+        isp: "Telkom",
+        customer: "PT. Maju Bersama",
+        start: "12 Jan 2024",
+        end: "12 Jan 2025",
+        coreType: "Dedicated",
+        coreCount: "12 Cores",
+        activationStatus: "done",
+        activationText: "Selesai",
+        months: ["paid", "paid", "paid", "paid", "paid", "upcoming", "upcoming", "upcoming", "upcoming", "upcoming", "upcoming", "upcoming"],
+    },
+    {
+        no: "02",
+        isp: "Indosat",
+        customer: "Yayasan Digital",
+        start: "01 Feb 2024",
+        end: "31 Jan 2025",
+        coreType: "Shared",
+        coreCount: "4 Cores",
+        activationStatus: "unpaid",
+        activationAmount: "Rp 1.500.000",
+        activationText: "Belum Bayar",
+        months: ["none", "paid", "late", "upcoming", "upcoming", "upcoming", "upcoming", "upcoming", "upcoming", "upcoming", "upcoming", "upcoming"],
+    },
+    {
+        no: "03",
+        isp: "Biznet",
+        customer: "Global Tech Corp",
+        start: "15 Mar 2024",
+        end: "14 Mar 2025",
+        coreType: "Dedicated",
+        coreCount: "24 Cores",
+        activationStatus: "done",
+        activationText: "Selesai",
+        months: ["none", "none", "overdue", "paid", "paid", "upcoming", "upcoming", "upcoming", "upcoming", "upcoming", "upcoming", "upcoming"],
+    },
+    {
+        no: "04",
+        isp: "CBN",
+        customer: "Inti Nusantara",
+        start: "20 Jan 2024",
+        end: "19 Jan 2025",
+        coreType: "Shared",
+        coreCount: "8 Cores",
+        activationStatus: "unpaid",
+        activationAmount: "Rp 2.250.000",
+        activationText: "Belum Bayar",
+        months: ["paid", "late", "late", "late", "upcoming", "upcoming", "upcoming", "upcoming", "upcoming", "upcoming", "upcoming", "upcoming"],
+    },
+];
+
 function App() {
     const [activeSection, setActiveSection] = useState("customers");
     const [selectedCustomer, setSelectedCustomer] = useState(null);
+    const [editingCustomer, setEditingCustomer] = useState(null);
+    const [isCreatingCustomer, setIsCreatingCustomer] = useState(false);
 
     const handleNavigate = (sectionKey) => {
         setActiveSection(sectionKey);
         setSelectedCustomer(null);
+        setEditingCustomer(null);
+        setIsCreatingCustomer(false);
     };
 
     const handleOpenDetail = (customer) => {
         setActiveSection("customers");
+        setEditingCustomer(null);
+        setIsCreatingCustomer(false);
         setSelectedCustomer(customer);
     };
 
+    const handleOpenEdit = (customer) => {
+        setActiveSection("customers");
+        setSelectedCustomer(null);
+        setIsCreatingCustomer(false);
+        setEditingCustomer(customer);
+    };
+
+    const handleOpenCreate = () => {
+        setActiveSection("customers");
+        setSelectedCustomer(null);
+        setEditingCustomer(null);
+        setIsCreatingCustomer(true);
+    };
+
     if (activeSection === "dashboard") {
-        return <DashboardPage activeSection={activeSection} onNavigate={handleNavigate} />;
+        return (
+            <DashboardPage
+                activeSection={activeSection}
+                onNavigate={handleNavigate}
+            />
+        );
+    }
+
+    if (activeSection === "monitoring") {
+        return (
+            <MonitoringSpreadsheetPage
+                activeSection={activeSection}
+                onNavigate={handleNavigate}
+            />
+        );
     }
 
     if (activeSection !== "customers") {
@@ -111,11 +197,31 @@ function App() {
         );
     }
 
+    if (isCreatingCustomer) {
+        return (
+            <CustomerCreatePage
+                onCancel={() => setIsCreatingCustomer(false)}
+                onNavigate={handleNavigate}
+            />
+        );
+    }
+
+    if (editingCustomer) {
+        return (
+            <CustomerEditPage
+                customer={editingCustomer}
+                onCancel={() => setEditingCustomer(null)}
+                onNavigate={handleNavigate}
+            />
+        );
+    }
+
     if (selectedCustomer) {
         return (
             <CustomerDetailPage
                 customer={selectedCustomer}
                 onBack={() => setSelectedCustomer(null)}
+                onEdit={handleOpenEdit}
                 onNavigate={handleNavigate}
             />
         );
@@ -126,52 +232,83 @@ function App() {
             activeSection={activeSection}
             onNavigate={handleNavigate}
             onOpenDetail={handleOpenDetail}
+            onOpenEdit={handleOpenEdit}
+            onOpenCreate={handleOpenCreate}
         />
     );
 }
 
 function AppShell({ activeSection, onNavigate, children }) {
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+    const handleMobileNavigate = (sectionKey) => {
+        onNavigate(sectionKey);
+        setIsMobileMenuOpen(false);
+    };
+
     return (
         <div className="bg-surface text-on-surface">
-            <TopNav />
+            <TopNav onToggleMenu={() => setIsMobileMenuOpen((prev) => !prev)} />
+            {isMobileMenuOpen && (
+                <MobileDropdownMenu
+                    activeSection={activeSection}
+                    onClose={() => setIsMobileMenuOpen(false)}
+                    onNavigate={handleMobileNavigate}
+                />
+            )}
             <Sidebar activeSection={activeSection} onNavigate={onNavigate} />
-            <main className="min-h-screen px-6 pb-24 pt-24 md:ml-64 md:px-12">{children}</main>
-            <MobileNav activeSection={activeSection} onNavigate={onNavigate} />
+            <main className="min-h-screen px-6 pb-10 pt-24 md:ml-64 md:px-12 md:pb-12">{children}</main>
         </div>
     );
 }
 
-function TopNav() {
+function TopNav({ onToggleMenu }) {
     return (
-        <nav className="fixed top-0 z-40 flex h-16 w-full items-center justify-between bg-white/80 px-6 font-manrope antialiased shadow-sm backdrop-blur-xl">
-            <div className="flex items-center gap-8">
-                <span className="text-xl font-bold tracking-tight text-blue-900">The Archive</span>
+        <nav className="fixed top-0 z-40 flex h-16 w-full items-center justify-between bg-white/80 px-6 font-manrope antialiased shadow-sm backdrop-blur-xl md:ml-64 md:w-[calc(100%-16rem)] md:px-8">
+            <div className="flex items-center gap-3 md:gap-8">
+                <button
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-slate-100 md:hidden"
+                    onClick={onToggleMenu}
+                    type="button"
+                >
+                    <span className="material-symbols-outlined">menu</span>
+                </button>
                 <div className="hidden items-center gap-6 md:flex">
-                    <div className="group relative">
-                        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-blue-600">
+                    <div className="flex items-center gap-4 rounded-lg bg-surface-container-low px-4 py-2 w-96">
+                        <span className="material-symbols-outlined text-xl text-outline">
                             search
                         </span>
                         <input
-                            className="w-64 rounded-full border-none bg-slate-100 py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20"
-                            placeholder="Cari dokumen atau pelanggan..."
+                            className="w-full border-none bg-transparent text-sm font-body focus:ring-0"
+                            placeholder="Cari penyewa atau invoice..."
                             type="text"
                         />
                     </div>
                 </div>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-6">
                 <button
-                    className="cursor-pointer rounded-full p-2 text-slate-500 transition-colors duration-200 hover:bg-slate-50 active:scale-95"
+                    className="relative rounded-lg p-2 text-slate-500 transition-all hover:bg-slate-50"
                     type="button"
                 >
                     <span className="material-symbols-outlined">notifications</span>
+                    <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-error"></span>
                 </button>
-                <div className="h-8 w-8 overflow-hidden rounded-full border border-outline-variant/20">
+                <button className="rounded-lg p-2 text-slate-500 transition-all hover:bg-slate-50" type="button">
+                    <span className="material-symbols-outlined">settings</span>
+                </button>
+                <div className="hidden items-center gap-3 border-l border-slate-100 pl-4 md:flex">
+                    <div className="text-right">
+                        <p className="text-sm font-semibold text-on-surface">Administrator</p>
+                        <p className="text-[10px] uppercase tracking-wider text-on-surface-variant">
+                            Super Admin
+                        </p>
+                    </div>
                     <img
-                        alt="User Profile"
-                        className="h-full w-full object-cover"
-                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuCllZftsXViF28ECBdiJms9yGqlLCaj32keChOCglGD3Cp53vCisRUwtp4h-QAnUbSzlqrG0TLbnCX01MuZ2Ve2y_RnSO-fyf-Y_6fOTBNwRPRE5vc56RliPzP7F_9dAFjC4cJOTYxe8NQ3Mt30xL_g-_aIzZ4l9DLhdBtKugVn0cQ6GWJQfLK3ktLa6DOdjLZ6yg1frdNzs1ochbBeq9zoPZ_69hlX8gIHyET35Bygw0t3sjOieY8d5RATK1XW7LWYwAZvAHozcGI"
+                        alt="Administrator Profile"
+                        className="h-10 w-10 rounded-full border-2 border-surface-container-high object-cover"
+                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuBAFhnZ3sLh08K-pb9OHZ3RVbGsMO5bKg2zux3NkoQNNOv96Mff-nuHjRBNqlG8PKMPx0E-6VsMGTfB_Jn7lpTk0cWXlblrf-mzL1KZ3O724-QrQBwXPmLINGHLBuxACZGsByzSGBD6Yt9GVvuswzU7_IhGniplwUFCUhvp7w5cU0m_k8DzEjXtMaYsXa-5x15vort0mEzRr9ygaZgu9n6dL3xd-XNV_AxamcvQyVEuceozL2mSLxCaP6gqaGvVKvIN6DZvZzpMQh8"
                     />
                 </div>
             </div>
@@ -179,46 +316,94 @@ function TopNav() {
     );
 }
 
+function MobileDropdownMenu({ activeSection, onNavigate, onClose }) {
+    return (
+        <div className="fixed inset-x-0 top-16 z-40 px-4 md:hidden">
+            <div className="rounded-2xl border border-slate-100 bg-white/95 p-2 shadow-xl backdrop-blur">
+                <div className="mb-1 flex items-center justify-between px-2 py-1">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+                        Menu Navigasi
+                    </p>
+                    <button
+                        className="rounded-md p-1 text-slate-500 transition-colors hover:bg-slate-100"
+                        onClick={onClose}
+                        type="button"
+                    >
+                        <span className="material-symbols-outlined text-lg">close</span>
+                    </button>
+                </div>
+
+                <div className="space-y-1">
+                    {sidebarItems.map((item) => {
+                        const isActive = activeSection === item.key;
+                        return (
+                            <div key={item.key} className={item.separated ? "mt-2 border-t border-slate-100 pt-2" : ""}>
+                                <button
+                                    className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm ${isActive
+                                        ? "bg-blue-50/70 font-bold text-blue-900"
+                                        : "text-slate-600 transition-colors hover:bg-slate-100"
+                                        }`}
+                                    onClick={() => onNavigate(item.key)}
+                                    type="button"
+                                >
+                                    <span
+                                        className="material-symbols-outlined"
+                                        style={isActive ? { fontVariationSettings: "'FILL' 1" } : undefined}
+                                    >
+                                        {item.icon}
+                                    </span>
+                                    <span>{item.label}</span>
+                                </button>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        </div>
+    );
+}
+
 function Sidebar({ activeSection, onNavigate }) {
     return (
-        <aside className="fixed left-0 top-0 hidden h-screen w-64 flex-col space-y-2 bg-slate-50 p-4 pt-20 font-manrope text-sm font-medium md:flex">
-            <div className="mb-6 px-4">
-                <p className="mb-1 text-xs font-bold uppercase tracking-widest text-on-surface-variant/60">
-                    Ecosystem
-                </p>
+        <aside className="fixed left-0 top-0 z-50 hidden h-screen w-64 flex-col bg-slate-50/80 px-4 py-8 font-manrope text-sm font-medium backdrop-blur-xl md:flex">
+            <div className="mb-10 px-2">
                 <div className="flex items-center gap-3">
-                    <div className="h-8 w-2 rounded-full bg-primary"></div>
+                    <img
+                        alt=""
+                        aria-hidden="true"
+                        className="h-10 w-10 object-contain"
+                        src="/favicon.svg"
+                    />
                     <div>
-                        <h3 className="text-sm font-bold text-blue-900">Enterprise Curator</h3>
+                        <p className="text-lg font-extrabold tracking-tight text-blue-900">KIMA</p>
+                        <p className="text-xs font-medium text-on-surface-variant">Dokumen Arsip</p>
                     </div>
                 </div>
             </div>
 
-            <div className="mb-4 px-2">
-                <button
-                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-xs font-bold text-white shadow-md transition-all hover:bg-primary/90 active:scale-95"
-                    type="button"
-                >
-                    <span className="material-symbols-outlined text-sm">person_add</span>
-                    <span>Tambah Pelanggan Baru</span>
-                </button>
-            </div>
-
-            <nav className="space-y-1">
+            <nav className="flex-grow space-y-2">
                 {sidebarItems.map((item) => {
                     const isActive = activeSection === item.key;
                     return (
                         <div key={item.key}>
-                            {item.separated && <div className="mt-4 border-t border-slate-200/50 pt-4"></div>}
                             <button
-                                className={`flex w-full items-center gap-3 px-4 py-3 text-left ${isActive
-                                        ? "rounded-lg bg-white text-blue-900 shadow-sm"
-                                        : "text-slate-600 transition-transform duration-200 hover:translate-x-1 hover:text-blue-800"
+                                className={`flex w-full items-center gap-3 px-4 py-3 text-left font-manrope text-sm tracking-tight ${isActive
+                                    ? "rounded-l-lg border-r-4 border-blue-900 bg-blue-50/50 font-bold text-blue-900"
+                                    : "rounded-lg text-slate-500 transition-all hover:bg-blue-50/30 hover:text-blue-800"
                                     }`}
                                 onClick={() => onNavigate(item.key)}
                                 type="button"
                             >
-                                <span className="material-symbols-outlined">{item.icon}</span>
+                                <span
+                                    className="material-symbols-outlined"
+                                    style={
+                                        isActive
+                                            ? { fontVariationSettings: "'FILL' 1" }
+                                            : undefined
+                                    }
+                                >
+                                    {item.icon}
+                                </span>
                                 <span>{item.label}</span>
                             </button>
                         </div>
@@ -229,38 +414,7 @@ function Sidebar({ activeSection, onNavigate }) {
     );
 }
 
-function MobileNav({ activeSection, onNavigate }) {
-    return (
-        <nav className="fixed bottom-0 left-0 z-50 flex h-16 w-full items-center justify-around bg-white px-4 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] md:hidden">
-            {mobileItems.map((item) => {
-                const isActive = activeSection === item.key;
-                return (
-                    <button
-                        key={item.key}
-                        className={`flex flex-col items-center gap-1 ${isActive ? "text-primary" : "text-slate-500"
-                            }`}
-                        onClick={() => onNavigate(item.key)}
-                        type="button"
-                    >
-                        <span
-                            className="material-symbols-outlined"
-                            style={
-                                isActive && item.filled
-                                    ? { fontVariationSettings: "'FILL' 1" }
-                                    : undefined
-                            }
-                        >
-                            {item.icon}
-                        </span>
-                        <span className="text-[10px] font-bold">{item.label}</span>
-                    </button>
-                );
-            })}
-        </nav>
-    );
-}
-
-function CustomerDirectoryPage({ activeSection, onNavigate, onOpenDetail }) {
+function CustomerDirectoryPage({ activeSection, onNavigate, onOpenDetail, onOpenEdit, onOpenCreate }) {
     return (
         <AppShell activeSection={activeSection} onNavigate={onNavigate}>
             <div className="mx-auto max-w-7xl">
@@ -279,6 +433,7 @@ function CustomerDirectoryPage({ activeSection, onNavigate, onOpenDetail }) {
 
                     <button
                         className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-primary to-primary-container px-6 py-3.5 font-bold text-white shadow-lg transition-all hover:shadow-primary/20 active:scale-95"
+                        onClick={onOpenCreate}
                         type="button"
                     >
                         <span className="material-symbols-outlined">person_add</span>
@@ -361,8 +516,8 @@ function CustomerDirectoryPage({ activeSection, onNavigate, onOpenDetail }) {
                                             <td className="px-6 py-5">
                                                 <div
                                                     className={`inline-flex items-center gap-2 rounded-full border-l-[4px] py-1 pl-1 pr-3 ${customer.active
-                                                            ? "border-green-600 bg-surface-container"
-                                                            : "border-error bg-error-container/30"
+                                                        ? "border-green-600 bg-surface-container"
+                                                        : "border-error bg-error-container/30"
                                                         }`}
                                                 >
                                                     {customer.active && (
@@ -399,6 +554,7 @@ function CustomerDirectoryPage({ activeSection, onNavigate, onOpenDetail }) {
                                                     </button>
                                                     <button
                                                         className="rounded-lg p-2 text-on-surface-variant transition-colors hover:bg-slate-100"
+                                                        onClick={() => onOpenEdit(customer)}
                                                         title="Edit"
                                                         type="button"
                                                     >
@@ -629,8 +785,8 @@ function DashboardPage({ activeSection, onNavigate }) {
                                 <div key={item.label} className="group flex flex-1 flex-col items-center">
                                     <div
                                         className={`relative w-full rounded-t-lg transition-all duration-300 ${item.height} ${item.active
-                                                ? "bg-primary/10 group-hover:bg-primary"
-                                                : "bg-surface-container group-hover:bg-primary/20"
+                                            ? "bg-primary/10 group-hover:bg-primary"
+                                            : "bg-surface-container group-hover:bg-primary/20"
                                             }`}
                                     >
                                         {item.active && (
@@ -824,6 +980,374 @@ function DashboardPage({ activeSection, onNavigate }) {
     );
 }
 
+function MonitoringSpreadsheetPage({ activeSection, onNavigate }) {
+    const monthCellClass = {
+        paid: "bg-emerald-500",
+        late: "bg-red-500",
+        overdue: "bg-orange-400",
+        upcoming: "bg-amber-200",
+        none: "bg-slate-100 opacity-30",
+    };
+
+    return (
+        <AppShell activeSection={activeSection} onNavigate={onNavigate}>
+            <div className="mx-auto max-w-[1400px] space-y-6">
+                <section className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
+                    <div className="space-y-1">
+                        <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-slate-400">
+                            <span>Dashboard</span>
+                            <span className="material-symbols-outlined text-[10px]">chevron_right</span>
+                            <span className="font-bold text-primary">Monitoring Spreadsheet</span>
+                        </div>
+                        <h2 className="text-3xl font-extrabold tracking-tight text-blue-900">
+                            Spreadsheet Monitoring Billing
+                        </h2>
+                    </div>
+
+                    <button
+                        className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 font-semibold text-white shadow-md transition-opacity hover:opacity-90"
+                        type="button"
+                    >
+                        <span className="material-symbols-outlined text-sm">download</span>
+                        Ekspor Excel
+                    </button>
+                </section>
+
+                <section className="space-y-4 rounded-xl border border-slate-100 bg-white p-5 shadow-sm">
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                        <div>
+                            <label className="mb-1.5 ml-1 block text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                Pencarian Cepat
+                            </label>
+                            <div className="relative">
+                                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-base text-slate-400">
+                                    search
+                                </span>
+                                <input
+                                    className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2.5 pl-9 pr-4 text-xs transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                    placeholder="ISP, Pelanggan, Kontrak..."
+                                    type="text"
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="mb-1.5 ml-1 block text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                Nama ISP
+                            </label>
+                            <select className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-medium text-slate-600 transition-all focus:border-primary focus:ring-2 focus:ring-primary/20">
+                                <option>Semua ISP</option>
+                                <option>Telkom</option>
+                                <option>Indosat</option>
+                                <option>Biznet</option>
+                                <option>CBN</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label className="mb-1.5 ml-1 block text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                Pelanggan
+                            </label>
+                            <select className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-medium text-slate-600 transition-all focus:border-primary focus:ring-2 focus:ring-primary/20">
+                                <option>Semua Pelanggan</option>
+                                <option>PT. Maju Bersama</option>
+                                <option>Yayasan Digital</option>
+                                <option>Global Tech Corp</option>
+                                <option>Inti Nusantara</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label className="mb-1.5 ml-1 block text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                Status Invoice
+                            </label>
+                            <select className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-medium text-slate-600 transition-all focus:border-primary focus:ring-2 focus:ring-primary/20">
+                                <option>Semua Status</option>
+                                <option>Lunas</option>
+                                <option>Belum Bayar</option>
+                                <option>Terlambat</option>
+                                <option>Belum Ditagih</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 items-end gap-4 lg:grid-cols-5">
+                        <div>
+                            <label className="mb-1.5 ml-1 block text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                Tahun
+                            </label>
+                            <select className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-medium text-slate-600 transition-all focus:border-primary focus:ring-2 focus:ring-primary/20">
+                                <option>2024</option>
+                                <option>2025</option>
+                                <option>2026</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label className="mb-1.5 ml-1 block text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                Core
+                            </label>
+                            <select className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-medium text-slate-600 transition-all focus:border-primary focus:ring-2 focus:ring-primary/20">
+                                <option>Semua Core</option>
+                                <option>4 Cores</option>
+                                <option>8 Cores</option>
+                                <option>12 Cores</option>
+                                <option>24 Cores</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label className="mb-1.5 ml-1 block text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                Sharing Core
+                            </label>
+                            <select className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-medium text-slate-600 transition-all focus:border-primary focus:ring-2 focus:ring-primary/20">
+                                <option>Semua</option>
+                                <option>Dedicated (1:1)</option>
+                                <option>Shared 1:2</option>
+                                <option>Shared 1:4</option>
+                            </select>
+                        </div>
+
+                        <div className="col-span-2 flex gap-2 lg:col-span-2">
+                            <button
+                                className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-blue-100 bg-blue-50 px-4 py-2.5 text-xs font-bold text-blue-700 transition-colors hover:bg-blue-100"
+                                type="button"
+                            >
+                                <span className="material-symbols-outlined text-sm">search</span>
+                                Terapkan Filter
+                            </button>
+                            <button
+                                className="flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-500 transition-colors hover:bg-slate-50"
+                                type="button"
+                            >
+                                <span className="material-symbols-outlined text-sm">refresh</span>
+                                Reset
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <section className="flex flex-wrap items-center gap-6 rounded-xl border border-slate-100 bg-surface-container-low p-4">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Keterangan:</span>
+                    <div className="flex items-center gap-2">
+                        <div className="h-3 w-3 rounded bg-emerald-500"></div>
+                        <span className="text-xs font-bold text-slate-600">Lunas</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <div className="h-3 w-3 rounded bg-red-500"></div>
+                        <span className="text-xs font-bold text-slate-600">Belum Bayar</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <div className="h-3 w-3 rounded bg-orange-400"></div>
+                        <span className="text-xs font-bold text-slate-600">Terlambat</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <div className="h-3 w-3 rounded bg-amber-200"></div>
+                        <span className="text-xs font-bold text-slate-600">Belum Ditagih</span>
+                    </div>
+                </section>
+
+                <section className="overflow-hidden rounded-xl border border-slate-100 bg-white shadow-sm">
+                    <div className="overflow-x-auto no-scrollbar">
+                        <table className="w-full min-w-[1640px] border-collapse text-[13px]">
+                            <thead>
+                                <tr className="border-b border-slate-100 bg-slate-50/80">
+                                    <th
+                                        className="monitoring-sticky monitoring-sticky-shadow w-[52px] px-4 py-5 text-left font-bold uppercase tracking-tighter text-blue-900"
+                                        style={{ left: "0px" }}
+                                    >
+                                        No
+                                    </th>
+                                    <th
+                                        className="monitoring-sticky monitoring-sticky-shadow w-[108px] px-6 py-5 text-left font-bold uppercase tracking-tighter text-blue-900"
+                                        style={{ left: "52px" }}
+                                    >
+                                        Nama ISP
+                                    </th>
+                                    <th
+                                        className="monitoring-sticky monitoring-sticky-shadow w-[230px] border-r border-slate-200/60 px-6 py-5 text-left font-bold uppercase tracking-tighter text-blue-900"
+                                        style={{ left: "160px" }}
+                                    >
+                                        Nama Pelanggan
+                                    </th>
+                                    <th className="whitespace-nowrap px-6 py-5 text-left font-bold uppercase tracking-tighter text-blue-900">
+                                        Mulai Kontrak
+                                    </th>
+                                    <th className="whitespace-nowrap px-6 py-5 text-left font-bold uppercase tracking-tighter text-blue-900">
+                                        Akhir Kontrak
+                                    </th>
+                                    <th className="whitespace-nowrap px-6 py-5 text-left font-bold uppercase tracking-tighter text-blue-900">
+                                        Core Type
+                                    </th>
+                                    <th className="whitespace-nowrap px-6 py-5 text-left font-bold uppercase tracking-tighter text-blue-900">
+                                        Biaya Aktivasi
+                                    </th>
+                                    <th className="whitespace-nowrap border-l border-slate-200/60 px-6 py-5 text-center font-bold uppercase tracking-widest text-blue-900" colSpan="12">
+                                        Monitoring Billing 2024
+                                    </th>
+                                </tr>
+                                <tr className="border-b border-slate-100 bg-slate-100/30 text-[10px] font-black uppercase text-slate-500">
+                                    <th className="border-r border-slate-200/60 bg-white" colSpan="7"></th>
+                                    {monitoringMonths.map((month, index) => (
+                                        <th
+                                            key={month}
+                                            className={`w-12 px-2 py-2 text-center ${index === 0 ? "border-l border-slate-200/60" : ""}`}
+                                        >
+                                            {month}
+                                        </th>
+                                    ))}
+                                </tr>
+                            </thead>
+
+                            <tbody className="divide-y divide-slate-50">
+                                {monitoringRows.map((row, rowIndex) => (
+                                    <tr key={row.no} className="bg-white transition-colors hover:bg-blue-50/30">
+                                        <td
+                                            className="monitoring-sticky monitoring-sticky-shadow px-4 py-4 font-medium text-slate-400"
+                                            style={{ left: "0px" }}
+                                        >
+                                            {row.no}
+                                        </td>
+                                        <td
+                                            className="monitoring-sticky monitoring-sticky-shadow px-6 py-4 font-bold text-blue-900"
+                                            style={{ left: "52px" }}
+                                        >
+                                            {row.isp}
+                                        </td>
+                                        <td
+                                            className="monitoring-sticky monitoring-sticky-shadow border-r border-slate-100 px-6 py-4 font-semibold text-slate-700"
+                                            style={{ left: "160px" }}
+                                        >
+                                            {row.customer}
+                                        </td>
+                                        <td className="px-6 py-4 text-slate-500">{row.start}</td>
+                                        <td className="px-6 py-4 text-slate-500">{row.end}</td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-2">
+                                                <span className={`rounded px-2 py-0.5 text-[11px] font-bold ${row.coreType === "Dedicated" ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-600"}`}>
+                                                    {row.coreType}
+                                                </span>
+                                                <span className="font-medium text-slate-600">{row.coreCount}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            {row.activationStatus === "done" ? (
+                                                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
+                                                    <span className="material-symbols-outlined text-sm">check_circle</span>
+                                                    {row.activationText}
+                                                </span>
+                                            ) : (
+                                                <div className="space-y-0.5">
+                                                    <p className="font-bold text-blue-900">{row.activationAmount}</p>
+                                                    <span className="text-[10px] font-black uppercase tracking-tight text-red-500">
+                                                        {row.activationText}
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </td>
+
+                                        {row.months.map((status, monthIndex) => (
+                                            <td
+                                                key={`${row.no}-${monitoringMonths[monthIndex]}`}
+                                                className={`p-1 ${monthIndex === 0 ? "border-l border-slate-100" : ""}`}
+                                            >
+                                                <div
+                                                    className={`h-8 w-full rounded-sm shadow-inner ${monthCellClass[status] ?? monthCellClass.none} ${rowIndex === 1 && monthIndex === 2 ? "animate-pulse" : ""}`}
+                                                ></div>
+                                            </td>
+                                        ))}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/50 px-8 py-5">
+                        <p className="text-xs font-semibold text-slate-500">
+                            Menampilkan <span className="text-blue-900">4</span> dari <span className="text-blue-900">128</span> baris data
+                        </p>
+                        <div className="flex items-center gap-2">
+                            <button
+                                className="rounded-lg border border-slate-200 bg-white p-2 text-slate-400 transition-all hover:text-blue-900"
+                                type="button"
+                            >
+                                <span className="material-symbols-outlined text-base">chevron_left</span>
+                            </button>
+                            <div className="flex gap-1">
+                                <button
+                                    className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-xs font-bold text-white shadow-md"
+                                    type="button"
+                                >
+                                    1
+                                </button>
+                                <button
+                                    className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-xs font-bold text-slate-600 transition-colors hover:bg-slate-100"
+                                    type="button"
+                                >
+                                    2
+                                </button>
+                                <button
+                                    className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-xs font-bold text-slate-600 transition-colors hover:bg-slate-100"
+                                    type="button"
+                                >
+                                    3
+                                </button>
+                            </div>
+                            <button
+                                className="rounded-lg border border-slate-200 bg-white p-2 text-slate-400 transition-all hover:text-blue-900"
+                                type="button"
+                            >
+                                <span className="material-symbols-outlined text-base">chevron_right</span>
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <section className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                    <div className="rounded-xl border border-slate-100 border-l-4 border-l-emerald-500 bg-white p-6 shadow-sm">
+                        <div className="mb-4 flex items-start justify-between">
+                            <div className="rounded-lg bg-emerald-50 p-2 text-emerald-600">
+                                <span className="material-symbols-outlined">payments</span>
+                            </div>
+                            <span className="text-[10px] font-black uppercase text-emerald-600">92% Lunas</span>
+                        </div>
+                        <h4 className="mb-1 text-xs font-bold uppercase tracking-wider text-slate-500">
+                            Total Penagihan Bulan Ini
+                        </h4>
+                        <p className="text-2xl font-black text-blue-900">Rp 458.000.000</p>
+                    </div>
+
+                    <div className="rounded-xl border border-slate-100 border-l-4 border-l-red-500 bg-white p-6 shadow-sm">
+                        <div className="mb-4 flex items-start justify-between">
+                            <div className="rounded-lg bg-red-50 p-2 text-red-600">
+                                <span className="material-symbols-outlined">pending_actions</span>
+                            </div>
+                            <span className="text-[10px] font-black uppercase text-red-600">8 Tertunda</span>
+                        </div>
+                        <h4 className="mb-1 text-xs font-bold uppercase tracking-wider text-slate-500">
+                            Total Belum Dibayar
+                        </h4>
+                        <p className="text-2xl font-black text-blue-900">Rp 12.450.000</p>
+                    </div>
+
+                    <div className="rounded-xl border border-slate-100 border-l-4 border-l-primary bg-white p-6 shadow-sm">
+                        <div className="mb-4 flex items-start justify-between">
+                            <div className="rounded-lg bg-blue-50 p-2 text-blue-600">
+                                <span className="material-symbols-outlined">description</span>
+                            </div>
+                            <span className="text-[10px] font-black uppercase text-blue-600">12 Aktif</span>
+                        </div>
+                        <h4 className="mb-1 text-xs font-bold uppercase tracking-wider text-slate-500">
+                            Kontrak Baru Bulan Ini
+                        </h4>
+                        <p className="text-2xl font-black text-blue-900">12 Pelanggan</p>
+                    </div>
+                </section>
+            </div>
+        </AppShell>
+    );
+}
+
 function SectionPlaceholderPage({ activeSection, onNavigate }) {
     const section = sectionMeta[activeSection] ?? sectionMeta.dashboard;
 
@@ -877,7 +1401,7 @@ function SectionPlaceholderPage({ activeSection, onNavigate }) {
     );
 }
 
-function CustomerDetailPage({ customer, onBack, onNavigate }) {
+function CustomerDetailPage({ customer, onBack, onEdit, onNavigate }) {
     const statusLabel = customer.active ? "ACTIVE" : "NON-ACTIVE";
     const statusClass = customer.active
         ? "border-primary bg-surface-container text-primary"
@@ -921,6 +1445,7 @@ function CustomerDetailPage({ customer, onBack, onNavigate }) {
                 <div className="flex gap-3">
                     <button
                         className="rounded-xl bg-surface-container-high px-5 py-2.5 text-sm font-semibold text-on-surface"
+                        onClick={() => onEdit(customer)}
                         type="button"
                     >
                         Edit Profil
