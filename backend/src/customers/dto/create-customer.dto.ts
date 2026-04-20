@@ -25,6 +25,8 @@ export class CreateCustomerDto {
     contractNumber?: string | null;
     contractStartDate?: string | null;
     contractEndDate?: string | null;
+    paket?: 'core' | 'shared';
+    jumlah?: number;
     contractCoreTotal?: number;
     contractSharingRatio?: string;
     billingPeriodMode?: 'bulanan' | '3bulanan' | 'custom';

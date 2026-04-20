@@ -50,6 +50,32 @@ export enum IspPackageType {
   Shared = 'shared',
 }
 
+export enum IspRenewalStatus {
+  Active = 'active',
+  Warning = 'warning',
+  Pending = 'pending',
+  Renewed = 'renewed',
+  Terminated = 'terminated',
+  NeedsCompletion = 'needs_completion',
+}
+
+export interface IspContractRow {
+  id: number;
+  ispId: number;
+  contractReference: string;
+  periodStart: string | null;
+  periodEnd: string | null;
+  renewalStatus: IspRenewalStatus;
+  bakFileUrl: string | null;
+  bakFileName: string | null;
+  renewalFileUrl: string | null;
+  renewalFileName: string | null;
+  responseFileUrl: string | null;
+  responseFileName: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Isp {
   id: number;
   name: string;
@@ -177,6 +203,7 @@ export interface TenantTodoItem {
   | 'payment_pending'
   | 'bak_missing'
   | 'required_document_missing'
+  | 'invoice_amount_missing'
   | 'invoice_not_uploaded'
   | 'recent_activity';
   title: string;

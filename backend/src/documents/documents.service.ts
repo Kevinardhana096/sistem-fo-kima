@@ -173,16 +173,6 @@ export class DocumentsService {
     contractVersionId: number | null,
     contractNumber: string | null,
   ): void {
-    const invoiceFileUrl =
-      payload.invoiceFileUrl && payload.invoiceFileUrl.trim().length > 0
-        ? payload.invoiceFileUrl.trim()
-        : document.fileUrl;
-
-    const paymentProofFileUrl =
-      typeof payload.paymentProofFileUrl === 'string' && payload.paymentProofFileUrl.trim().length > 0
-        ? payload.paymentProofFileUrl.trim()
-        : null;
-
     const tanggalDokumen = document.tanggalDokumen;
     const periodYear = Number(tanggalDokumen.slice(0, 4));
     const periodMonth = Number(tanggalDokumen.slice(5, 7));
@@ -194,6 +184,21 @@ export class DocumentsService {
         .find(
           (invoice) => invoice.periodYear === periodYear && invoice.periodMonth === periodMonth,
         );
+
+    const invoiceFileUrl =
+      typeof payload.invoiceFileUrl === 'string'
+        ? (payload.invoiceFileUrl.trim().length > 0
+          ? payload.invoiceFileUrl.trim()
+          : null)
+        : existingInvoice?.invoiceFileUrl ?? document.fileUrl;
+
+    const hasIncomingPaymentProof =
+      typeof payload.paymentProofFileUrl === 'string' && payload.paymentProofFileUrl.trim().length > 0;
+
+    const paymentProofFileUrl =
+      hasIncomingPaymentProof
+        ? payload.paymentProofFileUrl!.trim()
+        : existingInvoice?.paymentProofFileUrl ?? null;
 
     const targetAmount = Number(existingInvoice?.amount ?? 0);
     const dueDate = existingInvoice?.dueDate ?? this.shiftDate(tanggalDokumen, 10);
@@ -212,7 +217,11 @@ export class DocumentsService {
       amount: targetAmount,
       status: paymentProofFileUrl ? InvoiceStatus.Lunas : undefined,
       documentId: document.id,
-      paidAt: paymentProofFileUrl ? tanggalDokumen : existingInvoice?.paidAt ?? null,
+      paidAt: paymentProofFileUrl
+        ? (hasIncomingPaymentProof
+          ? tanggalDokumen
+          : existingInvoice?.paidAt ?? tanggalDokumen)
+        : null,
       invoiceFileUrl,
       paymentProofFileUrl,
     });

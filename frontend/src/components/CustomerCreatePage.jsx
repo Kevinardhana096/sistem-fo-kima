@@ -475,7 +475,7 @@ function CreateSidebar({ activeSection, onNavigate }) {
                         alt=""
                         aria-hidden="true"
                         className="h-10 w-10 object-contain"
-                        src="/favicon.svg"
+                        src="/logo-kima.png"
                     />
                     <div>
                         <p className="text-lg font-extrabold tracking-tight text-blue-900">KIMA</p>

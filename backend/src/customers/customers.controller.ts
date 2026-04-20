@@ -13,6 +13,7 @@ import { CreateCustomerDto } from './dto/create-customer.dto';
 import { CreateCustomerContractDto } from './dto/create-customer-contract.dto';
 import { UpdateCustomerContractDto } from './dto/update-customer-contract.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
+import { UpdateCustomerInvoiceDto } from './dto/update-customer-invoice.dto';
 
 @Controller('api/customers')
 export class CustomersController {
@@ -39,6 +40,15 @@ export class CustomersController {
     @Body() payload: UpdateCustomerDto,
   ) {
     return this.customersService.update(customerId, payload);
+  }
+
+  @Patch(':customerId/invoices/:invoiceId')
+  updateInvoice(
+    @Param('customerId', ParseIntPipe) customerId: number,
+    @Param('invoiceId', ParseIntPipe) invoiceId: number,
+    @Body() payload: UpdateCustomerInvoiceDto,
+  ) {
+    return this.customersService.updateInvoice(customerId, invoiceId, payload);
   }
 
   @Post(':customerId/contracts')

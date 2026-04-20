@@ -37,29 +37,95 @@ export class IspsService {
 
     const tenants = this.store.listIspTenants(ispId).map((tenant) => {
       const todoSummary = this.store.buildCustomerTodoSummary(tenant.id);
+      const contract = this.store.listCustomerContracts(tenant.id)[0];
       const activeVersion = this.store.getActiveContractVersion(tenant.id);
+      const latestVersion = contract
+        ? this.store.getLatestContractVersion(contract.id)
+        : undefined;
+      const versionSnapshot = activeVersion ?? latestVersion;
 
       return {
         ...tenant,
+        paket: versionSnapshot?.coreType === 'sharing_core' ? 'shared core' : 'core',
+        jumlah: versionSnapshot?.coreType === 'core'
+          ? versionSnapshot?.coreTotal ?? null
+          : versionSnapshot?.sharedCoreRatio ?? null,
+        contractSharingRatio: versionSnapshot?.sharedCoreRatio ?? null,
         todoSummary,
         activeContractVersionId: activeVersion?.id ?? null,
       };
     });
 
     const summary = this.store.getIspOperationalSummary(ispId);
+    const contractRows = this.store.listIspContractRows(ispId);
 
     return {
       ...isp,
       summary,
       tenants,
+      contractRows,
     };
   }
 
-  createIsp(payload: CreateIspDto) {
-    if (!payload || typeof payload !== 'object') {
-      throw new BadRequestException('Request body is required.');
+  getIspContractRows(ispId: number) {
+    const isp = this.store.getIspById(ispId);
+    if (!isp) {
+      throw new NotFoundException('ISP not found.');
     }
 
+    return this.store.listIspContractRows(ispId);
+  }
+
+  updateContractRow(ispId: number, rowId: number, payload: any) {
+    const row = this.store.getIspContractRowById(rowId);
+    if (!row || row.ispId !== ispId) {
+      throw new NotFoundException('Contract row not found.');
+    }
+
+    const updates: any = {};
+    if (payload.contractReference !== undefined) updates.contractReference = payload.contractReference;
+    if (payload.periodStart !== undefined) updates.periodStart = this.parseOptionalIsoDate(payload.periodStart, 'periodStart');
+    if (payload.periodEnd !== undefined) updates.periodEnd = this.parseOptionalIsoDate(payload.periodEnd, 'periodEnd');
+
+    return this.store.updateIspContractRow(rowId, updates);
+  }
+
+  uploadRenewalFile(ispId: number, rowId: number, fileUrl: string, fileName: string) {
+    const row = this.store.getIspContractRowById(rowId);
+    if (!row || row.ispId !== ispId) {
+      throw new NotFoundException('Contract row not found.');
+    }
+
+    return this.store.uploadIspContractRenewalFile(rowId, fileUrl, fileName);
+  }
+
+  respondRenewal(ispId: number, rowId: number, payload: { decision: 'lanjut' | 'tidak'; fileUrl: string; fileName: string }) {
+    const row = this.store.getIspContractRowById(rowId);
+    if (!row || row.ispId !== ispId) {
+      throw new NotFoundException('Contract row not found.');
+    }
+
+    if (!payload.decision || !['lanjut', 'tidak'].includes(payload.decision)) {
+      throw new BadRequestException('Decision must be "lanjut" or "tidak".');
+    }
+
+    if (!payload.fileUrl) {
+      throw new BadRequestException('Response file is required.');
+    }
+
+    return this.store.respondIspContractRenewal(rowId, payload.decision, payload.fileUrl, payload.fileName);
+  }
+
+  uploadBakFile(ispId: number, rowId: number, fileUrl: string, fileName: string) {
+    const row = this.store.getIspContractRowById(rowId);
+    if (!row || row.ispId !== ispId) {
+      throw new NotFoundException('Contract row not found.');
+    }
+
+    return this.store.uploadIspContractBak(rowId, fileUrl, fileName);
+  }
+
+  createIsp(payload: CreateIspDto) {
     const name = this.normalizeRequiredString(payload.name, 'name');
     const contractReference = this.normalizeRequiredString(
       payload.contractReference,
@@ -71,7 +137,7 @@ export class IspsService {
       throw new BadRequestException('ISP with this name already exists.');
     }
 
-    return this.store.createIsp({
+    const createdIsp = this.store.createIsp({
       name,
       status: this.parseIspStatus(payload.status),
       contractReference,
@@ -90,6 +156,23 @@ export class IspsService {
       paket: this.parsePackageType(payload.paket),
       jumlah: this.parseJumlah(payload.jumlah, 0),
     });
+
+    this.store.createIspContractRow({
+      ispId: createdIsp.id,
+      contractReference,
+      periodStart: this.parseOptionalIsoDate(
+        payload.contractPeriodStart,
+        'contractPeriodStart',
+      ),
+      periodEnd: this.parseOptionalIsoDate(
+        payload.contractPeriodEnd,
+        'contractPeriodEnd',
+      ),
+      bakFileUrl: payload.bakFileName?.trim() || null,
+      bakFileName: payload.bakFileName?.trim() || null,
+    });
+
+    return this.getIspDetail(createdIsp.id);
   }
 
   updateIsp(ispId: number, payload: UpdateIspDto) {
@@ -175,10 +258,24 @@ export class IspsService {
       throw new NotFoundException('ISP not found.');
     }
 
-    return this.store.listIspTenants(ispId).map((tenant) => ({
-      ...tenant,
-      todoSummary: this.store.buildCustomerTodoSummary(tenant.id),
-    }));
+    return this.store.listIspTenants(ispId).map((tenant) => {
+      const contract = this.store.listCustomerContracts(tenant.id)[0];
+      const activeVersion = this.store.getActiveContractVersion(tenant.id);
+      const latestVersion = contract
+        ? this.store.getLatestContractVersion(contract.id)
+        : undefined;
+      const versionSnapshot = activeVersion ?? latestVersion;
+
+      return {
+        ...tenant,
+        paket: versionSnapshot?.coreType === 'sharing_core' ? 'shared core' : 'core',
+        jumlah: versionSnapshot?.coreType === 'core'
+          ? versionSnapshot?.coreTotal ?? null
+          : versionSnapshot?.sharedCoreRatio ?? null,
+        contractSharingRatio: versionSnapshot?.sharedCoreRatio ?? null,
+        todoSummary: this.store.buildCustomerTodoSummary(tenant.id),
+      };
+    });
   }
 
   attachTenant(ispId: number, payload: { customerId?: number }) {

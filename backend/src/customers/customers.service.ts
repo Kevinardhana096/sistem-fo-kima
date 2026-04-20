@@ -20,6 +20,7 @@ import {
 import { CreateCustomerContractDto } from './dto/create-customer-contract.dto';
 import { UpdateCustomerContractDto } from './dto/update-customer-contract.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
+import { UpdateCustomerInvoiceDto } from './dto/update-customer-invoice.dto';
 
 const addDays = (value: string, days: number): string => {
   const next = new Date(`${value}T00:00:00.000Z`);
@@ -38,6 +39,7 @@ export class CustomersService {
       const invoices = this.store.listCustomerInvoices(customer.id);
       const isps = this.store.listCustomerIsps(customer.id);
       const todoSummary = this.store.buildCustomerTodoSummary(customer.id);
+      const contractSnapshot = this.buildCustomerContractSnapshot(customer.id);
 
       return {
         ...customer,
@@ -46,6 +48,7 @@ export class CustomersService {
           name: isp.name,
           status: isp.status,
         })),
+        ...contractSnapshot,
         contractCount: contracts.length,
         contractVersionCount: this.store.listCustomerContractVersions(customer.id).length,
         documentCount: documents.length,
@@ -97,6 +100,8 @@ export class CustomersService {
 
     if (contractPeriod) {
       const technical = this.parseTenantTechnical(
+        payload?.paket,
+        payload?.jumlah ?? payload?.contractCoreTotal,
         payload?.contractSharingRatio,
       );
       const billing = this.parseBillingSettings(payload);
@@ -163,6 +168,7 @@ export class CustomersService {
     const isps = this.store.listCustomerIsps(customerId);
     const invoices = this.store.listCustomerInvoices(customerId);
     const documents = this.store.listCustomerDocuments(customerId);
+    const contractSnapshot = this.buildCustomerContractSnapshot(customerId);
 
     return {
       ...customer,
@@ -171,6 +177,7 @@ export class CustomersService {
         name: isp.name,
         status: isp.status,
       })),
+      ...contractSnapshot,
       contracts,
       contractVersions,
       activeContractId: primaryContract?.id ?? null,
@@ -527,6 +534,102 @@ export class CustomersService {
     return version;
   }
 
+  updateInvoice(
+    customerId: number,
+    invoiceId: number,
+    payload: UpdateCustomerInvoiceDto,
+  ) {
+    this.ensureCustomerExists(customerId);
+
+    if (!payload || typeof payload !== 'object') {
+      throw new BadRequestException('Request body is required.');
+    }
+
+    const existingInvoice = this.store.getCustomerInvoiceById(customerId, invoiceId);
+    if (!existingInvoice) {
+      throw new NotFoundException('Invoice not found for this customer.');
+    }
+
+    const updates: {
+      invoiceNumber?: string | null;
+      periodStartDate?: string | null;
+      periodEndDate?: string | null;
+      dueDate?: string | null;
+      amount?: number;
+      paidAt?: string | null;
+      invoiceFileUrl?: string | null;
+      paymentProofFileUrl?: string | null;
+    } = {};
+
+    if (payload.invoiceNumber !== undefined) {
+      updates.invoiceNumber = this.parseOptionalContractNumber(payload.invoiceNumber);
+    }
+
+    const nextPeriodStartDate = payload.periodStartDate !== undefined
+      ? this.parseNullableIsoDateString(payload.periodStartDate, 'periodStartDate')
+      : existingInvoice.periodStartDate ?? null;
+
+    const nextPeriodEndDate = payload.periodEndDate !== undefined
+      ? this.parseNullableIsoDateString(payload.periodEndDate, 'periodEndDate')
+      : existingInvoice.periodEndDate ?? null;
+
+    if (nextPeriodStartDate && nextPeriodEndDate && nextPeriodStartDate > nextPeriodEndDate) {
+      throw new BadRequestException('periodStartDate must be less than or equal to periodEndDate.');
+    }
+
+    if (payload.periodStartDate !== undefined) {
+      updates.periodStartDate = nextPeriodStartDate;
+    }
+
+    if (payload.periodEndDate !== undefined) {
+      updates.periodEndDate = nextPeriodEndDate;
+    }
+
+    if (payload.dueDate !== undefined) {
+      updates.dueDate = this.parseNullableIsoDateString(payload.dueDate, 'dueDate');
+    }
+
+    if (payload.amount !== undefined) {
+      const amount = Number(payload.amount);
+      if (!Number.isFinite(amount) || amount < 0) {
+        throw new BadRequestException('amount must be a non-negative number.');
+      }
+
+      updates.amount = Math.round(amount);
+    }
+
+    if (payload.invoiceFileUrl !== undefined) {
+      updates.invoiceFileUrl = this.normalizeOptionalString(payload.invoiceFileUrl);
+    }
+
+    if (payload.paymentProofFileUrl !== undefined) {
+      updates.paymentProofFileUrl = this.normalizeOptionalString(payload.paymentProofFileUrl);
+
+      if (updates.paymentProofFileUrl && payload.paidAt === undefined) {
+        updates.paidAt = new Date().toISOString().slice(0, 10);
+      }
+
+      if (!updates.paymentProofFileUrl && payload.paidAt === undefined) {
+        updates.paidAt = null;
+      }
+    }
+
+    if (payload.paidAt !== undefined) {
+      updates.paidAt = this.parseNullableIsoDateString(payload.paidAt, 'paidAt');
+    }
+
+    if (Object.keys(updates).length === 0) {
+      throw new BadRequestException('No valid fields provided for invoice update.');
+    }
+
+    const updatedInvoice = this.store.updateInvoice(customerId, invoiceId, updates);
+    if (!updatedInvoice) {
+      throw new NotFoundException('Invoice not found for this customer.');
+    }
+
+    return updatedInvoice;
+  }
+
   addCustomerIsps(
     customerId: number,
     payload: {
@@ -765,12 +868,57 @@ export class CustomersService {
   }
 
   private parseTenantTechnical(
+    paket: unknown,
+    jumlah: unknown,
     contractSharingRatio: unknown,
   ): { coreType: CoreAllocationType; coreTotal: number; sharingRatio: string | null } {
+    if (paket === 'core') {
+      return {
+        coreType: CoreAllocationType.Core,
+        coreTotal: this.parseCoreTotal(jumlah, 1),
+        sharingRatio: null,
+      };
+    }
+
     return {
       coreType: CoreAllocationType.SharingCore,
       coreTotal: 1,
       sharingRatio: this.parseSharingRatio(contractSharingRatio, '1:8'),
+    };
+  }
+
+  private buildCustomerContractSnapshot(customerId: number): {
+    paket: string | null;
+    jumlah: number | string | null;
+    contractSharingRatio: string | null;
+    contractPeriodStart: string | null;
+    contractPeriodEnd: string | null;
+  } {
+    const contract = this.store.listCustomerContracts(customerId)[0];
+    const activeVersion = this.store.getActiveContractVersion(customerId);
+    const latestVersion = contract
+      ? this.store.getLatestContractVersion(contract.id)
+      : undefined;
+    const versionSnapshot = activeVersion ?? latestVersion;
+
+    if (!versionSnapshot) {
+      return {
+        paket: null,
+        jumlah: null,
+        contractSharingRatio: null,
+        contractPeriodStart: null,
+        contractPeriodEnd: null,
+      };
+    }
+
+    return {
+      paket: versionSnapshot.coreType === CoreAllocationType.SharingCore ? 'shared core' : 'core',
+      jumlah: versionSnapshot.coreType === CoreAllocationType.Core
+        ? versionSnapshot.coreTotal
+        : versionSnapshot.sharedCoreRatio,
+      contractSharingRatio: versionSnapshot.sharedCoreRatio ?? null,
+      contractPeriodStart: versionSnapshot.startDate,
+      contractPeriodEnd: versionSnapshot.endDate,
     };
   }
 
@@ -894,6 +1042,14 @@ export class CustomersService {
     }
 
     return value;
+  }
+
+  private parseNullableIsoDateString(value: unknown, fieldName: string): string | null {
+    if (value === undefined || value === null || value === '') {
+      return null;
+    }
+
+    return this.parseIsoDateString(value, fieldName);
   }
 
   private parseOptionalContractNumber(value: unknown): string | null {

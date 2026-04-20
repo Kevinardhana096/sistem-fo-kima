@@ -12,7 +12,9 @@ import {
   Invoice,
   InvoiceStatus,
   Isp,
+  IspContractRow,
   IspPackageType,
+  IspRenewalStatus,
   IspStatus,
   MonitoringAlert,
   MonitoringBillingRow,
@@ -123,12 +125,6 @@ interface CreateDocumentInput {
   fileUrl: string;
 }
 
-const REQUIRED_TENANT_DOCUMENT_TYPES: DocumentType[] = [
-  DocumentType.Penawaran,
-  DocumentType.Tanggapan,
-  DocumentType.HasilNego,
-];
-
 const monthLabel = [
   '',
   'Januari',
@@ -194,6 +190,7 @@ export class InMemoryDataService {
   private readonly contractVersions: ContractVersion[] = [];
   private readonly invoices: Invoice[] = [];
   private readonly documents: DocumentRecord[] = [];
+  private readonly ispContractRows: IspContractRow[] = [];
 
   private nextCustomerId = 1;
   private nextIspId = 1;
@@ -202,6 +199,7 @@ export class InMemoryDataService {
   private nextContractVersionId = 1;
   private nextInvoiceId = 1;
   private nextDocumentId = 1;
+  private nextIspContractRowId = 1;
 
   constructor() {
     this.seed();
@@ -706,7 +704,6 @@ export class InMemoryDataService {
     let contract = this.contracts.find((item) => item.customerId === customerId);
 
     if (!contract) {
-      contract = this.contracts.find((item) => item.customerId === customerId);
       const createdContract = this.createPrimaryContract(customerId, {
         contractNumber: undefined,
         startDate: referenceDate,
@@ -756,7 +753,6 @@ export class InMemoryDataService {
     let contract = this.contracts.find((item) => item.customerId === customerId);
 
     if (!contract) {
-      contract = this.contracts.find((item) => item.customerId === customerId);
       contract = this.createPrimaryContract(customerId, {
         contractNumber: undefined,
         startDate,
@@ -1080,6 +1076,14 @@ export class InMemoryDataService {
 
     if (updates.paymentProofFileUrl !== undefined) {
       invoice.paymentProofFileUrl = updates.paymentProofFileUrl;
+
+      if (!updates.paymentProofFileUrl && updates.paidAt === undefined) {
+        invoice.paidAt = null;
+      }
+
+      if (updates.paymentProofFileUrl && updates.paidAt === undefined) {
+        invoice.paidAt = toIsoDate(new Date());
+      }
     }
 
     invoice.status = updates.status ?? this.deriveInvoiceStatus(invoice);
@@ -1291,6 +1295,10 @@ export class InMemoryDataService {
         return false;
       }
 
+      if (!invoice.invoiceFileUrl) {
+        return false;
+      }
+
       if (invoice.status === InvoiceStatus.Terlambat) {
         return true;
       }
@@ -1337,75 +1345,97 @@ export class InMemoryDataService {
       );
     }
 
-    const customerDocumentTypes = new Set(
-      this.documents
-        .filter((document) => document.customerId === customerId)
-        .map((document) => document.jenisDokumen),
-    );
-
-    const missingRequiredDocs = REQUIRED_TENANT_DOCUMENT_TYPES.filter(
-      (documentType) => !customerDocumentTypes.has(documentType),
-    );
-
-    if (missingRequiredDocs.length > 0) {
-      needAction.push(
-        this.createTodoItem({
-          customerId,
-          category: 'need_action',
-          code: 'required_document_missing',
-          title: 'Dokumen tenant belum lengkap',
-          message: 'Dokumen belum lengkap.',
-          dueDate: null,
-        }),
-      );
-    }
-
     const invoicesWithoutUpload = this.invoices.filter((invoice) => {
       if (invoice.customerId !== customerId) {
         return false;
       }
 
-      return !invoice.invoiceFileUrl;
+      if (invoice.invoiceFileUrl || !invoice.dueDate) {
+        return false;
+      }
+
+      // Peringatan 1: H-7 sebelum jatuh tempo invoice.
+      return addDays(invoice.dueDate, -7) <= referenceDate;
     });
 
     if (invoicesWithoutUpload.length > 0) {
+      const nearestDueDate = invoicesWithoutUpload
+        .map((invoice) => invoice.dueDate)
+        .filter((value): value is string => Boolean(value))
+        .sort()[0] ?? null;
+
       needAction.push(
         this.createTodoItem({
           customerId,
           category: 'need_action',
           code: 'invoice_not_uploaded',
-          title: 'Upload invoice',
-          message: `${invoicesWithoutUpload.length} invoice belum diunggah.`,
-          dueDate: invoicesWithoutUpload[0].dueDate ?? null,
+          title: 'Peringatan upload invoice',
+          message: `${invoicesWithoutUpload.length} invoice mendekati jatuh tempo dan belum diunggah.`,
+          dueDate: nearestDueDate,
         }),
       );
     }
 
-    const unpaidInvoices = this.invoices.filter((invoice) => {
+    const pendingInvoices = this.invoices.filter((invoice) => {
       if (invoice.customerId !== customerId) {
         return false;
       }
 
-      if (invoice.status === InvoiceStatus.Lunas || invoice.status === InvoiceStatus.Terlambat) {
+      if (!invoice.invoiceFileUrl) {
         return false;
       }
 
-      if (invoice.dueDate && invoice.dueDate < referenceDate) {
+      if (invoice.status === InvoiceStatus.Lunas || invoice.paymentProofFileUrl) {
         return false;
       }
 
-      return true;
+      if (!invoice.dueDate) {
+        return true;
+      }
+
+      return invoice.dueDate >= referenceDate;
     });
 
-    if (unpaidInvoices.length > 0) {
+    if (pendingInvoices.length > 0) {
+      const nearestDueDate = pendingInvoices
+        .map((invoice) => invoice.dueDate)
+        .filter((value): value is string => Boolean(value))
+        .sort()[0] ?? null;
+
       needAction.push(
         this.createTodoItem({
           customerId,
           category: 'need_action',
           code: 'payment_pending',
-          title: 'Belum bayar',
-          message: `${unpaidInvoices.length} invoice belum dibayar.`,
-          dueDate: unpaidInvoices[0].dueDate ?? null,
+          title: 'Pending pembayaran',
+          message: `${pendingInvoices.length} invoice pending menunggu pembayaran.`,
+          dueDate: nearestDueDate,
+        }),
+      );
+    }
+
+    const invoicesWithoutAmount = this.invoices.filter((invoice) => {
+      if (invoice.customerId !== customerId) {
+        return false;
+      }
+
+      return Number(invoice.amount ?? 0) <= 0;
+    });
+
+    if (invoicesWithoutAmount.length > 0) {
+      const nearestDueDate = invoicesWithoutAmount
+        .map((invoice) => invoice.dueDate)
+        .filter((value): value is string => Boolean(value))
+        .sort()[0] ?? null;
+
+      needAction.push(
+        this.createTodoItem({
+          customerId,
+          category: 'need_action',
+          code: 'invoice_amount_missing',
+          title: 'Jumlah tagihan belum diinput',
+          message: `${invoicesWithoutAmount.length} invoice belum diinput jumlah tagihannya.`,
+          dueDate: nearestDueDate,
         }),
       );
     }
@@ -1701,9 +1731,7 @@ export class InMemoryDataService {
       todoSummary.needAction.forEach((item) => {
         const mappedCode = item.code === 'bak_missing'
           ? 'bak_missing'
-          : item.code === 'required_document_missing'
-            ? 'missing_required_document'
-            : 'invoice_not_uploaded';
+          : 'invoice_not_uploaded';
 
         alerts.push({
           customerId: customer.id,
@@ -1742,6 +1770,169 @@ export class InMemoryDataService {
     });
 
     return alerts;
+  }
+
+  // ── ISP Contract Row methods ──────────────────────────────────────────
+
+  listIspContractRows(ispId: number): IspContractRow[] {
+    return this.ispContractRows
+      .filter((row) => row.ispId === ispId)
+      .sort((a, b) => a.id - b.id)
+      .map((row) => this.cloneIspContractRow(row));
+  }
+
+  getIspContractRowById(rowId: number): IspContractRow | undefined {
+    const row = this.ispContractRows.find((item) => item.id === rowId);
+    return row ? this.cloneIspContractRow(row) : undefined;
+  }
+
+  createIspContractRow(input: {
+    ispId: number;
+    contractReference: string;
+    periodStart: string | null;
+    periodEnd: string | null;
+    renewalStatus?: IspRenewalStatus;
+    bakFileUrl?: string | null;
+    bakFileName?: string | null;
+  }): IspContractRow {
+    const now = nowIso();
+    const row: IspContractRow = {
+      id: this.nextIspContractRowId,
+      ispId: input.ispId,
+      contractReference: input.contractReference,
+      periodStart: input.periodStart,
+      periodEnd: input.periodEnd,
+      renewalStatus: input.renewalStatus ?? IspRenewalStatus.Active,
+      bakFileUrl: input.bakFileUrl ?? null,
+      bakFileName: input.bakFileName ?? null,
+      renewalFileUrl: null,
+      renewalFileName: null,
+      responseFileUrl: null,
+      responseFileName: null,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.nextIspContractRowId += 1;
+    this.ispContractRows.push(row);
+    this.syncIspContractSnapshotFromRows(input.ispId);
+    return this.cloneIspContractRow(row);
+  }
+
+  updateIspContractRow(
+    rowId: number,
+    updates: Partial<Pick<IspContractRow, 'contractReference' | 'periodStart' | 'periodEnd' | 'bakFileUrl' | 'bakFileName'>>,
+  ): IspContractRow | undefined {
+    const row = this.ispContractRows.find((item) => item.id === rowId);
+    if (!row) return undefined;
+
+    if (updates.contractReference !== undefined) row.contractReference = updates.contractReference;
+    if (updates.periodStart !== undefined) row.periodStart = updates.periodStart;
+    if (updates.periodEnd !== undefined) row.periodEnd = updates.periodEnd;
+    if (updates.bakFileUrl !== undefined) row.bakFileUrl = updates.bakFileUrl;
+    if (updates.bakFileName !== undefined) row.bakFileName = updates.bakFileName;
+    row.updatedAt = nowIso();
+
+    // If this row was needs_completion, check if enough data now
+    if (row.renewalStatus === IspRenewalStatus.NeedsCompletion) {
+      if (row.periodStart && row.periodEnd) {
+        row.renewalStatus = IspRenewalStatus.Active;
+      }
+    }
+
+    this.syncIspContractSnapshotFromRows(row.ispId);
+
+    return this.cloneIspContractRow(row);
+  }
+
+  uploadIspContractBak(
+    rowId: number,
+    fileUrl: string,
+    fileName: string,
+  ): IspContractRow | undefined {
+    const row = this.ispContractRows.find((item) => item.id === rowId);
+    if (!row) return undefined;
+
+    row.bakFileUrl = fileUrl;
+    row.bakFileName = fileName;
+    row.updatedAt = nowIso();
+    this.syncIspContractSnapshotFromRows(row.ispId);
+    return this.cloneIspContractRow(row);
+  }
+
+  uploadIspContractRenewalFile(
+    rowId: number,
+    fileUrl: string,
+    fileName: string,
+  ): IspContractRow | undefined {
+    const row = this.ispContractRows.find((item) => item.id === rowId);
+    if (!row) return undefined;
+
+    row.renewalFileUrl = fileUrl;
+    row.renewalFileName = fileName;
+    row.renewalStatus = IspRenewalStatus.Pending;
+    row.updatedAt = nowIso();
+    this.syncIspContractSnapshotFromRows(row.ispId);
+    return this.cloneIspContractRow(row);
+  }
+
+  respondIspContractRenewal(
+    rowId: number,
+    decision: 'lanjut' | 'tidak',
+    responseFileUrl: string,
+    responseFileName: string,
+  ): { updatedRow: IspContractRow; newRow?: IspContractRow } {
+    const row = this.ispContractRows.find((item) => item.id === rowId);
+    if (!row) throw new Error('Contract row not found.');
+
+    row.responseFileUrl = responseFileUrl;
+    row.responseFileName = responseFileName;
+    row.updatedAt = nowIso();
+
+    if (decision === 'lanjut') {
+      row.renewalStatus = IspRenewalStatus.Renewed;
+
+      // Create new contract row with empty period (needs_completion)
+      const newRow = this.createIspContractRow({
+        ispId: row.ispId,
+        contractReference: '',
+        periodStart: null,
+        periodEnd: null,
+        renewalStatus: IspRenewalStatus.NeedsCompletion,
+      });
+
+      return {
+        updatedRow: this.cloneIspContractRow(row),
+        newRow,
+      };
+    }
+
+    // decision === 'tidak'
+    row.renewalStatus = IspRenewalStatus.Terminated;
+
+    // Set ISP status to nonaktif
+    const isp = this.isps.find((item) => item.id === row.ispId);
+    if (isp) {
+      isp.status = IspStatus.Nonaktif;
+      isp.updatedAt = nowIso();
+    }
+
+    this.memberships
+      .filter((membership) => membership.ispId === row.ispId)
+      .forEach((membership) => {
+        const customer = this.customers.find((item) => item.id === membership.customerId);
+        if (!customer) {
+          return;
+        }
+
+        customer.status = CustomerStatus.Nonaktif;
+        customer.updatedAt = nowIso();
+      });
+
+    this.syncIspContractSnapshotFromRows(row.ispId);
+
+    return {
+      updatedRow: this.cloneIspContractRow(row),
+    };
   }
 
   getIspOperationalSummary(ispId: number): {
@@ -1797,34 +1988,6 @@ export class InMemoryDataService {
     };
   }
 
-  private cloneCustomer(customer: Customer): Customer {
-    return { ...customer };
-  }
-
-  private cloneIsp(isp: Isp): Isp {
-    return { ...isp };
-  }
-
-  private cloneMembership(membership: TenantIspMembership): TenantIspMembership {
-    return { ...membership };
-  }
-
-  private cloneContract(contract: Contract): Contract {
-    return { ...contract };
-  }
-
-  private cloneContractVersion(version: ContractVersion): ContractVersion {
-    return { ...version };
-  }
-
-  private cloneInvoice(invoice: Invoice): Invoice {
-    return { ...invoice };
-  }
-
-  private cloneDocument(document: DocumentRecord): DocumentRecord {
-    return { ...document };
-  }
-
   private applyPrimaryIspToCustomer(customer: Customer): Customer {
     const customerMemberships = this.memberships
       .filter((membership) => membership.customerId === customer.id)
@@ -1837,6 +2000,31 @@ export class InMemoryDataService {
     customer.ispName = primaryIsp?.name ?? customer.ispName ?? '-';
 
     return customer;
+  }
+
+  private syncIspContractSnapshotFromRows(ispId: number): void {
+    const isp = this.isps.find((item) => item.id === ispId);
+    if (!isp) {
+      return;
+    }
+
+    const latestRow = this.ispContractRows
+      .filter((row) => row.ispId === ispId && row.renewalStatus !== IspRenewalStatus.Terminated)
+      .sort((left, right) => right.id - left.id)[0];
+
+    if (!latestRow) {
+      return;
+    }
+
+    isp.contractReference = latestRow.contractReference?.trim() || null;
+    isp.contractPeriodStart = latestRow.periodStart ?? null;
+    isp.contractPeriodEnd = latestRow.periodEnd ?? null;
+
+    if (!isp.contractStartDate && latestRow.periodStart) {
+      isp.contractStartDate = latestRow.periodStart;
+    }
+
+    isp.updatedAt = nowIso();
   }
 
   private deriveInvoiceStatus(invoice: Partial<Invoice>): InvoiceStatus {
@@ -1917,42 +2105,42 @@ export class InMemoryDataService {
   }
 
   private seed(): void {
-    const telkom = this.createIspSeed({
+    const telkom = this.createIsp({
       name: 'TELKOM INDONESIA',
       status: IspStatus.Aktif,
       contractReference: 'CTR-INDUK-TELKOM-2026',
       paket: IspPackageType.Core,
       jumlah: 12,
     });
-    const biznet = this.createIspSeed({
+    const biznet = this.createIsp({
       name: 'BIZNET NETWORKS',
       status: IspStatus.Aktif,
       contractReference: 'CTR-INDUK-BIZNET-2026',
       paket: IspPackageType.Shared,
       jumlah: 8,
     });
-    const indosat = this.createIspSeed({
+    const indosat = this.createIsp({
       name: 'INDOSAT OOREDOO',
       status: IspStatus.Aktif,
       contractReference: 'CTR-INDUK-INDOSAT-2026',
       paket: IspPackageType.Shared,
       jumlah: 6,
     });
-    const moratel = this.createIspSeed({
+    const moratel = this.createIsp({
       name: 'MORATELINDO',
       status: IspStatus.Aktif,
       contractReference: 'CTR-INDUK-MORATEL-2026',
       paket: IspPackageType.Core,
       jumlah: 10,
     });
-    const cbn = this.createIspSeed({
+    const cbn = this.createIsp({
       name: 'CBN',
       status: IspStatus.Aktif,
       contractReference: 'CTR-INDUK-CBN-2026',
       paket: IspPackageType.Shared,
       jumlah: 4,
     });
-    const myrepublic = this.createIspSeed({
+    const myrepublic = this.createIsp({
       name: 'MYREPUBLIC',
       status: IspStatus.Nonaktif,
       contractReference: 'CTR-INDUK-MYREPUBLIC-2025',
@@ -1960,49 +2148,89 @@ export class InMemoryDataService {
       jumlah: 3,
     });
 
-    const customer1 = this.createCustomerSeed({
+    // Seed ISP contract rows
+    // ... (rest of the code)
+    this.createIspContractRow({
+      ispId: telkom.id,
+      contractReference: 'CTR-INDUK-TELKOM-2026',
+      periodStart: '2026-01-01',
+      periodEnd: '2026-06-30',
+    });
+    this.createIspContractRow({
+      ispId: biznet.id,
+      contractReference: 'CTR-INDUK-BIZNET-2026',
+      periodStart: '2026-01-01',
+      periodEnd: '2026-12-31',
+    });
+    this.createIspContractRow({
+      ispId: indosat.id,
+      contractReference: 'CTR-INDUK-INDOSAT-2026',
+      periodStart: '2025-07-01',
+      periodEnd: '2026-06-28',
+    });
+    this.createIspContractRow({
+      ispId: moratel.id,
+      contractReference: 'CTR-INDUK-MORATEL-2026',
+      periodStart: '2026-01-01',
+      periodEnd: '2027-01-01',
+    });
+    this.createIspContractRow({
+      ispId: cbn.id,
+      contractReference: 'CTR-INDUK-CBN-2026',
+      periodStart: '2026-01-01',
+      periodEnd: '2026-12-31',
+    });
+    this.createIspContractRow({
+      ispId: myrepublic.id,
+      contractReference: 'CTR-INDUK-MYREPUBLIC-2025',
+      periodStart: '2025-01-01',
+      periodEnd: '2025-12-31',
+      renewalStatus: IspRenewalStatus.Terminated,
+    });
+
+    const customer1 = this.createCustomer({
       name: 'PT Teknologi Nusantara Sejahtera',
       status: CustomerStatus.Aktif,
       activationFeeAmount: 3500000,
       activationFeePaidAt: '2026-01-10',
       ispName: telkom.name,
     });
-    const customer2 = this.createCustomerSeed({
+    const customer2 = this.createCustomer({
       name: 'Grand Atrium Mall Management',
       status: CustomerStatus.Nonaktif,
       activationFeeAmount: 2500000,
       activationFeePaidAt: null,
       ispName: biznet.name,
     });
-    const customer3 = this.createCustomerSeed({
+    const customer3 = this.createCustomer({
       name: 'Bank Syariah Indonesia Tbk',
       status: CustomerStatus.Aktif,
       activationFeeAmount: 4200000,
       activationFeePaidAt: null,
       ispName: indosat.name,
     });
-    const customer4 = this.createCustomerSeed({
+    const customer4 = this.createCustomer({
       name: 'PT Global Digital Niaga',
       status: CustomerStatus.Aktif,
       activationFeeAmount: 3000000,
       activationFeePaidAt: '2025-12-29',
       ispName: biznet.name,
     });
-    const customer5 = this.createCustomerSeed({
+    const customer5 = this.createCustomer({
       name: 'PT Sinar Teknologi Retail',
       status: CustomerStatus.Aktif,
       activationFeeAmount: 2800000,
       activationFeePaidAt: null,
       ispName: moratel.name,
     });
-    const customer6 = this.createCustomerSeed({
+    const customer6 = this.createCustomer({
       name: 'RS Permata Sehat Mandiri',
       status: CustomerStatus.Aktif,
       activationFeeAmount: 3200000,
       activationFeePaidAt: '2026-02-15',
       ispName: cbn.name,
     });
-    const customer7 = this.createCustomerSeed({
+    const customer7 = this.createCustomer({
       name: 'PT Kargo Cipta Logistik',
       status: CustomerStatus.Aktif,
       activationFeeAmount: 2750000,
@@ -2051,39 +2279,6 @@ export class InMemoryDataService {
       billingUnit: BillingUnit.Bulan,
     });
 
-    const contract5 = this.createPrimaryContract(customer5.id, {
-      contractNumber: 'CTR-STR-2026-002',
-      startDate: '2026-01-01',
-      endDate: '2026-12-31',
-      coreType: CoreAllocationType.Core,
-      coreTotal: 10,
-      sharingRatio: null,
-      billingEvery: 1,
-      billingUnit: BillingUnit.Bulan,
-    });
-
-    const contract6 = this.createPrimaryContract(customer6.id, {
-      contractNumber: 'CTR-RSPS-2026-004',
-      startDate: '2026-01-01',
-      endDate: '2026-12-31',
-      coreType: CoreAllocationType.Core,
-      coreTotal: 10,
-      sharingRatio: null,
-      billingEvery: 1,
-      billingUnit: BillingUnit.Bulan,
-    });
-
-    const contract7 = this.createPrimaryContract(customer7.id, {
-      contractNumber: 'CTR-KCL-2025-014',
-      startDate: '2025-12-15',
-      endDate: '2026-12-14',
-      coreType: CoreAllocationType.SharingCore,
-      coreTotal: 8,
-      sharingRatio: '1:2',
-      billingEvery: 1,
-      billingUnit: BillingUnit.Bulan,
-    });
-
     const version11 = this.createContractVersion(customer1.id, contract1.id, {
       startDate: '2025-07-01',
       endDate: '2025-12-31',
@@ -2107,42 +2302,6 @@ export class InMemoryDataService {
       endDate: '2026-04-28',
       coreType: CoreAllocationType.SharingCore,
       coreTotal: 6,
-      sharedCoreRatio: '1:2',
-      bakDocumentId: null,
-    });
-
-    const version41 = this.createContractVersion(customer4.id, contract4.id, {
-      startDate: '2025-11-01',
-      endDate: '2026-06-20',
-      coreType: CoreAllocationType.Core,
-      coreTotal: 24,
-      sharedCoreRatio: null,
-      bakDocumentId: null,
-    });
-
-    const version51 = this.createContractVersion(customer5.id, contract5.id, {
-      startDate: '2026-01-01',
-      endDate: '2026-12-31',
-      coreType: CoreAllocationType.Core,
-      coreTotal: 10,
-      sharedCoreRatio: null,
-      bakDocumentId: null,
-    });
-
-    const version61 = this.createContractVersion(customer6.id, contract6.id, {
-      startDate: '2026-01-01',
-      endDate: '2026-12-31',
-      coreType: CoreAllocationType.Core,
-      coreTotal: 10,
-      sharedCoreRatio: null,
-      bakDocumentId: null,
-    });
-
-    const version71 = this.createContractVersion(customer7.id, contract7.id, {
-      startDate: '2025-12-15',
-      endDate: '2026-12-14',
-      coreType: CoreAllocationType.SharingCore,
-      coreTotal: 8,
       sharedCoreRatio: '1:2',
       bakDocumentId: null,
     });
@@ -2171,313 +2330,42 @@ export class InMemoryDataService {
     });
     this.setContractVersionBak(contract3.id, version31.id, bakDoc31.id);
 
-    const bakDoc41 = this.createDocument({
-      customerId: customer4.id,
-      contractId: contract4.id,
-      contractVersionId: version41.id,
-      contractNumber: contract4.contractNumber,
-      jenisDokumen: DocumentType.BAK,
-      nomorDokumen: 'BAK-GDN-2025-01',
-      tanggalDokumen: '2025-11-05',
-      fileUrl: 'https://files.example.com/bak/bak-gdn-2025-01.pdf',
-    });
-    this.setContractVersionBak(contract4.id, version41.id, bakDoc41.id);
-
-    const bakDoc61 = this.createDocument({
-      customerId: customer6.id,
-      contractId: contract6.id,
-      contractVersionId: version61.id,
-      contractNumber: contract6.contractNumber,
-      jenisDokumen: DocumentType.BAK,
-      nomorDokumen: 'BAK-RSPS-2026-01',
-      tanggalDokumen: '2026-01-03',
-      fileUrl: 'https://files.example.com/bak/bak-rsps-2026-01.pdf',
-    });
-    this.setContractVersionBak(contract6.id, version61.id, bakDoc61.id);
-
-    const bakDoc71 = this.createDocument({
-      customerId: customer7.id,
-      contractId: contract7.id,
-      contractVersionId: version71.id,
-      contractNumber: contract7.contractNumber,
-      jenisDokumen: DocumentType.BAK,
-      nomorDokumen: 'BAK-KCL-2025-01',
-      tanggalDokumen: '2025-12-20',
-      fileUrl: 'https://files.example.com/bak/bak-kcl-2025-01.pdf',
-    });
-    this.setContractVersionBak(contract7.id, version71.id, bakDoc71.id);
-
-    this.createDocument({
-      customerId: customer1.id,
-      contractId: contract1.id,
-      contractVersionId: null,
-      contractNumber: contract1.contractNumber,
-      jenisDokumen: DocumentType.Penawaran,
-      nomorDokumen: 'SPH-TNS-2025-01',
-      tanggalDokumen: '2025-06-20',
-      fileUrl: 'https://files.example.com/docs/sph-tns-2025-01.pdf',
-    });
-    this.createDocument({
-      customerId: customer1.id,
-      contractId: contract1.id,
-      contractVersionId: null,
-      contractNumber: contract1.contractNumber,
-      jenisDokumen: DocumentType.HasilNego,
-      nomorDokumen: 'NEG-TNS-2025-01',
-      tanggalDokumen: '2025-06-25',
-      fileUrl: 'https://files.example.com/docs/nego-tns-2025-01.pdf',
-    });
-    this.createDocument({
-      customerId: customer3.id,
-      contractId: contract3.id,
-      contractVersionId: null,
-      contractNumber: contract3.contractNumber,
-      jenisDokumen: DocumentType.Penawaran,
-      nomorDokumen: 'SPH-BSI-2025-02',
-      tanggalDokumen: '2025-04-18',
-      fileUrl: 'https://files.example.com/docs/sph-bsi-2025-02.pdf',
-    });
-    this.createDocument({
-      customerId: customer3.id,
-      contractId: contract3.id,
-      contractVersionId: null,
-      contractNumber: contract3.contractNumber,
-      jenisDokumen: DocumentType.Tanggapan,
-      nomorDokumen: 'RESP-BSI-2025-02',
-      tanggalDokumen: '2025-04-22',
-      fileUrl: 'https://files.example.com/docs/resp-bsi-2025-02.pdf',
-    });
-    this.createDocument({
-      customerId: customer4.id,
-      contractId: contract4.id,
-      contractVersionId: null,
-      contractNumber: contract4.contractNumber,
-      jenisDokumen: DocumentType.Penawaran,
-      nomorDokumen: 'SPH-GDN-2025-03',
-      tanggalDokumen: '2025-10-25',
-      fileUrl: 'https://files.example.com/docs/sph-gdn-2025-03.pdf',
-    });
-    this.createDocument({
-      customerId: customer4.id,
-      contractId: contract4.id,
-      contractVersionId: null,
-      contractNumber: contract4.contractNumber,
-      jenisDokumen: DocumentType.Tanggapan,
-      nomorDokumen: 'RESP-GDN-2025-03',
-      tanggalDokumen: '2025-10-28',
-      fileUrl: 'https://files.example.com/docs/resp-gdn-2025-03.pdf',
-    });
-    this.createDocument({
-      customerId: customer4.id,
-      contractId: contract4.id,
-      contractVersionId: null,
-      contractNumber: contract4.contractNumber,
-      jenisDokumen: DocumentType.HasilNego,
-      nomorDokumen: 'NEG-GDN-2025-03',
-      tanggalDokumen: '2025-10-30',
-      fileUrl: 'https://files.example.com/docs/nego-gdn-2025-03.pdf',
-    });
-
-    this.upsertInvoice({
-      customerId: customer1.id,
-      contractId: contract1.id,
-      contractVersionId: version12.id,
-      contractNumber: contract1.contractNumber,
-      invoiceNumber: 'INV-2026-001-TNS',
-      periodMonth: 1,
-      periodYear: 2026,
-      periodStartDate: '2026-01-01',
-      periodEndDate: '2026-01-31',
-      dueDate: '2026-02-10',
-      amount: 5500000,
-      status: InvoiceStatus.Lunas,
-      documentId: null,
-      paidAt: '2026-01-20',
-      invoiceFileUrl: 'upload://inv-2026-001-tns.pdf',
-      paymentProofFileUrl: 'upload://proof-2026-001-tns.pdf',
-    });
-
-    this.upsertInvoice({
-      customerId: customer1.id,
-      contractId: contract1.id,
-      contractVersionId: version12.id,
-      contractNumber: contract1.contractNumber,
-      invoiceNumber: 'INV-2026-002-TNS',
-      periodMonth: 2,
-      periodYear: 2026,
-      periodStartDate: '2026-02-01',
-      periodEndDate: '2026-02-29',
-      dueDate: '2026-03-10',
-      amount: 5500000,
-      status: InvoiceStatus.Lunas,
-      documentId: null,
-      paidAt: '2026-03-05',
-      invoiceFileUrl: 'upload://inv-2026-002-tns.pdf',
-      paymentProofFileUrl: 'upload://proof-2026-002-tns.pdf',
-    });
-
-    this.upsertInvoice({
-      customerId: customer1.id,
-      contractId: contract1.id,
-      contractVersionId: version12.id,
-      contractNumber: contract1.contractNumber,
-      invoiceNumber: 'INV-2026-003-TNS',
-      periodMonth: 3,
-      periodYear: 2026,
-      periodStartDate: '2026-03-01',
-      periodEndDate: '2026-03-31',
-      dueDate: '2026-04-10',
-      amount: 5500000,
-      status: InvoiceStatus.BelumBayar,
-      documentId: null,
-      paidAt: null,
-      invoiceFileUrl: 'upload://inv-2026-003-tns.pdf',
-      paymentProofFileUrl: null,
-    });
-
-    this.upsertInvoice({
-      customerId: customer3.id,
-      contractId: contract3.id,
-      contractVersionId: version31.id,
-      contractNumber: contract3.contractNumber,
-      invoiceNumber: 'INV-2026-001-BSI',
-      periodMonth: 1,
-      periodYear: 2026,
-      periodStartDate: '2026-01-01',
-      periodEndDate: '2026-01-31',
-      dueDate: '2026-02-10',
-      amount: 4600000,
-      status: InvoiceStatus.Lunas,
-      documentId: null,
-      paidAt: '2026-01-26',
-      invoiceFileUrl: 'upload://inv-2026-001-bsi.pdf',
-      paymentProofFileUrl: 'upload://proof-2026-001-bsi.pdf',
-    });
-
-    this.upsertInvoice({
-      customerId: customer3.id,
-      contractId: contract3.id,
-      contractVersionId: version31.id,
-      contractNumber: contract3.contractNumber,
-      invoiceNumber: 'INV-2026-002-BSI',
-      periodMonth: 2,
-      periodYear: 2026,
-      periodStartDate: '2026-02-01',
-      periodEndDate: '2026-02-29',
-      dueDate: '2026-03-10',
-      amount: 4600000,
-      status: InvoiceStatus.Terlambat,
-      documentId: null,
-      paidAt: null,
-      invoiceFileUrl: 'upload://inv-2026-002-bsi.pdf',
-      paymentProofFileUrl: null,
-    });
-
-    this.upsertInvoice({
-      customerId: customer4.id,
-      contractId: contract4.id,
-      contractVersionId: version41.id,
-      contractNumber: contract4.contractNumber,
-      invoiceNumber: 'INV-2026-001-GDN',
-      periodMonth: 1,
-      periodYear: 2026,
-      periodStartDate: '2026-01-01',
-      periodEndDate: '2026-03-31',
-      dueDate: '2026-04-10',
-      amount: 7250000,
-      status: InvoiceStatus.Lunas,
-      documentId: null,
-      paidAt: '2026-04-05',
-      invoiceFileUrl: 'upload://inv-2026-001-gdn.pdf',
-      paymentProofFileUrl: 'upload://proof-2026-001-gdn.pdf',
-    });
-
-    this.upsertInvoice({
-      customerId: customer6.id,
-      contractId: contract6.id,
-      contractVersionId: version61.id,
-      contractNumber: contract6.contractNumber,
-      invoiceNumber: 'INV-2026-002-RSPS',
-      periodMonth: 2,
-      periodYear: 2026,
-      periodStartDate: '2026-02-01',
-      periodEndDate: '2026-02-29',
-      dueDate: '2026-03-10',
-      amount: 6100000,
-      status: InvoiceStatus.Lunas,
-      documentId: null,
-      paidAt: '2026-03-02',
-      invoiceFileUrl: 'upload://inv-2026-002-rsps.pdf',
-      paymentProofFileUrl: 'upload://proof-2026-002-rsps.pdf',
-    });
-
-    this.upsertInvoice({
-      customerId: customer7.id,
-      contractId: contract7.id,
-      contractVersionId: version71.id,
-      contractNumber: contract7.contractNumber,
-      invoiceNumber: 'INV-2026-001-KCL',
-      periodMonth: 1,
-      periodYear: 2026,
-      periodStartDate: '2026-01-01',
-      periodEndDate: '2026-01-31',
-      dueDate: '2026-02-10',
-      amount: 5000000,
-      status: InvoiceStatus.Terlambat,
-      documentId: null,
-      paidAt: null,
-      invoiceFileUrl: 'upload://inv-2026-001-kcl.pdf',
-      paymentProofFileUrl: null,
-    });
-
     this.refreshContractStatus(contract1.id);
     this.refreshContractStatus(contract3.id);
     this.refreshContractStatus(contract4.id);
-    this.refreshContractStatus(contract5.id);
-    this.refreshContractStatus(contract6.id);
-    this.refreshContractStatus(contract7.id);
 
     this.terminateActiveContracts(customer2.id, '2025-11-15');
   }
 
-  private createIspSeed(input: CreateIspInput): Isp {
-    const createdAt = nowIso();
-    const isp: Isp = {
-      id: this.nextIspId,
-      name: input.name,
-      status: input.status,
-      contractReference: input.contractReference,
-      contractStartDate: input.contractStartDate ?? null,
-      contractPeriodStart: input.contractPeriodStart ?? null,
-      contractPeriodEnd: input.contractPeriodEnd ?? null,
-      paket: input.paket,
-      jumlah: input.jumlah,
-      createdAt,
-      updatedAt: createdAt,
-    };
-
-    this.nextIspId += 1;
-    this.isps.push(isp);
-    return this.cloneIsp(isp);
+  private cloneCustomer(customer: Customer): Customer {
+    return { ...customer };
   }
 
-  private createCustomerSeed(input: CreateCustomerInput): Customer {
-    const createdAt = nowIso();
-    const customer: Customer = {
-      id: this.nextCustomerId,
-      customerCode: buildCustomerCode(this.nextCustomerId),
-      ispName: input.ispName,
-      name: input.name,
-      status: input.status,
-      activationFeeAmount: input.activationFeeAmount,
-      activationFeePaidAt: input.activationFeePaidAt,
-      createdAt,
-      updatedAt: createdAt,
-    };
+  private cloneIsp(isp: Isp): Isp {
+    return { ...isp };
+  }
 
-    this.nextCustomerId += 1;
-    this.customers.push(customer);
+  private cloneIspContractRow(row: IspContractRow): IspContractRow {
+    return { ...row };
+  }
 
-    return this.cloneCustomer(customer);
+  private cloneMembership(membership: TenantIspMembership): TenantIspMembership {
+    return { ...membership };
+  }
+
+  private cloneContract(contract: Contract): Contract {
+    return { ...contract };
+  }
+
+  private cloneContractVersion(version: ContractVersion): ContractVersion {
+    return { ...version };
+  }
+
+  private cloneInvoice(invoice: Invoice): Invoice {
+    return { ...invoice };
+  }
+
+  private cloneDocument(document: DocumentRecord): DocumentRecord {
+    return { ...document };
   }
 }

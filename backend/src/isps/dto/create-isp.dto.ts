@@ -7,6 +7,7 @@ export class CreateIspDto {
     contractStartDate?: string | null;
     contractPeriodStart?: string | null;
     contractPeriodEnd?: string | null;
+    bakFileName?: string | null;
     paket?: IspPackageType;
     jumlah?: number;
 }
