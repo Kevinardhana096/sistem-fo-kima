@@ -10,6 +10,8 @@ import {
   CustomerStatus,
   InvoiceStatus,
   Isp,
+  RouteFlowStatus,
+  RoutePointType,
 } from '../shared/types/domain.types';
 import { InMemoryDataService } from '../store/in-memory-data.service';
 import { CreateContractVersionDto } from './dto/create-contract-version.dto';
@@ -40,6 +42,7 @@ export class CustomersService {
       const isps = this.store.listCustomerIsps(customer.id);
       const todoSummary = this.store.buildCustomerTodoSummary(customer.id);
       const contractSnapshot = this.buildCustomerContractSnapshot(customer.id);
+      const activeRouteVersion = this.store.listCustomerRouteVersions(customer.id)[0] ?? null;
 
       return {
         ...customer,
@@ -53,6 +56,7 @@ export class CustomersService {
         contractVersionCount: this.store.listCustomerContractVersions(customer.id).length,
         documentCount: documents.length,
         invoiceCount: invoices.length,
+        routeStatus: activeRouteVersion?.flowStatus ?? RouteFlowStatus.Aktif,
         todoSummary,
       };
     });
@@ -169,6 +173,9 @@ export class CustomersService {
     const invoices = this.store.listCustomerInvoices(customerId);
     const documents = this.store.listCustomerDocuments(customerId);
     const contractSnapshot = this.buildCustomerContractSnapshot(customerId);
+    const routeVersions = this.store.listCustomerRouteVersions(customerId);
+    const activeRouteVersion = routeVersions[0] ?? null;
+    const routeHistory = this.store.listCustomerRouteHistory(customerId);
 
     return {
       ...customer,
@@ -184,6 +191,13 @@ export class CustomersService {
       activeContractVersionId: activeVersion?.id ?? null,
       invoices,
       latestDocuments: documents.slice(0, 5),
+      route: {
+        activeRouteId: activeRouteVersion?.id ?? null,
+        activeFlowStatus: activeRouteVersion?.flowStatus ?? RouteFlowStatus.Aktif,
+        points: activeRouteVersion?.points ?? [],
+        versions: routeVersions,
+        history: routeHistory,
+      },
       todoSummary: this.store.buildCustomerTodoSummary(customerId),
       timelinePreview: this.store.listCustomerTimeline(customerId).slice(0, 5),
     };
@@ -444,6 +458,14 @@ export class CustomersService {
       throw new NotFoundException('Contract not found for this customer.');
     }
 
+    const billingChanged =
+      (updates.billingEvery !== undefined && updates.billingEvery !== existingContract.billingEvery)
+      || (updates.billingUnit !== undefined && updates.billingUnit !== existingContract.billingUnit);
+
+    if (billingChanged) {
+      this.restructureInvoicesForBillingChange(customerId, updatedContract);
+    }
+
     const shouldCreateVersion =
       updates.startDate !== undefined
       || updates.endDate !== undefined
@@ -534,6 +556,79 @@ export class CustomersService {
     return version;
   }
 
+  addContractVersionRenewalFollowUp(
+    customerId: number,
+    contractId: number,
+    versionId: number,
+    payload: { title?: string; description?: string },
+  ) {
+    this.ensureCustomerExists(customerId);
+    const contract = this.store.getCustomerContractById(customerId, contractId);
+    if (!contract) {
+      throw new NotFoundException('Contract not found for this customer.');
+    }
+
+    const version = this.store.addManualContractVersionRenewalFollowUp(
+      customerId,
+      contractId,
+      versionId,
+      payload?.title,
+      payload?.description,
+    );
+    if (!version) {
+      throw new NotFoundException('Contract version not found for this customer.');
+    }
+
+    return version;
+  }
+
+  uploadContractVersionRenewalFile(
+    customerId: number,
+    contractId: number,
+    versionId: number,
+    payload: { fileUrl: string; fileName: string; followUpId?: number | null },
+  ) {
+    this.ensureCustomerExists(customerId);
+    const version = this.store.uploadContractVersionRenewalFile(
+      customerId,
+      contractId,
+      versionId,
+      payload.fileUrl,
+      payload.fileName,
+      payload.followUpId,
+    );
+    if (!version) {
+      throw new NotFoundException('Contract version not found for this customer.');
+    }
+    return version;
+  }
+
+  respondContractVersionRenewal(
+    customerId: number,
+    contractId: number,
+    versionId: number,
+    payload: { decision: 'lanjut' | 'tidak'; fileUrl: string; fileName: string; followUpId?: number | null },
+  ) {
+    this.ensureCustomerExists(customerId);
+    if (!payload.decision || !['lanjut', 'tidak'].includes(payload.decision)) {
+      throw new BadRequestException('Decision must be "lanjut" or "tidak".');
+    }
+
+    const version = this.store.respondContractVersionRenewal(
+      customerId,
+      contractId,
+      versionId,
+      payload.decision,
+      payload.fileUrl,
+      payload.fileName,
+      payload.followUpId,
+    );
+    if (!version) {
+      throw new NotFoundException('Contract version not found for this customer.');
+    }
+    return version;
+  }
+
   updateInvoice(
     customerId: number,
     invoiceId: number,
@@ -552,6 +647,11 @@ export class CustomersService {
 
     const updates: {
       invoiceNumber?: string | null;
+      followUpId?: number | null;
+      invoiceFollowUps?: Array<{
+        id: number;
+        invoiceNumber?: string | null;
+      }>;
       periodStartDate?: string | null;
       periodEndDate?: string | null;
       dueDate?: string | null;
@@ -563,6 +663,35 @@ export class CustomersService {
 
     if (payload.invoiceNumber !== undefined) {
       updates.invoiceNumber = this.parseOptionalContractNumber(payload.invoiceNumber);
+    }
+
+    if (payload.followUpId !== undefined) {
+      const followUpId = Number(payload.followUpId);
+      if (!Number.isFinite(followUpId)) {
+        throw new BadRequestException('followUpId must be a valid number.');
+      }
+
+      updates.followUpId = followUpId;
+    }
+
+    if (payload.invoiceFollowUps !== undefined) {
+      if (!Array.isArray(payload.invoiceFollowUps)) {
+        throw new BadRequestException('invoiceFollowUps must be an array.');
+      }
+
+      updates.invoiceFollowUps = payload.invoiceFollowUps.map((item, index) => {
+        const id = Number(item?.id);
+        if (!Number.isFinite(id)) {
+          throw new BadRequestException(`invoiceFollowUps[${index}].id must be a valid number.`);
+        }
+
+        return {
+          id,
+          invoiceNumber: item?.invoiceNumber !== undefined
+            ? this.parseOptionalContractNumber(item.invoiceNumber)
+            : undefined,
+        };
+      });
     }
 
     const nextPeriodStartDate = payload.periodStartDate !== undefined
@@ -623,6 +752,32 @@ export class CustomersService {
     }
 
     const updatedInvoice = this.store.updateInvoice(customerId, invoiceId, updates);
+    if (!updatedInvoice) {
+      throw new NotFoundException('Invoice not found for this customer.');
+    }
+
+    return updatedInvoice;
+  }
+
+  addInvoiceFollowUp(
+    customerId: number,
+    invoiceId: number,
+    payload: { title?: string; description?: string },
+  ) {
+    this.ensureCustomerExists(customerId);
+
+    const existingInvoice = this.store.getCustomerInvoiceById(customerId, invoiceId);
+    if (!existingInvoice) {
+      throw new NotFoundException('Invoice not found for this customer.');
+    }
+
+    const updatedInvoice = this.store.addManualInvoiceFollowUp(
+      customerId,
+      invoiceId,
+      this.normalizeOptionalString(payload?.title),
+      this.normalizeOptionalString(payload?.description),
+    );
+
     if (!updatedInvoice) {
       throw new NotFoundException('Invoice not found for this customer.');
     }
@@ -740,6 +895,110 @@ export class CustomersService {
     return this.store.listCustomerTimeline(customerId);
   }
 
+  getRoutes(customerId: number) {
+    this.ensureCustomerExists(customerId);
+    const versions = this.store.listCustomerRouteVersions(customerId);
+    const activeVersion = versions[0] ?? null;
+    const history = this.store.listCustomerRouteHistory(customerId);
+
+    return {
+      activeRouteId: activeVersion?.id ?? null,
+      activeFlowStatus: activeVersion?.flowStatus ?? RouteFlowStatus.Aktif,
+      points: activeVersion?.points ?? [],
+      history,
+    };
+  }
+
+  editRoute(
+    customerId: number,
+    payload: {
+      operation: 'add' | 'update' | 'delete' | 'reorder' | 'status' | 'commit';
+      pathName?: string;
+      pointType?: unknown;
+      note?: string | null;
+      orderNumber?: number;
+      pointId?: number;
+      orderedPointIds?: number[];
+      flowStatus?: unknown;
+    },
+  ) {
+    this.ensureCustomerExists(customerId);
+    const mutation = this.parseRouteMutationPayload(payload);
+
+    if (mutation.operation === 'commit') {
+      throw new BadRequestException('Use /routes/change for commit operation.');
+    }
+
+    return this.store.mutateCustomerRoute(customerId, mutation, {
+      createNewVersion: false,
+    });
+  }
+
+  changeRoute(
+    customerId: number,
+    payload: {
+      operation: 'add' | 'update' | 'delete' | 'reorder' | 'status' | 'commit' | 'replace';
+      pathName?: string;
+      pointType?: unknown;
+      note?: string | null;
+      orderNumber?: number;
+      pointId?: number;
+      orderedPointIds?: number[];
+      flowStatus?: unknown;
+      changeNote?: string | null;
+      snapshotBefore?: {
+        flowStatus?: unknown;
+        points?: Array<{
+          orderNumber?: unknown;
+          pathName?: unknown;
+          pointType?: unknown;
+          note?: unknown;
+        }>;
+      };
+      snapshotAfter?: {
+        flowStatus?: unknown;
+        points?: Array<{
+          orderNumber?: unknown;
+          pathName?: unknown;
+          pointType?: unknown;
+          note?: unknown;
+        }>;
+      };
+    },
+  ) {
+    this.ensureCustomerExists(customerId);
+    const mutation = this.parseRouteMutationPayload(payload);
+    const snapshotBeforeOverride = this.parseRouteSnapshot(payload?.snapshotBefore);
+    const snapshotAfterOverride = this.parseRouteSnapshot(payload?.snapshotAfter);
+
+    return this.store.mutateCustomerRoute(customerId, mutation, {
+      createNewVersion: true,
+      historyNote:
+        this.normalizeOptionalString(payload?.changeNote)
+        ?? 'Perubahan jalur dicatat melalui mode Ubah Jalur.',
+      snapshotBeforeOverride,
+      snapshotAfterOverride,
+    });
+  }
+
+  deleteRouteHistory(customerId: number, historyId: number) {
+    this.ensureCustomerExists(customerId);
+    const deleted = this.store.deleteCustomerRouteHistory(customerId, historyId);
+    if (!deleted) {
+      throw new NotFoundException('Riwayat tidak ditemukan.');
+    }
+    return { success: true };
+  }
+
+  deleteAllRouteHistory(customerId: number) {
+    this.ensureCustomerExists(customerId);
+    const deletedCount = this.store.clearCustomerRouteHistory(customerId);
+    return {
+      success: true,
+      deletedCount,
+    };
+  }
+
   private ensureCustomerExists(customerId: number): void {
     const customer = this.store.getCustomerById(customerId);
     if (!customer) {
@@ -793,6 +1052,256 @@ export class CustomersService {
     }
 
     return value;
+  }
+
+  private parseRouteFlowStatus(value: unknown): RouteFlowStatus {
+    if (
+      value !== RouteFlowStatus.Aktif
+      && value !== RouteFlowStatus.Nonaktif
+      && value !== RouteFlowStatus.Gangguan
+    ) {
+      throw new BadRequestException('flowStatus must be aktif, nonaktif, or gangguan.');
+    }
+
+    return value;
+  }
+
+  private parseRoutePointType(value: unknown): RoutePointType {
+    if (
+      value !== RoutePointType.Awal
+      && value !== RoutePointType.Transit
+      && value !== RoutePointType.Tujuan
+    ) {
+      throw new BadRequestException('pointType must be awal, transit, or tujuan.');
+    }
+
+    return value;
+  }
+
+  private parseRouteMutationPayload(
+    payload: {
+      operation?: string;
+      pathName?: string;
+      pointType?: unknown;
+      note?: string | null;
+      orderNumber?: number;
+      pointId?: number;
+      orderedPointIds?: number[];
+      flowStatus?: unknown;
+    },
+  ):
+    | {
+      operation: 'add';
+      pathName: string;
+      pointType: RoutePointType;
+      note?: string | null;
+      orderNumber?: number;
+    }
+    | {
+      operation: 'update';
+      pointId: number;
+      pathName?: string;
+      pointType?: RoutePointType;
+      note?: string | null;
+    }
+    | {
+      operation: 'delete';
+      pointId: number;
+    }
+    | {
+      operation: 'reorder';
+      orderedPointIds: number[];
+    }
+    | {
+      operation: 'status';
+      flowStatus: RouteFlowStatus;
+    }
+    | {
+      operation: 'commit';
+    }
+    | {
+      operation: 'replace';
+      flowStatus?: RouteFlowStatus;
+      points: Array<{
+        pathName: string;
+        pointType: RoutePointType;
+        note?: string | null;
+        orderNumber: number;
+      }>;
+    } {
+    if (!payload || typeof payload !== 'object') {
+      throw new BadRequestException('Request body is required.');
+    }
+
+    const operation = payload.operation;
+
+    if (operation === 'add') {
+      const pathName = this.normalizeRequiredString(payload.pathName, 'pathName');
+      return {
+        operation,
+        pathName,
+        pointType: this.parseRoutePointType(payload.pointType),
+        note: this.normalizeOptionalString(payload.note),
+        orderNumber: payload.orderNumber,
+      };
+    }
+
+    if (operation === 'update') {
+      const pointId = Number(payload.pointId);
+      if (!Number.isFinite(pointId)) {
+        throw new BadRequestException('pointId is required for update operation.');
+      }
+
+      const nextPayload: {
+        operation: 'update';
+        pointId: number;
+        pathName?: string;
+        pointType?: RoutePointType;
+        note?: string | null;
+      } = {
+        operation,
+        pointId,
+      };
+
+      if (payload.pathName !== undefined) {
+        nextPayload.pathName = this.normalizeRequiredString(payload.pathName, 'pathName');
+      }
+
+      if (payload.pointType !== undefined) {
+        nextPayload.pointType = this.parseRoutePointType(payload.pointType);
+      }
+
+      if (payload.note !== undefined) {
+        nextPayload.note = this.normalizeOptionalString(payload.note);
+      }
+
+      if (
+        nextPayload.pathName === undefined
+        && nextPayload.pointType === undefined
+        && nextPayload.note === undefined
+      ) {
+        throw new BadRequestException('At least one field must be provided for update operation.');
+      }
+
+      return nextPayload;
+    }
+
+    if (operation === 'delete') {
+      const pointId = Number(payload.pointId);
+      if (!Number.isFinite(pointId)) {
+        throw new BadRequestException('pointId is required for delete operation.');
+      }
+
+      return {
+        operation,
+        pointId,
+      };
+    }
+
+    if (operation === 'reorder') {
+      if (!Array.isArray(payload.orderedPointIds) || payload.orderedPointIds.length === 0) {
+        throw new BadRequestException('orderedPointIds is required for reorder operation.');
+      }
+
+      return {
+        operation,
+        orderedPointIds: payload.orderedPointIds
+          .map((value) => Number(value))
+          .filter((value) => Number.isFinite(value)),
+      };
+    }
+
+    if (operation === 'status') {
+      return {
+        operation,
+        flowStatus: this.parseRouteFlowStatus(payload.flowStatus),
+      };
+    }
+
+    if (operation === 'commit') {
+      return { operation };
+    }
+
+    if (operation === 'replace') {
+      if (!Array.isArray(payload['points'])) {
+        throw new BadRequestException('points array is required for replace operation.');
+      }
+
+      const flowStatus = payload['flowStatus'] !== undefined
+        ? this.parseRouteFlowStatus(payload['flowStatus'])
+        : undefined;
+
+      const points = (payload['points'] as any[]).map((p, idx) => ({
+        pathName: this.normalizeRequiredString(p.pathName, `points[${idx}].pathName`),
+        pointType: this.parseRoutePointType(p.pointType),
+        note: this.normalizeOptionalString(p.note),
+        orderNumber: Number(p.orderNumber) || idx + 1,
+      }));
+
+      return {
+        operation,
+        flowStatus,
+        points,
+      };
+    }
+
+    throw new BadRequestException('operation must be add, update, delete, reorder, status, commit, or replace.');
+  }
+
+  private parseRouteSnapshot(
+    value:
+      | {
+        flowStatus?: unknown;
+        points?: Array<{
+          orderNumber?: unknown;
+          pathName?: unknown;
+          pointType?: unknown;
+          note?: unknown;
+        }>;
+      }
+      | undefined,
+  ):
+    | {
+      flowStatus: RouteFlowStatus;
+      points: Array<{
+        orderNumber: number;
+        pathName: string;
+        pointType: RoutePointType;
+        note: string | null;
+      }>;
+    }
+    | null {
+    if (!value) {
+      return null;
+    }
+
+    if (!Array.isArray(value.points)) {
+      throw new BadRequestException('snapshot points must be an array.');
+    }
+
+    const flowStatus = this.parseRouteFlowStatus(value.flowStatus);
+    const points = value.points.map((point, index) => {
+      const orderNumber = Number(point?.orderNumber);
+      if (!Number.isFinite(orderNumber) || orderNumber <= 0) {
+        throw new BadRequestException(`snapshot points[${index}].orderNumber is invalid.`);
+      }
+
+      const pathName = this.normalizeRequiredString(point?.pathName, `snapshot points[${index}].pathName`);
+      const pointType = this.parseRoutePointType(point?.pointType);
+      const note = this.normalizeOptionalString(point?.note);
+
+      return {
+        orderNumber: Math.round(orderNumber),
+        pathName,
+        pointType,
+        note,
+      };
+    });
+
+    return {
+      flowStatus,
+      points,
+    };
   }
 
   private parseActivationFeeAmount(
@@ -1145,6 +1654,8 @@ export class CustomersService {
     periodEndDate: string;
     billingEvery: number;
     billingUnit: BillingUnit;
+    scheduleVersion?: number;
+    scheduleStatus?: 'active' | 'history';
   }): void {
     let cursor = params.periodStartDate;
     let guard = 0;
@@ -1180,10 +1691,93 @@ export class CustomersService {
         periodEndDate: invoiceEndDate,
         dueDate: addDays(invoiceEndDate, 10),
         amount: 0,
+        scheduleVersion: params.scheduleVersion,
+        scheduleStatus: params.scheduleStatus,
       });
 
       cursor = nextCursor;
     }
+  }
+
+  private restructureInvoicesForBillingChange(
+    customerId: number,
+    contract: {
+      id: number;
+      contractNumber: string;
+      billingEvery: number;
+      billingUnit: BillingUnit;
+      startDate: string;
+      endDate: string;
+    },
+  ): void {
+    const invoices = this.store.listCustomerInvoices(customerId);
+    const activeVersion = this.store.getActiveContractVersion(customerId)
+      ?? this.store.getLatestContractVersion(contract.id);
+
+    if (!activeVersion) {
+      return;
+    }
+
+    const paidInvoices = invoices
+      .filter((invoice) => invoice.scheduleStatus === 'active' && invoice.status === InvoiceStatus.Lunas)
+      .sort((left, right) => {
+        const leftEnd = left.periodEndDate ?? left.periodStartDate ?? '';
+        const rightEnd = right.periodEndDate ?? right.periodStartDate ?? '';
+        return leftEnd.localeCompare(rightEnd);
+      });
+
+    const unpaidActiveInvoices = invoices.filter(
+      (invoice) => invoice.scheduleStatus === 'active' && invoice.status !== InvoiceStatus.Lunas,
+    );
+
+    if (unpaidActiveInvoices.length === 0) {
+      return;
+    }
+
+    const lastPaidPeriodEnd = paidInvoices.at(-1)?.periodEndDate
+      ?? paidInvoices.at(-1)?.periodStartDate
+      ?? null;
+
+    const restructureStartDate = lastPaidPeriodEnd
+      ? addDays(lastPaidPeriodEnd, 1)
+      : activeVersion.startDate;
+
+    const restructureEndDate = activeVersion.endDate;
+
+    if (restructureStartDate > restructureEndDate) {
+      this.store.archiveCustomerInvoices(
+        customerId,
+        (invoice) => invoice.scheduleStatus === 'active' && invoice.status === InvoiceStatus.Lunas,
+      );
+      this.store.removeCustomerInvoices(
+        customerId,
+        (invoice) => invoice.scheduleStatus === 'active' && invoice.status !== InvoiceStatus.Lunas,
+      );
+      return;
+    }
+
+    const nextScheduleVersion = this.store.getNextInvoiceScheduleVersion(customerId);
+    this.store.archiveCustomerInvoices(
+      customerId,
+      (invoice) => invoice.scheduleStatus === 'active' && invoice.status === InvoiceStatus.Lunas,
+    );
+    this.store.removeCustomerInvoices(
+      customerId,
+      (invoice) => invoice.scheduleStatus === 'active' && invoice.status !== InvoiceStatus.Lunas,
+    );
+
+    this.generateInvoicesForPeriod({
+      customerId,
+      contractId: contract.id,
+      contractNumber: contract.contractNumber,
+      contractVersionId: activeVersion.id,
+      periodStartDate: restructureStartDate,
+      periodEndDate: restructureEndDate,
+      billingEvery: contract.billingEvery,
+      billingUnit: contract.billingUnit,
+      scheduleVersion: nextScheduleVersion,
+      scheduleStatus: 'active',
+    });
   }
 
   private shiftByBillingCycle(

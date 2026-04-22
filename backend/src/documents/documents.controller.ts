@@ -7,7 +7,10 @@ import {
   ParseIntPipe,
   Post,
   Query,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { DocumentsService } from './documents.service';
 import { CreateDocumentDto } from './dto/create-document.dto';
 
@@ -32,11 +35,13 @@ export class DocumentsController {
   }
 
   @Post()
+  @UseInterceptors(FileInterceptor('file'))
   create(
     @Param('customerId', ParseIntPipe) customerId: number,
     @Body() payload: CreateDocumentDto,
+    @UploadedFile() file?: any,
   ) {
-    return this.documentsService.create(customerId, payload);
+    return this.documentsService.create(customerId, payload, file);
   }
 
   @Delete(':documentId')

@@ -1,12 +1,16 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
   Patch,
   Post,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { CustomersService } from './customers.service';
 import { CreateContractVersionDto } from './dto/create-contract-version.dto';
 import { CreateCustomerDto } from './dto/create-customer.dto';
@@ -51,6 +55,15 @@ export class CustomersController {
     return this.customersService.updateInvoice(customerId, invoiceId, payload);
   }
 
+  @Post(':customerId/invoices/:invoiceId/follow-ups')
+  addInvoiceFollowUp(
+    @Param('customerId', ParseIntPipe) customerId: number,
+    @Param('invoiceId', ParseIntPipe) invoiceId: number,
+    @Body() payload: { title?: string; description?: string },
+  ) {
+    return this.customersService.addInvoiceFollowUp(customerId, invoiceId, payload);
+  }
+
   @Post(':customerId/contracts')
   createContract(
     @Param('customerId', ParseIntPipe) customerId: number,
@@ -85,6 +98,61 @@ export class CustomersController {
     return this.customersService.createContractVersion(customerId, contractId, payload);
   }
 
+  @Post(':customerId/contracts/:contractId/versions/:versionId/follow-ups')
+  addContractVersionRenewalFollowUp(
+    @Param('customerId', ParseIntPipe) customerId: number,
+    @Param('contractId', ParseIntPipe) contractId: number,
+    @Param('versionId', ParseIntPipe) versionId: number,
+    @Body() payload: { title?: string; description?: string },
+  ) {
+    return this.customersService.addContractVersionRenewalFollowUp(customerId, contractId, versionId, payload);
+  }
+
+  @Post(':customerId/contracts/:contractId/versions/:versionId/renewal')
+  @UseInterceptors(FileInterceptor('file'))
+  uploadContractVersionRenewalFile(
+    @Param('customerId', ParseIntPipe) customerId: number,
+    @Param('contractId', ParseIntPipe) contractId: number,
+    @Param('versionId', ParseIntPipe) versionId: number,
+    @Body() payload: { followUpId?: number | string },
+    @UploadedFile() file: any,
+  ) {
+    const mimeType =
+      typeof file?.mimetype === 'string' && file.mimetype.trim().length > 0
+        ? file.mimetype.trim()
+        : 'application/octet-stream';
+    const fileUrl = file?.buffer ? `data:${mimeType};base64,${file.buffer.toString('base64')}` : '';
+
+    return this.customersService.uploadContractVersionRenewalFile(customerId, contractId, versionId, {
+      fileUrl,
+      fileName: file?.originalname || 'perpanjangan.pdf',
+      followUpId: payload?.followUpId ? Number(payload.followUpId) : undefined,
+    });
+  }
+
+  @Post(':customerId/contracts/:contractId/versions/:versionId/response')
+  @UseInterceptors(FileInterceptor('file'))
+  respondContractVersionRenewal(
+    @Param('customerId', ParseIntPipe) customerId: number,
+    @Param('contractId', ParseIntPipe) contractId: number,
+    @Param('versionId', ParseIntPipe) versionId: number,
+    @Body() payload: { decision: 'lanjut' | 'tidak'; followUpId?: number | string },
+    @UploadedFile() file: any,
+  ) {
+    const mimeType =
+      typeof file?.mimetype === 'string' && file.mimetype.trim().length > 0
+        ? file.mimetype.trim()
+        : 'application/octet-stream';
+    const fileUrl = file?.buffer ? `data:${mimeType};base64,${file.buffer.toString('base64')}` : '';
+
+    return this.customersService.respondContractVersionRenewal(customerId, contractId, versionId, {
+      decision: payload.decision,
+      fileUrl,
+      fileName: file?.originalname || 'tanggapan.pdf',
+      followUpId: payload?.followUpId ? Number(payload.followUpId) : undefined,
+    });
+  }
+
   @Post(':customerId/isps')
   addCustomerIsps(
     @Param('customerId', ParseIntPipe) customerId: number,
@@ -114,5 +182,81 @@ export class CustomersController {
   @Get(':customerId/timeline')
   getTimeline(@Param('customerId', ParseIntPipe) customerId: number) {
     return this.customersService.getTimeline(customerId);
+  }
+
+  @Get(':customerId/routes')
+  getRoutes(@Param('customerId', ParseIntPipe) customerId: number) {
+    return this.customersService.getRoutes(customerId);
+  }
+
+  @Post(':customerId/routes/edit')
+  editRoute(
+    @Param('customerId', ParseIntPipe) customerId: number,
+    @Body()
+    payload: {
+      operation: 'add' | 'update' | 'delete' | 'reorder' | 'status';
+      pathName?: string;
+      pointType?: string;
+      note?: string | null;
+      orderNumber?: number;
+      pointId?: number;
+      orderedPointIds?: number[];
+      flowStatus?: string;
+    },
+  ) {
+    return this.customersService.editRoute(customerId, payload);
+  }
+
+  @Post(':customerId/routes/change')
+  changeRoute(
+    @Param('customerId', ParseIntPipe) customerId: number,
+    @Body()
+    payload: {
+      operation: 'add' | 'update' | 'delete' | 'reorder' | 'status' | 'commit' | 'replace';
+      pathName?: string;
+      pointType?: string;
+      note?: string | null;
+      orderNumber?: number;
+      pointId?: number;
+      orderedPointIds?: number[];
+      flowStatus?: string;
+      changeNote?: string | null;
+      points?: any[];
+      snapshotBefore?: {
+        flowStatus?: string;
+        points?: Array<{
+          orderNumber?: number;
+          pathName?: string;
+          pointType?: string;
+          note?: string | null;
+        }>;
+      };
+      snapshotAfter?: {
+        flowStatus?: string;
+        points?: Array<{
+          orderNumber?: number;
+          pathName?: string;
+          pointType?: string;
+          note?: string | null;
+        }>;
+      };
+    },
+  ) {
+    return this.customersService.changeRoute(customerId, payload);
+  }
+
+  @Delete(':customerId/routes/history/:historyId')
+  deleteRouteHistory(
+    @Param('customerId', ParseIntPipe) customerId: number,
+    @Param('historyId', ParseIntPipe) historyId: number,
+  ) {
+    return this.customersService.deleteRouteHistory(customerId, historyId);
+  }
+
+  @Delete(':customerId/routes/history')
+  deleteAllRouteHistory(
+    @Param('customerId', ParseIntPipe) customerId: number,
+  ) {
+    return this.customersService.deleteAllRouteHistory(customerId);
   }
 }

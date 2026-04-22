@@ -57,7 +57,7 @@ export class DocumentsService {
     return document;
   }
 
-  create(customerId: number, payload: CreateDocumentDto): CreateDocumentResponse {
+  create(customerId: number, payload: CreateDocumentDto, file?: any): CreateDocumentResponse {
     this.ensureCustomerExists(customerId);
     this.validateCreatePayload(payload);
 
@@ -97,14 +97,16 @@ export class DocumentsService {
       );
     }
 
+    const uploadedFileUrl = this.buildDataUrlFromUploadedFile(file);
     const normalizedFileUrl =
       typeof payload.fileUrl === 'string' && payload.fileUrl.trim().length > 0
         ? payload.fileUrl.trim()
-        : this.buildGeneratedFileUrl(
-          customerId,
-          jenisDokumen,
-          tanggalDokumen,
-        );
+        : uploadedFileUrl
+          ?? this.buildGeneratedFileUrl(
+            customerId,
+            jenisDokumen,
+            tanggalDokumen,
+          );
 
     const document = this.store.createDocument({
       customerId,
@@ -227,14 +229,15 @@ export class DocumentsService {
     });
   }
 
-  private resolveContract(customerId: number, payloadContractId?: number | null) {
+  private resolveContract(customerId: number, payloadContractId?: number | string | null) {
     const customerContracts = this.store.listCustomerContracts(customerId);
 
     if (payloadContractId === undefined || payloadContractId === null) {
       return customerContracts[0] ?? null;
     }
 
-    const matched = customerContracts.find((contract) => contract.id === payloadContractId);
+    const normalizedContractId = Number(payloadContractId);
+    const matched = customerContracts.find((contract) => contract.id === normalizedContractId);
 
     if (!matched) {
       throw new BadRequestException('contractId does not belong to the customer.');
@@ -246,7 +249,7 @@ export class DocumentsService {
   private resolveContractVersion(
     customerId: number,
     contractId: number | null,
-    payloadContractVersionId: number | null | undefined,
+    payloadContractVersionId: number | string | null | undefined,
     jenisDokumen: DocumentType,
   ) {
     if (contractId === null) {
@@ -295,6 +298,19 @@ export class DocumentsService {
     if (payload.tanggalDokumen !== undefined && payload.tanggalDokumen !== null && payload.tanggalDokumen !== '') {
       this.parseIsoDateString(payload.tanggalDokumen, 'tanggalDokumen');
     }
+  }
+
+  private buildDataUrlFromUploadedFile(file?: any): string | null {
+    if (!file?.buffer || !Buffer.isBuffer(file.buffer) || file.buffer.length === 0) {
+      return null;
+    }
+
+    const mimeType =
+      typeof file.mimetype === 'string' && file.mimetype.trim().length > 0
+        ? file.mimetype.trim()
+        : 'application/octet-stream';
+
+    return `data:${mimeType};base64,${file.buffer.toString('base64')}`;
   }
 
   private parseIsoDateString(value: string, fieldName: string): string {

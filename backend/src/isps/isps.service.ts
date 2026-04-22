@@ -90,16 +90,16 @@ export class IspsService {
     return this.store.updateIspContractRow(rowId, updates);
   }
 
-  uploadRenewalFile(ispId: number, rowId: number, fileUrl: string, fileName: string) {
+  uploadRenewalFile(ispId: number, rowId: number, fileUrl: string, fileName: string, followUpId?: number | null) {
     const row = this.store.getIspContractRowById(rowId);
     if (!row || row.ispId !== ispId) {
       throw new NotFoundException('Contract row not found.');
     }
 
-    return this.store.uploadIspContractRenewalFile(rowId, fileUrl, fileName);
+    return this.store.uploadIspContractRenewalFile(rowId, fileUrl, fileName, followUpId);
   }
 
-  respondRenewal(ispId: number, rowId: number, payload: { decision: 'lanjut' | 'tidak'; fileUrl: string; fileName: string }) {
+  respondRenewal(ispId: number, rowId: number, payload: { decision: 'lanjut' | 'tidak'; fileUrl: string; fileName: string; followUpId?: number | null }) {
     const row = this.store.getIspContractRowById(rowId);
     if (!row || row.ispId !== ispId) {
       throw new NotFoundException('Contract row not found.');
@@ -113,7 +113,20 @@ export class IspsService {
       throw new BadRequestException('Response file is required.');
     }
 
-    return this.store.respondIspContractRenewal(rowId, payload.decision, payload.fileUrl, payload.fileName);
+    return this.store.respondIspContractRenewal(rowId, payload.decision, payload.fileUrl, payload.fileName, payload.followUpId);
+  }
+
+  addManualRenewalFollowUp(
+    ispId: number,
+    rowId: number,
+    payload: { title?: string; description?: string },
+  ) {
+    const row = this.store.getIspContractRowById(rowId);
+    if (!row || row.ispId !== ispId) {
+      throw new NotFoundException('Contract row not found.');
+    }
+
+    return this.store.addManualIspContractRenewalFollowUp(rowId, payload.title, payload.description);
   }
 
   uploadBakFile(ispId: number, rowId: number, fileUrl: string, fileName: string) {

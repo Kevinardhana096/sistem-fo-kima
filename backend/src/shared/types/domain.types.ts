@@ -22,11 +22,35 @@ export enum ContractStatus {
   Terminated = 'terminated',
 }
 
+export enum RouteFlowStatus {
+  Aktif = 'aktif',
+  Nonaktif = 'nonaktif',
+  Gangguan = 'gangguan',
+}
+
+export enum RoutePointType {
+  Awal = 'awal',
+  Transit = 'transit',
+  Tujuan = 'tujuan',
+}
+
 export enum InvoiceStatus {
   Lunas = 'lunas',
   BelumBayar = 'belum_bayar',
   Terlambat = 'terlambat',
   BelumDitagih = 'belum_ditagih',
+}
+
+export enum InvoiceFollowUpStatus {
+  Warning = 'warning',
+  Sent = 'sent',
+  Completed = 'completed',
+}
+
+export enum InvoiceFollowUpSource {
+  Auto = 'auto',
+  Manual = 'manual',
+  Upload = 'upload',
 }
 
 export enum CoreAllocationType {
@@ -59,6 +83,36 @@ export enum IspRenewalStatus {
   NeedsCompletion = 'needs_completion',
 }
 
+export enum IspRenewalFollowUpStatus {
+  Warning = 'warning',
+  PendingResponse = 'pending_response',
+  Completed = 'completed',
+}
+
+export enum IspRenewalFollowUpSource {
+  Auto = 'auto',
+  Manual = 'manual',
+  Upload = 'upload',
+}
+
+export interface IspRenewalFollowUp {
+  id: number;
+  rowId: number;
+  splitOrder: number;
+  source: IspRenewalFollowUpSource;
+  triggerCode: string | null;
+  title: string;
+  description: string;
+  status: IspRenewalFollowUpStatus;
+  renewalFileUrl: string | null;
+  renewalFileName: string | null;
+  responseFileUrl: string | null;
+  responseFileName: string | null;
+  responseDecision: 'lanjut' | 'tidak' | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface IspContractRow {
   id: number;
   ispId: number;
@@ -72,6 +126,7 @@ export interface IspContractRow {
   renewalFileName: string | null;
   responseFileUrl: string | null;
   responseFileName: string | null;
+  renewalFollowUps: IspRenewalFollowUp[];
   createdAt: string;
   updatedAt: string;
 }
@@ -101,6 +156,55 @@ export interface TenantIspMembership {
   ispId: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface CustomerRouteVersion {
+  id: number;
+  customerId: number;
+  versionNumber: number;
+  flowStatus: RouteFlowStatus;
+  changeMode: 'initial' | 'ubah_jalur';
+  changeNote: string | null;
+  basedOnVersionId: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CustomerRoutePoint {
+  id: number;
+  routeVersionId: number;
+  orderNumber: number;
+  pathName: string;
+  pointType: RoutePointType;
+  note: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CustomerRouteHistoryEntry {
+  id: number;
+  customerId: number;
+  operation: 'add' | 'update' | 'delete' | 'reorder' | 'status' | 'commit' | 'replace';
+  note: string;
+  snapshotBefore: {
+    flowStatus: RouteFlowStatus;
+    points: Array<{
+      orderNumber: number;
+      pathName: string;
+      pointType: RoutePointType;
+      note: string | null;
+    }>;
+  };
+  snapshotAfter: {
+    flowStatus: RouteFlowStatus;
+    points: Array<{
+      orderNumber: number;
+      pathName: string;
+      pointType: RoutePointType;
+      note: string | null;
+    }>;
+  };
+  createdAt: string;
 }
 
 export interface Customer {
@@ -143,6 +247,11 @@ export interface ContractVersion {
   coreTotal: number;
   sharedCoreRatio: string | null;
   bakDocumentId: number | null;
+  renewalFileUrl: string | null;
+  renewalFileName: string | null;
+  responseFileUrl: string | null;
+  responseFileName: string | null;
+  renewalFollowUps: IspRenewalFollowUp[];
   createdAt: string;
   updatedAt: string;
 }
@@ -161,10 +270,28 @@ export interface Invoice {
   dueDate: string | null;
   amount: number;
   status: InvoiceStatus;
+  scheduleVersion: number;
+  scheduleStatus: 'active' | 'history';
   documentId: number | null;
   paidAt: string | null;
   invoiceFileUrl: string | null;
   paymentProofFileUrl: string | null;
+  invoiceFollowUps: InvoiceFollowUp[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface InvoiceFollowUp {
+  id: number;
+  invoiceId: number;
+  splitOrder: number;
+  source: InvoiceFollowUpSource;
+  triggerCode: string | null;
+  title: string;
+  description: string;
+  status: InvoiceFollowUpStatus;
+  invoiceNumber: string | null;
+  invoiceFileUrl: string | null;
   createdAt: string;
   updatedAt: string;
 }

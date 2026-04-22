@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import {
   BillingUnit,
   Contract,
@@ -6,16 +6,27 @@ import {
   ContractVersion,
   CoreAllocationType,
   Customer,
+  CustomerRouteHistoryEntry,
+  CustomerRoutePoint,
+  CustomerRouteVersion,
   CustomerStatus,
   DocumentRecord,
   DocumentType,
   Invoice,
+  InvoiceFollowUp,
+  InvoiceFollowUpSource,
+  InvoiceFollowUpStatus,
   InvoiceStatus,
   Isp,
   IspContractRow,
   IspPackageType,
+  IspRenewalFollowUp,
+  IspRenewalFollowUpSource,
+  IspRenewalFollowUpStatus,
   IspRenewalStatus,
   IspStatus,
+  RouteFlowStatus,
+  RoutePointType,
   MonitoringAlert,
   MonitoringBillingRow,
   TenantIspMembership,
@@ -108,10 +119,13 @@ interface UpsertInvoiceInput {
   dueDate?: string | null;
   amount: number;
   status?: InvoiceStatus;
+  scheduleVersion?: number;
+  scheduleStatus?: 'active' | 'history';
   documentId?: number | null;
   paidAt?: string | null;
   invoiceFileUrl?: string | null;
   paymentProofFileUrl?: string | null;
+  invoiceFollowUps?: InvoiceFollowUp[];
 }
 
 interface CreateDocumentInput {
@@ -123,6 +137,57 @@ interface CreateDocumentInput {
   nomorDokumen: string | null;
   tanggalDokumen: string;
   fileUrl: string;
+}
+
+type CustomerRouteMutation =
+  | {
+    operation: 'add';
+    pathName: string;
+    pointType: RoutePointType;
+    note?: string | null;
+    orderNumber?: number;
+  }
+  | {
+    operation: 'update';
+    pointId: number;
+    pathName?: string;
+    pointType?: RoutePointType;
+    note?: string | null;
+  }
+  | {
+    operation: 'delete';
+    pointId: number;
+  }
+  | {
+    operation: 'reorder';
+    orderedPointIds: number[];
+  }
+  | {
+    operation: 'status';
+    flowStatus: RouteFlowStatus;
+  }
+  | {
+    operation: 'replace';
+    flowStatus?: RouteFlowStatus;
+    points: Array<{
+      pathName: string;
+      pointType: RoutePointType;
+      note?: string | null;
+      orderNumber: number;
+    }>;
+  }
+  | {
+    operation: 'commit';
+  };
+
+interface RouteSnapshot {
+  flowStatus: RouteFlowStatus;
+  points: Array<{
+    orderNumber: number;
+    pathName: string;
+    pointType: RoutePointType;
+    note: string | null;
+  }>;
 }
 
 const monthLabel = [
@@ -186,6 +251,9 @@ export class InMemoryDataService {
   private readonly customers: Customer[] = [];
   private readonly isps: Isp[] = [];
   private readonly memberships: TenantIspMembership[] = [];
+  private readonly customerRouteVersions: CustomerRouteVersion[] = [];
+  private readonly customerRoutePoints: CustomerRoutePoint[] = [];
+  private readonly customerRouteHistory: CustomerRouteHistoryEntry[] = [];
   private readonly contracts: Contract[] = [];
   private readonly contractVersions: ContractVersion[] = [];
   private readonly invoices: Invoice[] = [];
@@ -195,11 +263,16 @@ export class InMemoryDataService {
   private nextCustomerId = 1;
   private nextIspId = 1;
   private nextMembershipId = 1;
+  private nextRouteVersionId = 1;
+  private nextRoutePointId = 1;
+  private nextRouteHistoryId = 1;
   private nextContractId = 1;
   private nextContractVersionId = 1;
   private nextInvoiceId = 1;
+  private nextInvoiceFollowUpId = 1;
   private nextDocumentId = 1;
   private nextIspContractRowId = 1;
+  private nextIspRenewalFollowUpId = 1;
 
   constructor() {
     this.seed();
@@ -237,6 +310,7 @@ export class InMemoryDataService {
 
     this.nextCustomerId += 1;
     this.customers.push(customer);
+    this.ensureInitialRouteVersion(customer.id);
 
     return this.cloneCustomer(customer);
   }
@@ -410,6 +484,119 @@ export class InMemoryDataService {
       .filter((customer) => customerIds.has(customer.id))
       .sort((left, right) => left.name.localeCompare(right.name))
       .map((customer) => this.cloneCustomer(this.applyPrimaryIspToCustomer(customer)));
+  }
+
+  listCustomerRouteVersions(customerId: number): Array<CustomerRouteVersion & { points: CustomerRoutePoint[] }> {
+    this.ensureInitialRouteVersion(customerId);
+
+    return this.customerRouteVersions
+      .filter((version) => version.customerId === customerId)
+      .sort((left, right) => right.versionNumber - left.versionNumber)
+      .map((version) => ({
+        ...this.cloneCustomerRouteVersion(version),
+        points: this.customerRoutePoints
+          .filter((point) => point.routeVersionId === version.id)
+          .sort((left, right) => left.orderNumber - right.orderNumber)
+          .map((point) => this.cloneCustomerRoutePoint(point)),
+      }));
+  }
+
+  getActiveCustomerRouteVersion(customerId: number): (CustomerRouteVersion & { points: CustomerRoutePoint[] }) | undefined {
+    return this.listCustomerRouteVersions(customerId)[0];
+  }
+
+  listCustomerRouteHistory(customerId: number): CustomerRouteHistoryEntry[] {
+    return this.customerRouteHistory
+      .filter((item) => item.customerId === customerId)
+      .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
+      .map((item) => this.cloneCustomerRouteHistoryEntry(item));
+  }
+
+  deleteCustomerRouteHistory(customerId: number, historyId: number): boolean {
+    const index = this.customerRouteHistory.findIndex(
+      (item) => item.customerId === customerId && item.id === historyId,
+    );
+
+    if (index >= 0) {
+      this.customerRouteHistory.splice(index, 1);
+      return true;
+    }
+
+    return false;
+  }
+
+  clearCustomerRouteHistory(customerId: number): number {
+    let deletedCount = 0;
+
+    for (let index = this.customerRouteHistory.length - 1; index >= 0; index -= 1) {
+      if (this.customerRouteHistory[index].customerId === customerId) {
+        this.customerRouteHistory.splice(index, 1);
+        deletedCount += 1;
+      }
+    }
+
+    return deletedCount;
+  }
+
+  mutateCustomerRoute(
+    customerId: number,
+    mutation: CustomerRouteMutation,
+    options?: {
+      createNewVersion?: boolean;
+      historyNote?: string | null;
+      snapshotBeforeOverride?: RouteSnapshot | null;
+      snapshotAfterOverride?: RouteSnapshot | null;
+    },
+  ): {
+    activeVersion: CustomerRouteVersion & { points: CustomerRoutePoint[] };
+    versions: Array<CustomerRouteVersion & { points: CustomerRoutePoint[] }>;
+    history: CustomerRouteHistoryEntry[];
+  } {
+    this.ensureInitialRouteVersion(customerId);
+    const latestVersion = this.getActiveCustomerRouteVersion(customerId);
+
+    if (!latestVersion) {
+      throw new Error('Route version not found.');
+    }
+
+    const shouldCreateNewVersion = Boolean(options?.createNewVersion);
+    const targetVersion = shouldCreateNewVersion
+      ? this.createDerivedRouteVersion(customerId, latestVersion, options?.historyNote ?? null)
+      : this.customerRouteVersions.find((version) => version.id === latestVersion.id);
+
+    if (!targetVersion) {
+      throw new Error('Failed to resolve route version target.');
+    }
+
+    const snapshotBefore = this.buildRouteSnapshot(targetVersion.id, targetVersion.flowStatus);
+
+    this.applyRouteMutation(targetVersion, mutation);
+    targetVersion.updatedAt = nowIso();
+
+    const snapshotAfter = this.buildRouteSnapshot(targetVersion.id, targetVersion.flowStatus);
+
+    if (options?.historyNote) {
+      this.customerRouteHistory.push({
+        id: this.nextRouteHistoryId,
+        customerId,
+        operation: mutation.operation,
+        note: options.historyNote,
+        snapshotBefore: options.snapshotBeforeOverride ?? snapshotBefore,
+        snapshotAfter: options.snapshotAfterOverride ?? snapshotAfter,
+        createdAt: nowIso(),
+      });
+      this.nextRouteHistoryId += 1;
+    }
+
+    const versions = this.listCustomerRouteVersions(customerId);
+    const activeVersion = versions[0];
+    const history = this.listCustomerRouteHistory(customerId);
+
+    return {
+      activeVersion,
+      versions,
+      history,
+    };
   }
 
   setCustomerIspMemberships(customerId: number, ispIds: number[]): void {
@@ -807,12 +994,17 @@ export class InMemoryDataService {
 
         return right.contractId - left.contractId;
       })
-      .map((version) => this.cloneContractVersion(version));
+      .map((version) => {
+        this.syncContractRenewalFollowUpsForVersion(version);
+        return this.cloneContractVersion(version);
+      });
   }
 
   getContractVersionById(versionId: number): ContractVersion | undefined {
     const version = this.contractVersions.find((item) => item.id === versionId);
-    return version ? this.cloneContractVersion(version) : undefined;
+    if (!version) return undefined;
+    this.syncContractRenewalFollowUpsForVersion(version);
+    return this.cloneContractVersion(version);
   }
 
   getCustomerContractVersionById(
@@ -825,7 +1017,9 @@ export class InMemoryDataService {
         item.customerId === customerId && item.contractId === contractId && item.id === versionId,
     );
 
-    return version ? this.cloneContractVersion(version) : undefined;
+    if (!version) return undefined;
+    this.syncContractRenewalFollowUpsForVersion(version);
+    return this.cloneContractVersion(version);
   }
 
   getLatestContractVersion(contractId: number): ContractVersion | undefined {
@@ -897,6 +1091,11 @@ export class InMemoryDataService {
         ?? contract.sharingRatio
         ?? '1:2',
       bakDocumentId: input.bakDocumentId ?? null,
+      renewalFileUrl: null,
+      renewalFileName: null,
+      responseFileUrl: null,
+      responseFileName: null,
+      renewalFollowUps: [],
       createdAt,
       updatedAt: createdAt,
     };
@@ -931,12 +1130,100 @@ export class InMemoryDataService {
     return this.cloneContractVersion(version);
   }
 
+  addManualContractVersionRenewalFollowUp(
+    customerId: number,
+    contractId: number,
+    versionId: number,
+    title?: string | null,
+    description?: string | null,
+  ): ContractVersion | undefined {
+    const version = this.contractVersions.find(
+      (item) => item.customerId === customerId && item.contractId === contractId && item.id === versionId,
+    );
+    if (!version) {
+      return undefined;
+    }
+
+    this.syncContractRenewalFollowUpsForVersion(version);
+    const hasInitialRenewalUpload = version.renewalFollowUps.some((item) => item.renewalFileUrl);
+    if (!hasInitialRenewalUpload) {
+      throw new BadRequestException('Unggah berkas perpanjangan pertama terlebih dahulu sebelum menambah split.');
+    }
+
+    const nextOrder = (version.renewalFollowUps.at(-1)?.splitOrder ?? 0) + 1;
+    version.renewalFollowUps.push(this.createRenewalFollowUpRecord({
+      rowId: version.id,
+      splitOrder: nextOrder,
+      source: IspRenewalFollowUpSource.Manual,
+      triggerCode: null,
+      title: title?.trim() || `Split Manual ${nextOrder}`,
+      description: description?.trim() || 'Tindak lanjut manual ditambahkan oleh pengguna.',
+      status: IspRenewalFollowUpStatus.Warning,
+    }));
+    version.updatedAt = nowIso();
+    this.syncContractRenewalMirrorFields(version);
+    return this.cloneContractVersion(version);
+  }
+
+  uploadContractVersionRenewalFile(
+    customerId: number,
+    contractId: number,
+    versionId: number,
+    fileUrl: string,
+    fileName: string,
+    followUpId?: number | null,
+  ): ContractVersion | undefined {
+    const version = this.contractVersions.find(
+      (item) => item.customerId === customerId && item.contractId === contractId && item.id === versionId,
+    );
+    if (!version) {
+      return undefined;
+    }
+
+    const followUp = this.resolveTargetContractFollowUp(version, followUpId);
+    followUp.renewalFileUrl = fileUrl;
+    followUp.renewalFileName = fileName;
+    followUp.status = IspRenewalFollowUpStatus.PendingResponse;
+    followUp.updatedAt = nowIso();
+    version.updatedAt = nowIso();
+    this.syncContractRenewalMirrorFields(version);
+    return this.cloneContractVersion(version);
+  }
+
+  respondContractVersionRenewal(
+    customerId: number,
+    contractId: number,
+    versionId: number,
+    decision: 'lanjut' | 'tidak',
+    fileUrl: string,
+    fileName: string,
+    followUpId?: number | null,
+  ): ContractVersion | undefined {
+    const version = this.contractVersions.find(
+      (item) => item.customerId === customerId && item.contractId === contractId && item.id === versionId,
+    );
+    if (!version) {
+      return undefined;
+    }
+
+    const followUp = this.resolveTargetContractFollowUp(version, followUpId);
+    followUp.responseFileUrl = fileUrl;
+    followUp.responseFileName = fileName;
+    followUp.responseDecision = decision;
+    followUp.status = IspRenewalFollowUpStatus.Completed;
+    followUp.updatedAt = nowIso();
+    version.updatedAt = nowIso();
+    this.syncContractRenewalMirrorFields(version);
+    return this.cloneContractVersion(version);
+  }
+
   upsertInvoice(input: UpsertInvoiceInput): { invoice: Invoice; created: boolean } {
     const existing = this.invoices.find(
       (invoice) =>
         invoice.customerId === input.customerId
         && invoice.periodMonth === input.periodMonth
-        && invoice.periodYear === input.periodYear,
+        && invoice.periodYear === input.periodYear
+        && invoice.scheduleStatus !== 'history'
     );
 
     if (existing) {
@@ -963,6 +1250,8 @@ export class InMemoryDataService {
         input.periodEndDate !== undefined ? input.periodEndDate : existing.periodEndDate;
       existing.dueDate = input.dueDate !== undefined ? input.dueDate : existing.dueDate;
       existing.amount = Number.isFinite(input.amount) ? Math.round(input.amount) : existing.amount;
+      existing.scheduleVersion = input.scheduleVersion ?? existing.scheduleVersion;
+      existing.scheduleStatus = input.scheduleStatus ?? existing.scheduleStatus;
       existing.documentId = input.documentId !== undefined ? input.documentId : existing.documentId;
       existing.paidAt = input.paidAt !== undefined ? input.paidAt : existing.paidAt;
       existing.invoiceFileUrl =
@@ -971,7 +1260,11 @@ export class InMemoryDataService {
         input.paymentProofFileUrl !== undefined
           ? input.paymentProofFileUrl
           : existing.paymentProofFileUrl;
+      existing.invoiceFollowUps = Array.isArray(input.invoiceFollowUps)
+        ? input.invoiceFollowUps.map((followUp) => ({ ...followUp }))
+        : existing.invoiceFollowUps;
 
+      this.syncInvoiceFollowUps(existing);
       existing.status = input.status ?? this.deriveInvoiceStatus(existing);
       existing.updatedAt = nowIso();
 
@@ -1004,14 +1297,20 @@ export class InMemoryDataService {
       dueDate: input.dueDate ?? null,
       amount: Math.round(input.amount),
       status: InvoiceStatus.BelumDitagih,
+      scheduleVersion: input.scheduleVersion ?? 1,
+      scheduleStatus: input.scheduleStatus ?? 'active',
       documentId: input.documentId ?? null,
       paidAt: input.paidAt ?? null,
       invoiceFileUrl: input.invoiceFileUrl ?? null,
       paymentProofFileUrl: input.paymentProofFileUrl ?? null,
+      invoiceFollowUps: Array.isArray(input.invoiceFollowUps)
+        ? input.invoiceFollowUps.map((followUp) => ({ ...followUp }))
+        : [],
       createdAt,
       updatedAt: createdAt,
     };
 
+    this.syncInvoiceFollowUps(createdInvoice);
     createdInvoice.status = input.status ?? this.deriveInvoiceStatus(createdInvoice);
 
     this.nextInvoiceId += 1;
@@ -1026,7 +1325,13 @@ export class InMemoryDataService {
   updateInvoice(
     customerId: number,
     invoiceId: number,
-    updates: Partial<Invoice>,
+    updates: Omit<Partial<Invoice>, 'invoiceFollowUps'> & {
+      followUpId?: number | null;
+      invoiceFollowUps?: Array<{
+        id: number;
+        invoiceNumber?: string | null;
+      }>;
+    },
   ): Invoice | undefined {
     const invoice = this.invoices.find(
       (item) => item.id === invoiceId && item.customerId === customerId,
@@ -1036,8 +1341,37 @@ export class InMemoryDataService {
       return undefined;
     }
 
-    if (updates.invoiceNumber !== undefined) {
-      invoice.invoiceNumber = updates.invoiceNumber;
+    this.syncInvoiceFollowUps(invoice);
+
+    if (Array.isArray(updates.invoiceFollowUps)) {
+      updates.invoiceFollowUps.forEach((followUpUpdate) => {
+        const followUp = invoice.invoiceFollowUps.find((item) => item.id === followUpUpdate.id);
+        if (!followUp) {
+          return;
+        }
+
+        if (followUpUpdate.invoiceNumber !== undefined) {
+          followUp.invoiceNumber = followUpUpdate.invoiceNumber;
+          followUp.updatedAt = nowIso();
+        }
+      });
+    }
+
+    if (updates.invoiceNumber !== undefined || updates.invoiceFileUrl !== undefined) {
+      const followUp = this.resolveTargetInvoiceFollowUp(invoice, updates.followUpId);
+
+      if (updates.invoiceNumber !== undefined) {
+        followUp.invoiceNumber = updates.invoiceNumber;
+      }
+
+      if (updates.invoiceFileUrl !== undefined) {
+        followUp.invoiceFileUrl = updates.invoiceFileUrl;
+        followUp.status = updates.invoiceFileUrl
+          ? InvoiceFollowUpStatus.Sent
+          : InvoiceFollowUpStatus.Warning;
+      }
+
+      followUp.updatedAt = nowIso();
     }
 
     if (updates.amount !== undefined) {
@@ -1076,11 +1410,12 @@ export class InMemoryDataService {
       invoice.paidAt = updates.paidAt;
     }
 
-    if (updates.invoiceFileUrl !== undefined) {
-      invoice.invoiceFileUrl = updates.invoiceFileUrl;
-    }
-
     if (updates.paymentProofFileUrl !== undefined) {
+      const hasUploadedInvoice = invoice.invoiceFollowUps.some((item) => item.invoiceFileUrl);
+      if (updates.paymentProofFileUrl && !hasUploadedInvoice) {
+        throw new BadRequestException('Upload invoice terlebih dahulu sebelum upload bukti bayar.');
+      }
+
       invoice.paymentProofFileUrl = updates.paymentProofFileUrl;
 
       if (!updates.paymentProofFileUrl && updates.paidAt === undefined) {
@@ -1092,6 +1427,7 @@ export class InMemoryDataService {
       }
     }
 
+    this.syncInvoiceFollowUps(invoice);
     invoice.status = updates.status ?? this.deriveInvoiceStatus(invoice);
     invoice.updatedAt = nowIso();
 
@@ -1102,13 +1438,24 @@ export class InMemoryDataService {
     return this.invoices
       .filter((invoice) => invoice.customerId === customerId)
       .sort((left, right) => {
+        if (left.scheduleStatus !== right.scheduleStatus) {
+          return left.scheduleStatus === 'active' ? -1 : 1;
+        }
+
+        if (left.scheduleVersion !== right.scheduleVersion) {
+          return right.scheduleVersion - left.scheduleVersion;
+        }
+
         if (left.periodYear === right.periodYear) {
           return right.periodMonth - left.periodMonth;
         }
 
         return right.periodYear - left.periodYear;
       })
-      .map((invoice) => this.cloneInvoice(invoice));
+      .map((invoice) => {
+        this.syncInvoiceFollowUps(invoice);
+        return this.cloneInvoice(invoice);
+      });
   }
 
   getCustomerInvoiceById(customerId: number, invoiceId: number): Invoice | undefined {
@@ -1116,7 +1463,126 @@ export class InMemoryDataService {
       (item) => item.customerId === customerId && item.id === invoiceId,
     );
 
-    return invoice ? this.cloneInvoice(invoice) : undefined;
+    if (!invoice) {
+      return undefined;
+    }
+
+    this.syncInvoiceFollowUps(invoice);
+    return this.cloneInvoice(invoice);
+  }
+
+  getNextInvoiceScheduleVersion(customerId: number): number {
+    const maxVersion = this.invoices
+      .filter((invoice) => invoice.customerId === customerId)
+      .reduce((highest, invoice) => Math.max(highest, Number(invoice.scheduleVersion ?? 1)), 0);
+
+    return maxVersion + 1;
+  }
+
+  archiveActiveInvoicesForCustomer(customerId: number): Invoice[] {
+    const archived: Invoice[] = [];
+
+    this.invoices.forEach((invoice) => {
+      if (invoice.customerId !== customerId || invoice.scheduleStatus === 'history') {
+        return;
+      }
+
+      invoice.scheduleStatus = 'history';
+      invoice.updatedAt = nowIso();
+      this.syncInvoiceFollowUps(invoice);
+      archived.push(this.cloneInvoice(invoice));
+    });
+
+    return archived;
+  }
+
+  archiveCustomerInvoices(
+    customerId: number,
+    predicate?: (invoice: Invoice) => boolean,
+  ): Invoice[] {
+    const archived: Invoice[] = [];
+
+    this.invoices.forEach((invoice) => {
+      if (invoice.customerId !== customerId || invoice.scheduleStatus === 'history') {
+        return;
+      }
+
+      if (predicate && !predicate(this.cloneInvoice(invoice))) {
+        return;
+      }
+
+      invoice.scheduleStatus = 'history';
+      invoice.updatedAt = nowIso();
+      this.syncInvoiceFollowUps(invoice);
+      archived.push(this.cloneInvoice(invoice));
+    });
+
+    return archived;
+  }
+
+  removeCustomerInvoices(
+    customerId: number,
+    predicate?: (invoice: Invoice) => boolean,
+  ): number {
+    let removed = 0;
+
+    for (let index = this.invoices.length - 1; index >= 0; index -= 1) {
+      const invoice = this.invoices[index];
+      if (invoice.customerId !== customerId) {
+        continue;
+      }
+
+      if (predicate && !predicate(this.cloneInvoice(invoice))) {
+        continue;
+      }
+
+      this.invoices.splice(index, 1);
+      removed += 1;
+    }
+
+    return removed;
+  }
+
+  addManualInvoiceFollowUp(
+    customerId: number,
+    invoiceId: number,
+    title?: string | null,
+    description?: string | null,
+  ): Invoice | undefined {
+    const invoice = this.invoices.find(
+      (item) => item.customerId === customerId && item.id === invoiceId,
+    );
+
+    if (!invoice) {
+      return undefined;
+    }
+
+    this.syncInvoiceFollowUps(invoice);
+
+    if (invoice.paymentProofFileUrl) {
+      throw new BadRequestException('Bukti bayar sudah diunggah. Split invoice tambahan tidak diperlukan.');
+    }
+
+    const hasInitialUpload = invoice.invoiceFollowUps.some((item) => item.invoiceFileUrl);
+    if (!hasInitialUpload) {
+      throw new BadRequestException('Upload invoice pertama terlebih dahulu sebelum menambah split.');
+    }
+
+    const nextOrder = (invoice.invoiceFollowUps.at(-1)?.splitOrder ?? 0) + 1;
+    invoice.invoiceFollowUps.push(this.createInvoiceFollowUpRecord({
+      invoiceId,
+      splitOrder: nextOrder,
+      source: InvoiceFollowUpSource.Manual,
+      triggerCode: null,
+      title: title?.trim() || `Split Manual ${nextOrder}`,
+      description: description?.trim() || 'Tindak lanjut penagihan manual ditambahkan oleh pengguna.',
+      status: InvoiceFollowUpStatus.Warning,
+      invoiceNumber: null,
+      invoiceFileUrl: null,
+    }));
+    invoice.updatedAt = nowIso();
+    this.syncInvoiceFollowUps(invoice);
+    return this.cloneInvoice(invoice);
   }
 
   listCustomerDocuments(customerId: number, jenisDokumen?: DocumentType): DocumentRecord[] {
@@ -1172,6 +1638,13 @@ export class InMemoryDataService {
       if (invoice.documentId === documentId) {
         invoice.documentId = null;
         invoice.invoiceFileUrl = null;
+        if (Array.isArray(invoice.invoiceFollowUps)) {
+          invoice.invoiceFollowUps.forEach((followUp) => {
+            followUp.invoiceFileUrl = null;
+            followUp.updatedAt = nowIso();
+          });
+        }
+        this.syncInvoiceFollowUps(invoice);
         invoice.status = this.deriveInvoiceStatus(invoice);
         invoice.updatedAt = nowIso();
       }
@@ -1204,16 +1677,17 @@ export class InMemoryDataService {
     const nowDate = parseDate(today);
     const currentMonth = nowDate.getUTCMonth() + 1;
     const currentYear = nowDate.getUTCFullYear();
+    const customerInvoices = this.listCustomerInvoices(customerId)
+      .filter((invoice) => invoice.scheduleStatus === 'active');
 
     const activeContract = this.getActiveContract(customerId, today);
     const activeVersion = this.getActiveContractVersion(customerId, today);
 
     const hasContract = Boolean(activeContract);
 
-    const currentMonthInvoice = this.invoices.find(
+    const currentMonthInvoice = customerInvoices.find(
       (invoice) =>
-        invoice.customerId === customerId
-        && invoice.periodMonth === currentMonth
+        invoice.periodMonth === currentMonth
         && invoice.periodYear === currentYear,
     );
 
@@ -1269,6 +1743,8 @@ export class InMemoryDataService {
     const priority: TenantTodoItem[] = [];
     const needAction: TenantTodoItem[] = [];
     const info: TenantTodoItem[] = [];
+    const customerInvoices = this.listCustomerInvoices(customerId)
+      .filter((invoice) => invoice.scheduleStatus === 'active');
 
     const contract = this.contracts.find((item) => item.customerId === customerId);
     const activeVersion = this.getActiveContractVersion(customerId, referenceDate);
@@ -1296,11 +1772,7 @@ export class InMemoryDataService {
       }
     }
 
-    const overdueInvoices = this.invoices.filter((invoice) => {
-      if (invoice.customerId !== customerId) {
-        return false;
-      }
-
+    const overdueInvoices = customerInvoices.filter((invoice) => {
       if (!invoice.invoiceFileUrl) {
         return false;
       }
@@ -1351,11 +1823,7 @@ export class InMemoryDataService {
       );
     }
 
-    const invoicesWithoutUpload = this.invoices.filter((invoice) => {
-      if (invoice.customerId !== customerId) {
-        return false;
-      }
-
+    const invoicesWithoutUpload = customerInvoices.filter((invoice) => {
       if (invoice.invoiceFileUrl || !invoice.dueDate) {
         return false;
       }
@@ -1382,11 +1850,7 @@ export class InMemoryDataService {
       );
     }
 
-    const pendingInvoices = this.invoices.filter((invoice) => {
-      if (invoice.customerId !== customerId) {
-        return false;
-      }
-
+    const pendingInvoices = customerInvoices.filter((invoice) => {
       if (!invoice.invoiceFileUrl) {
         return false;
       }
@@ -1420,13 +1884,9 @@ export class InMemoryDataService {
       );
     }
 
-    const invoicesWithoutAmount = this.invoices.filter((invoice) => {
-      if (invoice.customerId !== customerId) {
-        return false;
-      }
-
-      return Number(invoice.amount ?? 0) <= 0;
-    });
+    const invoicesWithoutAmount = customerInvoices.filter(
+      (invoice) => Number(invoice.amount ?? 0) <= 0,
+    );
 
     if (invoicesWithoutAmount.length > 0) {
       const nearestDueDate = invoicesWithoutAmount
@@ -1510,8 +1970,9 @@ export class InMemoryDataService {
           : `Periode ${version.startDate} s.d ${version.endDate} (BAK belum tersedia)`,
       }));
 
-    const invoiceEvents: TimelineEvent[] = this.invoices
-      .filter((invoice) => invoice.customerId === customerId)
+    const customerInvoices = this.listCustomerInvoices(customerId);
+
+    const invoiceEvents: TimelineEvent[] = customerInvoices
       .map((invoice) => ({
         id: `invoice-${invoice.id}`,
         customerId,
@@ -1521,13 +1982,8 @@ export class InMemoryDataService {
         description: `${monthLabel[invoice.periodMonth]} ${invoice.periodYear} - Rp ${invoice.amount.toLocaleString('id-ID')}`,
       }));
 
-    const paymentEvents: TimelineEvent[] = this.invoices
-      .filter(
-        (invoice) =>
-          invoice.customerId === customerId
-          && invoice.paidAt
-          && invoice.paymentProofFileUrl,
-      )
+    const paymentEvents: TimelineEvent[] = customerInvoices
+      .filter((invoice) => invoice.paidAt && invoice.paymentProofFileUrl)
       .map((invoice) => ({
         id: `payment-${invoice.id}`,
         customerId,
@@ -1563,7 +2019,8 @@ export class InMemoryDataService {
             (item) =>
               item.customerId === customer.id
               && item.periodYear === year
-              && item.periodMonth === month,
+              && item.periodMonth === month
+              && item.scheduleStatus === 'active',
           );
 
           return invoice ? invoice.status : InvoiceStatus.BelumDitagih;
@@ -1619,7 +2076,10 @@ export class InMemoryDataService {
       const month = index + 1;
 
       const monthInvoices = this.invoices.filter(
-        (invoice) => invoice.periodYear === year && invoice.periodMonth === month,
+        (invoice) =>
+          invoice.periodYear === year
+          && invoice.periodMonth === month
+          && invoice.scheduleStatus === 'active',
       );
 
       const revenueProjected = monthInvoices.reduce(
@@ -1702,10 +2162,11 @@ export class InMemoryDataService {
         });
       }
 
-      const hasCurrentMonthInvoice = this.invoices.some(
+      const customerInvoices = this.listCustomerInvoices(customer.id)
+        .filter((invoice) => invoice.scheduleStatus === 'active');
+      const hasCurrentMonthInvoice = customerInvoices.some(
         (invoice) =>
-          invoice.customerId === customer.id
-          && invoice.periodYear === currentYear
+          invoice.periodYear === currentYear
           && invoice.periodMonth === currentMonth
           && invoice.invoiceFileUrl,
       );
@@ -1784,12 +2245,17 @@ export class InMemoryDataService {
     return this.ispContractRows
       .filter((row) => row.ispId === ispId)
       .sort((a, b) => a.id - b.id)
-      .map((row) => this.cloneIspContractRow(row));
+      .map((row) => {
+        this.syncRenewalFollowUpsForRow(row);
+        return this.cloneIspContractRow(row);
+      });
   }
 
   getIspContractRowById(rowId: number): IspContractRow | undefined {
     const row = this.ispContractRows.find((item) => item.id === rowId);
-    return row ? this.cloneIspContractRow(row) : undefined;
+    if (!row) return undefined;
+    this.syncRenewalFollowUpsForRow(row);
+    return this.cloneIspContractRow(row);
   }
 
   createIspContractRow(input: {
@@ -1815,11 +2281,13 @@ export class InMemoryDataService {
       renewalFileName: null,
       responseFileUrl: null,
       responseFileName: null,
+      renewalFollowUps: [],
       createdAt: now,
       updatedAt: now,
     };
     this.nextIspContractRowId += 1;
     this.ispContractRows.push(row);
+    this.syncRenewalFollowUpsForRow(row);
     this.syncIspContractSnapshotFromRows(input.ispId);
     return this.cloneIspContractRow(row);
   }
@@ -1845,6 +2313,7 @@ export class InMemoryDataService {
       }
     }
 
+    this.syncRenewalFollowUpsForRow(row);
     this.syncIspContractSnapshotFromRows(row.ispId);
 
     return this.cloneIspContractRow(row);
@@ -1869,12 +2338,17 @@ export class InMemoryDataService {
     rowId: number,
     fileUrl: string,
     fileName: string,
+    followUpId?: number | null,
   ): IspContractRow | undefined {
     const row = this.ispContractRows.find((item) => item.id === rowId);
     if (!row) return undefined;
 
-    row.renewalFileUrl = fileUrl;
-    row.renewalFileName = fileName;
+    const followUp = this.resolveTargetFollowUp(row, followUpId);
+    followUp.renewalFileUrl = fileUrl;
+    followUp.renewalFileName = fileName;
+    followUp.status = IspRenewalFollowUpStatus.PendingResponse;
+    followUp.updatedAt = nowIso();
+    this.syncRenewalMirrorFields(row);
     row.renewalStatus = IspRenewalStatus.Pending;
     row.updatedAt = nowIso();
     this.syncIspContractSnapshotFromRows(row.ispId);
@@ -1886,12 +2360,18 @@ export class InMemoryDataService {
     decision: 'lanjut' | 'tidak',
     responseFileUrl: string,
     responseFileName: string,
+    followUpId?: number | null,
   ): { updatedRow: IspContractRow; newRow?: IspContractRow } {
     const row = this.ispContractRows.find((item) => item.id === rowId);
     if (!row) throw new Error('Contract row not found.');
 
-    row.responseFileUrl = responseFileUrl;
-    row.responseFileName = responseFileName;
+    const followUp = this.resolveTargetFollowUp(row, followUpId);
+    followUp.responseFileUrl = responseFileUrl;
+    followUp.responseFileName = responseFileName;
+    followUp.responseDecision = decision;
+    followUp.status = IspRenewalFollowUpStatus.Completed;
+    followUp.updatedAt = nowIso();
+    this.syncRenewalMirrorFields(row);
     row.updatedAt = nowIso();
 
     if (decision === 'lanjut') {
@@ -1939,6 +2419,36 @@ export class InMemoryDataService {
     return {
       updatedRow: this.cloneIspContractRow(row),
     };
+  }
+
+  addManualIspContractRenewalFollowUp(
+    rowId: number,
+    title?: string | null,
+    description?: string | null,
+  ): IspContractRow | undefined {
+    const row = this.ispContractRows.find((item) => item.id === rowId);
+    if (!row) return undefined;
+
+    this.syncRenewalFollowUpsForRow(row);
+    const hasInitialRenewalUpload = row.renewalFollowUps.some((item) => item.renewalFileUrl);
+    if (!hasInitialRenewalUpload) {
+      throw new BadRequestException('Unggah berkas perpanjangan pertama terlebih dahulu sebelum menambah split.');
+    }
+
+    const nextOrder = (row.renewalFollowUps.at(-1)?.splitOrder ?? 0) + 1;
+    row.renewalFollowUps.push(this.createRenewalFollowUpRecord({
+      rowId,
+      splitOrder: nextOrder,
+      source: IspRenewalFollowUpSource.Manual,
+      triggerCode: null,
+      title: title?.trim() || `Split Manual ${nextOrder}`,
+      description: description?.trim() || 'Tindak lanjut manual ditambahkan oleh pengguna.',
+      status: IspRenewalFollowUpStatus.Warning,
+    }));
+    row.updatedAt = nowIso();
+    this.syncRenewalMirrorFields(row);
+    this.syncIspContractSnapshotFromRows(row.ispId);
+    return this.cloneIspContractRow(row);
   }
 
   getIspOperationalSummary(ispId: number): {
@@ -2033,6 +2543,432 @@ export class InMemoryDataService {
     isp.updatedAt = nowIso();
   }
 
+  private createRenewalFollowUpRecord(input: {
+    rowId: number;
+    splitOrder: number;
+    source: IspRenewalFollowUpSource;
+    triggerCode: string | null;
+    title: string;
+    description: string;
+    status: IspRenewalFollowUpStatus;
+  }): IspRenewalFollowUp {
+    const now = nowIso();
+    const followUp: IspRenewalFollowUp = {
+      id: this.nextIspRenewalFollowUpId,
+      rowId: input.rowId,
+      splitOrder: input.splitOrder,
+      source: input.source,
+      triggerCode: input.triggerCode,
+      title: input.title,
+      description: input.description,
+      status: input.status,
+      renewalFileUrl: null,
+      renewalFileName: null,
+      responseFileUrl: null,
+      responseFileName: null,
+      responseDecision: null,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.nextIspRenewalFollowUpId += 1;
+    return followUp;
+  }
+
+  private syncRenewalFollowUpsForRow(row: IspContractRow): void {
+    if (!Array.isArray(row.renewalFollowUps)) {
+      row.renewalFollowUps = [];
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const endDate = row.periodEnd ? parseDate(row.periodEnd) : null;
+    const daysLeft = endDate
+      ? Math.ceil((endDate.getTime() - today.getTime()) / (24 * 60 * 60 * 1000))
+      : null;
+
+    if (
+      row.renewalStatus !== IspRenewalStatus.Terminated
+      && row.renewalStatus !== IspRenewalStatus.Renewed
+      && row.renewalStatus !== IspRenewalStatus.NeedsCompletion
+    ) {
+      this.ensureAutoFollowUp(row, daysLeft, 90, 1, 'auto_h90', 'Peringatan Pertama', 'Kontrak mendekati akhir masa berlaku. Unggah berkas perpanjangan atau tambah tindak lanjut.');
+      this.ensureAutoFollowUp(row, daysLeft, 30, 2, 'auto_h30', 'Peringatan Kedua', 'Belum ada tanggapan yang selesai. Lanjutkan tindak lanjut perpanjangan pada split ini.');
+    }
+
+    this.syncRenewalMirrorFields(row);
+  }
+
+  private ensureAutoFollowUp(
+    row: IspContractRow,
+    daysLeft: number | null,
+    thresholdDays: number,
+    splitOrder: number,
+    triggerCode: string,
+    title: string,
+    description: string,
+  ): void {
+    if (daysLeft === null || daysLeft > thresholdDays) {
+      return;
+    }
+
+    const alreadyHandled = row.renewalFollowUps.some((followUp) =>
+      followUp.splitOrder >= splitOrder
+      || followUp.triggerCode === triggerCode,
+    );
+
+    if (alreadyHandled) {
+      return;
+    }
+
+    row.renewalFollowUps.push(this.createRenewalFollowUpRecord({
+      rowId: row.id,
+      splitOrder,
+      source: IspRenewalFollowUpSource.Auto,
+      triggerCode,
+      title,
+      description,
+      status: IspRenewalFollowUpStatus.Warning,
+    }));
+  }
+
+  private resolveTargetFollowUp(row: IspContractRow, followUpId?: number | null): IspRenewalFollowUp {
+    this.syncRenewalFollowUpsForRow(row);
+
+    if (followUpId !== undefined && followUpId !== null) {
+      const matched = row.renewalFollowUps.find((item) => item.id === followUpId);
+      if (matched) {
+        return matched;
+      }
+    }
+
+    const existingPending = [...row.renewalFollowUps]
+      .filter((item) => item.status !== IspRenewalFollowUpStatus.Completed)
+      .sort((left, right) => left.splitOrder - right.splitOrder)[0];
+
+    if (existingPending) {
+      return existingPending;
+    }
+
+    const nextOrder = (row.renewalFollowUps.at(-1)?.splitOrder ?? 0) + 1;
+    const created = this.createRenewalFollowUpRecord({
+      rowId: row.id,
+      splitOrder: nextOrder,
+      source: IspRenewalFollowUpSource.Upload,
+      triggerCode: null,
+      title: `Upload Perpanjangan ${nextOrder}`,
+      description: 'Berkas perpanjangan diunggah tanpa menunggu trigger otomatis.',
+      status: IspRenewalFollowUpStatus.PendingResponse,
+    });
+    row.renewalFollowUps.push(created);
+    return created;
+  }
+
+  private syncRenewalMirrorFields(row: IspContractRow): void {
+    const latestWithRenewal = [...row.renewalFollowUps]
+      .filter((item) => item.renewalFileUrl)
+      .sort((left, right) => right.splitOrder - left.splitOrder)[0];
+    const latestWithResponse = [...row.renewalFollowUps]
+      .filter((item) => item.responseFileUrl)
+      .sort((left, right) => right.splitOrder - left.splitOrder)[0];
+
+    row.renewalFileUrl = latestWithRenewal?.renewalFileUrl ?? null;
+    row.renewalFileName = latestWithRenewal?.renewalFileName ?? null;
+    row.responseFileUrl = latestWithResponse?.responseFileUrl ?? null;
+    row.responseFileName = latestWithResponse?.responseFileName ?? null;
+
+    if (row.renewalStatus === IspRenewalStatus.Terminated || row.renewalStatus === IspRenewalStatus.Renewed || row.renewalStatus === IspRenewalStatus.NeedsCompletion) {
+      return;
+    }
+
+    const hasPendingResponse = row.renewalFollowUps.some((item) =>
+      item.status === IspRenewalFollowUpStatus.PendingResponse
+      || (item.renewalFileUrl && !item.responseFileUrl),
+    );
+    const hasWarning = row.renewalFollowUps.some((item) => item.status === IspRenewalFollowUpStatus.Warning);
+
+    row.renewalStatus = hasPendingResponse
+      ? IspRenewalStatus.Pending
+      : hasWarning
+        ? IspRenewalStatus.Warning
+        : IspRenewalStatus.Active;
+  }
+
+  private syncContractRenewalFollowUpsForVersion(version: ContractVersion): void {
+    if (!Array.isArray(version.renewalFollowUps)) {
+      version.renewalFollowUps = [];
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const endDate = version.endDate ? parseDate(version.endDate) : null;
+    const daysLeft = endDate
+      ? Math.ceil((endDate.getTime() - today.getTime()) / (24 * 60 * 60 * 1000))
+      : null;
+
+    this.ensureAutoContractFollowUp(version, daysLeft, 90, 1, 'auto_h90', 'Peringatan Pertama', 'Kontrak tenant mendekati akhir masa berlaku. Unggah berkas perpanjangan atau tambah tindak lanjut.');
+    this.ensureAutoContractFollowUp(version, daysLeft, 30, 2, 'auto_h30', 'Peringatan Kedua', 'Belum ada tanggapan yang selesai. Lanjutkan tindak lanjut perpanjangan pada split ini.');
+    this.syncContractRenewalMirrorFields(version);
+  }
+
+  private ensureAutoContractFollowUp(
+    version: ContractVersion,
+    daysLeft: number | null,
+    thresholdDays: number,
+    splitOrder: number,
+    triggerCode: string,
+    title: string,
+    description: string,
+  ): void {
+    if (daysLeft === null || daysLeft > thresholdDays) {
+      return;
+    }
+
+    const alreadyHandled = version.renewalFollowUps.some((followUp) =>
+      followUp.splitOrder >= splitOrder || followUp.triggerCode === triggerCode,
+    );
+    if (alreadyHandled) {
+      return;
+    }
+
+    version.renewalFollowUps.push(this.createRenewalFollowUpRecord({
+      rowId: version.id,
+      splitOrder,
+      source: IspRenewalFollowUpSource.Auto,
+      triggerCode,
+      title,
+      description,
+      status: IspRenewalFollowUpStatus.Warning,
+    }));
+  }
+
+  private resolveTargetContractFollowUp(version: ContractVersion, followUpId?: number | null): IspRenewalFollowUp {
+    this.syncContractRenewalFollowUpsForVersion(version);
+
+    if (followUpId !== undefined && followUpId !== null) {
+      const matched = version.renewalFollowUps.find((item) => item.id === followUpId);
+      if (matched) {
+        return matched;
+      }
+    }
+
+    const existingPending = [...version.renewalFollowUps]
+      .filter((item) => item.status !== IspRenewalFollowUpStatus.Completed)
+      .sort((left, right) => left.splitOrder - right.splitOrder)[0];
+    if (existingPending) {
+      return existingPending;
+    }
+
+    const nextOrder = (version.renewalFollowUps.at(-1)?.splitOrder ?? 0) + 1;
+    const created = this.createRenewalFollowUpRecord({
+      rowId: version.id,
+      splitOrder: nextOrder,
+      source: IspRenewalFollowUpSource.Upload,
+      triggerCode: null,
+      title: `Upload Perpanjangan ${nextOrder}`,
+      description: 'Berkas perpanjangan diunggah tanpa menunggu trigger otomatis.',
+      status: IspRenewalFollowUpStatus.PendingResponse,
+    });
+    version.renewalFollowUps.push(created);
+    return created;
+  }
+
+  private syncContractRenewalMirrorFields(version: ContractVersion): void {
+    const latestWithRenewal = [...version.renewalFollowUps]
+      .filter((item) => item.renewalFileUrl)
+      .sort((left, right) => right.splitOrder - left.splitOrder)[0];
+    const latestWithResponse = [...version.renewalFollowUps]
+      .filter((item) => item.responseFileUrl)
+      .sort((left, right) => right.splitOrder - left.splitOrder)[0];
+
+    version.renewalFileUrl = latestWithRenewal?.renewalFileUrl ?? null;
+    version.renewalFileName = latestWithRenewal?.renewalFileName ?? null;
+    version.responseFileUrl = latestWithResponse?.responseFileUrl ?? null;
+    version.responseFileName = latestWithResponse?.responseFileName ?? null;
+  }
+
+  private createInvoiceFollowUpRecord(input: {
+    invoiceId: number;
+    splitOrder: number;
+    source: InvoiceFollowUpSource;
+    triggerCode: string | null;
+    title: string;
+    description: string;
+    status: InvoiceFollowUpStatus;
+    invoiceNumber: string | null;
+    invoiceFileUrl: string | null;
+  }): InvoiceFollowUp {
+    const now = nowIso();
+    const followUp: InvoiceFollowUp = {
+      id: this.nextInvoiceFollowUpId,
+      invoiceId: input.invoiceId,
+      splitOrder: input.splitOrder,
+      source: input.source,
+      triggerCode: input.triggerCode,
+      title: input.title,
+      description: input.description,
+      status: input.status,
+      invoiceNumber: input.invoiceNumber,
+      invoiceFileUrl: input.invoiceFileUrl,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.nextInvoiceFollowUpId += 1;
+    return followUp;
+  }
+
+  private syncInvoiceFollowUps(invoice: Invoice): void {
+    if (!Array.isArray(invoice.invoiceFollowUps)) {
+      invoice.invoiceFollowUps = [];
+    }
+
+    const hasLegacyUpload = Boolean(invoice.invoiceFileUrl);
+    const hasUploadedFollowUp = invoice.invoiceFollowUps.some((item) => item.invoiceFileUrl);
+
+    if (hasLegacyUpload && !hasUploadedFollowUp) {
+      invoice.invoiceFollowUps.push(this.createInvoiceFollowUpRecord({
+        invoiceId: invoice.id,
+        splitOrder: 1,
+        source: InvoiceFollowUpSource.Upload,
+        triggerCode: 'legacy_initial',
+        title: 'Invoice Awal',
+        description: 'Split awal hasil sinkronisasi dari data invoice yang sudah ada.',
+        status: invoice.paymentProofFileUrl ? InvoiceFollowUpStatus.Completed : InvoiceFollowUpStatus.Sent,
+        invoiceNumber: invoice.invoiceNumber ?? null,
+        invoiceFileUrl: invoice.invoiceFileUrl ?? null,
+      }));
+    }
+
+    if (invoice.paymentProofFileUrl) {
+      invoice.invoiceFollowUps.forEach((followUp) => {
+        followUp.status = InvoiceFollowUpStatus.Completed;
+      });
+      this.syncInvoiceMirrorFields(invoice);
+      return;
+    }
+
+    const hasInitialUpload = invoice.invoiceFollowUps.some((item) => item.invoiceFileUrl);
+    if (hasInitialUpload && invoice.dueDate) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const dueDate = parseDate(invoice.dueDate);
+      const daysPastDue = Math.floor((today.getTime() - dueDate.getTime()) / (24 * 60 * 60 * 1000));
+
+      this.ensureAutoInvoiceFollowUp(
+        invoice,
+        daysPastDue,
+        1,
+        2,
+        'auto_overdue_d1',
+        'Peringatan Pertama',
+        'Pembayaran melewati jatuh tempo. Unggah invoice peringatan pertama untuk tindak lanjut penagihan.',
+      );
+      this.ensureAutoInvoiceFollowUp(
+        invoice,
+        daysPastDue,
+        7,
+        3,
+        'auto_overdue_d7',
+        'Peringatan Kedua',
+        'Pembayaran belum diselesaikan lebih dari 7 hari setelah jatuh tempo. Lanjutkan dengan invoice peringatan berikutnya.',
+      );
+    }
+
+    this.syncInvoiceMirrorFields(invoice);
+  }
+
+  private ensureAutoInvoiceFollowUp(
+    invoice: Invoice,
+    daysPastDue: number,
+    thresholdDays: number,
+    splitOrder: number,
+    triggerCode: string,
+    title: string,
+    description: string,
+  ): void {
+    if (daysPastDue < thresholdDays) {
+      return;
+    }
+
+    const alreadyHandled = invoice.invoiceFollowUps.some((followUp) =>
+      followUp.splitOrder >= splitOrder || followUp.triggerCode === triggerCode,
+    );
+    if (alreadyHandled) {
+      return;
+    }
+
+    invoice.invoiceFollowUps.push(this.createInvoiceFollowUpRecord({
+      invoiceId: invoice.id,
+      splitOrder,
+      source: InvoiceFollowUpSource.Auto,
+      triggerCode,
+      title,
+      description,
+      status: InvoiceFollowUpStatus.Warning,
+      invoiceNumber: null,
+      invoiceFileUrl: null,
+    }));
+  }
+
+  private resolveTargetInvoiceFollowUp(invoice: Invoice, followUpId?: number | null): InvoiceFollowUp {
+    this.syncInvoiceFollowUps(invoice);
+
+    if (followUpId !== undefined && followUpId !== null) {
+      const matched = invoice.invoiceFollowUps.find((item) => item.id === followUpId);
+      if (matched) {
+        return matched;
+      }
+    }
+
+    const existingPending = [...invoice.invoiceFollowUps]
+      .filter((item) => item.status !== InvoiceFollowUpStatus.Completed)
+      .sort((left, right) => left.splitOrder - right.splitOrder)[0];
+
+    if (existingPending) {
+      return existingPending;
+    }
+
+    const nextOrder = (invoice.invoiceFollowUps.at(-1)?.splitOrder ?? 0) + 1;
+    const created = this.createInvoiceFollowUpRecord({
+      invoiceId: invoice.id,
+      splitOrder: nextOrder,
+      source: InvoiceFollowUpSource.Upload,
+      triggerCode: null,
+      title: nextOrder === 1 ? 'Invoice Awal' : `Invoice Split ${nextOrder}`,
+      description: nextOrder === 1
+        ? 'Invoice awal diunggah untuk pembayaran ini.'
+        : 'Invoice tambahan diunggah tanpa menunggu trigger otomatis.',
+      status: InvoiceFollowUpStatus.Warning,
+      invoiceNumber: null,
+      invoiceFileUrl: null,
+    });
+    invoice.invoiceFollowUps.push(created);
+    return created;
+  }
+
+  private syncInvoiceMirrorFields(invoice: Invoice): void {
+    const latestWithInvoice = [...invoice.invoiceFollowUps]
+      .filter((item) => item.invoiceFileUrl)
+      .sort((left, right) => right.splitOrder - left.splitOrder)[0];
+
+    invoice.invoiceNumber = latestWithInvoice?.invoiceNumber ?? null;
+    invoice.invoiceFileUrl = latestWithInvoice?.invoiceFileUrl ?? null;
+
+    if (invoice.paymentProofFileUrl) {
+      invoice.invoiceFollowUps.forEach((followUp) => {
+        followUp.status = InvoiceFollowUpStatus.Completed;
+      });
+      return;
+    }
+
+    invoice.invoiceFollowUps.forEach((followUp) => {
+      if (followUp.invoiceFileUrl) {
+        followUp.status = InvoiceFollowUpStatus.Sent;
+      } else if (followUp.status !== InvoiceFollowUpStatus.Completed) {
+        followUp.status = InvoiceFollowUpStatus.Warning;
+      }
+    });
+  }
+
   private deriveInvoiceStatus(invoice: Partial<Invoice>): InvoiceStatus {
     const today = toIsoDate(new Date());
 
@@ -2108,6 +3044,331 @@ export class InMemoryDataService {
     const customer = this.customers.find((item) => item.id === customerId);
     const customerCode = customer?.customerCode ?? `CUST-${customerId}`;
     return buildInvoiceNumber(customerCode, periodYear, periodMonth, invoiceId);
+  }
+
+  private ensureInitialRouteVersion(customerId: number): void {
+    const hasVersion = this.customerRouteVersions.some((item) => item.customerId === customerId);
+    if (hasVersion) {
+      return;
+    }
+
+    const timestamp = nowIso();
+    this.customerRouteVersions.push({
+      id: this.nextRouteVersionId,
+      customerId,
+      versionNumber: 1,
+      flowStatus: RouteFlowStatus.Aktif,
+      changeMode: 'initial',
+      changeNote: 'Versi awal jalur tenant.',
+      basedOnVersionId: null,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    });
+    this.nextRouteVersionId += 1;
+  }
+
+  private createDerivedRouteVersion(
+    customerId: number,
+    sourceVersion: CustomerRouteVersion & { points: CustomerRoutePoint[] },
+    changeNote: string | null,
+  ): CustomerRouteVersion {
+    const timestamp = nowIso();
+    const createdVersion: CustomerRouteVersion = {
+      id: this.nextRouteVersionId,
+      customerId,
+      versionNumber: sourceVersion.versionNumber + 1,
+      flowStatus: sourceVersion.flowStatus,
+      changeMode: 'ubah_jalur',
+      changeNote,
+      basedOnVersionId: sourceVersion.id,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    };
+
+    this.nextRouteVersionId += 1;
+    this.customerRouteVersions.push(createdVersion);
+
+    sourceVersion.points.forEach((point) => {
+      this.customerRoutePoints.push({
+        id: this.nextRoutePointId,
+        routeVersionId: createdVersion.id,
+        orderNumber: point.orderNumber,
+        pathName: point.pathName,
+        pointType: point.pointType,
+        note: point.note,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      });
+      this.nextRoutePointId += 1;
+    });
+
+    return createdVersion;
+  }
+
+  private applyRouteMutation(
+    targetVersion: CustomerRouteVersion,
+    mutation: CustomerRouteMutation,
+  ): void {
+    const now = nowIso();
+    const points = this.customerRoutePoints
+      .filter((point) => point.routeVersionId === targetVersion.id)
+      .sort((left, right) => left.orderNumber - right.orderNumber);
+
+    if (mutation.operation === 'status') {
+      targetVersion.flowStatus = mutation.flowStatus;
+      return;
+    }
+
+    if (mutation.operation === 'commit') {
+      return;
+    }
+
+    if (mutation.operation === 'replace') {
+      if (mutation.flowStatus !== undefined) {
+        targetVersion.flowStatus = mutation.flowStatus;
+      }
+
+      // Remove all current points for this version
+      for (let i = this.customerRoutePoints.length - 1; i >= 0; i--) {
+        if (this.customerRoutePoints[i].routeVersionId === targetVersion.id) {
+          this.customerRoutePoints.splice(i, 1);
+        }
+      }
+
+      // Add new points
+      mutation.points.forEach((p) => {
+        this.customerRoutePoints.push({
+          id: this.nextRoutePointId,
+          routeVersionId: targetVersion.id,
+          orderNumber: p.orderNumber,
+          pathName: p.pathName,
+          pointType: p.pointType,
+          note: p.note ?? null,
+          createdAt: now,
+          updatedAt: now,
+        });
+        this.nextRoutePointId += 1;
+      });
+
+      this.normalizeRoutePointOrder(targetVersion.id);
+      this.pinRouteAnchorOrder(targetVersion.id);
+      return;
+    }
+
+    if (mutation.operation === 'add') {
+      const normalizedPathName = mutation.pathName.trim();
+      if (!normalizedPathName) {
+        throw new Error('pathName is required.');
+      }
+
+      const hasAwal = points.some((point) => point.pointType === RoutePointType.Awal);
+      const hasTujuan = points.some((point) => point.pointType === RoutePointType.Tujuan);
+
+      if (mutation.pointType === RoutePointType.Awal && hasAwal) {
+        throw new Error('Titik Awal hanya boleh satu.');
+      }
+
+      if (mutation.pointType === RoutePointType.Tujuan && hasTujuan) {
+        throw new Error('Titik Tujuan hanya boleh satu.');
+      }
+
+      let nextOrder = points.length + 1;
+
+      if (mutation.pointType === RoutePointType.Awal) {
+        nextOrder = 1;
+      } else if (mutation.pointType === RoutePointType.Transit) {
+        const tujuanPoint = points.find((point) => point.pointType === RoutePointType.Tujuan);
+        nextOrder = tujuanPoint ? tujuanPoint.orderNumber : points.length + 1;
+      }
+
+      points
+        .filter((point) => point.orderNumber >= nextOrder)
+        .forEach((point) => {
+          point.orderNumber += 1;
+          point.updatedAt = now;
+        });
+
+      this.customerRoutePoints.push({
+        id: this.nextRoutePointId,
+        routeVersionId: targetVersion.id,
+        orderNumber: nextOrder,
+        pathName: normalizedPathName,
+        pointType: mutation.pointType,
+        note: mutation.note?.trim() || null,
+        createdAt: now,
+        updatedAt: now,
+      });
+      this.nextRoutePointId += 1;
+      this.normalizeRoutePointOrder(targetVersion.id);
+      this.pinRouteAnchorOrder(targetVersion.id);
+      return;
+    }
+
+    if (mutation.operation === 'update') {
+      const targetPoint = points.find((point) => point.id === mutation.pointId);
+      if (!targetPoint) {
+        throw new Error('Route point not found.');
+      }
+
+      if (mutation.pathName !== undefined) {
+        const normalizedPathName = mutation.pathName.trim();
+        if (!normalizedPathName) {
+          throw new Error('pathName must not be empty.');
+        }
+        targetPoint.pathName = normalizedPathName;
+      }
+
+      if (mutation.pointType !== undefined) {
+        if (
+          mutation.pointType === RoutePointType.Awal
+          && points.some(
+            (point) => point.pointType === RoutePointType.Awal && point.id !== targetPoint.id,
+          )
+        ) {
+          throw new Error('Titik Awal hanya boleh satu.');
+        }
+
+        if (
+          mutation.pointType === RoutePointType.Tujuan
+          && points.some(
+            (point) => point.pointType === RoutePointType.Tujuan && point.id !== targetPoint.id,
+          )
+        ) {
+          throw new Error('Titik Tujuan hanya boleh satu.');
+        }
+
+        targetPoint.pointType = mutation.pointType;
+      }
+
+      if (mutation.note !== undefined) {
+        targetPoint.note = mutation.note?.trim() || null;
+      }
+
+      targetPoint.updatedAt = now;
+      this.pinRouteAnchorOrder(targetVersion.id);
+      return;
+    }
+
+    if (mutation.operation === 'delete') {
+      const targetPoint = points.find((point) => point.id === mutation.pointId);
+      if (!targetPoint) {
+        throw new Error('Route point not found.');
+      }
+
+      if (
+        targetPoint.pointType === RoutePointType.Awal
+        || targetPoint.pointType === RoutePointType.Tujuan
+      ) {
+        throw new Error('Titik Awal dan Tujuan bersifat tetap dan tidak dapat dihapus.');
+      }
+
+      const pointIndex = this.customerRoutePoints.findIndex(
+        (point) => point.routeVersionId === targetVersion.id && point.id === mutation.pointId,
+      );
+
+      if (pointIndex < 0) {
+        throw new Error('Route point not found.');
+      }
+
+      this.customerRoutePoints.splice(pointIndex, 1);
+      this.normalizeRoutePointOrder(targetVersion.id);
+      this.pinRouteAnchorOrder(targetVersion.id);
+      return;
+    }
+
+    if (mutation.operation === 'reorder') {
+      const uniqueIds = Array.from(new Set(mutation.orderedPointIds.map((value) => Number(value))));
+      const pointIds = points.map((point) => point.id);
+
+      const sameLength = uniqueIds.length === pointIds.length;
+      const hasAllPoints = sameLength && pointIds.every((id) => uniqueIds.includes(id));
+
+      if (!hasAllPoints) {
+        throw new Error('orderedPointIds must include all current point IDs exactly once.');
+      }
+
+      const awalPoint = points.find((point) => point.pointType === RoutePointType.Awal);
+      const tujuanPoint = points.find((point) => point.pointType === RoutePointType.Tujuan);
+
+      if (awalPoint && uniqueIds[0] !== awalPoint.id) {
+        throw new Error('Titik Awal harus tetap di urutan pertama.');
+      }
+
+      if (tujuanPoint && uniqueIds[uniqueIds.length - 1] !== tujuanPoint.id) {
+        throw new Error('Titik Tujuan harus tetap di urutan terakhir.');
+      }
+
+      uniqueIds.forEach((pointId, index) => {
+        const point = points.find((item) => item.id === pointId);
+        if (!point) {
+          return;
+        }
+
+        point.orderNumber = index + 1;
+        point.updatedAt = now;
+      });
+
+      this.normalizeRoutePointOrder(targetVersion.id);
+      this.pinRouteAnchorOrder(targetVersion.id);
+    }
+  }
+
+  private normalizeRoutePointOrder(routeVersionId: number): void {
+    const now = nowIso();
+    const points = this.customerRoutePoints
+      .filter((point) => point.routeVersionId === routeVersionId)
+      .sort((left, right) => left.orderNumber - right.orderNumber);
+
+    points.forEach((point, index) => {
+      point.orderNumber = index + 1;
+      point.updatedAt = now;
+    });
+  }
+
+  private buildRouteSnapshot(routeVersionId: number, flowStatus: RouteFlowStatus): RouteSnapshot {
+    return {
+      flowStatus,
+      points: this.customerRoutePoints
+        .filter((point) => point.routeVersionId === routeVersionId)
+        .sort((left, right) => left.orderNumber - right.orderNumber)
+        .map((point) => ({
+          orderNumber: point.orderNumber,
+          pathName: point.pathName,
+          pointType: point.pointType,
+          note: point.note,
+        })),
+    };
+  }
+
+  private pinRouteAnchorOrder(routeVersionId: number): void {
+    const now = nowIso();
+    const points = this.customerRoutePoints
+      .filter((point) => point.routeVersionId === routeVersionId)
+      .sort((left, right) => left.orderNumber - right.orderNumber);
+
+    const awal = points.find((point) => point.pointType === RoutePointType.Awal) ?? null;
+    const tujuan = points.find((point) => point.pointType === RoutePointType.Tujuan) ?? null;
+    const transit = points.filter((point) => point.pointType === RoutePointType.Transit);
+
+    const ordered: CustomerRoutePoint[] = [];
+    if (awal) {
+      ordered.push(awal);
+    }
+
+    transit.forEach((point) => {
+      if (point.id !== awal?.id && point.id !== tujuan?.id) {
+        ordered.push(point);
+      }
+    });
+
+    if (tujuan) {
+      ordered.push(tujuan);
+    }
+
+    ordered.forEach((point, index) => {
+      point.orderNumber = index + 1;
+      point.updatedAt = now;
+    });
   }
 
   private seed(): void {
@@ -2352,11 +3613,28 @@ export class InMemoryDataService {
   }
 
   private cloneIspContractRow(row: IspContractRow): IspContractRow {
-    return { ...row };
+    return {
+      ...row,
+      renewalFollowUps: Array.isArray(row.renewalFollowUps)
+        ? row.renewalFollowUps.map((followUp) => ({ ...followUp }))
+        : [],
+    };
   }
 
   private cloneMembership(membership: TenantIspMembership): TenantIspMembership {
     return { ...membership };
+  }
+
+  private cloneCustomerRouteVersion(version: CustomerRouteVersion): CustomerRouteVersion {
+    return { ...version };
+  }
+
+  private cloneCustomerRoutePoint(point: CustomerRoutePoint): CustomerRoutePoint {
+    return { ...point };
+  }
+
+  private cloneCustomerRouteHistoryEntry(entry: CustomerRouteHistoryEntry): CustomerRouteHistoryEntry {
+    return { ...entry };
   }
 
   private cloneContract(contract: Contract): Contract {
@@ -2364,11 +3642,21 @@ export class InMemoryDataService {
   }
 
   private cloneContractVersion(version: ContractVersion): ContractVersion {
-    return { ...version };
+    return {
+      ...version,
+      renewalFollowUps: Array.isArray(version.renewalFollowUps)
+        ? version.renewalFollowUps.map((followUp) => ({ ...followUp }))
+        : [],
+    };
   }
 
   private cloneInvoice(invoice: Invoice): Invoice {
-    return { ...invoice };
+    return {
+      ...invoice,
+      invoiceFollowUps: Array.isArray(invoice.invoiceFollowUps)
+        ? invoice.invoiceFollowUps.map((followUp) => ({ ...followUp }))
+        : [],
+    };
   }
 
   private cloneDocument(document: DocumentRecord): DocumentRecord {

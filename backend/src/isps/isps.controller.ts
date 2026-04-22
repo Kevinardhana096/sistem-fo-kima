@@ -79,18 +79,29 @@ export class IspsController {
         return this.ispsService.updateContractRow(ispId, rowId, payload);
     }
 
+    @Post(':ispId/contract-rows/:rowId/follow-ups')
+    addManualRenewalFollowUp(
+        @Param('ispId', ParseIntPipe) ispId: number,
+        @Param('rowId', ParseIntPipe) rowId: number,
+        @Body() payload: { title?: string; description?: string },
+    ) {
+        return this.ispsService.addManualRenewalFollowUp(ispId, rowId, payload);
+    }
+
     @Post(':ispId/contract-rows/:rowId/renewal')
     @UseInterceptors(FileInterceptor('file'))
     uploadRenewalFile(
         @Param('ispId', ParseIntPipe) ispId: number,
         @Param('rowId', ParseIntPipe) rowId: number,
+        @Body() payload: { fileDataUrl?: string; fileName?: string; followUpId?: number | string },
         @UploadedFile() file: any,
     ) {
         return this.ispsService.uploadRenewalFile(
             ispId,
             rowId,
-            file?.originalname || 'perpanjangan.pdf',
-            file?.originalname || 'perpanjangan.pdf'
+            payload?.fileDataUrl?.trim() || file?.originalname || 'perpanjangan.pdf',
+            payload?.fileName?.trim() || file?.originalname || 'perpanjangan.pdf',
+            payload?.followUpId ? Number(payload.followUpId) : undefined,
         );
     }
 
@@ -99,13 +110,14 @@ export class IspsController {
     respondRenewal(
         @Param('ispId', ParseIntPipe) ispId: number,
         @Param('rowId', ParseIntPipe) rowId: number,
-        @Body() payload: { decision: 'lanjut' | 'tidak' },
+        @Body() payload: { decision: 'lanjut' | 'tidak'; fileDataUrl?: string; fileName?: string; followUpId?: number | string },
         @UploadedFile() file: any,
     ) {
         return this.ispsService.respondRenewal(ispId, rowId, {
             decision: payload.decision,
-            fileUrl: file?.originalname || 'tanggapan.pdf',
-            fileName: file?.originalname || 'tanggapan.pdf'
+            fileUrl: payload?.fileDataUrl?.trim() || file?.originalname || 'tanggapan.pdf',
+            fileName: payload?.fileName?.trim() || file?.originalname || 'tanggapan.pdf',
+            followUpId: payload?.followUpId ? Number(payload.followUpId) : undefined,
         });
     }
 
@@ -114,13 +126,14 @@ export class IspsController {
     uploadBakFile(
         @Param('ispId', ParseIntPipe) ispId: number,
         @Param('rowId', ParseIntPipe) rowId: number,
+        @Body() payload: { fileDataUrl?: string; fileName?: string },
         @UploadedFile() file: any,
     ) {
         return this.ispsService.uploadBakFile(
             ispId,
             rowId,
-            file?.originalname || 'bak.pdf',
-            file?.originalname || 'bak.pdf'
+            payload?.fileDataUrl?.trim() || file?.originalname || 'bak.pdf',
+            payload?.fileName?.trim() || file?.originalname || 'bak.pdf',
         );
     }
 }
