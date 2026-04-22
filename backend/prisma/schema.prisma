@@ -1,0 +1,456 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum DocumentType {
+  permohonan
+  penawaran
+  tanggapan
+  hasil_nego
+  BAK         @map("BAK")
+  kontrak
+  invoice
+  perpanjangan
+  pemutusan
+  lainnya
+
+  @@map("document_type")
+}
+
+enum CustomerStatus {
+  aktif
+  nonaktif
+
+  @@map("customer_status")
+}
+
+enum ContractStatus {
+  aktif
+  expired
+  terminated
+
+  @@map("contract_status")
+}
+
+enum RouteFlowStatus {
+  aktif
+  nonaktif
+  gangguan
+
+  @@map("route_flow_status")
+}
+
+enum RoutePointType {
+  awal
+  transit
+  tujuan
+
+  @@map("route_point_type")
+}
+
+enum InvoiceStatus {
+  lunas
+  belum_bayar
+  terlambat
+  belum_ditagih
+
+  @@map("invoice_status")
+}
+
+enum InvoiceFollowUpStatus {
+  warning
+  sent
+  completed
+
+  @@map("invoice_follow_up_status")
+}
+
+enum InvoiceFollowUpSource {
+  auto
+  manual
+  upload
+
+  @@map("invoice_follow_up_source")
+}
+
+enum CoreAllocationType {
+  core
+  sharing_core
+
+  @@map("core_allocation_type")
+}
+
+enum BillingUnit {
+  hari
+  bulan
+  tahun
+
+  @@map("billing_unit")
+}
+
+enum IspStatus {
+  aktif
+  nonaktif
+
+  @@map("isp_status")
+}
+
+enum IspPackageType {
+  core
+  shared
+
+  @@map("isp_package_type")
+}
+
+enum IspRenewalStatus {
+  active
+  warning
+  pending
+  renewed
+  terminated
+  needs_completion
+
+  @@map("isp_renewal_status")
+}
+
+enum IspRenewalFollowUpStatus {
+  warning
+  pending_response
+  completed
+
+  @@map("isp_renewal_follow_up_status")
+}
+
+enum IspRenewalFollowUpSource {
+  auto
+  manual
+  upload
+
+  @@map("isp_renewal_follow_up_source")
+}
+
+enum IspRenewalResponseDecision {
+  lanjut
+  tidak
+
+  @@map("isp_renewal_response_decision")
+}
+
+enum InvoiceScheduleStatus {
+  active
+  history
+
+  @@map("invoice_schedule_status")
+}
+
+enum RouteChangeMode {
+  initial
+  ubah_jalur
+
+  @@map("route_change_mode")
+}
+
+enum RouteHistoryOperation {
+  add
+  update
+  delete
+  reorder
+  status
+  commit
+  replace
+
+  @@map("route_history_operation")
+}
+
+model Customer {
+  id                  Int                    @id @default(autoincrement())
+  customerCode        String                 @unique @map("customer_code") @db.VarChar(50)
+  ispName             String                 @map("isp_name") @db.VarChar(120)
+  name                String                 @db.VarChar(255)
+  status              CustomerStatus
+  activationFeeAmount Decimal                @default(0) @map("activation_fee_amount") @db.Decimal(18, 2)
+  activationFeePaidAt DateTime?              @map("activation_fee_paid_at") @db.Timestamptz(6)
+  createdAt           DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime               @updatedAt @map("updated_at") @db.Timestamptz(6)
+  contracts           Contract[]
+  contractVersions    ContractVersion[]
+  documents           Document[]
+  invoices            Invoice[]
+  ispMemberships      CustomerIspMembership[]
+  routeHistoryEntries CustomerRouteHistory[]
+  routeVersions       CustomerRouteVersion[]
+
+  @@index([name], map: "idx_customers_name")
+  @@index([status], map: "idx_customers_status")
+  @@map("customers")
+}
+
+model Isp {
+  id                  Int                    @id @default(autoincrement())
+  name                String                 @unique @db.VarChar(255)
+  status              IspStatus
+  contractReference   String?                @map("contract_reference") @db.VarChar(120)
+  contractStartDate   DateTime?              @map("contract_start_date") @db.Date
+  contractPeriodStart DateTime?              @map("contract_period_start") @db.Date
+  contractPeriodEnd   DateTime?              @map("contract_period_end") @db.Date
+  paket               IspPackageType
+  jumlah              Int
+  billingPeriodMode   String?                @map("billing_period_mode") @db.VarChar(30)
+  billingCustomEvery  Int?                   @map("billing_custom_every")
+  billingCustomUnit   BillingUnit?           @map("billing_custom_unit")
+  activationFeeAmount Decimal                @default(0) @map("activation_fee_amount") @db.Decimal(18, 2)
+  activationFeePaidAt DateTime?              @map("activation_fee_paid_at") @db.Timestamptz(6)
+  createdAt           DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime               @updatedAt @map("updated_at") @db.Timestamptz(6)
+  contractRows        IspContractRow[]
+  customerMemberships CustomerIspMembership[]
+
+  @@index([status], map: "idx_isps_status")
+  @@map("isps")
+}
+
+model CustomerIspMembership {
+  id        Int      @id @default(autoincrement())
+  customerId Int     @map("customer_id")
+  ispId     Int      @map("isp_id")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  customer  Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  isp       Isp      @relation(fields: [ispId], references: [id], onDelete: Cascade)
+
+  @@unique([customerId, ispId], map: "uq_customer_isp_memberships_customer_isp")
+  @@index([ispId], map: "idx_customer_isp_memberships_isp_id")
+  @@map("customer_isp_memberships")
+}
+
+model IspContractRow {
+  id               Int                   @id @default(autoincrement())
+  ispId            Int                   @map("isp_id")
+  contractReference String               @map("contract_reference") @db.VarChar(120)
+  periodStart      DateTime?             @map("period_start") @db.Date
+  periodEnd        DateTime?             @map("period_end") @db.Date
+  renewalStatus    IspRenewalStatus      @default(active) @map("renewal_status")
+  bakFileUrl       String?               @map("bak_file_url")
+  bakFileName      String?               @map("bak_file_name") @db.VarChar(255)
+  renewalFileUrl   String?               @map("renewal_file_url")
+  renewalFileName  String?               @map("renewal_file_name") @db.VarChar(255)
+  responseFileUrl  String?               @map("response_file_url")
+  responseFileName String?               @map("response_file_name") @db.VarChar(255)
+  createdAt        DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
+  isp              Isp                   @relation(fields: [ispId], references: [id], onDelete: Cascade)
+  renewalFollowUps IspRenewalFollowUp[]
+
+  @@index([ispId], map: "idx_isp_contract_rows_isp_id")
+  @@index([renewalStatus], map: "idx_isp_contract_rows_renewal_status")
+  @@map("isp_contract_rows")
+}
+
+model IspRenewalFollowUp {
+  id               Int                         @id @default(autoincrement())
+  rowId            Int                         @map("row_id")
+  splitOrder       Int                         @map("split_order")
+  source           IspRenewalFollowUpSource
+  triggerCode      String?                     @map("trigger_code") @db.VarChar(120)
+  title            String                      @db.VarChar(255)
+  description      String
+  status           IspRenewalFollowUpStatus
+  renewalFileUrl   String?                     @map("renewal_file_url")
+  renewalFileName  String?                     @map("renewal_file_name") @db.VarChar(255)
+  responseFileUrl  String?                     @map("response_file_url")
+  responseFileName String?                     @map("response_file_name") @db.VarChar(255)
+  responseDecision IspRenewalResponseDecision? @map("response_decision")
+  createdAt        DateTime                    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime                    @updatedAt @map("updated_at") @db.Timestamptz(6)
+  row              IspContractRow              @relation(fields: [rowId], references: [id], onDelete: Cascade)
+
+  @@unique([rowId, splitOrder], map: "uq_isp_renewal_follow_ups_row_split_order")
+  @@index([status], map: "idx_isp_renewal_follow_ups_status")
+  @@map("isp_renewal_follow_ups")
+}
+
+model Contract {
+  id               Int                @id @default(autoincrement())
+  customerId       Int                @map("customer_id")
+  contractNumber   String             @map("contract_number") @db.VarChar(100)
+  startDate        DateTime           @map("start_date") @db.Date
+  endDate          DateTime           @map("end_date") @db.Date
+  coreType         CoreAllocationType @map("core_type")
+  coreTotal        Int                @default(0) @map("core_total")
+  sharingRatio     String?            @map("sharing_ratio") @db.VarChar(40)
+  status           ContractStatus     @default(aktif)
+  billingEvery     Int                @default(1) @map("billing_every")
+  billingUnit      BillingUnit        @default(bulan) @map("billing_unit")
+  createdAt        DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
+  customer         Customer           @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  documents        Document[]
+  invoices         Invoice[]
+  versions         ContractVersion[]
+
+  @@unique([contractNumber], map: "uq_contracts_contract_number")
+  @@index([customerId, endDate], map: "idx_contracts_customer_end_date")
+  @@index([status], map: "idx_contracts_status")
+  @@map("contracts")
+}
+
+model ContractVersion {
+  id                Int                   @id @default(autoincrement())
+  contractId        Int                   @map("contract_id")
+  customerId        Int                   @map("customer_id")
+  versionNumber     Int                   @map("version_number")
+  startDate         DateTime              @map("start_date") @db.Date
+  endDate           DateTime              @map("end_date") @db.Date
+  coreType          CoreAllocationType    @map("core_type")
+  coreTotal         Int                   @default(0) @map("core_total")
+  sharedCoreRatio   String?               @map("shared_core_ratio") @db.VarChar(40)
+  bakDocumentId     Int?                  @unique @map("bak_document_id")
+  renewalFileUrl    String?               @map("renewal_file_url")
+  renewalFileName   String?               @map("renewal_file_name") @db.VarChar(255)
+  responseFileUrl   String?               @map("response_file_url")
+  responseFileName  String?               @map("response_file_name") @db.VarChar(255)
+  createdAt         DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
+  bakDocument       Document?             @relation("ContractVersionBakDocument", fields: [bakDocumentId], references: [id], onDelete: SetNull)
+  contract          Contract              @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  customer          Customer              @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  documents         Document[]            @relation("DocumentContractVersion")
+  invoices          Invoice[]
+
+  @@unique([contractId, versionNumber], map: "uq_contract_versions_contract_version_number")
+  @@index([customerId], map: "idx_contract_versions_customer_id")
+  @@map("contract_versions")
+}
+
+model Document {
+  id                    Int              @id @default(autoincrement())
+  customerId            Int              @map("customer_id")
+  contractId            Int?             @map("contract_id")
+  contractVersionId     Int?             @map("contract_version_id")
+  contractNumber        String?          @map("contract_number") @db.VarChar(100)
+  jenisDokumen          DocumentType     @map("jenis_dokumen")
+  nomorDokumen          String?          @map("nomor_dokumen") @db.VarChar(100)
+  tanggalDokumen        DateTime         @map("tanggal_dokumen") @db.Date
+  fileUrl               String           @map("file_url")
+  createdAt             DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  bakForContractVersion ContractVersion? @relation("ContractVersionBakDocument")
+  contract              Contract?        @relation(fields: [contractId], references: [id], onDelete: SetNull)
+  contractVersion       ContractVersion? @relation("DocumentContractVersion", fields: [contractVersionId], references: [id], onDelete: SetNull)
+  customer              Customer         @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  invoices              Invoice[]
+
+  @@index([customerId, tanggalDokumen(sort: Desc)], map: "idx_documents_customer_date")
+  @@index([jenisDokumen], map: "idx_documents_type")
+  @@index([contractId], map: "idx_documents_contract_id")
+  @@index([contractVersionId], map: "idx_documents_contract_version_id")
+  @@map("documents")
+}
+
+model Invoice {
+  id                  Int                   @id @default(autoincrement())
+  customerId          Int                   @map("customer_id")
+  invoiceNumber       String?               @map("invoice_number") @db.VarChar(100)
+  contractId          Int?                  @map("contract_id")
+  contractVersionId   Int?                  @map("contract_version_id")
+  contractNumber      String?               @map("contract_number") @db.VarChar(100)
+  periodMonth         Int                   @map("period_month")
+  periodYear          Int                   @map("period_year")
+  periodStartDate     DateTime?             @map("period_start_date") @db.Date
+  periodEndDate       DateTime?             @map("period_end_date") @db.Date
+  dueDate             DateTime?             @map("due_date") @db.Date
+  amount              Decimal               @default(0) @db.Decimal(18, 2)
+  status              InvoiceStatus         @default(belum_ditagih)
+  scheduleVersion     Int                   @default(1) @map("schedule_version")
+  scheduleStatus      InvoiceScheduleStatus @default(active) @map("schedule_status")
+  documentId          Int?                  @map("document_id")
+  paidAt              DateTime?             @map("paid_at") @db.Timestamptz(6)
+  invoiceFileUrl      String?               @map("invoice_file_url")
+  paymentProofFileUrl String?               @map("payment_proof_file_url")
+  createdAt           DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
+  contract            Contract?             @relation(fields: [contractId], references: [id], onDelete: SetNull)
+  contractVersion     ContractVersion?      @relation(fields: [contractVersionId], references: [id], onDelete: SetNull)
+  customer            Customer              @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  document            Document?             @relation(fields: [documentId], references: [id], onDelete: SetNull)
+  followUps           InvoiceFollowUp[]
+
+  @@index([customerId, periodYear, periodMonth], map: "idx_invoices_customer_period")
+  @@index([contractId], map: "idx_invoices_contract_id")
+  @@index([contractVersionId], map: "idx_invoices_contract_version_id")
+  @@index([status], map: "idx_invoices_status")
+  @@map("invoices")
+}
+
+model InvoiceFollowUp {
+  id             Int                   @id @default(autoincrement())
+  invoiceId      Int                   @map("invoice_id")
+  splitOrder     Int                   @map("split_order")
+  source         InvoiceFollowUpSource
+  triggerCode    String?               @map("trigger_code") @db.VarChar(120)
+  title          String                @db.VarChar(255)
+  description    String
+  status         InvoiceFollowUpStatus
+  invoiceNumber  String?               @map("invoice_number") @db.VarChar(100)
+  invoiceFileUrl String?               @map("invoice_file_url")
+  createdAt      DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
+  invoice        Invoice               @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@unique([invoiceId, splitOrder], map: "uq_invoice_follow_ups_invoice_split_order")
+  @@index([status], map: "idx_invoice_follow_ups_status")
+  @@map("invoice_follow_ups")
+}
+
+model CustomerRouteVersion {
+  id              Int                   @id @default(autoincrement())
+  customerId      Int                   @map("customer_id")
+  versionNumber   Int                   @map("version_number")
+  flowStatus      RouteFlowStatus       @map("flow_status")
+  changeMode      RouteChangeMode       @default(initial) @map("change_mode")
+  changeNote      String?               @map("change_note")
+  basedOnVersionId Int?                 @map("based_on_version_id")
+  createdAt       DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
+  basedOnVersion  CustomerRouteVersion? @relation("RouteVersionLineage", fields: [basedOnVersionId], references: [id], onDelete: SetNull)
+  childVersions   CustomerRouteVersion[] @relation("RouteVersionLineage")
+  customer        Customer              @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  points          CustomerRoutePoint[]
+
+  @@unique([customerId, versionNumber], map: "uq_customer_route_versions_customer_version_number")
+  @@index([basedOnVersionId], map: "idx_customer_route_versions_based_on_version_id")
+  @@map("customer_route_versions")
+}
+
+model CustomerRoutePoint {
+  id             Int                  @id @default(autoincrement())
+  routeVersionId Int                  @map("route_version_id")
+  orderNumber    Int                  @map("order_number")
+  pathName       String               @map("path_name") @db.VarChar(255)
+  pointType      RoutePointType       @map("point_type")
+  note           String?
+  createdAt      DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
+  routeVersion   CustomerRouteVersion @relation(fields: [routeVersionId], references: [id], onDelete: Cascade)
+
+  @@unique([routeVersionId, orderNumber], map: "uq_customer_route_points_route_order_number")
+  @@index([pointType], map: "idx_customer_route_points_point_type")
+  @@map("customer_route_points")
+}
+
+model CustomerRouteHistory {
+  id             Int                   @id @default(autoincrement())
+  customerId     Int                   @map("customer_id")
+  operation      RouteHistoryOperation
+  note           String
+  snapshotBefore Json                  @map("snapshot_before")
+  snapshotAfter  Json                  @map("snapshot_after")
+  createdAt      DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  customer       Customer              @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId, createdAt(sort: Desc)], map: "idx_customer_route_history_customer_created_at")
+  @@map("customer_route_history")
+}

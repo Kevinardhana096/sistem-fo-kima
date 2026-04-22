@@ -20,6 +20,8 @@ import {
   CreateInvoiceDraftDto,
 } from './dto/create-customer.dto';
 import { CreateCustomerContractDto } from './dto/create-customer-contract.dto';
+import { PrismaCustomersReadService } from './prisma-customers-read.service';
+import { PrismaCustomersWriteService } from './prisma-customers-write.service';
 import { UpdateCustomerContractDto } from './dto/update-customer-contract.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { UpdateCustomerInvoiceDto } from './dto/update-customer-invoice.dto';
@@ -32,9 +34,17 @@ const addDays = (value: string, days: number): string => {
 
 @Injectable()
 export class CustomersService {
-  constructor(private readonly store: InMemoryDataService) { }
+  constructor(
+    private readonly store: InMemoryDataService,
+    private readonly prismaRead: PrismaCustomersReadService,
+    private readonly prismaWrite: PrismaCustomersWriteService,
+  ) {}
 
-  list() {
+  async list() {
+    if (this.prismaRead.isEnabled()) {
+      return this.prismaRead.list();
+    }
+
     return this.store.listCustomers().map((customer) => {
       const contracts = this.store.listCustomerContracts(customer.id);
       const documents = this.store.listCustomerDocuments(customer.id);
@@ -42,7 +52,8 @@ export class CustomersService {
       const isps = this.store.listCustomerIsps(customer.id);
       const todoSummary = this.store.buildCustomerTodoSummary(customer.id);
       const contractSnapshot = this.buildCustomerContractSnapshot(customer.id);
-      const activeRouteVersion = this.store.listCustomerRouteVersions(customer.id)[0] ?? null;
+      const activeRouteVersion =
+        this.store.listCustomerRouteVersions(customer.id)[0] ?? null;
 
       return {
         ...customer,
@@ -53,7 +64,9 @@ export class CustomersService {
         })),
         ...contractSnapshot,
         contractCount: contracts.length,
-        contractVersionCount: this.store.listCustomerContractVersions(customer.id).length,
+        contractVersionCount: this.store.listCustomerContractVersions(
+          customer.id,
+        ).length,
         documentCount: documents.length,
         invoiceCount: invoices.length,
         routeStatus: activeRouteVersion?.flowStatus ?? RouteFlowStatus.Aktif,
@@ -62,9 +75,15 @@ export class CustomersService {
     });
   }
 
-  create(payload: CreateCustomerDto) {
+  async create(payload: CreateCustomerDto) {
+    if (this.prismaWrite.isEnabled()) {
+      const customerId = await this.prismaWrite.create(payload);
+      return this.prismaRead.getById(customerId);
+    }
+
     const name = this.normalizeRequiredString(payload?.name, 'name');
-    const resolvedStatus = this.parseStatus(payload?.status) ?? CustomerStatus.Aktif;
+    const resolvedStatus =
+      this.parseStatus(payload?.status) ?? CustomerStatus.Aktif;
 
     const resolvedIspIds = this.resolveIspIdsFromPayload(payload, {
       requireAtLeastOne: true,
@@ -77,14 +96,23 @@ export class CustomersService {
     const createdCustomer = this.store.createCustomer({
       name,
       status: resolvedStatus,
-      activationFeeAmount: this.parseActivationFeeAmount(payload?.activationFeeAmount, 0),
-      activationFeePaidAt: this.parseActivationFeePaidAt(payload?.activationFeePaidAt),
-      ispName: resolvedIsps[0]?.name ?? this.normalizeRequiredString(payload?.ispName, 'ispName'),
+      activationFeeAmount: this.parseActivationFeeAmount(
+        payload?.activationFeeAmount,
+        0,
+      ),
+      activationFeePaidAt: this.parseActivationFeePaidAt(
+        payload?.activationFeePaidAt,
+      ),
+      ispName:
+        resolvedIsps[0]?.name ??
+        this.normalizeRequiredString(payload?.ispName, 'ispName'),
     });
 
     this.store.setCustomerIspMemberships(createdCustomer.id, resolvedIspIds);
 
-    const contractNumber = this.parseOptionalContractNumber(payload?.contractNumber);
+    const contractNumber = this.parseOptionalContractNumber(
+      payload?.contractNumber,
+    );
     const contractPeriod = this.parseContractPeriod(
       payload?.contractStartDate,
       payload?.contractEndDate,
@@ -121,16 +149,23 @@ export class CustomersService {
         billingUnit: billing.billingUnit,
       });
 
-      const version = this.store.createContractVersion(createdCustomer.id, contract.id, {
-        startDate: contractPeriod.startDate,
-        endDate: contractPeriod.endDate,
-        coreType: technical.coreType,
-        coreTotal: technical.coreTotal,
-        sharedCoreRatio: technical.sharingRatio,
-        bakDocumentId: null,
-      });
+      const version = this.store.createContractVersion(
+        createdCustomer.id,
+        contract.id,
+        {
+          startDate: contractPeriod.startDate,
+          endDate: contractPeriod.endDate,
+          coreType: technical.coreType,
+          coreTotal: technical.coreTotal,
+          sharedCoreRatio: technical.sharingRatio,
+          bakDocumentId: null,
+        },
+      );
 
-      if (Array.isArray(payload?.invoiceDrafts) && payload.invoiceDrafts.length > 0) {
+      if (
+        Array.isArray(payload?.invoiceDrafts) &&
+        payload.invoiceDrafts.length > 0
+      ) {
         this.persistInvoiceDrafts(
           createdCustomer.id,
           contract.id,
@@ -155,7 +190,11 @@ export class CustomersService {
     return this.getById(createdCustomer.id);
   }
 
-  getById(customerId: number) {
+  async getById(customerId: number) {
+    if (this.prismaRead.isEnabled()) {
+      return this.prismaRead.getById(customerId);
+    }
+
     this.ensureCustomerExists(customerId);
 
     const customer = this.store.getCustomerById(customerId);
@@ -193,7 +232,8 @@ export class CustomersService {
       latestDocuments: documents.slice(0, 5),
       route: {
         activeRouteId: activeRouteVersion?.id ?? null,
-        activeFlowStatus: activeRouteVersion?.flowStatus ?? RouteFlowStatus.Aktif,
+        activeFlowStatus:
+          activeRouteVersion?.flowStatus ?? RouteFlowStatus.Aktif,
         points: activeRouteVersion?.points ?? [],
         versions: routeVersions,
         history: routeHistory,
@@ -203,7 +243,15 @@ export class CustomersService {
     };
   }
 
-  update(customerId: number, payload: UpdateCustomerDto) {
+  async update(customerId: number, payload: UpdateCustomerDto) {
+    if (this.prismaWrite.isEnabled()) {
+      const updatedCustomerId = await this.prismaWrite.update(
+        customerId,
+        payload,
+      );
+      return this.prismaRead.getById(updatedCustomerId);
+    }
+
     this.ensureCustomerExists(customerId);
     const existingCustomer = this.store.getCustomerById(customerId);
 
@@ -219,8 +267,9 @@ export class CustomersService {
 
     if (activationFeeLocked) {
       if (
-        payload.activationFeeAmount !== undefined
-        && Number(payload.activationFeeAmount) !== existingCustomer.activationFeeAmount
+        payload.activationFeeAmount !== undefined &&
+        Number(payload.activationFeeAmount) !==
+          existingCustomer.activationFeeAmount
       ) {
         throw new BadRequestException(
           'Biaya aktivasi sudah terbayar dan tidak dapat diubah lagi.',
@@ -228,8 +277,8 @@ export class CustomersService {
       }
 
       if (
-        payload.activationFeePaidAt !== undefined
-        && payload.activationFeePaidAt !== existingCustomer.activationFeePaidAt
+        payload.activationFeePaidAt !== undefined &&
+        payload.activationFeePaidAt !== existingCustomer.activationFeePaidAt
       ) {
         throw new BadRequestException(
           'Tanggal pembayaran aktivasi sudah terkunci dan tidak dapat diubah.',
@@ -254,17 +303,21 @@ export class CustomersService {
     }
 
     if (payload.activationFeeAmount !== undefined && !activationFeeLocked) {
-      updates.activationFeeAmount = this.parseActivationFeeAmount(payload.activationFeeAmount);
+      updates.activationFeeAmount = this.parseActivationFeeAmount(
+        payload.activationFeeAmount,
+      );
     }
 
     if (payload.activationFeePaidAt !== undefined && !activationFeeLocked) {
-      updates.activationFeePaidAt = this.parseActivationFeePaidAt(payload.activationFeePaidAt);
+      updates.activationFeePaidAt = this.parseActivationFeePaidAt(
+        payload.activationFeePaidAt,
+      );
     }
 
     const shouldUpdateMemberships =
-      payload.ispName !== undefined
-      || payload.ispIds !== undefined
-      || payload.newIspNames !== undefined;
+      payload.ispName !== undefined ||
+      payload.ispIds !== undefined ||
+      payload.newIspNames !== undefined;
 
     if (shouldUpdateMemberships) {
       const nextIspIds = this.resolveIspIdsFromPayload(
@@ -302,7 +355,10 @@ export class CustomersService {
       throw new BadRequestException('Request body is required.');
     }
 
-    const contractPeriod = this.parseContractPeriod(payload?.startDate, payload?.endDate);
+    const contractPeriod = this.parseContractPeriod(
+      payload?.startDate,
+      payload?.endDate,
+    );
 
     if (!contractPeriod) {
       throw new BadRequestException('startDate and endDate are required.');
@@ -311,8 +367,14 @@ export class CustomersService {
     const existingContract = this.store.listCustomerContracts(customerId)[0];
 
     const technical = {
-      coreType: this.parseCoreType(payload?.coreType) ?? existingContract?.coreType ?? CoreAllocationType.Core,
-      coreTotal: this.parseCoreTotal(payload?.coreTotal, existingContract?.coreTotal ?? 4),
+      coreType:
+        this.parseCoreType(payload?.coreType) ??
+        existingContract?.coreType ??
+        CoreAllocationType.Core,
+      coreTotal: this.parseCoreTotal(
+        payload?.coreTotal,
+        existingContract?.coreTotal ?? 4,
+      ),
       sharingRatio: this.parseSharingRatio(
         payload?.sharedCoreRatio,
         existingContract?.sharingRatio ?? '1:2',
@@ -320,28 +382,39 @@ export class CustomersService {
     };
 
     const billing = {
-      billingEvery: this.parseBillingEvery(payload?.billingEvery, existingContract?.billingEvery ?? 1),
-      billingUnit: this.parseBillingUnit(payload?.billingUnit, existingContract?.billingUnit ?? BillingUnit.Bulan),
+      billingEvery: this.parseBillingEvery(
+        payload?.billingEvery,
+        existingContract?.billingEvery ?? 1,
+      ),
+      billingUnit: this.parseBillingUnit(
+        payload?.billingUnit,
+        existingContract?.billingUnit ?? BillingUnit.Bulan,
+      ),
     };
 
     const contract = existingContract
       ? this.store.updateCustomerContract(customerId, existingContract.id, {
-        contractNumber: this.parseOptionalContractNumber(payload?.contractNumber) ?? existingContract.contractNumber,
-        billingEvery: billing.billingEvery,
-        billingUnit: billing.billingUnit,
-      })
+          contractNumber:
+            this.parseOptionalContractNumber(payload?.contractNumber) ??
+            existingContract.contractNumber,
+          billingEvery: billing.billingEvery,
+          billingUnit: billing.billingUnit,
+        })
       : this.store.createPrimaryContract(customerId, {
-        contractNumber: this.parseOptionalContractNumber(payload?.contractNumber) ?? undefined,
-        startDate: contractPeriod.startDate,
-        endDate: contractPeriod.endDate,
-        coreType: technical.coreType,
-        coreTotal: technical.coreTotal,
-        sharingRatio: technical.coreType === CoreAllocationType.SharingCore
-          ? technical.sharingRatio
-          : null,
-        billingEvery: billing.billingEvery,
-        billingUnit: billing.billingUnit,
-      });
+          contractNumber:
+            this.parseOptionalContractNumber(payload?.contractNumber) ??
+            undefined,
+          startDate: contractPeriod.startDate,
+          endDate: contractPeriod.endDate,
+          coreType: technical.coreType,
+          coreTotal: technical.coreTotal,
+          sharingRatio:
+            technical.coreType === CoreAllocationType.SharingCore
+              ? technical.sharingRatio
+              : null,
+          billingEvery: billing.billingEvery,
+          billingUnit: billing.billingUnit,
+        });
 
     if (!contract) {
       throw new NotFoundException('Contract could not be prepared.');
@@ -352,9 +425,10 @@ export class CustomersService {
       endDate: contractPeriod.endDate,
       coreType: technical.coreType,
       coreTotal: technical.coreTotal,
-      sharedCoreRatio: technical.coreType === CoreAllocationType.SharingCore
-        ? technical.sharingRatio
-        : null,
+      sharedCoreRatio:
+        technical.coreType === CoreAllocationType.SharingCore
+          ? technical.sharingRatio
+          : null,
       bakDocumentId: null,
     });
 
@@ -375,7 +449,10 @@ export class CustomersService {
       throw new BadRequestException('Request body is required.');
     }
 
-    const existingContract = this.store.getCustomerContractById(customerId, contractId);
+    const existingContract = this.store.getCustomerContractById(
+      customerId,
+      contractId,
+    );
     if (!existingContract) {
       throw new NotFoundException('Contract not found for this customer.');
     }
@@ -401,7 +478,10 @@ export class CustomersService {
     }
 
     if (payload.startDate !== undefined) {
-      updates.startDate = this.parseIsoDateString(payload.startDate, 'startDate');
+      updates.startDate = this.parseIsoDateString(
+        payload.startDate,
+        'startDate',
+      );
     }
 
     if (payload.endDate !== undefined) {
@@ -413,11 +493,15 @@ export class CustomersService {
     }
 
     if (payload.coreType !== undefined) {
-      updates.coreType = this.parseCoreType(payload.coreType) ?? existingContract.coreType;
+      updates.coreType =
+        this.parseCoreType(payload.coreType) ?? existingContract.coreType;
     }
 
     if (payload.coreTotal !== undefined) {
-      updates.coreTotal = this.parseCoreTotal(payload.coreTotal, existingContract.coreTotal);
+      updates.coreTotal = this.parseCoreTotal(
+        payload.coreTotal,
+        existingContract.coreTotal,
+      );
     }
 
     if (payload.sharedCoreRatio !== undefined) {
@@ -428,15 +512,23 @@ export class CustomersService {
     }
 
     if (payload.billingEvery !== undefined) {
-      updates.billingEvery = this.parseBillingEvery(payload.billingEvery, existingContract.billingEvery);
+      updates.billingEvery = this.parseBillingEvery(
+        payload.billingEvery,
+        existingContract.billingEvery,
+      );
     }
 
     if (payload.billingUnit !== undefined) {
-      updates.billingUnit = this.parseBillingUnit(payload.billingUnit, existingContract.billingUnit);
+      updates.billingUnit = this.parseBillingUnit(
+        payload.billingUnit,
+        existingContract.billingUnit,
+      );
     }
 
     if (Object.keys(updates).length === 0) {
-      throw new BadRequestException('No valid fields provided for contract update.');
+      throw new BadRequestException(
+        'No valid fields provided for contract update.',
+      );
     }
 
     const nextStartDate = updates.startDate ?? existingContract.startDate;
@@ -459,34 +551,41 @@ export class CustomersService {
     }
 
     const billingChanged =
-      (updates.billingEvery !== undefined && updates.billingEvery !== existingContract.billingEvery)
-      || (updates.billingUnit !== undefined && updates.billingUnit !== existingContract.billingUnit);
+      (updates.billingEvery !== undefined &&
+        updates.billingEvery !== existingContract.billingEvery) ||
+      (updates.billingUnit !== undefined &&
+        updates.billingUnit !== existingContract.billingUnit);
 
     if (billingChanged) {
       this.restructureInvoicesForBillingChange(customerId, updatedContract);
     }
 
     const shouldCreateVersion =
-      updates.startDate !== undefined
-      || updates.endDate !== undefined
-      || updates.coreType !== undefined
-      || updates.coreTotal !== undefined
-      || updates.sharingRatio !== undefined;
+      updates.startDate !== undefined ||
+      updates.endDate !== undefined ||
+      updates.coreType !== undefined ||
+      updates.coreTotal !== undefined ||
+      updates.sharingRatio !== undefined;
 
     let createdVersion: unknown = null;
 
     if (shouldCreateVersion) {
-      createdVersion = this.store.createContractVersion(customerId, contractId, {
-        startDate: nextStartDate,
-        endDate: nextEndDate,
-        coreType: updates.coreType ?? existingContract.coreType,
-        coreTotal: updates.coreTotal ?? existingContract.coreTotal,
-        sharedCoreRatio:
-          (updates.coreType ?? existingContract.coreType) === CoreAllocationType.SharingCore
-            ? updates.sharingRatio ?? existingContract.sharingRatio ?? '1:2'
-            : null,
-        bakDocumentId: null,
-      });
+      createdVersion = this.store.createContractVersion(
+        customerId,
+        contractId,
+        {
+          startDate: nextStartDate,
+          endDate: nextEndDate,
+          coreType: updates.coreType ?? existingContract.coreType,
+          coreTotal: updates.coreTotal ?? existingContract.coreTotal,
+          sharedCoreRatio:
+            (updates.coreType ?? existingContract.coreType) ===
+            CoreAllocationType.SharingCore
+              ? (updates.sharingRatio ?? existingContract.sharingRatio ?? '1:2')
+              : null,
+          bakDocumentId: null,
+        },
+      );
     }
 
     return {
@@ -522,7 +621,9 @@ export class CustomersService {
     const endDate = this.parseIsoDateString(payload?.endDate, 'endDate');
 
     if (startDate > endDate) {
-      throw new BadRequestException('startDate must be less than or equal to endDate.');
+      throw new BadRequestException(
+        'startDate must be less than or equal to endDate.',
+      );
     }
 
     const coreType = CoreAllocationType.SharingCore;
@@ -539,7 +640,9 @@ export class CustomersService {
       coreTotal,
       sharedCoreRatio,
       bakDocumentId:
-        payload?.bakDocumentId !== undefined ? Number(payload.bakDocumentId) : null,
+        payload?.bakDocumentId !== undefined
+          ? Number(payload.bakDocumentId)
+          : null,
     });
 
     this.generateInvoicesForPeriod({
@@ -576,7 +679,9 @@ export class CustomersService {
       payload?.description,
     );
     if (!version) {
-      throw new NotFoundException('Contract version not found for this customer.');
+      throw new NotFoundException(
+        'Contract version not found for this customer.',
+      );
     }
 
     return version;
@@ -598,7 +703,9 @@ export class CustomersService {
       payload.followUpId,
     );
     if (!version) {
-      throw new NotFoundException('Contract version not found for this customer.');
+      throw new NotFoundException(
+        'Contract version not found for this customer.',
+      );
     }
     return version;
   }
@@ -607,7 +714,12 @@ export class CustomersService {
     customerId: number,
     contractId: number,
     versionId: number,
-    payload: { decision: 'lanjut' | 'tidak'; fileUrl: string; fileName: string; followUpId?: number | null },
+    payload: {
+      decision: 'lanjut' | 'tidak';
+      fileUrl: string;
+      fileName: string;
+      followUpId?: number | null;
+    },
   ) {
     this.ensureCustomerExists(customerId);
     if (!payload.decision || !['lanjut', 'tidak'].includes(payload.decision)) {
@@ -624,7 +736,9 @@ export class CustomersService {
       payload.followUpId,
     );
     if (!version) {
-      throw new NotFoundException('Contract version not found for this customer.');
+      throw new NotFoundException(
+        'Contract version not found for this customer.',
+      );
     }
     return version;
   }
@@ -640,7 +754,10 @@ export class CustomersService {
       throw new BadRequestException('Request body is required.');
     }
 
-    const existingInvoice = this.store.getCustomerInvoiceById(customerId, invoiceId);
+    const existingInvoice = this.store.getCustomerInvoiceById(
+      customerId,
+      invoiceId,
+    );
     if (!existingInvoice) {
       throw new NotFoundException('Invoice not found for this customer.');
     }
@@ -662,7 +779,9 @@ export class CustomersService {
     } = {};
 
     if (payload.invoiceNumber !== undefined) {
-      updates.invoiceNumber = this.parseOptionalContractNumber(payload.invoiceNumber);
+      updates.invoiceNumber = this.parseOptionalContractNumber(
+        payload.invoiceNumber,
+      );
     }
 
     if (payload.followUpId !== undefined) {
@@ -682,28 +801,45 @@ export class CustomersService {
       updates.invoiceFollowUps = payload.invoiceFollowUps.map((item, index) => {
         const id = Number(item?.id);
         if (!Number.isFinite(id)) {
-          throw new BadRequestException(`invoiceFollowUps[${index}].id must be a valid number.`);
+          throw new BadRequestException(
+            `invoiceFollowUps[${index}].id must be a valid number.`,
+          );
         }
 
         return {
           id,
-          invoiceNumber: item?.invoiceNumber !== undefined
-            ? this.parseOptionalContractNumber(item.invoiceNumber)
-            : undefined,
+          invoiceNumber:
+            item?.invoiceNumber !== undefined
+              ? this.parseOptionalContractNumber(item.invoiceNumber)
+              : undefined,
         };
       });
     }
 
-    const nextPeriodStartDate = payload.periodStartDate !== undefined
-      ? this.parseNullableIsoDateString(payload.periodStartDate, 'periodStartDate')
-      : existingInvoice.periodStartDate ?? null;
+    const nextPeriodStartDate =
+      payload.periodStartDate !== undefined
+        ? this.parseNullableIsoDateString(
+            payload.periodStartDate,
+            'periodStartDate',
+          )
+        : (existingInvoice.periodStartDate ?? null);
 
-    const nextPeriodEndDate = payload.periodEndDate !== undefined
-      ? this.parseNullableIsoDateString(payload.periodEndDate, 'periodEndDate')
-      : existingInvoice.periodEndDate ?? null;
+    const nextPeriodEndDate =
+      payload.periodEndDate !== undefined
+        ? this.parseNullableIsoDateString(
+            payload.periodEndDate,
+            'periodEndDate',
+          )
+        : (existingInvoice.periodEndDate ?? null);
 
-    if (nextPeriodStartDate && nextPeriodEndDate && nextPeriodStartDate > nextPeriodEndDate) {
-      throw new BadRequestException('periodStartDate must be less than or equal to periodEndDate.');
+    if (
+      nextPeriodStartDate &&
+      nextPeriodEndDate &&
+      nextPeriodStartDate > nextPeriodEndDate
+    ) {
+      throw new BadRequestException(
+        'periodStartDate must be less than or equal to periodEndDate.',
+      );
     }
 
     if (payload.periodStartDate !== undefined) {
@@ -715,7 +851,10 @@ export class CustomersService {
     }
 
     if (payload.dueDate !== undefined) {
-      updates.dueDate = this.parseNullableIsoDateString(payload.dueDate, 'dueDate');
+      updates.dueDate = this.parseNullableIsoDateString(
+        payload.dueDate,
+        'dueDate',
+      );
     }
 
     if (payload.amount !== undefined) {
@@ -728,11 +867,15 @@ export class CustomersService {
     }
 
     if (payload.invoiceFileUrl !== undefined) {
-      updates.invoiceFileUrl = this.normalizeOptionalString(payload.invoiceFileUrl);
+      updates.invoiceFileUrl = this.normalizeOptionalString(
+        payload.invoiceFileUrl,
+      );
     }
 
     if (payload.paymentProofFileUrl !== undefined) {
-      updates.paymentProofFileUrl = this.normalizeOptionalString(payload.paymentProofFileUrl);
+      updates.paymentProofFileUrl = this.normalizeOptionalString(
+        payload.paymentProofFileUrl,
+      );
 
       if (updates.paymentProofFileUrl && payload.paidAt === undefined) {
         updates.paidAt = new Date().toISOString().slice(0, 10);
@@ -744,14 +887,23 @@ export class CustomersService {
     }
 
     if (payload.paidAt !== undefined) {
-      updates.paidAt = this.parseNullableIsoDateString(payload.paidAt, 'paidAt');
+      updates.paidAt = this.parseNullableIsoDateString(
+        payload.paidAt,
+        'paidAt',
+      );
     }
 
     if (Object.keys(updates).length === 0) {
-      throw new BadRequestException('No valid fields provided for invoice update.');
+      throw new BadRequestException(
+        'No valid fields provided for invoice update.',
+      );
     }
 
-    const updatedInvoice = this.store.updateInvoice(customerId, invoiceId, updates);
+    const updatedInvoice = this.store.updateInvoice(
+      customerId,
+      invoiceId,
+      updates,
+    );
     if (!updatedInvoice) {
       throw new NotFoundException('Invoice not found for this customer.');
     }
@@ -766,7 +918,10 @@ export class CustomersService {
   ) {
     this.ensureCustomerExists(customerId);
 
-    const existingInvoice = this.store.getCustomerInvoiceById(customerId, invoiceId);
+    const existingInvoice = this.store.getCustomerInvoiceById(
+      customerId,
+      invoiceId,
+    );
     if (!existingInvoice) {
       throw new NotFoundException('Invoice not found for this customer.');
     }
@@ -866,10 +1021,15 @@ export class CustomersService {
 
     if (payload.mode === 'selected') {
       if (!Array.isArray(payload.ispIds) || payload.ispIds.length === 0) {
-        throw new BadRequestException('ispIds is required when mode is selected.');
+        throw new BadRequestException(
+          'ispIds is required when mode is selected.',
+        );
       }
 
-      const removed = this.store.removeCustomerFromSelectedIsps(customerId, payload.ispIds);
+      const removed = this.store.removeCustomerFromSelectedIsps(
+        customerId,
+        payload.ispIds,
+      );
       return {
         mode: 'selected',
         removed,
@@ -937,7 +1097,14 @@ export class CustomersService {
   changeRoute(
     customerId: number,
     payload: {
-      operation: 'add' | 'update' | 'delete' | 'reorder' | 'status' | 'commit' | 'replace';
+      operation:
+        | 'add'
+        | 'update'
+        | 'delete'
+        | 'reorder'
+        | 'status'
+        | 'commit'
+        | 'replace';
       pathName?: string;
       pointType?: unknown;
       note?: string | null;
@@ -968,14 +1135,18 @@ export class CustomersService {
   ) {
     this.ensureCustomerExists(customerId);
     const mutation = this.parseRouteMutationPayload(payload);
-    const snapshotBeforeOverride = this.parseRouteSnapshot(payload?.snapshotBefore);
-    const snapshotAfterOverride = this.parseRouteSnapshot(payload?.snapshotAfter);
+    const snapshotBeforeOverride = this.parseRouteSnapshot(
+      payload?.snapshotBefore,
+    );
+    const snapshotAfterOverride = this.parseRouteSnapshot(
+      payload?.snapshotAfter,
+    );
 
     return this.store.mutateCustomerRoute(customerId, mutation, {
       createNewVersion: true,
       historyNote:
-        this.normalizeOptionalString(payload?.changeNote)
-        ?? 'Perubahan jalur dicatat melalui mode Ubah Jalur.',
+        this.normalizeOptionalString(payload?.changeNote) ??
+        'Perubahan jalur dicatat melalui mode Ubah Jalur.',
       snapshotBeforeOverride,
       snapshotAfterOverride,
     });
@@ -983,7 +1154,10 @@ export class CustomersService {
 
   deleteRouteHistory(customerId: number, historyId: number) {
     this.ensureCustomerExists(customerId);
-    const deleted = this.store.deleteCustomerRouteHistory(customerId, historyId);
+    const deleted = this.store.deleteCustomerRouteHistory(
+      customerId,
+      historyId,
+    );
     if (!deleted) {
       throw new NotFoundException('Riwayat tidak ditemukan.');
     }
@@ -1042,9 +1216,9 @@ export class CustomersService {
 
   private parseContractStatus(value: unknown): ContractStatus {
     if (
-      value !== ContractStatus.Aktif
-      && value !== ContractStatus.Expired
-      && value !== ContractStatus.Terminated
+      value !== ContractStatus.Aktif &&
+      value !== ContractStatus.Expired &&
+      value !== ContractStatus.Terminated
     ) {
       throw new BadRequestException(
         'status must be aktif, expired, or terminated.',
@@ -1056,11 +1230,13 @@ export class CustomersService {
 
   private parseRouteFlowStatus(value: unknown): RouteFlowStatus {
     if (
-      value !== RouteFlowStatus.Aktif
-      && value !== RouteFlowStatus.Nonaktif
-      && value !== RouteFlowStatus.Gangguan
+      value !== RouteFlowStatus.Aktif &&
+      value !== RouteFlowStatus.Nonaktif &&
+      value !== RouteFlowStatus.Gangguan
     ) {
-      throw new BadRequestException('flowStatus must be aktif, nonaktif, or gangguan.');
+      throw new BadRequestException(
+        'flowStatus must be aktif, nonaktif, or gangguan.',
+      );
     }
 
     return value;
@@ -1068,67 +1244,67 @@ export class CustomersService {
 
   private parseRoutePointType(value: unknown): RoutePointType {
     if (
-      value !== RoutePointType.Awal
-      && value !== RoutePointType.Transit
-      && value !== RoutePointType.Tujuan
+      value !== RoutePointType.Awal &&
+      value !== RoutePointType.Transit &&
+      value !== RoutePointType.Tujuan
     ) {
-      throw new BadRequestException('pointType must be awal, transit, or tujuan.');
+      throw new BadRequestException(
+        'pointType must be awal, transit, or tujuan.',
+      );
     }
 
     return value;
   }
 
-  private parseRouteMutationPayload(
-    payload: {
-      operation?: string;
-      pathName?: string;
-      pointType?: unknown;
-      note?: string | null;
-      orderNumber?: number;
-      pointId?: number;
-      orderedPointIds?: number[];
-      flowStatus?: unknown;
-    },
-  ):
+  private parseRouteMutationPayload(payload: {
+    operation?: string;
+    pathName?: string;
+    pointType?: unknown;
+    note?: string | null;
+    orderNumber?: number;
+    pointId?: number;
+    orderedPointIds?: number[];
+    flowStatus?: unknown;
+  }):
     | {
-      operation: 'add';
-      pathName: string;
-      pointType: RoutePointType;
-      note?: string | null;
-      orderNumber?: number;
-    }
-    | {
-      operation: 'update';
-      pointId: number;
-      pathName?: string;
-      pointType?: RoutePointType;
-      note?: string | null;
-    }
-    | {
-      operation: 'delete';
-      pointId: number;
-    }
-    | {
-      operation: 'reorder';
-      orderedPointIds: number[];
-    }
-    | {
-      operation: 'status';
-      flowStatus: RouteFlowStatus;
-    }
-    | {
-      operation: 'commit';
-    }
-    | {
-      operation: 'replace';
-      flowStatus?: RouteFlowStatus;
-      points: Array<{
+        operation: 'add';
         pathName: string;
         pointType: RoutePointType;
         note?: string | null;
-        orderNumber: number;
-      }>;
-    } {
+        orderNumber?: number;
+      }
+    | {
+        operation: 'update';
+        pointId: number;
+        pathName?: string;
+        pointType?: RoutePointType;
+        note?: string | null;
+      }
+    | {
+        operation: 'delete';
+        pointId: number;
+      }
+    | {
+        operation: 'reorder';
+        orderedPointIds: number[];
+      }
+    | {
+        operation: 'status';
+        flowStatus: RouteFlowStatus;
+      }
+    | {
+        operation: 'commit';
+      }
+    | {
+        operation: 'replace';
+        flowStatus?: RouteFlowStatus;
+        points: Array<{
+          pathName: string;
+          pointType: RoutePointType;
+          note?: string | null;
+          orderNumber: number;
+        }>;
+      } {
     if (!payload || typeof payload !== 'object') {
       throw new BadRequestException('Request body is required.');
     }
@@ -1136,7 +1312,10 @@ export class CustomersService {
     const operation = payload.operation;
 
     if (operation === 'add') {
-      const pathName = this.normalizeRequiredString(payload.pathName, 'pathName');
+      const pathName = this.normalizeRequiredString(
+        payload.pathName,
+        'pathName',
+      );
       return {
         operation,
         pathName,
@@ -1149,7 +1328,9 @@ export class CustomersService {
     if (operation === 'update') {
       const pointId = Number(payload.pointId);
       if (!Number.isFinite(pointId)) {
-        throw new BadRequestException('pointId is required for update operation.');
+        throw new BadRequestException(
+          'pointId is required for update operation.',
+        );
       }
 
       const nextPayload: {
@@ -1164,7 +1345,10 @@ export class CustomersService {
       };
 
       if (payload.pathName !== undefined) {
-        nextPayload.pathName = this.normalizeRequiredString(payload.pathName, 'pathName');
+        nextPayload.pathName = this.normalizeRequiredString(
+          payload.pathName,
+          'pathName',
+        );
       }
 
       if (payload.pointType !== undefined) {
@@ -1176,11 +1360,13 @@ export class CustomersService {
       }
 
       if (
-        nextPayload.pathName === undefined
-        && nextPayload.pointType === undefined
-        && nextPayload.note === undefined
+        nextPayload.pathName === undefined &&
+        nextPayload.pointType === undefined &&
+        nextPayload.note === undefined
       ) {
-        throw new BadRequestException('At least one field must be provided for update operation.');
+        throw new BadRequestException(
+          'At least one field must be provided for update operation.',
+        );
       }
 
       return nextPayload;
@@ -1189,7 +1375,9 @@ export class CustomersService {
     if (operation === 'delete') {
       const pointId = Number(payload.pointId);
       if (!Number.isFinite(pointId)) {
-        throw new BadRequestException('pointId is required for delete operation.');
+        throw new BadRequestException(
+          'pointId is required for delete operation.',
+        );
       }
 
       return {
@@ -1199,8 +1387,13 @@ export class CustomersService {
     }
 
     if (operation === 'reorder') {
-      if (!Array.isArray(payload.orderedPointIds) || payload.orderedPointIds.length === 0) {
-        throw new BadRequestException('orderedPointIds is required for reorder operation.');
+      if (
+        !Array.isArray(payload.orderedPointIds) ||
+        payload.orderedPointIds.length === 0
+      ) {
+        throw new BadRequestException(
+          'orderedPointIds is required for reorder operation.',
+        );
       }
 
       return {
@@ -1224,15 +1417,21 @@ export class CustomersService {
 
     if (operation === 'replace') {
       if (!Array.isArray(payload['points'])) {
-        throw new BadRequestException('points array is required for replace operation.');
+        throw new BadRequestException(
+          'points array is required for replace operation.',
+        );
       }
 
-      const flowStatus = payload['flowStatus'] !== undefined
-        ? this.parseRouteFlowStatus(payload['flowStatus'])
-        : undefined;
+      const flowStatus =
+        payload['flowStatus'] !== undefined
+          ? this.parseRouteFlowStatus(payload['flowStatus'])
+          : undefined;
 
-      const points = (payload['points'] as any[]).map((p, idx) => ({
-        pathName: this.normalizeRequiredString(p.pathName, `points[${idx}].pathName`),
+      const points = payload['points'].map((p, idx) => ({
+        pathName: this.normalizeRequiredString(
+          p.pathName,
+          `points[${idx}].pathName`,
+        ),
         pointType: this.parseRoutePointType(p.pointType),
         note: this.normalizeOptionalString(p.note),
         orderNumber: Number(p.orderNumber) || idx + 1,
@@ -1245,32 +1444,32 @@ export class CustomersService {
       };
     }
 
-    throw new BadRequestException('operation must be add, update, delete, reorder, status, commit, or replace.');
+    throw new BadRequestException(
+      'operation must be add, update, delete, reorder, status, commit, or replace.',
+    );
   }
 
   private parseRouteSnapshot(
     value:
       | {
-        flowStatus?: unknown;
-        points?: Array<{
-          orderNumber?: unknown;
-          pathName?: unknown;
-          pointType?: unknown;
-          note?: unknown;
-        }>;
-      }
+          flowStatus?: unknown;
+          points?: Array<{
+            orderNumber?: unknown;
+            pathName?: unknown;
+            pointType?: unknown;
+            note?: unknown;
+          }>;
+        }
       | undefined,
-  ):
-    | {
-      flowStatus: RouteFlowStatus;
-      points: Array<{
-        orderNumber: number;
-        pathName: string;
-        pointType: RoutePointType;
-        note: string | null;
-      }>;
-    }
-    | null {
+  ): {
+    flowStatus: RouteFlowStatus;
+    points: Array<{
+      orderNumber: number;
+      pathName: string;
+      pointType: RoutePointType;
+      note: string | null;
+    }>;
+  } | null {
     if (!value) {
       return null;
     }
@@ -1283,10 +1482,15 @@ export class CustomersService {
     const points = value.points.map((point, index) => {
       const orderNumber = Number(point?.orderNumber);
       if (!Number.isFinite(orderNumber) || orderNumber <= 0) {
-        throw new BadRequestException(`snapshot points[${index}].orderNumber is invalid.`);
+        throw new BadRequestException(
+          `snapshot points[${index}].orderNumber is invalid.`,
+        );
       }
 
-      const pathName = this.normalizeRequiredString(point?.pathName, `snapshot points[${index}].pathName`);
+      const pathName = this.normalizeRequiredString(
+        point?.pathName,
+        `snapshot points[${index}].pathName`,
+      );
       const pointType = this.parseRoutePointType(point?.pointType);
       const note = this.normalizeOptionalString(point?.note);
 
@@ -1304,10 +1508,7 @@ export class CustomersService {
     };
   }
 
-  private parseActivationFeeAmount(
-    value: unknown,
-    fallback?: number,
-  ): number {
+  private parseActivationFeeAmount(value: unknown, fallback?: number): number {
     if (value === undefined || value === null || value === '') {
       if (fallback !== undefined) {
         return fallback;
@@ -1341,14 +1542,14 @@ export class CustomersService {
     contractEndDate: unknown,
   ): { startDate: string; endDate: string } | null {
     const hasStartDate = !(
-      contractStartDate === undefined
-      || contractStartDate === null
-      || contractStartDate === ''
+      contractStartDate === undefined ||
+      contractStartDate === null ||
+      contractStartDate === ''
     );
     const hasEndDate = !(
-      contractEndDate === undefined
-      || contractEndDate === null
-      || contractEndDate === ''
+      contractEndDate === undefined ||
+      contractEndDate === null ||
+      contractEndDate === ''
     );
 
     if (!hasStartDate && !hasEndDate) {
@@ -1361,7 +1562,10 @@ export class CustomersService {
       );
     }
 
-    const startDate = this.parseIsoDateString(contractStartDate, 'contractStartDate');
+    const startDate = this.parseIsoDateString(
+      contractStartDate,
+      'contractStartDate',
+    );
     const endDate = this.parseIsoDateString(contractEndDate, 'contractEndDate');
 
     if (startDate > endDate) {
@@ -1380,7 +1584,11 @@ export class CustomersService {
     paket: unknown,
     jumlah: unknown,
     contractSharingRatio: unknown,
-  ): { coreType: CoreAllocationType; coreTotal: number; sharingRatio: string | null } {
+  ): {
+    coreType: CoreAllocationType;
+    coreTotal: number;
+    sharingRatio: string | null;
+  } {
     if (paket === 'core') {
       return {
         coreType: CoreAllocationType.Core,
@@ -1421,10 +1629,14 @@ export class CustomersService {
     }
 
     return {
-      paket: versionSnapshot.coreType === CoreAllocationType.SharingCore ? 'shared core' : 'core',
-      jumlah: versionSnapshot.coreType === CoreAllocationType.Core
-        ? versionSnapshot.coreTotal
-        : versionSnapshot.sharedCoreRatio,
+      paket:
+        versionSnapshot.coreType === CoreAllocationType.SharingCore
+          ? 'shared core'
+          : 'core',
+      jumlah:
+        versionSnapshot.coreType === CoreAllocationType.Core
+          ? versionSnapshot.coreTotal
+          : versionSnapshot.sharedCoreRatio,
       contractSharingRatio: versionSnapshot.sharedCoreRatio ?? null,
       contractPeriodStart: versionSnapshot.startDate,
       contractPeriodEnd: versionSnapshot.endDate,
@@ -1436,7 +1648,10 @@ export class CustomersService {
       return null;
     }
 
-    if (value !== CoreAllocationType.Core && value !== CoreAllocationType.SharingCore) {
+    if (
+      value !== CoreAllocationType.Core &&
+      value !== CoreAllocationType.SharingCore
+    ) {
       throw new BadRequestException(
         'contractCoreType must be core or sharing_core.',
       );
@@ -1495,7 +1710,10 @@ export class CustomersService {
     if (mode === 'custom') {
       return {
         billingEvery: this.parseBillingEvery(payload?.billingCustomEvery, 1),
-        billingUnit: this.parseBillingUnit(payload?.billingCustomUnit, BillingUnit.Bulan),
+        billingUnit: this.parseBillingUnit(
+          payload?.billingCustomUnit,
+          BillingUnit.Bulan,
+        ),
       };
     }
 
@@ -1524,11 +1742,13 @@ export class CustomersService {
     }
 
     if (
-      value !== BillingUnit.Hari
-      && value !== BillingUnit.Bulan
-      && value !== BillingUnit.Tahun
+      value !== BillingUnit.Hari &&
+      value !== BillingUnit.Bulan &&
+      value !== BillingUnit.Tahun
     ) {
-      throw new BadRequestException('billingUnit must be hari, bulan, or tahun.');
+      throw new BadRequestException(
+        'billingUnit must be hari, bulan, or tahun.',
+      );
     }
 
     return value;
@@ -1553,7 +1773,10 @@ export class CustomersService {
     return value;
   }
 
-  private parseNullableIsoDateString(value: unknown, fieldName: string): string | null {
+  private parseNullableIsoDateString(
+    value: unknown,
+    fieldName: string,
+  ): string | null {
     if (value === undefined || value === null || value === '') {
       return null;
     }
@@ -1619,10 +1842,12 @@ export class CustomersService {
       const periodYear = Number(periodStartDate.slice(0, 4));
       const periodMonth = Number(periodStartDate.slice(5, 7));
 
-      const paidAt = draft.paidAt ? this.parseIsoDateString(
-        draft.paidAt,
-        `invoiceDrafts[${index}].paidAt`,
-      ) : null;
+      const paidAt = draft.paidAt
+        ? this.parseIsoDateString(
+            draft.paidAt,
+            `invoiceDrafts[${index}].paidAt`,
+          )
+        : null;
 
       this.store.upsertInvoice({
         customerId,
@@ -1636,7 +1861,8 @@ export class CustomersService {
         periodEndDate,
         dueDate: addDays(periodEndDate, 10),
         amount,
-        status: paidAt && draft.paymentProofFileUrl ? InvoiceStatus.Lunas : undefined,
+        status:
+          paidAt && draft.paymentProofFileUrl ? InvoiceStatus.Lunas : undefined,
         paidAt,
         documentId: null,
         invoiceFileUrl: draft.invoiceFileUrl ?? null,
@@ -1674,9 +1900,10 @@ export class CustomersService {
       }
 
       const calculatedEnd = addDays(nextCursor, -1);
-      const invoiceEndDate = calculatedEnd < params.periodEndDate
-        ? calculatedEnd
-        : params.periodEndDate;
+      const invoiceEndDate =
+        calculatedEnd < params.periodEndDate
+          ? calculatedEnd
+          : params.periodEndDate;
       const periodYear = Number(cursor.slice(0, 4));
       const periodMonth = Number(cursor.slice(5, 7));
 
@@ -1711,15 +1938,20 @@ export class CustomersService {
     },
   ): void {
     const invoices = this.store.listCustomerInvoices(customerId);
-    const activeVersion = this.store.getActiveContractVersion(customerId)
-      ?? this.store.getLatestContractVersion(contract.id);
+    const activeVersion =
+      this.store.getActiveContractVersion(customerId) ??
+      this.store.getLatestContractVersion(contract.id);
 
     if (!activeVersion) {
       return;
     }
 
     const paidInvoices = invoices
-      .filter((invoice) => invoice.scheduleStatus === 'active' && invoice.status === InvoiceStatus.Lunas)
+      .filter(
+        (invoice) =>
+          invoice.scheduleStatus === 'active' &&
+          invoice.status === InvoiceStatus.Lunas,
+      )
       .sort((left, right) => {
         const leftEnd = left.periodEndDate ?? left.periodStartDate ?? '';
         const rightEnd = right.periodEndDate ?? right.periodStartDate ?? '';
@@ -1727,16 +1959,19 @@ export class CustomersService {
       });
 
     const unpaidActiveInvoices = invoices.filter(
-      (invoice) => invoice.scheduleStatus === 'active' && invoice.status !== InvoiceStatus.Lunas,
+      (invoice) =>
+        invoice.scheduleStatus === 'active' &&
+        invoice.status !== InvoiceStatus.Lunas,
     );
 
     if (unpaidActiveInvoices.length === 0) {
       return;
     }
 
-    const lastPaidPeriodEnd = paidInvoices.at(-1)?.periodEndDate
-      ?? paidInvoices.at(-1)?.periodStartDate
-      ?? null;
+    const lastPaidPeriodEnd =
+      paidInvoices.at(-1)?.periodEndDate ??
+      paidInvoices.at(-1)?.periodStartDate ??
+      null;
 
     const restructureStartDate = lastPaidPeriodEnd
       ? addDays(lastPaidPeriodEnd, 1)
@@ -1747,23 +1982,32 @@ export class CustomersService {
     if (restructureStartDate > restructureEndDate) {
       this.store.archiveCustomerInvoices(
         customerId,
-        (invoice) => invoice.scheduleStatus === 'active' && invoice.status === InvoiceStatus.Lunas,
+        (invoice) =>
+          invoice.scheduleStatus === 'active' &&
+          invoice.status === InvoiceStatus.Lunas,
       );
       this.store.removeCustomerInvoices(
         customerId,
-        (invoice) => invoice.scheduleStatus === 'active' && invoice.status !== InvoiceStatus.Lunas,
+        (invoice) =>
+          invoice.scheduleStatus === 'active' &&
+          invoice.status !== InvoiceStatus.Lunas,
       );
       return;
     }
 
-    const nextScheduleVersion = this.store.getNextInvoiceScheduleVersion(customerId);
+    const nextScheduleVersion =
+      this.store.getNextInvoiceScheduleVersion(customerId);
     this.store.archiveCustomerInvoices(
       customerId,
-      (invoice) => invoice.scheduleStatus === 'active' && invoice.status === InvoiceStatus.Lunas,
+      (invoice) =>
+        invoice.scheduleStatus === 'active' &&
+        invoice.status === InvoiceStatus.Lunas,
     );
     this.store.removeCustomerInvoices(
       customerId,
-      (invoice) => invoice.scheduleStatus === 'active' && invoice.status !== InvoiceStatus.Lunas,
+      (invoice) =>
+        invoice.scheduleStatus === 'active' &&
+        invoice.status !== InvoiceStatus.Lunas,
     );
 
     this.generateInvoicesForPeriod({
