@@ -1,0 +1,25 @@
+{
+  "source_file": "12. MONITORING UPDATE 20 APRIL 2026.xlsx",
+  "format_note": "Tanggal Excel dikonversi ke string ISO-8601 (YYYY-MM-DD). Data disimpan per sheet dengan nomor baris Excel dan huruf kolom agar posisi asli tetap terjaga.",
+  "sheets": [
+    {
+      "name": "Mulai Juni 24",
+      "rows": [
+        { "excel_row": 6, "values": { "C": "PT Cendikia Global Solusi", "D": "PT Kemasan Ciptatama Nusantara", "E": "KIMA.BAK-26/DBO/FO/VI/2024", "F": "2024-06-14", "H": "2025-06-13", "I": "-", "J": "1/32", "K": "INV-032/KIMA/FO/VI/2024", "L": "Lunas", "M": 250000, "O": 2500000 } },
+        { "excel_row": 7, "values": { "C": "PT Cendikia Global Solusi", "D": "PT Maruki International", "E": "KIMA.BAK-24/DBO/FO/VI/2024", "F": "2024-06-14", "H": "2025-06-13", "I": "-", "J": "1/32", "K": "INV-030/KIMA/FO/VI/2024", "L": "Lunas", "M": 250000, "O": 2500000 } },
+        { "excel_row": 8, "values": { "C": "PT Cendikia Global Solusi", "D": "PT Traktor Nusantara", "E": "KIMA.BAK-25/DBO/FO/VI/2024", "F": "2024-06-14", "H": "2025-06-13", "I": "-", "J": "1/32", "K": "INV-031/KIMA/FO/VI/2024", "L": "Lunas", "M": 250000, "O": 2500000 } },
+        { "excel_row": 9, "values": { "C": "PT Cendikia Global Solusi", "D": "MSC PT Indosat Tbk (Kima 9)", "E": "KIMA.BAK-46/DBO/FO/VII/2024", "F": "2024-07-14", "H": "2024-08-13", "K": "INV-067/KIMA/FO/VII/2024", "L": "Lunas", "M": 27000000 } },
+        { "excel_row": 10, "values": { "C": "PT Cendikia Global Solusi", "D": "PT Karya Teknik Mulia 2", "E": "KIMA.BAK.58/DBO/FO/IX/2024", "F": "2024-10-08", "H": "2025-10-07", "I": "-", "J": "1/32", "K": "KIMA.BAK-58/DBO/FO/IX/2024", "L": "-", "M": 250000, "O": 2500000 } },
+        { "excel_row": 11, "values": { "C": "PT Cendikia Global Solusi", "D": "PT Dwira Masagena", "E": "KIMA.BAK-67/DBO/FO/XI/2024", "F": "2024-12-07", "H": "2025-12-06", "I": "-", "J": "1/32", "K": "INV-024/KIMA/FO/I/2025", "L": "-", "M": 250000, "O": 2500000 } },
+        { "excel_row": 12, "values": { "C": "PT Indonesia Comnets Plus", "D": "PT Indonesian Satellite Corporation (PT Indosat Tbk)", "E": "SP2K Nomor: 450024039", "F": "2024-09-16", "H": "2025-09-15", "I": 2, "J": "-", "K": "INV-102/KIMA/FO/XII/2024", "L": "Lunas", "M": 8000000, "O": 2500000 } },
+        { "excel_row": 13, "values": { "C": "PT Indonesia Comnets Plus", "D": "PT Indonesian Satellite Corporation (PT Indosat Tbk)", "E": "SP2K Nomor: 450024160", "F": "2024-11-01", "H": "2025-10-31", "I": 2, "J": "-", "K": "INV-005/KIMA/FO/I/2025", "L": "Lunas", "M": 8000000, "O": 2500000 } },
+        { "excel_row": 14, "values": { "C": "PT Indonesian Satellite Corporation (PT Indosat Tbk)", "D": "Core", "E": "KIMA.PERU-069/DIU/X/2024", "F": "2024-06-01", "H": "2025-05-31", "I": 35, "J": "-", "K": "INV-096/KIMA/FO/XII/2024", "L": "Lunas", "M": 73500000 } },
+        { "excel_row": 15, "values": { "C": "PT Fiber Networks Indonesia", "D": "Core", "E": "KIMA.BAK-61/DBO/FO/X/2024", "F": "2024-10-01", "H": "2025-09-30", "I": 1, "J": "-", "K": "INV-082/KIMA/FO/X/2024", "L": "-", "M": 6000000, "O": 2500000 } },
+        { "excel_row": 16, "values": { "C": "PT Citra Prima Media", "D": "Core", "E": "KIMA.BAK-60/DOP/FO/IX/2024", "F": "2024-09-13", "H": "2025-09-12", "I": 2, "J": "-", "K": "INV-083/KIMA/FO/X/2024", "L": "-", "M": 11500000, "O": 2500000 } },
+        { "excel_row": 17, "values": { "C": "PT XL Axiata Tbk", "D": "Core", "E": "KIMA.BAK-68/DBO/FO/XI/2024", "F": "2024-12-05", "H": "2025-12-04", "I": 2, "J": "-", "K": "INV.101/KIMA/FO/XII/2024", "L": "Lunas", "M": 2500000, "O": 2500000 } },
+        { "excel_row": 18, "values": { "C": "PT XL Axiata Tbk", "D": "Core", "E": "KIMA.BAK-170A/DOP/VII/2024", "F": "2024-07-01", "H": "2026-06-30", "I": 134, "J": "-", "K": "INV-069/KIMA/FO/VIII/2024", "L": "-", "M": 167500000 } },
+        { "excel_row": 19, "values": { "C": "PT Iforte Solusi Infotek", "D": "Wika Beton- Makassar", "E": "KIMA.BAK-62/DBO/FO/X/2024", "F": "2024-10-02", "H": "2025-10-01", "I": "-", "J": "1/8", "K": "INV-095/KIMA/FO/XI/2024", "L": "Lunas", "M": 1000000 } }
+      ]
+    }
+  ]
+}
