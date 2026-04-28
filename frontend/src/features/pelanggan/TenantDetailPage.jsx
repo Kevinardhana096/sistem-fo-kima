@@ -1495,7 +1495,7 @@ function TenantDetailPage({
     const distanceKm = Number(plannerMeta?.distance ?? 0) / 1000;
     const durationMinutes = Number(plannerMeta?.duration ?? 0) / 60;
     const routeSummary = [
-      "Perencanaan rute FO via OSRM",
+      "Perencanaan rute FO via Valhalla",
       Number.isFinite(distanceKm) && distanceKm > 0
         ? `jarak ${distanceKm.toFixed(2)} km`
         : null,

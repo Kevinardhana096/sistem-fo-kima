@@ -13,12 +13,11 @@ import "./FoRoutePlanner.css";
 
 const DEFAULT_CENTER = [-5.147665, 119.432732];
 const DEFAULT_ZOOM = 13;
-const OSRM_PUBLIC_HOST = "https://router.project-osrm.org";
-const OSRM_LOCAL_HOST =
-  typeof import.meta.env.VITE_OSRM_HOST === "string" &&
-  import.meta.env.VITE_OSRM_HOST.trim()
-    ? import.meta.env.VITE_OSRM_HOST.trim().replace(/\/$/, "")
-    : "http://localhost:5000";
+const VALHALLA_LOCAL_HOST =
+  typeof import.meta.env.VITE_VALHALLA_HOST === "string" &&
+  import.meta.env.VITE_VALHALLA_HOST.trim()
+    ? import.meta.env.VITE_VALHALLA_HOST.trim().replace(/\/$/, "")
+    : "http://localhost:8002";
 
 const BASEMAP_OPTIONS = [
   {
@@ -157,17 +156,67 @@ function createRouteGeoJson(geometryCoordinates, properties) {
   };
 }
 
+function decodeValhallaShape(encodedShape, precision = 6) {
+  if (!encodedShape || typeof encodedShape !== "string") {
+    return [];
+  }
+
+  const coordinates = [];
+  const factor = 10 ** precision;
+  let latitude = 0;
+  let longitude = 0;
+  let index = 0;
+
+  while (index < encodedShape.length) {
+    let shift = 0;
+    let result = 0;
+    let byte = 0;
+
+    do {
+      byte = encodedShape.charCodeAt(index++) - 63;
+      result |= (byte & 0x1f) << shift;
+      shift += 5;
+    } while (byte >= 0x20);
+
+    latitude += result & 1 ? ~(result >> 1) : result >> 1;
+
+    shift = 0;
+    result = 0;
+
+    do {
+      byte = encodedShape.charCodeAt(index++) - 63;
+      result |= (byte & 0x1f) << shift;
+      shift += 5;
+    } while (byte >= 0x20);
+
+    longitude += result & 1 ? ~(result >> 1) : result >> 1;
+    coordinates.push([longitude / factor, latitude / factor]);
+  }
+
+  return coordinates;
+}
+
+function mapProfileToValhallaCosting(profile) {
+  if (profile === "cycling") {
+    return "bicycle";
+  }
+
+  if (profile === "foot") {
+    return "pedestrian";
+  }
+
+  return "auto";
+}
+
 function extractRoadSegments(legs) {
   return (Array.isArray(legs) ? legs : []).flatMap((leg, legIndex) => {
-    const steps = Array.isArray(leg?.steps) ? leg.steps : [];
-    return steps.map((step, index) => ({
-      id: `${legIndex}-${index}-${step?.name ?? "road"}`,
-      name: step?.name?.trim() || "Tanpa nama jalan",
-      distance: Number(step?.distance ?? 0),
-      duration: Number(step?.duration ?? 0),
-      instruction: step?.maneuver?.modifier
-        ? `Manuver ${step.maneuver.modifier}`
-        : "Lanjut lurus",
+    const maneuvers = Array.isArray(leg?.maneuvers) ? leg.maneuvers : [];
+    return maneuvers.map((maneuver, index) => ({
+      id: `${legIndex}-${index}-${maneuver?.street_names?.[0] ?? "road"}`,
+      name: maneuver?.street_names?.[0]?.trim() || "Tanpa nama jalan",
+      distance: Number(maneuver?.length ?? 0) * 1000,
+      duration: Number(maneuver?.time ?? 0),
+      instruction: maneuver?.instruction?.trim() || "Ikuti jalur utama",
     }));
   });
 }
@@ -431,100 +480,101 @@ export default function FoRoutePlanner({
     }
 
     const controller = new AbortController();
-    const coordinates = [pointA, pointB]
-      .map((point) => `${point.lng},${point.lat}`)
-      .join(";");
-    const routePath = `/route/v1/${profile}/${coordinates}?overview=full&geometries=geojson&steps=true`;
+    const routingPoints = [pointA, ...manualWaypoints, pointB];
+    const requestBody = {
+      locations: routingPoints.map((point, index) => ({
+        lat: point.lat,
+        lon: point.lng,
+        type:
+          index === 0 || index === routingPoints.length - 1 ? "break" : "via",
+      })),
+      costing: mapProfileToValhallaCosting(profile),
+      units: "kilometers",
+      directions_options: {
+        units: "kilometers",
+      },
+    };
 
     const fetchRoute = async () => {
       setIsCalculating(true);
       setRouteError("");
+      try {
+        const response = await fetch(`${VALHALLA_LOCAL_HOST}/route`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(requestBody),
+          signal: controller.signal,
+        });
 
-      const hosts = [OSRM_LOCAL_HOST, OSRM_PUBLIC_HOST];
-      let lastError = null;
-
-      for (const [index, host] of hosts.entries()) {
-        try {
-          const response = await fetch(`${host}${routePath}`, {
-            signal: controller.signal,
-          });
-          if (!response.ok) {
-            throw new Error(`OSRM gagal merespons (${response.status}).`);
-          }
-
-          const result = await response.json();
-          if (
-            result.code !== "Ok" ||
-            !Array.isArray(result.routes) ||
-            result.routes.length === 0
-          ) {
-            throw new Error("Rute tidak ditemukan.");
-          }
-
-          const primaryRoute = result.routes[0];
-          const geometryCoordinates = Array.isArray(
-            primaryRoute?.geometry?.coordinates,
-          )
-            ? primaryRoute.geometry.coordinates
-            : [];
-          const roads = extractRoadSegments(primaryRoute?.legs);
-          const source = index === 0 ? "osrm-local" : "osrm-public";
-
-          if (index > 0) {
-            pushToast(
-              "Server OSRM Lokal Offline",
-              "Planner beralih ke router publik untuk menghitung jalur.",
-              "warning",
-            );
-          } else {
-            pushToast(
-              "Rute Berhasil Dihitung",
-              "Jalur otomatis dari server OSRM lokal berhasil dirender.",
-              "success",
-            );
-          }
-
-          setRouteData({
-            mode: "osrm",
-            source,
-            distance: Number(primaryRoute.distance ?? 0),
-            duration: Number(primaryRoute.duration ?? 0),
-            geometryCoordinates,
-            geoJson: createRouteGeoJson(geometryCoordinates, {
-              source,
-              mode: "osrm",
-              distance: Number(primaryRoute.distance ?? 0),
-              duration: Number(primaryRoute.duration ?? 0),
-              roads,
-            }),
-            roads,
-          });
-          setRouteError("");
-          setIsCalculating(false);
-          return;
-        } catch (error) {
-          if (error?.name === "AbortError") {
-            return;
-          }
-
-          lastError = error;
+        if (!response.ok) {
+          throw new Error(`Valhalla gagal merespons (${response.status}).`);
         }
-      }
 
-      setRouteData(null);
-      setRouteError(
-        lastError instanceof Error
-          ? lastError.message
-          : "Gagal menghitung rute OSRM.",
-      );
-      pushToast(
-        "Rute Gagal Dihitung",
-        lastError instanceof Error
-          ? lastError.message
-          : "Server OSRM tidak tersedia.",
-        "error",
-      );
-      setIsCalculating(false);
+        const result = await response.json();
+        if (Number(result?.error_code ?? 0) > 0) {
+          throw new Error(result?.error ?? "Valhalla gagal menghitung rute.");
+        }
+
+        const trip = result?.trip;
+        const legs = Array.isArray(trip?.legs) ? trip.legs : [];
+        const geometryCoordinates = legs.flatMap((leg) =>
+          decodeValhallaShape(leg?.shape),
+        );
+
+        if (geometryCoordinates.length < 2) {
+          throw new Error("Valhalla tidak mengembalikan geometri rute.");
+        }
+
+        const roads = extractRoadSegments(legs);
+        const distance = Number(trip?.summary?.length ?? 0) * 1000;
+        const duration = Number(trip?.summary?.time ?? 0);
+        const source = "valhalla-local";
+
+        pushToast(
+          "Rute Berhasil Dihitung",
+          "Jalur otomatis dari server Valhalla berhasil dirender.",
+          "success",
+        );
+
+        setRouteData({
+          mode: "valhalla",
+          source,
+          distance,
+          duration,
+          geometryCoordinates,
+          geoJson: createRouteGeoJson(geometryCoordinates, {
+            source,
+            mode: "valhalla",
+            distance,
+            duration,
+            roads,
+          }),
+          roads,
+        });
+        setRouteError("");
+      } catch (error) {
+        if (error?.name === "AbortError") {
+          return;
+        }
+
+        setRouteData(null);
+        setRouteError(
+          error instanceof Error
+            ? error.message
+            : "Gagal menghitung rute Valhalla.",
+        );
+        pushToast(
+          "Rute Gagal Dihitung",
+          error instanceof Error
+            ? error.message
+            : "Server Valhalla tidak tersedia.",
+          "error",
+        );
+      } finally {
+        setIsCalculating(false);
+      }
     };
 
     void fetchRoute();
@@ -616,27 +666,36 @@ export default function FoRoutePlanner({
     setSearchError("");
 
     try {
+      // Menggunakan Photon API dengan bias lokasi Makassar
       const params = new URLSearchParams({
         q: query,
-        format: "jsonv2",
-        limit: "8",
-        addressdetails: "1",
+        lat: "-5.147665",
+        lon: "119.432732",
+        limit: "10",
       });
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?${params.toString()}`,
-        {
-          headers: {
-            Accept: "application/json",
-          },
-        },
-      );
+      
+      const response = await fetch(`https://photon.komoot.io/api/?${params.toString()}`);
 
       if (!response.ok) {
-        throw new Error(`Nominatim gagal merespons (${response.status}).`);
+        throw new Error(`Photon gagal merespons (${response.status}).`);
       }
 
-      const result = await response.json();
-      const normalized = Array.isArray(result) ? result : [];
+      const data = await response.json();
+      const normalized = (data.features || []).map(feature => {
+        const p = feature.properties;
+        const name = p.name || "";
+        const context = [p.street, p.city, p.state]
+          .filter(v => v && v !== name)
+          .join(", ");
+
+        return {
+          place_id: Math.random().toString(36).substr(2, 9),
+          display_name: name + (context ? ` (${context})` : ""),
+          lat: feature.geometry.coordinates[1].toString(),
+          lon: feature.geometry.coordinates[0].toString(),
+        };
+      });
+
       setSearchResults(normalized);
       pushToast(
         "Pencarian Selesai",
@@ -832,7 +891,7 @@ export default function FoRoutePlanner({
         id: `planner-draft-${Date.now()}-${index}`,
         pathName: buildPointLabel(point, index, controlPoints.length),
         pointType,
-        note: `${routeData?.mode === "manual" ? "Custom Route" : "OSRM Route"} • ${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}`,
+        note: `${routeData?.mode === "manual" ? "Custom Route" : "Valhalla Route"} • ${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}`,
         orderNumber: index + 1,
       };
     });
@@ -1034,258 +1093,142 @@ export default function FoRoutePlanner({
   }
 
   return (
-    <section className="rounded-2xl bg-surface-container-lowest p-6 shadow-sm border border-slate-200 text-on-surface">
+    <section className="relative h-full w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-900 text-on-surface shadow-lg">
       <ToastStack onDismiss={dismissToast} toasts={toasts} />
 
-      <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="text-xs font-black uppercase tracking-widest text-on-surface-variant/70">
-            FO Route Planner
-          </p>
-          <h3 className="text-2xl font-bold text-on-surface">
-            Leaflet + OSRM Tactical Console
-          </h3>
-          <p className="mt-2 text-sm text-on-surface-variant">
-            Tempatkan Titik A dan Titik B, hitung jalur otomatis via OSRM, atau
-            aktifkan custom route untuk menggambar waypoint manual.
-          </p>
-        </div>
+      {/* Background Map - Fills entire container */}
+      <div className="absolute inset-0 z-0">
+        <MapContainer
+          center={DEFAULT_CENTER}
+          className="h-full w-full bg-slate-100"
+          scrollWheelZoom
+          zoom={DEFAULT_ZOOM}
+        >
+          <TileLayer
+            attribution={selectedBasemap.attribution}
+            url={selectedBasemap.url}
+          />
+          <MapClickHandler onMapClick={handleMapClick} />
+          <MapViewportController
+            fitCoordinates={mapFitCoordinates}
+            fitRouteKey={`${routeData?.source ?? "none"}-${routeData?.distance ?? 0}-${routeData?.mode ?? "idle"}`}
+            flyTarget={flyTarget}
+          />
 
-        <div className="flex flex-wrap items-center gap-2">
-          {BASEMAP_OPTIONS.map((option) => (
-            <button
-              key={option.key}
-              className={`inline-flex items-center justify-center rounded-lg border px-4 py-2 text-xs font-semibold uppercase tracking-wider transition disabled:cursor-not-allowed disabled:opacity-50 ${basemap === option.key ? "border-primary bg-primary text-white hover:bg-primary/90" : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"}`}
-              onClick={() => setBasemap(option.key)}
-              type="button"
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-5">
-        <div className="flex flex-col gap-1 rounded-xl border border-slate-200 bg-slate-50 p-4">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-            Titik Aktif
-          </span>
-          <span className="text-lg font-bold text-slate-900 break-words">
-            {routeSummary.pointCount}
-          </span>
-        </div>
-        <div className="flex flex-col gap-1 rounded-xl border border-slate-200 bg-slate-50 p-4">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-            Total Jarak
-          </span>
-          <span className="text-lg font-bold text-slate-900 break-words">
-            {routeSummary.distanceLabel}
-          </span>
-        </div>
-        <div className="flex flex-col gap-1 rounded-xl border border-slate-200 bg-slate-50 p-4">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-            Estimasi
-          </span>
-          <span className="text-lg font-bold text-slate-900 break-words">
-            {routeSummary.durationLabel}
-          </span>
-        </div>
-        <div className="flex flex-col gap-1 rounded-xl border border-slate-200 bg-slate-50 p-4">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-            Ruas Jalan
-          </span>
-          <span className="text-lg font-bold text-slate-900 break-words">
-            {routeSummary.roadCount}
-          </span>
-        </div>
-        <div className="flex flex-col gap-1 rounded-xl border border-slate-200 bg-slate-50 p-4">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-            Source
-          </span>
-          <span className="text-lg font-bold text-slate-900 break-words">
-            {routeSummary.source}
-          </span>
-        </div>
-      </div>
-
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <button
-          className={`inline-flex items-center justify-center rounded-lg border px-4 py-2 text-xs font-semibold uppercase tracking-wider transition disabled:cursor-not-allowed disabled:opacity-50 ${placementMode === "a" ? "border-primary bg-primary text-white hover:bg-primary/90" : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"}`}
-          disabled={disabled}
-          onClick={() => setPlacementMode("a")}
-          type="button"
-        >
-          Set Titik A
-        </button>
-        <button
-          className={`inline-flex items-center justify-center rounded-lg border px-4 py-2 text-xs font-semibold uppercase tracking-wider transition disabled:cursor-not-allowed disabled:opacity-50 ${placementMode === "b" ? "border-primary bg-primary text-white hover:bg-primary/90" : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"}`}
-          disabled={disabled}
-          onClick={() => setPlacementMode("b")}
-          type="button"
-        >
-          Set Titik B
-        </button>
-        <button
-          className={`inline-flex items-center justify-center rounded-lg border px-4 py-2 text-xs font-semibold uppercase tracking-wider transition disabled:cursor-not-allowed disabled:opacity-50 ${placementMode === "waypoint" ? "border-primary bg-primary text-white hover:bg-primary/90" : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"}`}
-          disabled={disabled || !customRouteMode}
-          onClick={() => setPlacementMode("waypoint")}
-          type="button"
-        >
-          Tambah Waypoint
-        </button>
-        <button
-          className={`inline-flex items-center justify-center rounded-lg border px-4 py-2 text-xs font-semibold uppercase tracking-wider transition disabled:cursor-not-allowed disabled:opacity-50 ${customRouteMode ? "border-amber-500 bg-amber-500 text-white hover:bg-amber-600" : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"}`}
-          disabled={disabled}
-          onClick={() => {
-            setCustomRouteMode((previous) => !previous);
-            pushToast(
-              "Custom Route Mode",
-              !customRouteMode
-                ? "Mode waypoint manual aktif."
-                : "Planner kembali memakai jalur otomatis OSRM.",
-              "info",
-            );
-          }}
-          type="button"
-        >
-          {customRouteMode ? "Custom Route ON" : "Custom Route OFF"}
-        </button>
-        <button
-          className="inline-flex cursor-pointer items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-wider text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={disabled}
-          onClick={handleResetPlanner}
-          type="button"
-        >
-          Reset Planner
-        </button>
-        <button
-          className="inline-flex cursor-pointer items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-wider text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={disabled || !routeData}
-          onClick={handleExportGeoJson}
-          type="button"
-        >
-          Export GeoJSON
-        </button>
-        <button
-          className="inline-flex items-center justify-center rounded-lg border border-transparent bg-emerald-600 px-4 py-2 text-xs font-semibold uppercase tracking-wider text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={disabled || !pointA || !pointB}
-          onClick={handleApplyPlanner}
-          type="button"
-        >
-          Terapkan ke Draft Jalur
-        </button>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.3fr_0.9fr]">
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-          <div className="overflow-hidden rounded-xl border border-slate-200">
-            <MapContainer
-              center={DEFAULT_CENTER}
-              className="h-full min-h-[750px] w-full bg-slate-100"
-              scrollWheelZoom
-              zoom={DEFAULT_ZOOM}
-            >
-              <TileLayer
-                attribution={selectedBasemap.attribution}
-                url={selectedBasemap.url}
-              />
-              <MapClickHandler onMapClick={handleMapClick} />
-              <MapViewportController
-                fitCoordinates={mapFitCoordinates}
-                fitRouteKey={`${routeData?.source ?? "none"}-${routeData?.distance ?? 0}-${routeData?.mode ?? "idle"}`}
-                flyTarget={flyTarget}
-              />
-
-              {pointA && (
-                <Marker
-                  draggable={!disabled}
-                  eventHandlers={{
-                    dragend: (event) => {
-                      const position = event.target.getLatLng();
-                      handleMarkerDrag(
-                        "provider",
-                        pointA.id,
-                        position.lat,
-                        position.lng,
-                      );
-                      },
-                      }}
-                      icon={providerIcon}
-                      position={[pointA.lat, pointA.lng]}
-                      />              )}
-              {pointB && (
-                <Marker
-                  draggable={!disabled}
-                  eventHandlers={{
-                    dragend: (event) => {
-                      const position = event.target.getLatLng();
-                      handleMarkerDrag(
-                        "customer",
-                        pointB.id,
-                        position.lat,
-                        position.lng,
-                      );
-                    },
-                  }}
-                  icon={CUSTOMER_ICON}
-                  position={[pointB.lat, pointB.lng]}
-                />
-              )}
-              {manualWaypoints.map((point) => (
-                <Marker
-                  key={point.id}
-                  draggable={!disabled}
-                  eventHandlers={{
-                    dragend: (event) => {
-                      const position = event.target.getLatLng();
-                      handleMarkerDrag(
-                        "waypoint",
-                        point.id,
-                        position.lat,
-                        position.lng,
-                      );
-                    },
-                  }}
-                  icon={WAYPOINT_ICON}
-                  position={[point.lat, point.lng]}
-                />
-              ))}
-              {routeData?.geoJson && (
-                <>
-                  <GeoJSON
-                    data={routeData.geoJson}
-                    style={() => routeGlowStyle}
-                  />
-                  <GeoJSON
-                    data={routeData.geoJson}
-                    style={() => routeMainStyle}
-                  />
-                </>
-              )}
-            </MapContainer>
-          </div>
-          {routeError && (
-            <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-              {routeError}
-            </div>
+          {pointA && (
+            <Marker
+              draggable={!disabled}
+              eventHandlers={{
+                dragend: (event) => {
+                  const position = event.target.getLatLng();
+                  handleMarkerDrag("provider", pointA.id, position.lat, position.lng);
+                },
+              }}
+              icon={providerIcon}
+              position={[pointA.lat, pointA.lng]}
+            />
           )}
-        </div>
+          {pointB && (
+            <Marker
+              draggable={!disabled}
+              eventHandlers={{
+                dragend: (event) => {
+                  const position = event.target.getLatLng();
+                  handleMarkerDrag("customer", pointB.id, position.lat, position.lng);
+                },
+              }}
+              icon={CUSTOMER_ICON}
+              position={[pointB.lat, pointB.lng]}
+            />
+          )}
+          {manualWaypoints.map((point) => (
+            <Marker
+              key={point.id}
+              draggable={!disabled}
+              eventHandlers={{
+                dragend: (event) => {
+                  const position = event.target.getLatLng();
+                  handleMarkerDrag("waypoint", point.id, position.lat, position.lng);
+                },
+              }}
+              icon={WAYPOINT_ICON}
+              position={[point.lat, point.lng]}
+            />
+          ))}
+          {routeData?.geoJson && (
+            <>
+              <GeoJSON data={routeData.geoJson} style={() => routeGlowStyle} />
+              <GeoJSON data={routeData.geoJson} style={() => routeMainStyle} />
+            </>
+          )}
+        </MapContainer>
+      </div>
 
-        <div className="space-y-4">
-          <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-                  OSRM Engine
-                </p>
-                <h4 className="text-lg font-bold text-slate-900">
-                  Routing Controls
-                </h4>
+      {/* Floating Sidebar - Desktop Style */}
+      <aside className="absolute left-4 top-4 bottom-4 z-[1000] w-[380px] overflow-hidden flex flex-col pointer-events-none">
+        <div className="flex flex-col h-full pointer-events-auto space-y-3">
+          {/* Header Panel */}
+          <header className="rounded-2xl border border-white/10 bg-slate-900/80 p-5 backdrop-blur-md shadow-2xl">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Tactical Console</p>
+            <h3 className="text-lg font-black text-white leading-tight mt-1">FO Route Planner</h3>
+            
+            {/* Action Bar */}
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                className={`flex-1 px-3 py-2 rounded-lg border text-[10px] font-bold uppercase transition ${placementMode === "a" ? "bg-primary border-primary text-white" : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10"}`}
+                onClick={() => setPlacementMode("a")}
+              >Set A</button>
+              <button
+                className={`flex-1 px-3 py-2 rounded-lg border text-[10px] font-bold uppercase transition ${placementMode === "b" ? "bg-primary border-primary text-white" : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10"}`}
+                onClick={() => setPlacementMode("b")}
+              >Set B</button>
+              <button
+                className={`flex-1 px-3 py-2 rounded-lg border text-[10px] font-bold uppercase transition ${customRouteMode ? "bg-amber-500 border-amber-500 text-white" : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10"}`}
+                onClick={() => setCustomRouteMode(!customRouteMode)}
+              >{customRouteMode ? "Custom ON" : "Custom OFF"}</button>
+            </div>
+          </header>
+
+          {/* Search Panel */}
+          <section className="rounded-2xl border border-white/10 bg-slate-900/80 p-4 backdrop-blur-md shadow-xl">
+            <form className="flex gap-2" onSubmit={handleSearch}>
+              <div className="relative flex-1">
+                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
+                <input
+                  className="w-full rounded-xl border border-white/10 bg-white/5 pl-9 pr-4 py-2 text-xs text-white outline-none focus:border-primary/50 transition"
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Cari lokasi penarikan..."
+                  type="text"
+                  value={searchQuery}
+                />
               </div>
-              <select
-                className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm text-slate-900 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
-                disabled={disabled}
-                onChange={(event) => setProfile(event.target.value)}
+              <button className="rounded-xl bg-primary px-3 py-2 text-[10px] font-bold text-white uppercase" disabled={isSearching}>
+                {isSearching ? "..." : "Cari"}
+              </button>
+            </form>
+            {searchResults.length > 0 && (
+              <div className="mt-3 max-h-[180px] overflow-auto space-y-2 pr-1 custom-scrollbar">
+                {searchResults.map((result) => (
+                  <div key={result.place_id} className="rounded-lg bg-white/5 p-2 border border-white/5 hover:bg-white/10 transition">
+                    <p className="text-[10px] text-white/90 font-medium leading-tight mb-2">{result.display_name}</p>
+                    <div className="flex gap-1.5">
+                      <button className="flex-1 bg-white/10 py-1 rounded text-[9px] font-bold uppercase text-white/70 hover:text-white" onClick={() => handlePickSearchResult(result, "a")}>Set A</button>
+                      <button className="flex-1 bg-white/10 py-1 rounded text-[9px] font-bold uppercase text-white/70 hover:text-white" onClick={() => handlePickSearchResult(result, "b")}>Set B</button>
+                      {customRouteMode && <button className="flex-1 bg-white/10 py-1 rounded text-[9px] font-bold uppercase text-white/70 hover:text-white" onClick={() => handlePickSearchResult(result, "waypoint")}>+W</button>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          {/* Scrollable Waypoint List */}
+          <section className="flex-1 min-h-0 rounded-2xl border border-white/10 bg-slate-900/80 p-4 backdrop-blur-md shadow-xl overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-[10px] font-black uppercase tracking-widest text-primary">Points & Waypoints</h4>
+              <select 
+                className="bg-transparent text-[10px] font-bold text-white/60 outline-none border-none cursor-pointer"
+                onChange={(e) => setProfile(e.target.value)}
                 value={profile}
               >
                 <option value="driving">Driving</option>
@@ -1293,333 +1236,103 @@ export default function FoRoutePlanner({
                 <option value="foot">Walking</option>
               </select>
             </div>
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              <div className="flex flex-col gap-1 rounded-xl border border-slate-200 bg-slate-50 p-3">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                  Titik A
-                </span>
-                <span className="break-words text-sm font-bold text-slate-900">
-                  {pointA
-                    ? `${pointA.lat.toFixed(5)}, ${pointA.lng.toFixed(5)}`
-                    : "Belum diisi"}
-                </span>
+            
+            <div className="flex-1 overflow-auto space-y-2 pr-1 custom-scrollbar">
+              {/* Point A & B Static Display */}
+              <div className="flex items-center gap-3 rounded-xl bg-blue-500/10 border border-blue-500/20 p-3">
+                <div className="h-8 w-8 rounded-lg bg-blue-500 flex items-center justify-center font-black text-white text-xs">A</div>
+                <div className="flex-1">
+                  <p className="text-[9px] font-black uppercase text-blue-400">Titik A (Provider)</p>
+                  <p className="text-[11px] font-mono text-white/90 truncate">{pointA ? `${pointA.lat.toFixed(5)}, ${pointA.lng.toFixed(5)}` : "Belum ditentukan"}</p>
+                </div>
               </div>
-              <div className="flex flex-col gap-1 rounded-xl border border-slate-200 bg-slate-50 p-3">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                  Titik B
-                </span>
-                <span className="break-words text-sm font-bold text-slate-900">
-                  {pointB
-                    ? `${pointB.lat.toFixed(5)}, ${pointB.lng.toFixed(5)}`
-                    : "Belum diisi"}
-                </span>
-              </div>
-            </div>
-            <p className="mt-3 text-xs text-slate-500">
-              Endpoint OSRM lokal:{" "}
-              <span className="font-mono">{OSRM_LOCAL_HOST}</span>. Planner akan
-              otomatis fallback ke router publik bila host lokal offline.
-            </p>
-            {isCalculating && (
-              <p className="mt-2 text-xs font-bold uppercase tracking-[0.25em] text-primary">
-                Menghitung rute...
-              </p>
-            )}
-          </section>
 
-          <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-              Search / Geocoding
-            </p>
-            <h4 className="text-lg font-bold text-slate-900">Cari Lokasi</h4>
-            <form className="mt-3 flex gap-2" onSubmit={handleSearch}>
-              <input
-                className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20"
-                onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder="Cari nama jalan, gedung, area..."
-                type="text"
-                value={searchQuery}
-              />
-              <button
-                className="inline-flex items-center justify-center rounded-lg border border-primary bg-primary px-4 py-2 text-xs font-semibold uppercase tracking-wider text-white transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={isSearching}
-                type="submit"
-              >
-                {isSearching ? "..." : "Cari"}
-              </button>
-            </form>
-            {searchError && (
-              <p className="mt-2 text-xs text-rose-600">{searchError}</p>
-            )}
-            <div className="mt-3 max-h-[220px] space-y-2 overflow-auto pr-1">
-              {searchResults.map((result) => (
-                <div
-                  key={result.place_id}
-                  className="rounded-xl border border-slate-200 bg-slate-50 p-3"
-                >
-                  <p className="text-sm font-semibold text-slate-900">
-                    {result.display_name}
-                  </p>
-                  <p className="mt-1 text-[11px] font-mono text-slate-500">
-                    {Number(result.lat).toFixed(5)},{" "}
-                    {Number(result.lon).toFixed(5)}
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <button
-                      className="inline-flex cursor-pointer items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-wider text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-                      onClick={() => handlePickSearchResult(result, "a")}
-                      type="button"
-                    >
-                      Jadikan A
-                    </button>
-                    <button
-                      className="inline-flex cursor-pointer items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-wider text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-                      onClick={() => handlePickSearchResult(result, "b")}
-                      type="button"
-                    >
-                      Jadikan B
-                    </button>
-                    <button
-                      className="inline-flex cursor-pointer items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-wider text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-                      disabled={!customRouteMode}
-                      onClick={() => handlePickSearchResult(result, "waypoint")}
-                      type="button"
-                    >
-                      Waypoint
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-              Manual Input
-            </p>
-            <h4 className="text-lg font-bold text-slate-900">
-              Koordinat Lat / Lng
-            </h4>
-            <div className="mt-3 grid grid-cols-1 gap-3">
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                <p className="mb-2 text-xs font-bold text-slate-700">Titik A</p>
-                <div className="flex gap-2">
-                  <input
-                    className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20"
-                    onChange={(event) =>
-                      setManualInput((prev) => ({
-                        ...prev,
-                        aLat: event.target.value,
-                      }))
-                    }
-                    placeholder="Lat"
-                    type="text"
-                    value={manualInput.aLat}
-                  />
-                  <input
-                    className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20"
-                    onChange={(event) =>
-                      setManualInput((prev) => ({
-                        ...prev,
-                        aLng: event.target.value,
-                      }))
-                    }
-                    placeholder="Lng"
-                    type="text"
-                    value={manualInput.aLng}
-                  />
-                  <button
-                    className="inline-flex cursor-pointer items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-wider text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-                    onClick={() => handleManualInputApply("a")}
-                    type="button"
-                  >
-                    Set A
-                  </button>
-                </div>
-              </div>
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                <p className="mb-2 text-xs font-bold text-slate-700">Titik B</p>
-                <div className="flex gap-2">
-                  <input
-                    className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20"
-                    onChange={(event) =>
-                      setManualInput((prev) => ({
-                        ...prev,
-                        bLat: event.target.value,
-                      }))
-                    }
-                    placeholder="Lat"
-                    type="text"
-                    value={manualInput.bLat}
-                  />
-                  <input
-                    className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20"
-                    onChange={(event) =>
-                      setManualInput((prev) => ({
-                        ...prev,
-                        bLng: event.target.value,
-                      }))
-                    }
-                    placeholder="Lng"
-                    type="text"
-                    value={manualInput.bLng}
-                  />
-                  <button
-                    className="inline-flex cursor-pointer items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-wider text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-                    onClick={() => handleManualInputApply("b")}
-                    type="button"
-                  >
-                    Set B
-                  </button>
-                </div>
-              </div>
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                <p className="mb-2 text-xs font-bold text-slate-700">
-                  Waypoint
-                </p>
-                <div className="flex gap-2">
-                  <input
-                    className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20"
-                    onChange={(event) =>
-                      setManualInput((prev) => ({
-                        ...prev,
-                        wLat: event.target.value,
-                      }))
-                    }
-                    placeholder="Lat"
-                    type="text"
-                    value={manualInput.wLat}
-                  />
-                  <input
-                    className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20"
-                    onChange={(event) =>
-                      setManualInput((prev) => ({
-                        ...prev,
-                        wLng: event.target.value,
-                      }))
-                    }
-                    placeholder="Lng"
-                    type="text"
-                    value={manualInput.wLng}
-                  />
-                  <button
-                    className="inline-flex cursor-pointer items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-wider text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-                    disabled={!customRouteMode}
-                    onClick={() => handleManualInputApply("waypoint")}
-                    type="button"
-                  >
-                    Add W
-                  </button>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-              Custom Route
-            </p>
-            <h4 className="text-lg font-bold text-slate-900">
-              Waypoint Editor
-            </h4>
-            <div className="mt-3 space-y-2">
-              {manualWaypoints.length === 0 && (
-                <p className="text-sm text-slate-500">
-                  Belum ada waypoint manual.
-                </p>
-              )}
               {manualWaypoints.map((point, index) => (
-                <div
-                  key={point.id}
-                  className="rounded-xl border border-slate-200 bg-slate-50 p-3"
-                >
-                  <div className="mb-2 flex items-center justify-between gap-2">
-                    <p className="text-xs font-black uppercase tracking-widest text-primary">
-                      Waypoint {index + 1}
-                    </p>
-                    <div className="flex gap-1">
-                      <button
-                        className="inline-flex items-center justify-center rounded bg-slate-200 p-1 text-slate-600 transition hover:bg-slate-300"
-                        onClick={() => handleWaypointMove(point.id, "up")}
-                        type="button"
-                      >
-                        <span className="material-symbols-outlined text-sm">
-                          expand_less
-                        </span>
-                      </button>
-                      <button
-                        className="inline-flex items-center justify-center rounded bg-slate-200 p-1 text-slate-600 transition hover:bg-slate-300"
-                        onClick={() => handleWaypointMove(point.id, "down")}
-                        type="button"
-                      >
-                        <span className="material-symbols-outlined text-sm">
-                          expand_more
-                        </span>
-                      </button>
-                      <button
-                        className="inline-flex items-center justify-center rounded bg-rose-100 p-1 text-rose-600 transition hover:bg-rose-200"
-                        onClick={() => handleWaypointDelete(point.id)}
-                        type="button"
-                      >
-                        <span className="material-symbols-outlined text-sm">
-                          delete
-                        </span>
-                      </button>
-                    </div>
+                <div key={point.id} className="group flex items-center gap-3 rounded-xl bg-white/5 border border-white/10 p-3 hover:border-primary/30 transition">
+                  <div className="h-8 w-8 rounded-lg bg-emerald-500 flex items-center justify-center font-black text-white text-xs">{index + 1}</div>
+                  <div className="flex-1">
+                    <input 
+                      className="bg-transparent w-full text-[11px] font-bold text-white outline-none mb-0.5"
+                      onChange={(e) => handleWaypointLabelChange(point.id, e.target.value)}
+                      placeholder={`Waypoint ${index + 1}`}
+                      value={point.label}
+                    />
+                    <p className="text-[10px] font-mono text-white/50">{point.lat.toFixed(5)}, {point.lng.toFixed(5)}</p>
                   </div>
-                  <input
-                    className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20"
-                    onChange={(event) =>
-                      handleWaypointLabelChange(point.id, event.target.value)
-                    }
-                    placeholder="Label waypoint"
-                    type="text"
-                    value={point.label}
-                  />
-                  <p className="mt-2 text-[11px] font-mono text-slate-500">
-                    {point.lat.toFixed(5)}, {point.lng.toFixed(5)}
-                  </p>
+                  <button className="opacity-0 group-hover:opacity-100 p-1 text-rose-400 hover:bg-rose-500/20 rounded transition" onClick={() => handleWaypointDelete(point.id)}>
+                    <span className="material-symbols-outlined text-sm">delete</span>
+                  </button>
                 </div>
               ))}
-            </div>
-          </section>
 
-          <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-              Route Analysis
-            </p>
-            <h4 className="text-lg font-bold text-slate-900">
-              Jalan yang Dilewati
-            </h4>
-            <div className="mt-3 max-h-[280px] space-y-2 overflow-auto pr-1">
-              {plannerRoads.length === 0 && (
-                <p className="text-sm text-slate-500">
-                  Belum ada data ruas jalan. Hitung rute otomatis atau tambah
-                  waypoint manual.
-                </p>
-              )}
-              {plannerRoads.map((road, index) => (
-                <div
-                  key={road.id}
-                  className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-sm font-semibold text-slate-900">
-                      {index + 1}. {road.name}
-                    </p>
-                    <span className="text-xs font-mono text-primary">
-                      {formatDistance(road.distance)}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-[11px] text-slate-500">
-                    {road.instruction}
-                  </p>
+              <div className="flex items-center gap-3 rounded-xl bg-pink-500/10 border border-pink-500/20 p-3">
+                <div className="h-8 w-8 rounded-lg bg-pink-500 flex items-center justify-center font-black text-white text-xs">B</div>
+                <div className="flex-1">
+                  <p className="text-[9px] font-black uppercase text-pink-400">Titik B (Pelanggan)</p>
+                  <p className="text-[11px] font-mono text-white/90 truncate">{pointB ? `${pointB.lat.toFixed(5)}, ${pointB.lng.toFixed(5)}` : "Belum ditentukan"}</p>
                 </div>
-              ))}
+              </div>
+            </div>
+
+            {/* Bottom Actions */}
+            <div className="mt-4 pt-4 border-t border-white/5 flex gap-2">
+              <button className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-black uppercase py-3 rounded-xl transition shadow-lg shadow-emerald-900/20 disabled:opacity-50" disabled={!pointA || !pointB} onClick={handleApplyPlanner}>
+                Terapkan Jalur
+              </button>
+              <button className="p-3 bg-white/5 border border-white/10 text-white/70 hover:text-white rounded-xl transition" onClick={handleResetPlanner} title="Reset">
+                <span className="material-symbols-outlined text-sm">restart_alt</span>
+              </button>
             </div>
           </section>
         </div>
+      </aside>
+
+      {/* Floating Info Overlay - Bottom Center */}
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[1000] flex gap-3 pointer-events-none">
+        <div className="flex items-center gap-6 rounded-2xl border border-white/10 bg-slate-900/80 px-8 py-4 backdrop-blur-md shadow-2xl pointer-events-auto">
+          <div className="flex flex-col items-center">
+            <span className="text-[9px] font-black uppercase tracking-widest text-primary mb-1">Jarak Total</span>
+            <span className="text-xl font-black text-white">{routeSummary.distanceLabel}</span>
+          </div>
+          <div className="w-px h-8 bg-white/10" />
+          <div className="flex flex-col items-center">
+            <span className="text-[9px] font-black uppercase tracking-widest text-primary mb-1">Estimasi</span>
+            <span className="text-xl font-black text-white">{routeSummary.durationLabel}</span>
+          </div>
+          <div className="w-px h-8 bg-white/10" />
+          <div className="flex flex-col items-center">
+            <span className="text-[9px] font-black uppercase tracking-widest text-primary mb-1">Metode</span>
+            <span className="text-xl font-black text-white uppercase tracking-tighter">{routeData?.mode === 'manual' ? 'Manual' : 'Valhalla'}</span>
+          </div>
+        </div>
       </div>
+
+      {/* Basemap Switcher Overlay - Bottom Right */}
+      <div className="absolute bottom-6 right-6 z-[1000] flex flex-col gap-2 pointer-events-none">
+        <div className="flex flex-col gap-1.5 p-2 rounded-2xl border border-white/10 bg-slate-900/80 backdrop-blur-md pointer-events-auto">
+          {BASEMAP_OPTIONS.map((option) => (
+            <button
+              key={option.key}
+              className={`w-10 h-10 rounded-xl border flex items-center justify-center transition ${basemap === option.key ? "bg-primary border-primary text-white" : "bg-white/5 border-white/5 text-white/40 hover:bg-white/10 hover:text-white"}`}
+              onClick={() => setBasemap(option.key)}
+              title={option.label}
+            >
+              <span className="material-symbols-outlined text-lg">
+                {option.key === 'satellite' ? 'satellite_alt' : option.key === 'osm' ? 'map' : 'dark_mode'}
+              </span>
+            </button>
+          ))}
+        </div>
+        <button className="w-10 h-10 rounded-2xl border border-white/10 bg-slate-900/80 backdrop-blur-md text-white/70 hover:text-white transition pointer-events-auto" onClick={handleExportGeoJson} title="Export GeoJSON">
+          <span className="material-symbols-outlined text-lg">download</span>
+        </button>
+      </div>
+
+      {routeError && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] rounded-xl border border-rose-500/50 bg-rose-900/90 px-6 py-2 text-[10px] font-black uppercase tracking-widest text-white backdrop-blur-md shadow-2xl">
+          {routeError}
+        </div>
+      )}
     </section>
   );
 }

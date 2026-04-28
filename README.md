@@ -16,6 +16,32 @@ npm run dev
 
 Secara default frontend mengakses backend ke `http://localhost:4000`.
 Jika perlu override, gunakan environment variable `VITE_API_BASE_URL`.
+Untuk route planner FO berbasis Valhalla, frontend membaca `VITE_VALHALLA_HOST`
+dengan default `http://localhost:8002`.
+
+## Menjalankan Dengan Docker Compose
+
+```bash
+docker compose up
+```
+
+Stack ini sudah menyiapkan service `valhalla` pada port `8002`. Route planner FO
+di frontend akan mengirim request ke endpoint `POST /route` Valhalla.
+
+Pada startup pertama, service `valhalla` akan:
+
+1. Membuat `valhalla.json` di `infra/valhalla/runtime/`
+2. Membuat `timezones.sqlite` dan `admins.sqlite`
+3. Membangun routing tiles dari `infra/valhalla/data/sulawesi.osm.pbf`
+4. Menjalankan HTTP service Valhalla di `http://localhost:8002`
+
+Build awal bisa memakan waktu beberapa menit. Service memakai image resmi
+`valhalla/valhalla:run-latest` dan entrypoint lokal untuk build graph Sulawesi.
+Untuk memaksa rebuild graph:
+
+```bash
+VALHALLA_REBUILD=1 docker compose up -d valhalla
+```
 
 ## Menjalankan Backend
 

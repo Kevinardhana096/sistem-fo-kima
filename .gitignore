@@ -25,3 +25,10 @@ backend/.env
 *.sw?
 .aider*
 .serena/
+infra/valhalla/runtime/
+infra/valhalla/data/*.osm.pbf
+*.bak
+patch.js
+fix_patch.js
+patch_list.ts
+test_compile.ts
