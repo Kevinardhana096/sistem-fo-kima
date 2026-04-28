@@ -2645,7 +2645,9 @@ export class PrismaCustomersWriteService {
       value !== CustomerStatus.Nonaktif &&
       value !== CustomerStatus.Arsip
     ) {
-      throw new BadRequestException('status must be aktif, nonaktif, or arsip.');
+      throw new BadRequestException(
+        'status must be aktif, nonaktif, or arsip.',
+      );
     }
 
     return value as CustomerStatus;

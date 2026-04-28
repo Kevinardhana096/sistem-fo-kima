@@ -19,6 +19,7 @@ import { UploadRenewalFileDto } from './dto/upload-renewal-file.dto';
 import { RespondRenewalDto } from './dto/respond-renewal.dto';
 import { UploadBakFileDto } from './dto/upload-bak-file.dto';
 import { UploadIspLogoDto } from './dto/upload-isp-logo.dto';
+import { UploadContractFileDto } from './dto/upload-contract-file.dto';
 
 const buildUploadedFileDataUrl = (file?: Express.Multer.File): string => {
   const mimeType =
@@ -46,7 +47,7 @@ const resolveRequiredFileDataUrl = (
 
 @Controller('api/isps')
 export class IspsController {
-  constructor(private readonly ispsService: IspsService) { }
+  constructor(private readonly ispsService: IspsService) {}
 
   @Get()
   listIsps() {
@@ -77,8 +78,10 @@ export class IspsController {
   }
 
   @Delete(':ispId')
-  deleteIsp(@Param('ispId', ParseIntPipe)
-  ispId: number) {
+  deleteIsp(
+    @Param('ispId', ParseIntPipe)
+    ispId: number,
+  ) {
     return this.ispsService.deleteIsp(ispId);
   }
 
@@ -187,6 +190,36 @@ export class IspsController {
     return this.ispsService.uploadIspLogo(
       ispId,
       resolveRequiredFileDataUrl(payload?.fileDataUrl, file, 'logo file'),
+    );
+  }
+
+  @Post(':ispId/contract-file')
+  @UseInterceptors(FileInterceptor('file'))
+  uploadContractFile(
+    @Param('ispId', ParseIntPipe) ispId: number,
+    @Body() payload: UploadContractFileDto,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    return this.ispsService.uploadContractFile(
+      ispId,
+      resolveRequiredFileDataUrl(payload?.fileDataUrl, file, 'contract file'),
+      payload?.fileName?.trim() || file?.originalname || 'kontrak.pdf',
+    );
+  }
+
+  @Post(':ispId/contract-rows/:rowId/contract-file')
+  @UseInterceptors(FileInterceptor('file'))
+  uploadContractRowFile(
+    @Param('ispId', ParseIntPipe) ispId: number,
+    @Param('rowId', ParseIntPipe) rowId: number,
+    @Body() payload: UploadContractFileDto,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    return this.ispsService.uploadContractRowFile(
+      ispId,
+      rowId,
+      resolveRequiredFileDataUrl(payload?.fileDataUrl, file, 'contract file'),
+      payload?.fileName?.trim() || file?.originalname || 'kontrak.pdf',
     );
   }
 }

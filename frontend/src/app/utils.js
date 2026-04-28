@@ -306,6 +306,52 @@ export const isExternalFileUrl = (value) =>
 export const isOpenableFileUrl = (value) =>
     typeof value === "string" && /^(https?:\/\/|data:|blob:)/i.test(value.trim());
 
+export const openSafeFile = (fileUrl, fileName = "dokumen.pdf") => {
+    if (!fileUrl) return;
+
+    // Jika ini adalah URL biasa (http/https), buka langsung
+    if (/^https?:\/\//i.test(fileUrl)) {
+        window.open(fileUrl, "_blank", "noreferrer");
+        return;
+    }
+
+    // Jika ini adalah Data URL (Base64)
+    if (fileUrl.startsWith("data:")) {
+        try {
+            const parts = fileUrl.split(",");
+            const mime = parts[0].match(/:(.*?);/)[1];
+            const bstr = atob(parts[1]);
+            let n = bstr.length;
+            const u8arr = new Uint8Array(n);
+            while (n--) {
+                u8arr[n] = bstr.charCodeAt(n);
+            }
+            const blob = new Blob([u8arr], { type: mime });
+            const blobUrl = URL.createObjectURL(blob);
+            
+            const win = window.open(blobUrl, "_blank");
+            if (win) {
+                win.focus();
+                // Opsional: bersihkan URL memori setelah beberapa saat
+                setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+            } else {
+                // Fallback jika pop-up diblokir: paksa download
+                const link = document.createElement("a");
+                link.href = blobUrl;
+                link.download = fileName;
+                link.click();
+            }
+        } catch (e) {
+            console.error("Gagal membuka file:", e);
+            alert("Gagal membuka berkas. Format data tidak valid.");
+        }
+        return;
+    }
+
+    // Fallback terakhir
+    window.open(fileUrl, "_blank", "noreferrer");
+};
+
 export const readFileAsDataUrl = (file) => new Promise((resolve, reject) => {
     if (!file) {
         resolve("");

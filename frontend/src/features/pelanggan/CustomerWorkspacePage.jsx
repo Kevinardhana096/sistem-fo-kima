@@ -24,12 +24,20 @@ function CustomerWorkspacePage({
     const [routeStatusFilter, setRouteStatusFilter] = useState("all");
     const [todoFilter, setTodoFilter] = useState("all");
     const [collapsedMap, setCollapsedMap] = useState({});
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 5;
 
     const normalizedSearch = searchTerm.trim().toLowerCase();
     const todayIso = new Date().toISOString().slice(0, 10);
     const isTenantActive = (tenant) => String(tenant?.rawStatus ?? "")
         .trim()
         .toLowerCase() === "aktif";
+
+    // Reset to page 1 when any filter changes
+    const handleFilterChange = (setter, value) => {
+        setter(value);
+        setCurrentPage(1);
+    };
 
     // --- LOGIC: Filter ISP ---
     const filteredIsps = useMemo(() => isps, [isps]);
@@ -49,7 +57,7 @@ function CustomerWorkspacePage({
         && todoFilter === "all";
 
     // --- LOGIC: Groups & Tenants ---
-    const groups = useMemo(() => filteredIsps
+    const allGroups = useMemo(() => filteredIsps
         .filter((isp) => effectiveSelectedIspFilter === "all" || isp.name === effectiveSelectedIspFilter)
         .map((isp) => {
             const tenants = customers
@@ -120,11 +128,17 @@ function CustomerWorkspacePage({
         shouldIncludeEmptyIspGroups,
     ]);
 
+    const totalPages = Math.ceil(allGroups.length / itemsPerPage);
+    const paginatedGroups = useMemo(() => {
+        const start = (currentPage - 1) * itemsPerPage;
+        return allGroups.slice(start, start + itemsPerPage);
+    }, [allGroups, currentPage, itemsPerPage]);
+
     // --- LOGIC: Stats ---
     const totalActiveTenants = customers.filter((tenant) => isTenantActive(tenant)).length;
     const totalNonActiveTenants = customers.length - totalActiveTenants;
-    const filteredTenantCount = groups.reduce((total, group) => total + group.tenants.length, 0);
-    const filteredActionTenantCount = groups.reduce((total, group) => total + group.actionTenantCount, 0);
+    const filteredTenantCount = allGroups.reduce((total, group) => total + group.tenants.length, 0);
+    const filteredActionTenantCount = allGroups.reduce((total, group) => total + group.actionTenantCount, 0);
     const isAnyFilterActive = Boolean(normalizedSearch)
         || effectiveSelectedIspFilter !== "all"
         || contractStatusFilter !== "all"
@@ -138,6 +152,7 @@ function CustomerWorkspacePage({
         setRouteStatusFilter("all");
         setTodoFilter("all");
         setCollapsedMap({});
+        setCurrentPage(1);
     };
 
     const handleOpenTenantDetail = (tenant, group) => {
@@ -311,7 +326,7 @@ function CustomerWorkspacePage({
                             <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface/30 group-focus-within:text-primary transition-colors">search</span>
                             <input
                                 className="glass-input w-full rounded-2xl py-4 pl-12 pr-4 text-sm font-medium outline-none"
-                                onChange={(e) => setSearchTerm(e.target.value)}
+                                onChange={(e) => handleFilterChange(setSearchTerm, e.target.value)}
                                 placeholder="Cari ID, ISP, atau nama tenant..."
                                 type="text"
                                 value={searchTerm}
@@ -367,7 +382,7 @@ function CustomerWorkspacePage({
                             <span className="text-primary mr-1">●</span> {filteredTenantCount} Tenant Terfilter
                         </div>
                         <div className="px-4 py-2 rounded-xl bg-on-surface/[0.03] border border-on-surface/5 text-[11px] font-bold text-on-surface/60">
-                            <span className="text-secondary mr-1">●</span> {groups.length} ISP Terhubung
+                            <span className="text-secondary mr-1">●</span> {allGroups.length} ISP Terhubung
                         </div>
                         <div className="px-4 py-2 rounded-xl bg-rose-50 border border-rose-100 text-[11px] font-bold text-rose-600">
                             <span className="mr-1">●</span> {filteredActionTenantCount} Butuh Perhatian
@@ -383,7 +398,7 @@ function CustomerWorkspacePage({
                             <p className="text-sm font-black uppercase tracking-widest text-on-surface/40">Menyelaraskan Data...</p>
                         </div>
                     ) : (
-                        groups.map((group) => {
+                        paginatedGroups.map((group) => {
                             const isExpanded = normalizedSearch ? true : !collapsedMap[group.id];
                             return (
                                 <div key={group.id} className="glass-card overflow-hidden rounded-[2.5rem] transition-all hover:translate-y-[-2px] hover:shadow-2xl">
@@ -551,8 +566,42 @@ function CustomerWorkspacePage({
                         })
                     )}
 
+                    {/* Pagination Controls */}
+                    {!isLoading && totalPages > 1 && (
+                        <div className="flex items-center justify-between px-8 py-6 glass-card rounded-[2rem]">
+                            <p className="text-xs font-black text-on-surface/40 uppercase tracking-widest">
+                                Halaman {currentPage} dari {totalPages}
+                            </p>
+                            <div className="flex gap-2">
+                                <button
+                                    disabled={currentPage === 1}
+                                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                    className="w-10 h-10 rounded-xl bg-white border border-on-surface/10 flex items-center justify-center text-on-surface hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                                >
+                                    <span className="material-symbols-outlined">chevron_left</span>
+                                </button>
+                                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                                    <button
+                                        key={page}
+                                        onClick={() => setCurrentPage(page)}
+                                        className={`w-10 h-10 rounded-xl text-xs font-black transition-all ${currentPage === page ? "bg-primary text-white shadow-lg shadow-primary/20" : "bg-white border border-on-surface/10 text-on-surface hover:border-primary hover:text-primary"}`}
+                                    >
+                                        {page}
+                                    </button>
+                                ))}
+                                <button
+                                    disabled={currentPage === totalPages}
+                                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                                    className="w-10 h-10 rounded-xl bg-white border border-on-surface/10 flex items-center justify-center text-on-surface hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                                >
+                                    <span className="material-symbols-outlined">chevron_right</span>
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Empty State */}
-                    {!isLoading && groups.length === 0 && (
+                    {!isLoading && allGroups.length === 0 && (
                         <div className="glass-card rounded-[2.5rem] py-24 text-center">
                             <div className="w-20 h-20 bg-on-surface/5 rounded-full flex items-center justify-center mx-auto mb-6">
                                 <span className="material-symbols-outlined text-4xl text-on-surface/20">search_off</span>

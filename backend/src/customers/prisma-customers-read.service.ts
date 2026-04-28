@@ -90,68 +90,212 @@ export class PrismaCustomersReadService {
   }
 
   async list() {
+    const referenceDate = toIsoDate(new Date());
     const customers = await this.prisma.customer.findMany({
       orderBy: { name: 'asc' },
-      include: {
+      select: {
+        id: true,
+        customerCode: true,
+        name: true,
+        status: true,
+        ispName: true,
+        activationFeeAmount: true,
+        activationFeePaidAt: true,
         ispMemberships: {
           include: {
-            isp: true,
+            isp: {
+              select: { id: true, name: true, status: true, logoUrl: true },
+            },
           },
         },
         contracts: {
           orderBy: { id: 'desc' },
-          include: {
+          take: 1,
+          select: {
+            id: true,
+            status: true,
+            startDate: true,
+            endDate: true,
             versions: {
               orderBy: { versionNumber: 'desc' },
-              include: {
-                renewalFollowUps: {
-                  orderBy: { splitOrder: 'asc' },
-                },
+              select: {
+                id: true,
+                versionNumber: true,
+                startDate: true,
+                endDate: true,
+                bakDocumentId: true,
               },
             },
           },
         },
-        documents: true,
         invoices: {
-          include: {
-            followUps: true,
+          where: { scheduleStatus: 'active' },
+          select: {
+            status: true,
+            dueDate: true,
+            invoiceFileUrl: true,
+            paymentProofFileUrl: true,
           },
+        },
+        documents: {
+          where: { jenisDokumen: 'pemutusan' },
+          take: 1,
+          select: { id: true },
         },
         routeVersions: {
           orderBy: { versionNumber: 'desc' },
-          include: {
-            points: {
-              orderBy: { orderNumber: 'asc' },
-            },
-          },
+          take: 1,
+          select: { flowStatus: true },
         },
-        routeHistoryEntries: {
-          orderBy: { createdAt: 'desc' },
+        _count: {
+          select: {
+            contracts: true,
+            documents: true,
+            invoices: true,
+          },
         },
       },
     });
 
+    const nowDate = parseDate(referenceDate);
+
     return customers.map((customer) => {
-      const mapped = this.mapCustomerRecord(customer);
-      const todoSummary = this.buildCustomerTodoSummary(mapped);
-      const contractSnapshot = this.buildCustomerContractSnapshot(mapped);
-      const activeRouteVersion = mapped.routeVersions[0] ?? null;
+      const activeRouteVersion = customer.routeVersions[0] ?? null;
+      const primaryContract = customer.contracts[0] ?? null;
+      const contractVersions = primaryContract?.versions ?? [];
+      const latestVersion = contractVersions[0] ?? null;
+      const isps = customer.ispMemberships
+        .map((m) => m.isp)
+        .sort((left, right) => left.name.localeCompare(right.name));
+
+      let contractPeriodStart: string | null = null;
+      let contractPeriodEnd: string | null = null;
+
+      if (primaryContract) {
+        contractPeriodStart = primaryContract.startDate
+          ? toIsoDate(primaryContract.startDate)
+          : null;
+        contractPeriodEnd = primaryContract.endDate
+          ? toIsoDate(primaryContract.endDate)
+          : null;
+
+        if (latestVersion) {
+          contractPeriodStart = latestVersion.startDate
+            ? toIsoDate(latestVersion.startDate)
+            : contractPeriodStart;
+          contractPeriodEnd = latestVersion.endDate
+            ? toIsoDate(latestVersion.endDate)
+            : contractPeriodEnd;
+        }
+      }
+
+      const activeVersion =
+        primaryContract?.status !== 'terminated'
+          ? contractVersions.find(
+              (v) =>
+                v.bakDocumentId !== null &&
+                v.startDate !== null &&
+                v.endDate !== null &&
+                toIsoDate(v.startDate) <= referenceDate &&
+                toIsoDate(v.endDate) >= referenceDate,
+            )
+          : undefined;
+
+      let priorityCount = 0;
+      let needActionCount = 0;
+
+      if (activeVersion && activeVersion.endDate) {
+        const activeVersionEndDateIso = toIsoDate(activeVersion.endDate);
+        if (activeVersionEndDateIso) {
+          const daysLeft = Math.ceil(
+            (parseDate(activeVersionEndDateIso).getTime() -
+              nowDate.getTime()) /
+              (24 * 60 * 60 * 1000),
+          );
+          if (daysLeft <= 90 && daysLeft >= 0) priorityCount++;
+        }
+      }
+
+      const overdueInvoices = customer.invoices.filter((invoice) => {
+        if (!invoice.invoiceFileUrl) return false;
+        if (invoice.status === 'terlambat') return true;
+        
+        const dueDateIso = invoice.dueDate ? toIsoDate(invoice.dueDate) : null;
+        if (
+          invoice.status !== 'lunas' &&
+          dueDateIso &&
+          dueDateIso < referenceDate
+        ) {
+          return true;
+        }
+        return false;
+      });
+      if (overdueInvoices.length > 0) priorityCount++;
+
+      if (latestVersion && latestVersion.bakDocumentId === null) {
+        needActionCount++;
+      }
+
+      const invoicesWithoutUpload = customer.invoices.filter((invoice) => {
+        const dueDateIso = invoice.dueDate ? toIsoDate(invoice.dueDate) : null;
+        if (invoice.invoiceFileUrl || !dueDateIso) return false;
+        const refNext = parseDate(dueDateIso);
+        refNext.setUTCDate(refNext.getUTCDate() - 7);
+        return refNext.toISOString().slice(0, 10) <= referenceDate;
+      });
+      if (invoicesWithoutUpload.length > 0) needActionCount++;
+
+      const pendingInvoices = customer.invoices.filter((invoice) => {
+        if (!invoice.invoiceFileUrl) return false;
+        if (invoice.status === 'lunas' || invoice.paymentProofFileUrl) return false;
+        const dueDateIso = invoice.dueDate ? toIsoDate(invoice.dueDate) : null;
+        if (!dueDateIso) return true;
+        return dueDateIso >= referenceDate;
+      });
+      if (pendingInvoices.length > 0) needActionCount++;
+
+      if (
+        customer.activationFeeAmount &&
+        Number(customer.activationFeeAmount) > 0 &&
+        !customer.activationFeePaidAt
+      ) {
+        needActionCount++;
+      }
+
+      if (customer.documents.length > 0) {
+        needActionCount++;
+      }
 
       return {
-        ...mapped.customer,
-        isps: mapped.isps.map((isp) => ({
+        id: customer.id,
+        customerCode: customer.customerCode,
+        name: customer.name,
+        status: customer.status,
+        ispName: customer.ispName,
+        activationFeeAmount: Number(customer.activationFeeAmount ?? 0),
+        activationFeePaidAt: customer.activationFeePaidAt
+          ? customer.activationFeePaidAt.toISOString()
+          : null,
+        isps: isps.map((isp) => ({
           id: isp.id,
           name: isp.name,
           status: isp.status,
           logoUrl: isp.logoUrl,
         })),
-        ...contractSnapshot,
-        contractCount: mapped.contracts.length,
-        contractVersionCount: mapped.contractVersions.length,
-        documentCount: mapped.documents.length,
-        invoiceCount: mapped.invoices.length,
+        contractPeriodStart,
+        contractPeriodEnd,
+        contractCount: customer._count.contracts,
+        contractVersionCount: contractVersions.length,
+        documentCount: customer._count.documents,
+        invoiceCount: customer._count.invoices,
         routeStatus: activeRouteVersion?.flowStatus ?? RouteFlowStatus.Aktif,
-        todoSummary,
+        todoSummary: {
+          counts: {
+            priority: priorityCount,
+            needAction: needActionCount,
+            info: 0,
+          },
+        },
       };
     });
   }

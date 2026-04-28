@@ -3195,203 +3195,137 @@ function TenantDetailPage({
                 Tambah Kontrak / Perubahan
               </button>
             </div>
-            <div className="overflow-x-auto">
+
+            {/* Desktop Table View */}
+            <div className="hidden lg:block overflow-x-auto">
               <table className="w-full border-collapse">
                 <thead>
-                  <tr className="border-b border-slate-100 bg-slate-50/50">
-                    <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-wider text-on-surface-variant">
-                      No
-                    </th>
-                    <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-wider text-on-surface-variant">
-                      Nomor Kontrak
-                    </th>
-                    <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-wider text-on-surface-variant">
-                      Keterangan
-                    </th>
-                    <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-wider text-on-surface-variant">
-                      Periode Berjalan (Awal)
-                    </th>
-                    <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-wider text-on-surface-variant">
-                      Periode Berjalan (Akhir)
-                    </th>
-                    <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-wider text-on-surface-variant">
-                      Paket
-                    </th>
-                    <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-wider text-on-surface-variant">
-                      Jumlah Paket
-                    </th>
-                    <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-wider text-on-surface-variant">
-                      Upload BAK
-                    </th>
-                    <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-wider text-on-surface-variant">
-                      Berkas Perpanjangan
-                    </th>
-                    <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-wider text-on-surface-variant">
-                      Berkas Tanggapan
-                    </th>
-                    <th className="px-4 py-3 text-right text-[11px] font-black uppercase tracking-wider text-on-surface-variant">
-                      Aksi
-                    </th>
+                  <tr className="border-b border-slate-200 bg-slate-50/50">
+                    <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-wider text-slate-500">No</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-wider text-slate-500">Nomor Kontrak</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-wider text-slate-500">Keterangan</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-wider text-slate-500">Awal</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-wider text-slate-500">Akhir</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-wider text-slate-500">Paket</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-wider text-slate-500">Jumlah</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-wider text-slate-500">BAK</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-wider text-slate-500">Perpanjangan</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-wider text-slate-500">Tanggapan</th>
+                    <th className="px-4 py-3 text-right text-[11px] font-black uppercase tracking-wider text-slate-500">Aksi</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-slate-100">
                   {contractRowsForTable.map((row) => {
-                    const isContractNumberMarkedEmpty = Boolean(
-                      emptyContractNumberRows[row.id],
-                    );
+                    const isContractNumberMarkedEmpty = Boolean(emptyContractNumberRows[row.id]);
                     const isBakMarkedEmpty = Boolean(emptyBakRows[row.id]);
 
                     return (
-                      <tr
-                        key={row.id}
-                        className="bg-white border-b border-slate-50"
-                      >
-                        <td className="px-4 py-4 text-sm font-semibold text-on-surface">
-                          {row.number}
-                        </td>
-                        <td className="px-4 py-4 text-sm text-on-surface-variant">
+                      <tr key={row.id} className="hover:bg-slate-50/30 transition-colors">
+                        <td className="px-4 py-4 text-sm font-semibold text-slate-400">{row.number}</td>
+                        <td className="px-4 py-4 text-sm">
                           {row.contractNumber ? (
-                            <span className="font-semibold text-on-surface">
-                              {row.contractNumber}
-                            </span>
+                            <span className="font-bold text-on-surface">{row.contractNumber}</span>
                           ) : (
                             <div className="flex flex-col items-start gap-1">
                               {!isContractNumberMarkedEmpty && (
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 mb-1">
                                   <input
-                                    className="w-44 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 focus:border-primary focus:outline-none"
-                                    onChange={(event) =>
-                                      setContractNumberInput(event.target.value)
-                                    }
+                                    className="w-44 rounded-lg border border-slate-200 px-3 py-1.5 text-xs focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                                    onChange={(event) => setContractNumberInput(event.target.value)}
                                     placeholder="Input nomor kontrak"
                                     type="text"
                                     value={contractNumberInput}
                                   />
                                   <button
-                                    className="rounded bg-primary/10 px-2.5 py-1.5 text-[11px] font-bold text-primary transition-colors hover:bg-primary/20 disabled:cursor-not-allowed disabled:opacity-60"
+                                    className="rounded-lg bg-primary/10 px-2.5 py-1.5 text-[11px] font-bold text-primary hover:bg-primary/20 transition-colors"
                                     disabled={isSavingContractNumber}
-                                    onClick={() => {
-                                      void handleSaveContractNumber();
-                                    }}
+                                    onClick={() => void handleSaveContractNumber()}
                                     type="button"
                                   >
-                                    {isSavingContractNumber
-                                      ? "Simpan..."
-                                      : "Simpan"}
+                                    {isSavingContractNumber ? "..." : "Simpan"}
                                   </button>
                                 </div>
                               )}
-                              <span
-                                className={`rounded px-2 py-1 text-[10px] font-bold ${isContractNumberMarkedEmpty ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"}`}
-                              >
-                                {isContractNumberMarkedEmpty
-                                  ? "Memang Kosong"
-                                  : "Belum Diisi"}
-                              </span>
-                              <button
-                                className="text-[10px] font-semibold text-amber-600 hover:underline disabled:cursor-not-allowed disabled:opacity-60"
-                                disabled={isSavingContractNumber}
-                                onClick={() =>
-                                  toggleContractNumberEmptyMark(row.id)
-                                }
-                                type="button"
-                              >
-                                {isContractNumberMarkedEmpty
-                                  ? "Batal Tandai"
-                                  : "Tandai Memang Kosong"}
-                              </button>
+                              <div className="flex items-center gap-2">
+                                <span className={`rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-tight ${isContractNumberMarkedEmpty ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
+                                  {isContractNumberMarkedEmpty ? "Memang Kosong" : "Belum Diisi"}
+                                </span>
+                                <button
+                                  className="text-[10px] font-bold text-amber-600 hover:underline"
+                                  onClick={() => toggleContractNumberEmptyMark(row.id)}
+                                  type="button"
+                                >
+                                  {isContractNumberMarkedEmpty ? "Batal" : "Tandai Kosong"}
+                                </button>
+                              </div>
                             </div>
                           )}
                         </td>
-                        <td className="px-4 py-4 text-sm text-on-surface-variant">
-                          <span className="rounded bg-blue-50 px-2 py-1 text-[10px] font-bold text-blue-700">
+                        <td className="px-4 py-4 text-sm">
+                          <span className="inline-block rounded-md bg-blue-50 px-2.5 py-1 text-[10px] font-bold text-blue-700 uppercase tracking-tight">
                             {row.note}
                           </span>
                         </td>
-                        <td className="px-4 py-4 text-sm whitespace-nowrap text-on-surface-variant">
+                        <td className="px-4 py-4 text-sm whitespace-nowrap text-on-surface-variant font-medium">
                           {formatDate(row.periodStart)}
                         </td>
-                        <td className="px-4 py-4 text-sm whitespace-nowrap text-on-surface-variant">
+                        <td className="px-4 py-4 text-sm whitespace-nowrap text-on-surface-variant font-medium">
                           {formatDate(row.periodEnd)}
                         </td>
-                        <td className="px-4 py-4 text-sm font-bold text-slate-700 uppercase">
-                          {row.paket}
-                        </td>
-                        <td className="px-4 py-4 text-sm font-bold text-slate-700">
-                          {row.jumlahPaket}
-                        </td>
-                        <td className="px-4 py-4 text-sm text-on-surface-variant">
+                        <td className="px-4 py-4 text-sm font-bold text-slate-700 uppercase">{row.paket}</td>
+                        <td className="px-4 py-4 text-sm font-bold text-slate-700">{row.jumlahPaket}</td>
+                        <td className="px-4 py-4 text-sm">
                           {row.hasBak ? (
-                            <span className="text-emerald-600 flex items-center gap-1 text-xs">
-                              <span className="material-symbols-outlined text-[14px]">
-                                check_circle
-                              </span>{" "}
-                              Tersedia
+                            <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-1 text-[10px] font-bold text-emerald-700 uppercase">
+                              <span className="material-symbols-outlined text-[14px]">task_alt</span> Tersedia
                             </span>
                           ) : (
                             <div className="flex flex-col items-start gap-1">
                               {!isBakMarkedEmpty && (
                                 <input
-                                  className="text-[10px] w-48 text-on-surface-variant file:mr-2 file:rounded-md file:border-0 file:bg-primary/10 file:px-2 file:py-1 file:text-[10px] file:text-primary"
-                                  onChange={(event) => {
-                                    if (event.target.files?.[0]) {
-                                      setEmptyBakRows((previous) => ({
-                                        ...previous,
-                                        [row.id]: false,
-                                      }));
-                                    }
-                                  }}
+                                  className="text-[10px] w-48 text-on-surface-variant file:mr-2 file:rounded-md file:border-0 file:bg-primary/5 file:px-2 file:py-1 file:text-[10px] file:text-primary file:font-bold"
                                   type="file"
+                                  onChange={(e) => {
+                                      if (e.target.files?.[0]) {
+                                          setEmptyBakRows(prev => ({ ...prev, [row.id]: false }));
+                                      }
+                                  }}
                                 />
                               )}
-                              <span
-                                className={`rounded px-2 py-1 text-[10px] font-bold ${isBakMarkedEmpty ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"}`}
-                              >
-                                {isBakMarkedEmpty
-                                  ? "Memang Kosong"
-                                  : "Belum Diunggah"}
-                              </span>
-                              <button
-                                className="text-[10px] font-semibold text-amber-600 hover:underline"
-                                onClick={() => toggleBakEmptyMark(row.id)}
-                                type="button"
-                              >
-                                {isBakMarkedEmpty
-                                  ? "Batal Tandai"
-                                  : "Tandai Memang Kosong"}
-                              </button>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className={`rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-tight ${isBakMarkedEmpty ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
+                                  {isBakMarkedEmpty ? "Memang Kosong" : "Belum Diupload"}
+                                </span>
+                                <button
+                                  className="text-[10px] font-bold text-amber-600 hover:underline"
+                                  onClick={() => toggleBakEmptyMark(row.id)}
+                                  type="button"
+                                >
+                                  {isBakMarkedEmpty ? "Batal" : "Tandai Kosong"}
+                                </button>
+                              </div>
                             </div>
                           )}
                         </td>
-                        <td className="px-4 py-4 text-sm text-on-surface-variant">
+                        <td className="px-4 py-4 text-sm">
                           <div className="space-y-2">
                             {renderTenantRenewalFollowUps(row, "renewal")}
                             <button
-                              className="rounded bg-slate-100 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-600 transition-colors hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
+                              className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-600 transition-colors hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
                               disabled={!hasInitialTenantRenewalUpload(row)}
-                              onClick={() => {
-                                void handleAddTenantRenewalSplit(row);
-                              }}
-                              title={
-                                !hasInitialTenantRenewalUpload(row)
-                                  ? "Upload berkas perpanjangan pertama terlebih dahulu."
-                                  : "Tambah split tindak lanjut tenant"
-                              }
+                              onClick={() => void handleAddTenantRenewalSplit(row)}
                               type="button"
                             >
-                              Tambah Split
+                              <span className="material-symbols-outlined text-xs">add_circle</span> Split
                             </button>
                           </div>
                         </td>
-                        <td className="px-4 py-4 text-sm text-on-surface-variant">
+                        <td className="px-4 py-4 text-sm">
                           {renderTenantRenewalFollowUps(row, "response")}
                         </td>
-                        <td className="px-4 py-4 text-right text-sm">
-                          <button
-                            className="text-amber-600 font-bold hover:underline"
-                            type="button"
-                          >
-                            Edit
+                        <td className="px-4 py-4 text-right">
+                          <button className="inline-flex items-center gap-1 rounded-lg bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-700 hover:bg-amber-100 transition-colors" type="button">
+                            <span className="material-symbols-outlined text-sm">edit</span> Edit
                           </button>
                         </td>
                       </tr>
@@ -3399,16 +3333,159 @@ function TenantDetailPage({
                   })}
                   {contractRowsForTable.length === 0 && (
                     <tr>
-                      <td
-                        className="px-4 py-6 text-center text-sm text-on-surface-variant"
-                        colSpan="11"
-                      >
-                        Belum ada data kontrak.
-                      </td>
+                      <td className="px-4 py-12 text-center text-sm text-on-surface-variant italic" colSpan="11">Belum ada data kontrak.</td>
                     </tr>
                   )}
                 </tbody>
               </table>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="grid grid-cols-1 gap-4 lg:hidden">
+              {contractRowsForTable.map((row) => {
+                const isContractNumberMarkedEmpty = Boolean(emptyContractNumberRows[row.id]);
+                const isBakMarkedEmpty = Boolean(emptyBakRows[row.id]);
+
+                return (
+                  <div key={row.id} className="rounded-xl border border-slate-100 bg-slate-50/30 p-4 space-y-4 shadow-sm">
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Kontrak #{row.number}</span>
+                        <span className="rounded bg-blue-50 px-2 py-0.5 text-[9px] font-black text-blue-700 uppercase tracking-tighter">
+                          {row.note}
+                        </span>
+                      </div>
+                      <button className="text-amber-600">
+                        <span className="material-symbols-outlined text-sm">edit</span>
+                      </button>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-[10px] font-bold uppercase text-slate-400 block mb-1">Nomor Kontrak</label>
+                        {row.contractNumber ? (
+                          <div className="font-bold text-on-surface break-words">{row.contractNumber}</div>
+                        ) : (
+                          <div className="space-y-2">
+                            {!isContractNumberMarkedEmpty && (
+                              <div className="flex gap-2">
+                                <input
+                                  className="flex-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                                  onChange={(event) => setContractNumberInput(event.target.value)}
+                                  placeholder="Input nomor kontrak"
+                                  type="text"
+                                  value={contractNumberInput}
+                                />
+                                <button
+                                  className="rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-white shadow-sm"
+                                  disabled={isSavingContractNumber}
+                                  onClick={() => void handleSaveContractNumber()}
+                                >
+                                  {isSavingContractNumber ? "..." : "OK"}
+                                </button>
+                              </div>
+                            )}
+                            <div className="flex items-center gap-3">
+                              <span className={`rounded-md px-2 py-0.5 text-[9px] font-black uppercase tracking-tight ${isContractNumberMarkedEmpty ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600"}`}>
+                                {isContractNumberMarkedEmpty ? "Memang Kosong" : "Belum Diisi"}
+                              </span>
+                              <button
+                                className="text-[9px] font-black text-amber-600 uppercase tracking-widest hover:underline"
+                                onClick={() => toggleContractNumberEmptyMark(row.id)}
+                              >
+                                {isContractNumberMarkedEmpty ? "Batal Tandai" : "Tandai Kosong"}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-[10px] font-bold uppercase text-slate-400 block mb-1">Awal Periode</label>
+                          <div className="text-sm font-bold text-on-surface">{formatDate(row.periodStart)}</div>
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold uppercase text-slate-400 block mb-1">Akhir Periode</label>
+                          <div className="text-sm font-bold text-on-surface">{formatDate(row.periodEnd)}</div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-100">
+                        <div>
+                          <label className="text-[10px] font-bold uppercase text-slate-400 block mb-1">Paket</label>
+                          <div className="text-sm font-black text-slate-700 uppercase">{row.paket}</div>
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold uppercase text-slate-400 block mb-1">Jumlah</label>
+                          <div className="text-sm font-black text-slate-700">{row.jumlahPaket}</div>
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t border-slate-100">
+                        <label className="text-[10px] font-bold uppercase text-slate-400 block mb-1">Status BAK</label>
+                        {row.hasBak ? (
+                          <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700 uppercase">
+                            <span className="material-symbols-outlined text-sm">task_alt</span> Tersedia
+                          </span>
+                        ) : (
+                          <div className="space-y-2">
+                            {!isBakMarkedEmpty && (
+                              <input
+                                className="text-[10px] w-full text-slate-500 file:mr-2 file:rounded-md file:border-0 file:bg-primary/5 file:px-3 file:py-1.5 file:text-[10px] file:text-primary file:font-black"
+                                type="file"
+                                onChange={(e) => {
+                                    if (e.target.files?.[0]) {
+                                        setEmptyBakRows(prev => ({ ...prev, [row.id]: false }));
+                                    }
+                                }}
+                              />
+                            )}
+                            <div className="flex items-center gap-3">
+                              <span className={`rounded-md px-2 py-0.5 text-[9px] font-black uppercase tracking-tight ${isBakMarkedEmpty ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600"}`}>
+                                {isBakMarkedEmpty ? "Memang Kosong" : "Belum Diupload"}
+                              </span>
+                              <button
+                                className="text-[9px] font-black text-amber-600 uppercase tracking-widest hover:underline"
+                                onClick={() => toggleBakEmptyMark(row.id)}
+                              >
+                                {isBakMarkedEmpty ? "Batal Tandai" : "Tandai Kosong"}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="space-y-3 pt-2 border-t border-slate-100">
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="text-[10px] font-bold uppercase text-slate-400">Perpanjangan</label>
+                            <button
+                              className="text-[9px] font-black uppercase text-primary bg-primary/5 px-1.5 py-0.5 rounded"
+                              disabled={!hasInitialTenantRenewalUpload(row)}
+                              onClick={() => void handleAddTenantRenewalSplit(row)}
+                            >
+                              + Split
+                            </button>
+                          </div>
+                          <div className="bg-white/50 rounded-lg p-2 min-h-[40px]">
+                            {renderTenantRenewalFollowUps(row, "renewal")}
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold uppercase text-slate-400 block mb-1">Tanggapan</label>
+                          <div className="bg-white/50 rounded-lg p-2 min-h-[40px]">
+                            {renderTenantRenewalFollowUps(row, "response")}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              {contractRowsForTable.length === 0 && (
+                <div className="py-8 text-center text-slate-400 italic text-sm">Belum ada data kontrak.</div>
+              )}
             </div>
           </section>
         )}

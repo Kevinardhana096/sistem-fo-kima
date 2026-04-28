@@ -39,6 +39,14 @@ export class CreateIspDto {
   bakFileName?: string | null;
 
   @IsOptional()
+  @IsString()
+  contractFileDataUrl?: string | null;
+
+  @IsOptional()
+  @IsString()
+  contractFileName?: string | null;
+
+  @IsOptional()
   @IsEnum(IspPackageType)
   paket?: IspPackageType;
 

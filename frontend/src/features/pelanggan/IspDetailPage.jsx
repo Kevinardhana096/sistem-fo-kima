@@ -8,6 +8,7 @@ import {
     formatDate,
     getIspContractActionItems,
     isOpenableFileUrl,
+    openSafeFile,
     readFileAsDataUrl,
 } from "../../app/utils";
 
@@ -102,6 +103,7 @@ function IspDetailPage({ isp, onBack, onEditIsp, onNavigate, onOpenCreateTenant,
         let endpoint = "";
         if (type === "bak") endpoint = `${API_BASE_URL}/api/isps/${isp.id}/contract-rows/${rowId}/bak`;
         else if (type === "renewal") endpoint = `${API_BASE_URL}/api/isps/${isp.id}/contract-rows/${rowId}/renewal`;
+        else if (type === "contract") endpoint = `${API_BASE_URL}/api/isps/${isp.id}/contract-rows/${rowId}/contract-file`;
 
         try {
             await fetchJson(`${endpoint}`, {
@@ -204,7 +206,7 @@ function IspDetailPage({ isp, onBack, onEditIsp, onNavigate, onOpenCreateTenant,
                             {columnType === "renewal" ? (
                                 <div className="mt-2">
                                     {hasRenewalFile ? (
-                                        <a href={followUp.renewalFileUrl} target="_blank" rel="noreferrer" className="text-primary hover:underline font-bold text-[11px] uppercase tracking-wider">Buka Berkas</a>
+                                        <button onClick={() => openSafeFile(followUp.renewalFileUrl, followUp.renewalFileName)} className="text-primary hover:underline font-bold text-[11px] uppercase tracking-wider">Buka Berkas</button>
                                     ) : (
                                         <label className="cursor-pointer font-bold text-[10px] text-slate-500 uppercase tracking-widest bg-slate-100 px-2 py-1 rounded hover:bg-slate-200">
                                             Upload
@@ -215,7 +217,7 @@ function IspDetailPage({ isp, onBack, onEditIsp, onNavigate, onOpenCreateTenant,
                             ) : (
                                 <div className="mt-2">
                                     {hasResponseFile ? (
-                                        <a href={followUp.responseFileUrl} target="_blank" rel="noreferrer" className="text-primary hover:underline font-bold text-[11px] uppercase tracking-wider">Tanggapan</a>
+                                        <button onClick={() => openSafeFile(followUp.responseFileUrl, followUp.responseFileName)} className="text-primary hover:underline font-bold text-[11px] uppercase tracking-wider">Tanggapan</button>
                                     ) : hasRenewalFile ? (
                                         <div className="flex flex-col items-start gap-2">
                                             <label className="relative rounded border border-slate-200 bg-primary px-2 py-1 text-[10px] font-bold text-white">
@@ -711,66 +713,89 @@ function IspDetailPage({ isp, onBack, onEditIsp, onNavigate, onOpenCreateTenant,
                         <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
                             <h2 className="text-lg font-bold text-on-surface">Daftar Kontrak / Adendum</h2>
                         </div>
-                        <div className="overflow-x-auto">
+
+                        {/* Desktop Table View */}
+                        <div className="hidden md:block overflow-x-auto">
                             <table className="w-full border-collapse">
                                 <thead>
-                                    <tr className="border-b border-slate-100 bg-slate-50/50">
-                                        <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-wider text-on-surface-variant">No</th>
-                                        <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-wider text-on-surface-variant">Nomor Kontrak</th>
-                                        <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-wider text-on-surface-variant">Awal Kontrak</th>
-                                        <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-wider text-on-surface-variant">Periode Berjalan</th>
-                                        <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-wider text-on-surface-variant">Upload BAK</th>
-                                        <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-wider text-on-surface-variant">Berkas Perpanjangan</th>
-                                        <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-wider text-on-surface-variant">Berkas Tanggapan</th>
-                                        <th className="px-4 py-3 text-right text-[11px] font-black uppercase tracking-wider text-on-surface-variant">Aksi</th>
+                                    <tr className="border-b border-slate-200 bg-slate-50/50">
+                                        <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-wider text-slate-500">No</th>
+                                        <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-wider text-slate-500">Nomor Kontrak</th>
+                                        <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-wider text-slate-500">Berkas</th>
+                                        <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-wider text-slate-500">Awal Kontrak</th>
+                                        <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-wider text-slate-500">Periode Berjalan</th>
+                                        <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-wider text-slate-500">BAK</th>
+                                        <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-wider text-slate-500">Perpanjangan</th>
+                                        <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-wider text-slate-500">Tanggapan</th>
+                                        <th className="px-4 py-3 text-right text-[11px] font-black uppercase tracking-wider text-slate-500">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
                                     {contractRows.map((row, idx) => (
-                                        <tr key={row.id} className={`${editingRow?.id === row.id ? 'bg-amber-50' : 'hover:bg-slate-50/30'}`}>
-                                            <td className="px-4 py-4 text-sm font-semibold">{idx + 1}</td>
+                                        <tr key={row.id} className={`${editingRow?.id === row.id ? 'bg-amber-50/50' : 'hover:bg-slate-50/30 transition-colors'}`}>
+                                            <td className="px-4 py-4 text-sm font-semibold text-slate-400">{idx + 1}</td>
                                             <td className="px-4 py-4 text-sm">
                                                 {editingRow?.id === row.id ? (
                                                     <input
                                                         type="text"
-                                                        className="w-full rounded border border-slate-300 p-1 text-sm font-medium"
+                                                        className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium focus:border-primary focus:ring-1 focus:ring-primary outline-none"
                                                         value={editingRow.contractReference || ""}
                                                         onChange={(e) => setEditingRow({ ...editingRow, contractReference: e.target.value })}
                                                     />
                                                 ) : (
-                                                    <span className="font-medium text-on-surface">{row.contractReference || "-"}</span>
+                                                    <span className="font-bold text-on-surface">{row.contractReference || "-"}</span>
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-4 text-sm whitespace-nowrap">
+                                                {isOpenableFileUrl(row.contractFileUrl) ? (
+                                                    <button onClick={() => openSafeFile(row.contractFileUrl, row.contractFileName)} className="inline-flex items-center gap-1 text-primary hover:text-primary/80 font-bold text-[10px] uppercase tracking-wider bg-primary/5 px-2 py-1 rounded-md transition-colors">
+                                                        <span className="material-symbols-outlined text-sm">description</span>
+                                                        Buka
+                                                    </button>
+                                                ) : (
+                                                    <label className="inline-flex items-center gap-1 cursor-pointer font-bold text-[10px] text-slate-500 uppercase tracking-widest bg-slate-100 px-2 py-1 rounded-md hover:bg-slate-200 transition-colors">
+                                                        <span className="material-symbols-outlined text-sm">upload</span>
+                                                        Upload
+                                                        <input type="file" className="hidden" onChange={(e) => handleFileUpload(row.id, 'contract', e.target.files[0])} />
+                                                    </label>
                                                 )}
                                             </td>
                                             <td className="px-4 py-4 text-sm whitespace-nowrap text-on-surface-variant">
                                                 {editingRow?.id === row.id ? (
                                                     <input
                                                         type="date"
-                                                        className="rounded border border-slate-300 p-1 text-xs"
+                                                        className="rounded-lg border border-slate-300 px-2 py-1.5 text-xs outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                                                         value={editingRow.periodStart || ""}
                                                         onChange={(e) => setEditingRow({ ...editingRow, periodStart: e.target.value })}
                                                     />
                                                 ) : (
-                                                    formatDate(row.periodStart)
+                                                    <span className="font-medium">{formatDate(row.periodStart)}</span>
                                                 )}
                                             </td>
                                             <td className="px-4 py-4 text-sm whitespace-nowrap text-on-surface-variant">
                                                 {editingRow?.id === row.id ? (
                                                     <input
                                                         type="date"
-                                                        className="rounded border border-slate-300 p-1 text-xs"
+                                                        className="rounded-lg border border-slate-300 px-2 py-1.5 text-xs outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                                                         value={editingRow.periodEnd || ""}
                                                         onChange={(e) => setEditingRow({ ...editingRow, periodEnd: e.target.value })}
                                                     />
                                                 ) : (
-                                                    formatContractPeriod(row.periodStart, row.periodEnd)
+                                                    <span className="inline-block px-2 py-1 rounded-md bg-slate-100 text-[11px] font-bold text-slate-600 uppercase tracking-tight">
+                                                        {formatContractPeriod(row.periodStart, row.periodEnd)}
+                                                    </span>
                                                 )}
                                             </td>
                                             <td className="px-4 py-4 text-sm">
                                                 {isOpenableFileUrl(row.bakFileUrl) ? (
-                                                    <a href={row.bakFileUrl} target="_blank" rel="noreferrer" className="text-primary hover:underline font-bold text-[11px] uppercase tracking-wider">Buka BAK</a>
+                                                    <button onClick={() => openSafeFile(row.bakFileUrl, row.bakFileName)} className="inline-flex items-center gap-1 text-emerald-600 hover:text-emerald-700 font-bold text-[10px] uppercase tracking-wider bg-emerald-50 px-2 py-1 rounded-md transition-colors">
+                                                        <span className="material-symbols-outlined text-sm">task_alt</span>
+                                                        Buka
+                                                    </button>
                                                 ) : (
-                                                    <label className="cursor-pointer font-bold text-[10px] text-slate-500 uppercase tracking-widest bg-slate-100 px-2 py-1 rounded hover:bg-slate-200">
-                                                        Upload
+                                                    <label className="inline-flex items-center gap-1 cursor-pointer font-bold text-[10px] text-slate-400 uppercase tracking-widest border border-slate-200 border-dashed px-2 py-1 rounded-md hover:bg-slate-50 transition-colors">
+                                                        <span className="material-symbols-outlined text-sm">upload_file</span>
+                                                        BAK
                                                         <input type="file" className="hidden" onChange={(e) => handleFileUpload(row.id, 'bak', e.target.files[0])} />
                                                     </label>
                                                 )}
@@ -779,7 +804,7 @@ function IspDetailPage({ isp, onBack, onEditIsp, onNavigate, onOpenCreateTenant,
                                                 <div className="space-y-2">
                                                     {renderRenewalFollowUps(row, "renewal")}
                                                     <button
-                                                        className="rounded bg-slate-100 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-600 transition-colors hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
+                                                        className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-600 transition-colors hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
                                                         disabled={!hasInitialRenewalUpload(row)}
                                                         onClick={() => {
                                                             void handleAddRenewalSplit(row.id);
@@ -787,7 +812,8 @@ function IspDetailPage({ isp, onBack, onEditIsp, onNavigate, onOpenCreateTenant,
                                                         title={!hasInitialRenewalUpload(row) ? "Upload berkas perpanjangan pertama terlebih dahulu." : "Tambah split tindak lanjut"}
                                                         type="button"
                                                     >
-                                                        Tambah Split
+                                                        <span className="material-symbols-outlined text-xs">add_circle</span>
+                                                        Split
                                                     </button>
                                                 </div>
                                             </td>
@@ -797,12 +823,20 @@ function IspDetailPage({ isp, onBack, onEditIsp, onNavigate, onOpenCreateTenant,
                                             <td className="px-4 py-4 text-right">
                                                 {editingRow?.id === row.id ? (
                                                     <div className="flex justify-end gap-2">
-                                                        <button className="text-emerald-600 font-bold hover:underline" onClick={() => handleUpdateRow(row.id, { contractReference: editingRow.contractReference, periodStart: editingRow.periodStart, periodEnd: editingRow.periodEnd })}>Simpan</button>
-                                                        <button className="text-slate-500 font-bold hover:underline" onClick={() => setEditingRow(null)}>Batal</button>
+                                                        <button className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 transition-colors" onClick={() => handleUpdateRow(row.id, { contractReference: editingRow.contractReference, periodStart: editingRow.periodStart, periodEnd: editingRow.periodEnd })}>
+                                                            <span className="material-symbols-outlined text-sm">save</span>
+                                                            Simpan
+                                                        </button>
+                                                        <button className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-200 transition-colors" onClick={() => setEditingRow(null)}>
+                                                            Batal
+                                                        </button>
                                                     </div>
                                                 ) : (
-                                                    <div className="flex justify-end gap-3">
-                                                        <button className="text-amber-600 font-bold hover:underline" onClick={() => setEditingRow({ ...row })}>Edit</button>
+                                                    <div className="flex justify-end">
+                                                        <button className="inline-flex items-center gap-1 rounded-lg bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-700 hover:bg-amber-100 transition-colors" onClick={() => setEditingRow({ ...row })}>
+                                                            <span className="material-symbols-outlined text-sm">edit</span>
+                                                            Edit
+                                                        </button>
                                                     </div>
                                                 )}
                                             </td>
@@ -810,11 +844,145 @@ function IspDetailPage({ isp, onBack, onEditIsp, onNavigate, onOpenCreateTenant,
                                     ))}
                                     {contractRows.length === 0 && (
                                         <tr>
-                                            <td colSpan="8" className="py-12 text-center text-on-surface-variant italic">Belum ada rincian kontrak.</td>
+                                            <td colSpan="9" className="py-12 text-center text-on-surface-variant italic">Belum ada rincian kontrak.</td>
                                         </tr>
                                     )}
                                 </tbody>
                             </table>
+                        </div>
+
+                        {/* Mobile Card View */}
+                        <div className="grid grid-cols-1 gap-4 md:hidden">
+                            {contractRows.map((row, idx) => (
+                                <div key={row.id} className={`rounded-xl border ${editingRow?.id === row.id ? 'border-amber-200 bg-amber-50/30' : 'border-slate-100 bg-slate-50/30'} p-4 space-y-4 shadow-sm`}>
+                                    <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Kontrak #{idx + 1}</span>
+                                        {editingRow?.id !== row.id && (
+                                            <button className="text-amber-600" onClick={() => setEditingRow({ ...row })}>
+                                                <span className="material-symbols-outlined text-sm">edit</span>
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="col-span-2">
+                                            <label className="text-[10px] font-bold uppercase text-slate-400 block mb-1">Nomor Kontrak</label>
+                                            {editingRow?.id === row.id ? (
+                                                <input
+                                                    type="text"
+                                                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                                                    value={editingRow.contractReference || ""}
+                                                    onChange={(e) => setEditingRow({ ...editingRow, contractReference: e.target.value })}
+                                                />
+                                            ) : (
+                                                <div className="font-bold text-on-surface break-words">{row.contractReference || "-"}</div>
+                                            )}
+                                        </div>
+
+                                        <div>
+                                            <label className="text-[10px] font-bold uppercase text-slate-400 block mb-1">Awal Kontrak</label>
+                                            {editingRow?.id === row.id ? (
+                                                <input
+                                                    type="date"
+                                                    className="w-full rounded-lg border border-slate-300 px-2 py-1.5 text-xs outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                                                    value={editingRow.periodStart || ""}
+                                                    onChange={(e) => setEditingRow({ ...editingRow, periodStart: e.target.value })}
+                                                />
+                                            ) : (
+                                                <div className="text-sm font-medium text-on-surface-variant">{formatDate(row.periodStart)}</div>
+                                            )}
+                                        </div>
+
+                                        <div>
+                                            <label className="text-[10px] font-bold uppercase text-slate-400 block mb-1">Periode</label>
+                                            {editingRow?.id === row.id ? (
+                                                <input
+                                                    type="date"
+                                                    className="w-full rounded-lg border border-slate-300 px-2 py-1.5 text-xs outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                                                    value={editingRow.periodEnd || ""}
+                                                    onChange={(e) => setEditingRow({ ...editingRow, periodEnd: e.target.value })}
+                                                />
+                                            ) : (
+                                                <div className="inline-block px-2 py-0.5 rounded bg-slate-100 text-[10px] font-bold text-slate-600 uppercase">
+                                                    {formatContractPeriod(row.periodStart, row.periodEnd)}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-100">
+                                        <div className="flex flex-col gap-1">
+                                            <label className="text-[10px] font-bold uppercase text-slate-400">Berkas</label>
+                                            {isOpenableFileUrl(row.contractFileUrl) ? (
+                                                <button onClick={() => openSafeFile(row.contractFileUrl, row.contractFileName)} className="inline-flex items-center gap-1 text-primary font-bold text-[10px] uppercase bg-primary/5 px-2 py-1.5 rounded-md">
+                                                    <span className="material-symbols-outlined text-sm">description</span>
+                                                    Kontrak
+                                                </button>
+                                            ) : (
+                                                <label className="inline-flex items-center gap-1 cursor-pointer font-bold text-[10px] text-slate-500 uppercase bg-slate-100 px-2 py-1.5 rounded-md">
+                                                    <span className="material-symbols-outlined text-sm">upload</span>
+                                                    Upload
+                                                    <input type="file" className="hidden" onChange={(e) => handleFileUpload(row.id, 'contract', e.target.files[0])} />
+                                                </label>
+                                            )}
+                                        </div>
+
+                                        <div className="flex flex-col gap-1">
+                                            <label className="text-[10px] font-bold uppercase text-slate-400">BAK</label>
+                                            {isOpenableFileUrl(row.bakFileUrl) ? (
+                                                <button onClick={() => openSafeFile(row.bakFileUrl, row.bakFileName)} className="inline-flex items-center gap-1 text-emerald-600 font-bold text-[10px] uppercase bg-emerald-50 px-2 py-1.5 rounded-md">
+                                                    <span className="material-symbols-outlined text-sm">task_alt</span>
+                                                    BAK
+                                                </button>
+                                            ) : (
+                                                <label className="inline-flex items-center gap-1 cursor-pointer font-bold text-[10px] text-slate-400 uppercase border border-slate-200 border-dashed px-2 py-1.5 rounded-md">
+                                                    <span className="material-symbols-outlined text-sm">upload_file</span>
+                                                    Upload
+                                                    <input type="file" className="hidden" onChange={(e) => handleFileUpload(row.id, 'bak', e.target.files[0])} />
+                                                </label>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-3 pt-2 border-t border-slate-100">
+                                        <div>
+                                            <div className="flex items-center justify-between mb-1">
+                                                <label className="text-[10px] font-bold uppercase text-slate-400">Perpanjangan</label>
+                                                <button
+                                                    className="text-[9px] font-black uppercase text-primary bg-primary/5 px-1.5 py-0.5 rounded"
+                                                    disabled={!hasInitialRenewalUpload(row)}
+                                                    onClick={() => handleAddRenewalSplit(row.id)}
+                                                >
+                                                    + Split
+                                                </button>
+                                            </div>
+                                            <div className="bg-white/50 rounded-lg p-2 min-h-[40px]">
+                                                {renderRenewalFollowUps(row, "renewal")}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-bold uppercase text-slate-400 block mb-1">Tanggapan</label>
+                                            <div className="bg-white/50 rounded-lg p-2 min-h-[40px]">
+                                                {renderRenewalFollowUps(row, "response")}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {editingRow?.id === row.id && (
+                                        <div className="flex gap-2 pt-2 border-t border-amber-100">
+                                            <button className="flex-1 rounded-lg bg-emerald-600 py-2 text-xs font-bold text-white shadow-sm" onClick={() => handleUpdateRow(row.id, { contractReference: editingRow.contractReference, periodStart: editingRow.periodStart, periodEnd: editingRow.periodEnd })}>
+                                                Simpan Perubahan
+                                            </button>
+                                            <button className="flex-1 rounded-lg bg-slate-100 py-2 text-xs font-bold text-slate-600" onClick={() => setEditingRow(null)}>
+                                                Batal
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                            {contractRows.length === 0 && (
+                                <div className="py-8 text-center text-slate-400 italic text-sm">Belum ada rincian kontrak.</div>
+                            )}
                         </div>
                     </section>
                 )}
@@ -852,10 +1020,10 @@ function IspDetailPage({ isp, onBack, onEditIsp, onNavigate, onOpenCreateTenant,
                                             </td>
                                             <td className="px-4 py-4 text-sm">
                                                 {isOpenableFileUrl(row.fileUrl) ? (
-                                                    <a className="inline-flex items-center gap-1 rounded bg-emerald-50 px-2 py-1 text-[10px] font-bold text-emerald-700 hover:underline" href={row.fileUrl} rel="noreferrer" target="_blank">
+                                                    <button onClick={() => openSafeFile(row.fileUrl, row.fileName)} className="inline-flex items-center gap-1 rounded bg-emerald-50 px-2 py-1 text-[10px] font-bold text-emerald-700 hover:underline">
                                                         <span className="material-symbols-outlined text-[14px]">attach_file</span>
                                                         Buka berkas
-                                                    </a>
+                                                    </button>
                                                 ) : (
                                                     <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-500">
                                                         <span className="material-symbols-outlined text-[14px]">attach_file</span>

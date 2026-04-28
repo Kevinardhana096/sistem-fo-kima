@@ -88,7 +88,7 @@ const parseDate = (value: string): Date => new Date(`${value}T00:00:00.000Z`);
 
 @Injectable()
 export class PrismaIspsService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   isEnabled(): boolean {
     return this.prisma.isEnabled() && process.env.ISPS_SOURCE === 'prisma';
@@ -184,8 +184,8 @@ export class PrismaIspsService {
           'periodStart',
         )
           ? parseDate(
-            this.parseOptionalIsoDate(payload.periodStart, 'periodStart')!,
-          )
+              this.parseOptionalIsoDate(payload.periodStart, 'periodStart')!,
+            )
           : null;
       }
       if (payload.periodEnd !== undefined) {
@@ -194,8 +194,8 @@ export class PrismaIspsService {
           'periodEnd',
         )
           ? parseDate(
-            this.parseOptionalIsoDate(payload.periodEnd, 'periodEnd')!,
-          )
+              this.parseOptionalIsoDate(payload.periodEnd, 'periodEnd')!,
+            )
           : null;
       }
 
@@ -415,8 +415,9 @@ export class PrismaIspsService {
         );
       }
 
-      const lastFollowUp = (refreshed?.renewalFollowUps ?? []);
-      const nextOrder = (lastFollowUp[lastFollowUp.length - 1]?.splitOrder ?? 0) + 1;
+      const lastFollowUp = refreshed?.renewalFollowUps ?? [];
+      const nextOrder =
+        (lastFollowUp[lastFollowUp.length - 1]?.splitOrder ?? 0) + 1;
       await tx.ispRenewalFollowUp.create({
         data: {
           rowId,
@@ -509,11 +510,11 @@ export class PrismaIspsService {
             'contractStartDate',
           )
             ? parseDate(
-              this.parseOptionalIsoDate(
-                payload.contractStartDate,
-                'contractStartDate',
-              )!,
-            )
+                this.parseOptionalIsoDate(
+                  payload.contractStartDate,
+                  'contractStartDate',
+                )!,
+              )
             : null,
           contractPeriodStart: contractPeriodStart
             ? parseDate(contractPeriodStart)
@@ -524,6 +525,9 @@ export class PrismaIspsService {
           paket: this.parsePackageType(payload.paket),
           jumlah: this.parseJumlah(payload.jumlah, 0),
           logoUrl: payload.logoUrl,
+          contractFileUrl:
+            this.normalizeOptionalString(payload.contractFileDataUrl) ?? null,
+          contractFileName: payload.contractFileName?.trim() || null,
         },
       });
 
@@ -538,6 +542,9 @@ export class PrismaIspsService {
           bakFileUrl:
             this.normalizeOptionalString(payload.bakFileDataUrl) ?? null,
           bakFileName: payload.bakFileName?.trim() || null,
+          contractFileUrl:
+            this.normalizeOptionalString(payload.contractFileDataUrl) ?? null,
+          contractFileName: payload.contractFileName?.trim() || null,
         },
       });
 
@@ -631,11 +638,10 @@ export class PrismaIspsService {
   }
 
   async deleteIsp(ispId: number) {
-    const existing = await
-      this.prisma.isp.findUnique({
-        where: { id: ispId },
-        select: { id: true, name: true },
-      });
+    const existing = await this.prisma.isp.findUnique({
+      where: { id: ispId },
+      select: { id: true, name: true },
+    });
 
     if (!existing) {
       throw new NotFoundException('ISP not found.');
@@ -725,8 +731,8 @@ export class PrismaIspsService {
     if (mode === 'selected') {
       const ispIds = Array.isArray(payload?.ispIds)
         ? payload.ispIds
-          .map((value) => Number(value))
-          .filter((value) => Number.isFinite(value))
+            .map((value) => Number(value))
+            .filter((value) => Number.isFinite(value))
         : [];
 
       if (ispIds.length === 0) {
@@ -838,6 +844,8 @@ export class PrismaIspsService {
       activationFeeAmount: Number(isp.activationFeeAmount ?? 0),
       activationFeePaidAt: toIsoTimestamp(isp.activationFeePaidAt),
       logoUrl: isp.logoUrl,
+      contractFileUrl: isp.contractFileUrl ?? null,
+      contractFileName: isp.contractFileName ?? null,
       createdAt: isp.createdAt.toISOString(),
       updatedAt: isp.updatedAt.toISOString(),
     };
@@ -871,6 +879,8 @@ export class PrismaIspsService {
       periodStart: toIsoDate(row.periodStart),
       periodEnd: toIsoDate(row.periodEnd),
       renewalStatus: row.renewalStatus,
+      contractFileUrl: row.contractFileUrl ?? null,
+      contractFileName: row.contractFileName ?? null,
       bakFileUrl: row.bakFileUrl ?? null,
       bakFileName: row.bakFileName ?? null,
       renewalFileUrl: row.renewalFileUrl ?? null,
@@ -883,6 +893,34 @@ export class PrismaIspsService {
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
     };
+  }
+
+  async uploadContractRowFile(
+    ispId: number,
+    rowId: number,
+    fileUrl: string,
+    fileName: string,
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      const row = await tx.ispContractRow.findFirst({
+        where: { id: rowId, ispId },
+      });
+
+      if (!row) {
+        throw new NotFoundException('Contract row not found.');
+      }
+
+      await tx.ispContractRow.update({
+        where: { id: rowId },
+        data: {
+          contractFileUrl: fileUrl,
+          contractFileName: fileName,
+        },
+      });
+
+      await this.syncIspContractSnapshotFromRows(tx, ispId);
+      return this.getMappedRow(tx, rowId);
+    });
   }
 
   private mapIspTenantsFromRecord(isp: IspRecordWithCustomers) {
@@ -964,7 +1002,7 @@ export class PrismaIspsService {
       const daysLeft = Math.ceil(
         (parseDate(activeVersion.endDate).getTime() -
           parseDate(referenceDate).getTime()) /
-        (24 * 60 * 60 * 1000),
+          (24 * 60 * 60 * 1000),
       );
 
       if (daysLeft <= 90 && daysLeft >= 0) {
@@ -1099,7 +1137,7 @@ export class PrismaIspsService {
           const daysLeft = Math.ceil(
             (parseDate(activeVersion.endDate).getTime() -
               parseDate(today).getTime()) /
-            (24 * 60 * 60 * 1000),
+              (24 * 60 * 60 * 1000),
           );
 
           if (daysLeft <= 90 && daysLeft >= 0) {
@@ -1563,7 +1601,31 @@ export class PrismaIspsService {
     return {
       success: true,
       message: 'ISP logo uploaded successfully.',
-      data: updatedIsp,
+      data: this.mapIsp(updatedIsp),
+    };
+  }
+
+  async uploadContractFile(ispId: number, fileUrl: string, fileName: string) {
+    const isp = await this.prisma.isp.findUnique({
+      where: { id: ispId },
+    });
+
+    if (!isp) {
+      throw new NotFoundException(`ISP with ID ${ispId} not found.`);
+    }
+
+    const updatedIsp = await this.prisma.isp.update({
+      where: { id: ispId },
+      data: {
+        contractFileUrl: fileUrl,
+        contractFileName: fileName,
+      },
+    });
+
+    return {
+      success: true,
+      message: 'ISP contract file uploaded successfully.',
+      data: this.mapIsp(updatedIsp),
     };
   }
 }

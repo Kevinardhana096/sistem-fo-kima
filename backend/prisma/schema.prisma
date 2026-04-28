@@ -206,6 +206,8 @@ model Isp {
   activationFeeAmount Decimal                @default(0) @map("activation_fee_amount") @db.Decimal(18, 2)
   activationFeePaidAt DateTime?              @map("activation_fee_paid_at") @db.Timestamptz(6)
   logoUrl             String?                @map("logo_url")
+  contractFileUrl     String?                @map("contract_file_url")
+  contractFileName    String?                @map("contract_file_name") @db.VarChar(255)
   createdAt           DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt           DateTime               @updatedAt @map("updated_at") @db.Timestamptz(6)
   contractRows        IspContractRow[]
@@ -236,6 +238,8 @@ model IspContractRow {
   periodStart      DateTime?             @map("period_start") @db.Date
   periodEnd        DateTime?             @map("period_end") @db.Date
   renewalStatus    IspRenewalStatus      @default(active) @map("renewal_status")
+  contractFileUrl  String?               @map("contract_file_url")
+  contractFileName String?               @map("contract_file_name") @db.VarChar(255)
   bakFileUrl       String?               @map("bak_file_url")
   bakFileName      String?               @map("bak_file_name") @db.VarChar(255)
   renewalFileUrl   String?               @map("renewal_file_url")

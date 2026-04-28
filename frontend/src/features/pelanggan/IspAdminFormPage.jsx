@@ -13,6 +13,8 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
         contractPeriodEnd: "",
         bakFileName: "",
         bakFileDataUrl: "",
+        contractFileName: "",
+        contractFileDataUrl: "",
         logoUrl: "",
         logoFileDataUrl: "",
     });
@@ -77,6 +79,8 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
                     contractPeriodEnd: form.contractPeriodEnd || null,
                     bakFileDataUrl: form.bakFileDataUrl || undefined,
                     bakFileName: form.bakFileName || undefined,
+                    contractFileDataUrl: form.contractFileDataUrl || undefined,
+                    contractFileName: form.contractFileName || undefined,
                     logoUrl: form.logoFileDataUrl || undefined,
                 };
 
@@ -167,6 +171,39 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
                                 <FieldInput label="Awal kontrak" type="date" value={form.contractStartDate} onChange={(value) => setForm((previous) => ({ ...previous, contractStartDate: value }))} />
                                 <FieldInput label="Periode berjalan mulai" type="date" value={form.contractPeriodStart} onChange={(value) => setForm((previous) => ({ ...previous, contractPeriodStart: value }))} />
                                 <FieldInput label="Periode berjalan akhir" type="date" value={form.contractPeriodEnd} onChange={(value) => setForm((previous) => ({ ...previous, contractPeriodEnd: value }))} />
+                                
+                                <div>
+                                    <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Upload Berkas Kontrak (Opsional)</label>
+                                    <input
+                                        accept=".pdf,.png,.jpg,.jpeg,.zip"
+                                        className="w-full rounded-lg border border-slate-200 bg-surface-container-lowest px-3 py-2.5 text-sm outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/10"
+                                        onChange={(event) => {
+                                            const file = event.target.files?.[0] ?? null;
+                                            if (!file) {
+                                                setForm((previous) => ({
+                                                    ...previous,
+                                                    contractFileName: "",
+                                                    contractFileDataUrl: "",
+                                                }));
+                                                return;
+                                            }
+
+                                            void readFileAsDataUrl(file)
+                                                .then((fileDataUrl) => {
+                                                    setForm((previous) => ({
+                                                        ...previous,
+                                                        contractFileName: file.name,
+                                                        contractFileDataUrl: fileDataUrl,
+                                                    }));
+                                                })
+                                                .catch((error) => {
+                                                    setSubmitError(error instanceof Error ? error.message : "Gagal membaca file kontrak.");
+                                                });
+                                        }}
+                                        type="file"
+                                    />
+                                </div>
+
                                 <div>
                                     <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Upload BAK (Opsional)</label>
                                     <input
@@ -193,11 +230,6 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
                                                 })
                                                 .catch((error) => {
                                                     setSubmitError(error instanceof Error ? error.message : "Gagal membaca file BAK.");
-                                                    setForm((previous) => ({
-                                                        ...previous,
-                                                        bakFileName: "",
-                                                        bakFileDataUrl: "",
-                                                    }));
                                                 });
                                         }}
                                         type="file"

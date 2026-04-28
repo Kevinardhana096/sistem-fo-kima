@@ -107,4 +107,22 @@ export class IspsService {
   async uploadIspLogo(ispId: number, fileUrl: string) {
     return this.prismaIsps.uploadIspLogo(ispId, fileUrl);
   }
+
+  async uploadContractFile(ispId: number, fileUrl: string, fileName: string) {
+    return this.prismaIsps.uploadContractFile(ispId, fileUrl, fileName);
+  }
+
+  async uploadContractRowFile(
+    ispId: number,
+    rowId: number,
+    fileUrl: string,
+    fileName: string,
+  ) {
+    return this.prismaIsps.uploadContractRowFile(
+      ispId,
+      rowId,
+      fileUrl,
+      fileName,
+    );
+  }
 }
