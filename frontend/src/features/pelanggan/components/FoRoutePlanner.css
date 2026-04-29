@@ -81,50 +81,54 @@
 }
 
 /* Override Leaflet Controls Position */
-.leaflet-top.leaflet-right {
-    top: 10px;
-    right: 10px;
+.leaflet-bottom.leaflet-right {
+    bottom: 280px !important;
+    right: 24px !important;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    z-index: 800;
 }
 
 .leaflet-control-zoom {
+    margin: 0 !important;
     border: 1px solid rgba(255,255,255,0.1) !important;
-    border-radius: 12px !important;
-    overflow: hidden;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.3) !important;
+    border-radius: 16px !important;
+    background-color: rgba(15, 23, 42, 0.8) !important;
+    backdrop-filter: blur(12px) !important;
+    padding: 8px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    width: max-content !important;
+    gap: 6px !important;
+    box-shadow: none !important;
 }
 
 .leaflet-control-zoom a {
-    background-color: rgba(15, 23, 42, 0.8) !important;
-    color: white !important;
-    border-bottom: 1px solid rgba(255,255,255,0.05) !important;
-    backdrop-filter: blur(8px);
+    width: 40px !important;
+    height: 40px !important;
+    line-height: 40px !important;
+    border-radius: 12px !important;
+    background-color: rgba(255,255,255,0.05) !important;
+    color: rgba(255,255,255,0.4) !important;
+    border: 1px solid rgba(255,255,255,0.05) !important;
+    transition: all 0.2s !important;
+    font-size: 20px !important;
+    font-weight: 400 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
 }
 
 .leaflet-control-zoom a:hover {
-    background-color: rgba(30, 41, 59, 0.9) !important;
+    background-color: rgba(255,255,255,0.1) !important;
+    color: white !important;
 }
 
 @media (max-width: 1024px) {
     aside {
         width: 320px !important;
-    }
-}
-
-@media (max-width: 768px) {
-    aside {
-        position: relative !important;
-        inset: auto !important;
-        width: 100% !important;
-        height: auto !important;
-        margin-bottom: 1rem;
-    }
-    
-    .absolute.bottom-6 {
-        position: relative !important;
-        inset: auto !important;
-        transform: none !important;
-        margin-top: 1rem;
-        flex-direction: column;
-        align-items: stretch;
     }
 }

@@ -2,13 +2,23 @@ import { useState } from "react";
 import { sidebarItems } from "../../app/constants";
 import { getSectionPath } from "../../app/routes";
 
-export default function AppShell({ activeSection, onNavigate, children, hideSidebar = false }) {
+export default function AppShell({ activeSection, onNavigate, children, hideSidebar = false, full = false }) {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     const handleMobileNavigate = (sectionKey) => {
         onNavigate(sectionKey);
         setIsMobileMenuOpen(false);
     };
+
+    if (full) {
+        return (
+            <div className="h-screen w-screen overflow-hidden text-on-surface">
+                <main className="h-full w-full">
+                    {children}
+                </main>
+            </div>
+        );
+    }
 
     return (
         <div className="text-on-surface">

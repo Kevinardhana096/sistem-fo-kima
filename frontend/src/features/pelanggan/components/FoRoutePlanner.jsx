@@ -6,6 +6,7 @@ import {
   TileLayer,
   useMap,
   useMapEvents,
+  ZoomControl,
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -81,32 +82,6 @@ function createCompanyIcon(logoUrl) {
 
 const CUSTOMER_ICON = createGlowIcon("B", "customer");
 const WAYPOINT_ICON = createGlowIcon("W", "waypoint");
-
-function formatDistance(distanceInMeters) {
-  const value = Number(distanceInMeters ?? 0);
-  if (!Number.isFinite(value) || value <= 0) {
-    return "-";
-  }
-
-  return `${(value / 1000).toFixed(2)} km`;
-}
-
-function formatDuration(durationInSeconds) {
-  const value = Number(durationInSeconds ?? 0);
-  if (!Number.isFinite(value) || value <= 0) {
-    return "-";
-  }
-
-  const totalMinutes = Math.round(value / 60);
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-
-  if (hours <= 0) {
-    return `${minutes} menit`;
-  }
-
-  return `${hours} jam ${minutes} menit`;
-}
 
 function haversineDistance(pointA, pointB) {
   const toRadians = (value) => (value * Math.PI) / 180;
@@ -350,14 +325,8 @@ export default function FoRoutePlanner({
   const [searchError, setSearchError] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [flyTarget, setFlyTarget] = useState(null);
-  const [manualInput, setManualInput] = useState({
-    aLat: "",
-    aLng: "",
-    bLat: "",
-    bLng: "",
-    wLat: "",
-    wLng: "",
-  });
+  const [manualInput, setManualInput] = useState({});
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   const providerIcon = useMemo(() => createCompanyIcon(providerIconUrl), [providerIconUrl]);
 
@@ -406,17 +375,6 @@ export default function FoRoutePlanner({
     }
     return points;
   }, [manualWaypoints, pointA, pointB]);
-
-  const routeSummary = useMemo(
-    () => ({
-      pointCount: controlPoints.length,
-      distanceLabel: formatDistance(routeData?.distance ?? 0),
-      durationLabel: formatDuration(routeData?.duration ?? 0),
-      roadCount: Array.isArray(routeData?.roads) ? routeData.roads.length : 0,
-      source: routeData?.source ?? "-",
-    }),
-    [controlPoints.length, routeData],
-  );
 
   const showManualRoute =
     customRouteMode && manualWaypoints.length > 0 && pointA && pointB;
@@ -761,23 +719,38 @@ export default function FoRoutePlanner({
     );
   };
 
-  const handleManualInputApply = (role) => {
-    const latKey = role === "a" ? "aLat" : role === "b" ? "bLat" : "wLat";
-    const lngKey = role === "a" ? "aLng" : role === "b" ? "bLng" : "wLng";
-    const lat = Number(manualInput[latKey]);
-    const lng = Number(manualInput[lngKey]);
+  const handleManualCoordinateChange = (role, id, field, value) => {
+    setManualInput((prev) => ({
+      ...prev,
+      [`${role}-${id || "static"}-${field}`]: value,
+    }));
+  };
 
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-      pushToast(
-        "Koordinat Tidak Valid",
-        "Masukkan lat/lng numerik yang valid.",
-        "error",
-      );
+  const commitManualCoordinate = (role, id) => {
+    const latKey = `${role}-${id || "static"}-lat`;
+    const lngKey = `${role}-${id || "static"}-lng`;
+    const rawLat = manualInput[latKey];
+    const rawLng = manualInput[lngKey];
+
+    if (rawLat === undefined || rawLng === undefined) return;
+
+    const lat = Number(rawLat);
+    const lng = Number(rawLng);
+
+    if (Number.isNaN(lat) || Number.isNaN(lng)) {
+      pushToast("Input Error", "Koordinat harus berupa angka valid", "error");
       return;
     }
 
-    assignPoint(role, lat, lng, "");
-    setFlyTarget({ lat, lng, zoom: 17 });
+    if (role === "a") {
+      assignPoint("a", lat, lng, "");
+    } else if (role === "b") {
+      assignPoint("b", lat, lng, "");
+    } else if (role === "waypoint" && id) {
+      setManualWaypoints((prev) =>
+        prev.map((p) => (p.id === id ? { ...p, lat, lng } : p)),
+      );
+    }
   };
 
   const handleMarkerDrag = (role, id, lat, lng) => {
@@ -1103,6 +1076,7 @@ export default function FoRoutePlanner({
           className="h-full w-full bg-slate-100"
           scrollWheelZoom
           zoom={DEFAULT_ZOOM}
+          zoomControl={false}
         >
           <TileLayer
             attribution={selectedBasemap.attribution}
@@ -1114,6 +1088,7 @@ export default function FoRoutePlanner({
             fitRouteKey={`${routeData?.source ?? "none"}-${routeData?.distance ?? 0}-${routeData?.mode ?? "idle"}`}
             flyTarget={flyTarget}
           />
+          <ZoomControl position="bottomright" />
 
           {pointA && (
             <Marker
@@ -1164,11 +1139,18 @@ export default function FoRoutePlanner({
         </MapContainer>
       </div>
 
-      {/* Floating Sidebar - Desktop Style */}
-      <aside className="absolute left-4 top-4 bottom-4 z-[1000] w-[380px] overflow-hidden flex flex-col pointer-events-none">
-        <div className="flex flex-col h-full pointer-events-auto space-y-3">
+      {/* Floating Sidebar - Responsive Card Style */}
+      <aside 
+        className={`absolute inset-x-0 bottom-0 sm:inset-auto sm:left-4 sm:top-4 sm:bottom-4 z-[1000] w-full sm:w-[400px] max-h-[85vh] sm:max-h-none flex flex-col pointer-events-none transition-transform duration-500 ease-in-out ${
+          isSidebarOpen ? "translate-y-0 sm:translate-x-0" : "translate-y-[calc(100%+2rem)] sm:translate-y-0 sm:-translate-x-[calc(100%+2rem)]"
+        }`}
+      >
+        <div className="flex flex-col h-full pointer-events-auto bg-slate-900/95 sm:bg-transparent backdrop-blur-xl sm:backdrop-blur-none sm:space-y-3 p-5 sm:p-0 overflow-auto sm:overflow-visible rounded-t-3xl sm:rounded-none shadow-[0_-10px_40px_rgba(0,0,0,0.3)] sm:shadow-none border-t border-white/10 sm:border-t-0">
+          {/* Mobile Handle (Visual only) */}
+          <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-white/20 sm:hidden" />
+
           {/* Header Panel */}
-          <header className="rounded-2xl border border-white/10 bg-slate-900/80 p-5 backdrop-blur-md shadow-2xl">
+          <header className="rounded-2xl sm:border border-white/10 sm:bg-slate-900/80 sm:p-5 sm:backdrop-blur-md sm:shadow-2xl relative shrink-0">
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Tactical Console</p>
             <h3 className="text-lg font-black text-white leading-tight mt-1">FO Route Planner</h3>
             
@@ -1187,10 +1169,22 @@ export default function FoRoutePlanner({
                 onClick={() => setCustomRouteMode(!customRouteMode)}
               >{customRouteMode ? "Custom ON" : "Custom OFF"}</button>
             </div>
+            
+            {/* Toggle Button (Absolute inside header for desktop, handles the slide) */}
+            <button
+              className="absolute -right-12 top- -translate-y-1/2 hidden sm:flex h-10 w-10 items-center justify-center rounded-r-xl border border-l-0 border-white/10 bg-slate-900/80 text-white shadow-2xl backdrop-blur-md transition-all hover:bg-primary pointer-events-auto"
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              title={isSidebarOpen ? "Hide Sidebar" : "Show Sidebar"}
+              type="button"
+            >
+              <span className="material-symbols-outlined">
+                {isSidebarOpen ? "chevron_left" : "chevron_right"}
+              </span>
+            </button>
           </header>
 
           {/* Search Panel */}
-          <section className="rounded-2xl border border-white/10 bg-slate-900/80 p-4 backdrop-blur-md shadow-xl">
+          <section className="rounded-2xl sm:border border-white/10 sm:bg-slate-900/80 sm:p-4 sm:backdrop-blur-md sm:shadow-xl sm:block mt-3 sm:mt-0 shrink-0">
             <form className="flex gap-2" onSubmit={handleSearch}>
               <div className="relative flex-1">
                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
@@ -1206,6 +1200,9 @@ export default function FoRoutePlanner({
                 {isSearching ? "..." : "Cari"}
               </button>
             </form>
+            {searchError && (
+              <p className="mt-2 text-[10px] text-rose-400 font-medium px-1">{searchError}</p>
+            )}
             {searchResults.length > 0 && (
               <div className="mt-3 max-h-[180px] overflow-auto space-y-2 pr-1 custom-scrollbar">
                 {searchResults.map((result) => (
@@ -1223,7 +1220,7 @@ export default function FoRoutePlanner({
           </section>
 
           {/* Scrollable Waypoint List */}
-          <section className="flex-1 min-h-0 rounded-2xl border border-white/10 bg-slate-900/80 p-4 backdrop-blur-md shadow-xl overflow-hidden flex flex-col">
+          <section className="flex-1 min-h-0 rounded-2xl sm:border border-white/10 sm:bg-slate-900/80 sm:p-4 sm:backdrop-blur-md sm:shadow-xl overflow-hidden flex flex-col mt-3 sm:mt-0">
             <div className="flex items-center justify-between mb-3">
               <h4 className="text-[10px] font-black uppercase tracking-widest text-primary">Points & Waypoints</h4>
               <select 
@@ -1238,46 +1235,132 @@ export default function FoRoutePlanner({
             </div>
             
             <div className="flex-1 overflow-auto space-y-2 pr-1 custom-scrollbar">
-              {/* Point A & B Static Display */}
-              <div className="flex items-center gap-3 rounded-xl bg-blue-500/10 border border-blue-500/20 p-3">
-                <div className="h-8 w-8 rounded-lg bg-blue-500 flex items-center justify-center font-black text-white text-xs">A</div>
-                <div className="flex-1">
-                  <p className="text-[9px] font-black uppercase text-blue-400">Titik A (Provider)</p>
-                  <p className="text-[11px] font-mono text-white/90 truncate">{pointA ? `${pointA.lat.toFixed(5)}, ${pointA.lng.toFixed(5)}` : "Belum ditentukan"}</p>
+              {/* Point A */}
+              <div className="flex flex-col gap-2 rounded-xl bg-blue-500/10 border border-blue-500/20 p-3">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-lg bg-blue-500 flex items-center justify-center font-black text-white text-xs shadow-lg shadow-blue-500/20">A</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[9px] font-black uppercase text-blue-400">Titik A (Provider)</p>
+                    <p className="text-[11px] font-mono text-white/90 truncate">{pointA ? `${pointA.lat.toFixed(5)}, ${pointA.lng.toFixed(5)}` : "Belum ditentukan"}</p>
+                  </div>
+                </div>
+                
+                <div className="flex gap-2 items-center mt-1">
+                  <input
+                    className="flex-1 bg-white/5 border border-white/10 rounded px-2 py-1 text-[10px] font-mono text-white outline-none focus:border-blue-500/50"
+                    onBlur={() => commitManualCoordinate("a")}
+                    onChange={(e) => handleManualCoordinateChange("a", null, "lat", e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && commitManualCoordinate("a")}
+                    placeholder="Latitude"
+                    value={manualInput["a-static-lat"] ?? (pointA?.lat ?? "")}
+                  />
+                  <input
+                    className="flex-1 bg-white/5 border border-white/10 rounded px-2 py-1 text-[10px] font-mono text-white outline-none focus:border-blue-500/50"
+                    onBlur={() => commitManualCoordinate("a")}
+                    onChange={(e) => handleManualCoordinateChange("a", null, "lng", e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && commitManualCoordinate("a")}
+                    placeholder="Longitude"
+                    value={manualInput["a-static-lng"] ?? (pointA?.lng ?? "")}
+                  />
                 </div>
               </div>
 
               {manualWaypoints.map((point, index) => (
-                <div key={point.id} className="group flex items-center gap-3 rounded-xl bg-white/5 border border-white/10 p-3 hover:border-primary/30 transition">
-                  <div className="h-8 w-8 rounded-lg bg-emerald-500 flex items-center justify-center font-black text-white text-xs">{index + 1}</div>
-                  <div className="flex-1">
-                    <input 
-                      className="bg-transparent w-full text-[11px] font-bold text-white outline-none mb-0.5"
-                      onChange={(e) => handleWaypointLabelChange(point.id, e.target.value)}
-                      placeholder={`Waypoint ${index + 1}`}
-                      value={point.label}
-                    />
-                    <p className="text-[10px] font-mono text-white/50">{point.lat.toFixed(5)}, {point.lng.toFixed(5)}</p>
+                <div key={point.id} className="group flex flex-col gap-2 rounded-xl bg-white/5 border border-white/10 p-3 hover:border-primary/30 transition">
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-lg bg-emerald-500 flex items-center justify-center font-black text-white text-xs shadow-lg shadow-emerald-500/20">{index + 1}</div>
+                    <div className="flex-1 min-w-0">
+                      <input 
+                        className="bg-transparent w-full text-[11px] font-bold text-white outline-none mb-0.5"
+                        onChange={(e) => handleWaypointLabelChange(point.id, e.target.value)}
+                        placeholder={`Waypoint ${index + 1}`}
+                        value={point.label}
+                      />
+                      <p className="text-[10px] font-mono text-white/50">{point.lat.toFixed(5)}, {point.lng.toFixed(5)}</p>
+                      </div>
+                      <div className="flex flex-col gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition">
+                      <button 
+                        className="p-1 text-white/40 hover:text-white hover:bg-white/10 rounded transition" 
+                        onClick={() => handleWaypointMove(point.id, "up")}
+                        title="Pindahkan ke atas"
+                        type="button"
+                      >
+                        <span className="material-symbols-outlined text-[14px]">keyboard_arrow_up</span>
+                      </button>
+                      <button 
+                        className="p-1 text-white/40 hover:text-white hover:bg-white/10 rounded transition" 
+                        onClick={() => handleWaypointMove(point.id, "down")}
+                        title="Pindahkan ke bawah"
+                        type="button"
+                      >
+                        <span className="material-symbols-outlined text-[14px]">keyboard_arrow_down</span>
+                      </button>
+                      </div>
+                      <button className="opacity-100 sm:opacity-0 group-hover:opacity-100 p-1 text-rose-400 hover:bg-rose-500/20 rounded transition" onClick={() => handleWaypointDelete(point.id)}>
+                      <span className="material-symbols-outlined text-sm">delete</span>
+                    </button>
                   </div>
-                  <button className="opacity-0 group-hover:opacity-100 p-1 text-rose-400 hover:bg-rose-500/20 rounded transition" onClick={() => handleWaypointDelete(point.id)}>
-                    <span className="material-symbols-outlined text-sm">delete</span>
-                  </button>
+                  
+                  <div className="flex gap-2 items-center mt-1">
+                    <input
+                      className="flex-1 bg-white/5 border border-white/10 rounded px-2 py-1 text-[10px] font-mono text-white outline-none focus:border-emerald-500/50"
+                      onBlur={() => commitManualCoordinate("waypoint", point.id)}
+                      onChange={(e) => handleManualCoordinateChange("waypoint", point.id, "lat", e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && commitManualCoordinate("waypoint", point.id)}
+                      placeholder="Latitude"
+                      value={manualInput[`waypoint-${point.id}-lat`] ?? point.lat}
+                    />
+                    <input
+                      className="flex-1 bg-white/5 border border-white/10 rounded px-2 py-1 text-[10px] font-mono text-white outline-none focus:border-emerald-500/50"
+                      onBlur={() => commitManualCoordinate("waypoint", point.id)}
+                      onChange={(e) => handleManualCoordinateChange("waypoint", point.id, "lng", e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && commitManualCoordinate("waypoint", point.id)}
+                      placeholder="Longitude"
+                      value={manualInput[`waypoint-${point.id}-lng`] ?? point.lng}
+                    />
+                  </div>
                 </div>
               ))}
 
-              <div className="flex items-center gap-3 rounded-xl bg-pink-500/10 border border-pink-500/20 p-3">
-                <div className="h-8 w-8 rounded-lg bg-pink-500 flex items-center justify-center font-black text-white text-xs">B</div>
-                <div className="flex-1">
-                  <p className="text-[9px] font-black uppercase text-pink-400">Titik B (Pelanggan)</p>
-                  <p className="text-[11px] font-mono text-white/90 truncate">{pointB ? `${pointB.lat.toFixed(5)}, ${pointB.lng.toFixed(5)}` : "Belum ditentukan"}</p>
+              {/* Point B */}
+              <div className="flex flex-col gap-2 rounded-xl bg-pink-500/10 border border-pink-500/20 p-3 mt-1">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-lg bg-pink-500 flex items-center justify-center font-black text-white text-xs shadow-lg shadow-pink-500/20">B</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[9px] font-black uppercase text-pink-400">Titik B (Pelanggan)</p>
+                    <p className="text-[11px] font-mono text-white/90 truncate">{pointB ? `${pointB.lat.toFixed(5)}, ${pointB.lng.toFixed(5)}` : "Belum ditentukan"}</p>
+                  </div>
+                </div>
+                
+                <div className="flex gap-2 items-center">
+                  <input
+                    className="flex-1 bg-white/5 border border-white/10 rounded px-2 py-1 text-[10px] font-mono text-white outline-none focus:border-pink-500/50"
+                    onBlur={() => commitManualCoordinate("b")}
+                    onChange={(e) => handleManualCoordinateChange("b", null, "lat", e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && commitManualCoordinate("b")}
+                    placeholder="Latitude"
+                    value={manualInput["b-static-lat"] ?? (pointB?.lat ?? "")}
+                  />
+                  <input
+                    className="flex-1 bg-white/5 border border-white/10 rounded px-2 py-1 text-[10px] font-mono text-white outline-none focus:border-pink-500/50"
+                    onBlur={() => commitManualCoordinate("b")}
+                    onChange={(e) => handleManualCoordinateChange("b", null, "lng", e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && commitManualCoordinate("b")}
+                    placeholder="Longitude"
+                    value={manualInput["b-static-lng"] ?? (pointB?.lng ?? "")}
+                  />
                 </div>
               </div>
             </div>
 
             {/* Bottom Actions */}
-            <div className="mt-4 pt-4 border-t border-white/5 flex gap-2">
-              <button className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-black uppercase py-3 rounded-xl transition shadow-lg shadow-emerald-900/20 disabled:opacity-50" disabled={!pointA || !pointB} onClick={handleApplyPlanner}>
-                Terapkan Jalur
+            <div className="mt-4 pt-4 border-t border-white/5 flex gap-2 shrink-0">
+              <button 
+                className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-black uppercase py-3 rounded-xl transition shadow-lg shadow-emerald-900/20 disabled:opacity-50" 
+                disabled={!pointA || !pointB || isCalculating} 
+                onClick={handleApplyPlanner}
+              >
+                {isCalculating ? "Calculating..." : "Terapkan Jalur"}
               </button>
               <button className="p-3 bg-white/5 border border-white/10 text-white/70 hover:text-white rounded-xl transition" onClick={handleResetPlanner} title="Reset">
                 <span className="material-symbols-outlined text-sm">restart_alt</span>
@@ -1287,28 +1370,19 @@ export default function FoRoutePlanner({
         </div>
       </aside>
 
-      {/* Floating Info Overlay - Bottom Center */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[1000] flex gap-3 pointer-events-none">
-        <div className="flex items-center gap-6 rounded-2xl border border-white/10 bg-slate-900/80 px-8 py-4 backdrop-blur-md shadow-2xl pointer-events-auto">
-          <div className="flex flex-col items-center">
-            <span className="text-[9px] font-black uppercase tracking-widest text-primary mb-1">Jarak Total</span>
-            <span className="text-xl font-black text-white">{routeSummary.distanceLabel}</span>
-          </div>
-          <div className="w-px h-8 bg-white/10" />
-          <div className="flex flex-col items-center">
-            <span className="text-[9px] font-black uppercase tracking-widest text-primary mb-1">Estimasi</span>
-            <span className="text-xl font-black text-white">{routeSummary.durationLabel}</span>
-          </div>
-          <div className="w-px h-8 bg-white/10" />
-          <div className="flex flex-col items-center">
-            <span className="text-[9px] font-black uppercase tracking-widest text-primary mb-1">Metode</span>
-            <span className="text-xl font-black text-white uppercase tracking-tighter">{routeData?.mode === 'manual' ? 'Manual' : 'Valhalla'}</span>
-          </div>
-        </div>
-      </div>
+      {/* Mobile Toggle Button (Outside aside so it stays visible when aside slides down) */}
+      <button
+        className="sm:hidden absolute bottom-6 right-6 z-[1001] flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-2xl shadow-primary/30 pointer-events-auto border border-white/10 backdrop-blur-md transition-transform active:scale-95"
+        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+        type="button"
+      >
+        <span className="material-symbols-outlined text-2xl">
+          {isSidebarOpen ? "close" : "edit_location_alt"}
+        </span>
+      </button>
 
       {/* Basemap Switcher Overlay - Bottom Right */}
-      <div className="absolute bottom-6 right-6 z-[1000] flex flex-col gap-2 pointer-events-none">
+      <div className="absolute bottom-6 right-6 z-[800] flex flex-col gap-2 pointer-events-none transition-opacity duration-500" style={{ opacity: isSidebarOpen && window.innerWidth < 640 ? 0 : 1 }}>
         <div className="flex flex-col gap-1.5 p-2 rounded-2xl border border-white/10 bg-slate-900/80 backdrop-blur-md pointer-events-auto">
           {BASEMAP_OPTIONS.map((option) => (
             <button

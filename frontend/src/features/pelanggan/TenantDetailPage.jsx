@@ -2088,38 +2088,44 @@ function TenantDetailPage({
         activeSection="customers"
         onNavigate={onNavigate}
         hideSidebar={true}
+        full={true}
       >
-        <div className="mx-auto w-full p-4 lg:p-8 space-y-6">
-          <button
-            className="inline-flex items-center gap-2 rounded-lg bg-surface-container-low px-4 py-2 text-sm font-semibold text-primary transition-colors hover:bg-surface-container"
-            onClick={onBack}
-            type="button"
-          >
-            <span className="material-symbols-outlined text-base">
-              arrow_back
-            </span>
-            Kembali ke Detail Tenant
-          </button>
-
-          <header className="flex flex-col gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl font-bold text-on-surface">
-                  Route Planner FO: {tenantName}
-                </h1>
-                <p className="text-sm text-on-surface-variant mt-1">
-                  Paket:{" "}
-                  {(detail?.paket || customer?.paket || "CORE").toUpperCase()} •
-                  ISP:{" "}
-                  {isps.length > 0
-                    ? isps.map((item) => item.name).join(", ")
-                    : "-"}
-                </p>
-              </div>
+        <div className="relative h-screen w-screen overflow-hidden bg-slate-950 font-manrope antialiased">
+          {/* Combined Top Overlay UI - Optimized for Mobile */}
+          <div className="absolute inset-x-0 top-0 z-[1000] flex items-start justify-center p-4 pointer-events-none md:p-6">
+            {/* Back Button - Positioned to the right */}
+            <div className="absolute right-4 top-4 md:right-6 md:top-6">
+              <button
+                className="pointer-events-auto inline-flex h-10 items-center gap-2 rounded-2xl bg-white px-4 font-black text-primary shadow-2xl transition-all hover:scale-105 active:scale-95 border border-slate-200 md:h-12 md:px-5"
+                onClick={onBack}
+                type="button"
+              >
+                <span className="hidden sm:block text-[10px] uppercase tracking-widest md:text-sm">Kembali</span>
+                <span className="material-symbols-outlined text-lg md:text-xl">
+                  arrow_back
+                </span>
+              </button>
             </div>
-          </header>
 
-          <div className="w-full h-[80vh]">
+            {/* Header Info Panel - Centered and more compact */}
+            <header className="pointer-events-auto flex flex-col items-center gap-0.5 rounded-2xl bg-slate-900/80 px-4 py-2 shadow-2xl backdrop-blur-md border border-white/10 md:p-4 md:min-w-[300px]">
+              <h1 className="text-[10px] md:text-sm font-black text-white uppercase tracking-[0.1em] md:tracking-[0.2em] truncate max-w-[150px] md:max-w-none text-center">
+                {tenantName}
+              </h1>
+              <div className="flex items-center gap-1.5 md:gap-3 text-[8px] md:text-[10px] font-bold text-white/60">
+                <span className="rounded bg-primary/20 px-1.5 py-0.5 text-primary border border-primary/30 uppercase tracking-tighter">
+                  {(detail?.paket || customer?.paket || "CORE")}
+                </span>
+                <span className="hidden md:block w-1 h-1 rounded-full bg-white/20"></span>
+                <span className="uppercase tracking-widest hidden md:block">
+                  ISP: {isps.length > 0 ? isps.map((item) => item.name).join(", ") : "-"}
+                </span>
+              </div>
+            </header>
+          </div>
+
+          {/* Map Container */}
+          <div className="h-full w-full">
             <FoRoutePlanner
               disabled={routeBusy}
               onApplyPlannedRoute={(plannedPoints, plannerMeta) => {
@@ -2506,7 +2512,7 @@ function TenantDetailPage({
                                 doc.jenisDokumen}
                             </p>
                             <p className="text-xs text-on-surface-variant">
-                              {doc.nomorDokumen || "-"} â€¢{" "}
+                              {doc.nomorDokumen || "-"} •{" "}
                               {formatDate(doc.tanggalDokumen)}
                             </p>
                           </div>
