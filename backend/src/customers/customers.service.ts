@@ -8,6 +8,10 @@ import { PrismaCustomersWriteService } from './prisma-customers-write.service';
 import { UpdateCustomerContractDto } from './dto/update-customer-contract.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { UpdateCustomerInvoiceDto } from './dto/update-customer-invoice.dto';
+import {
+  ChangeCustomerRouteDto,
+  EditCustomerRouteDto,
+} from './dto/route-mutations.dto';
 
 @Injectable()
 export class CustomersService {
@@ -152,6 +156,14 @@ export class CustomersService {
     },
   ) {
     return this.prismaWrite.removeCustomerIsps(customerId, payload);
+  }
+
+  async changeRoute(customerId: number, payload: ChangeCustomerRouteDto) {
+    return this.prismaWrite.changeRoute(customerId, payload);
+  }
+
+  async editRoute(customerId: number, payload: EditCustomerRouteDto) {
+    return this.prismaWrite.editRoute(customerId, payload);
   }
 
   getTodoSummary(customerId: number) {

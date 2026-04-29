@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   GeoJSON,
   MapContainer,
@@ -16,7 +16,7 @@ const DEFAULT_CENTER = [-5.147665, 119.432732];
 const DEFAULT_ZOOM = 13;
 const VALHALLA_LOCAL_HOST =
   typeof import.meta.env.VITE_VALHALLA_HOST === "string" &&
-  import.meta.env.VITE_VALHALLA_HOST.trim()
+    import.meta.env.VITE_VALHALLA_HOST.trim()
     ? import.meta.env.VITE_VALHALLA_HOST.trim().replace(/\/$/, "")
     : "http://localhost:8002";
 
@@ -186,13 +186,15 @@ function mapProfileToValhallaCosting(profile) {
 function extractRoadSegments(legs) {
   return (Array.isArray(legs) ? legs : []).flatMap((leg, legIndex) => {
     const maneuvers = Array.isArray(leg?.maneuvers) ? leg.maneuvers : [];
-    return maneuvers.map((maneuver, index) => ({
-      id: `${legIndex}-${index}-${maneuver?.street_names?.[0] ?? "road"}`,
-      name: maneuver?.street_names?.[0]?.trim() || "Tanpa nama jalan",
-      distance: Number(maneuver?.length ?? 0) * 1000,
-      duration: Number(maneuver?.time ?? 0),
-      instruction: maneuver?.instruction?.trim() || "Ikuti jalur utama",
-    }));
+    return maneuvers
+      .filter((maneuver) => Array.isArray(maneuver?.street_names) && maneuver.street_names.length > 0 && maneuver.street_names[0]?.trim())
+      .map((maneuver, index) => ({
+        id: `${legIndex}-${index}-${maneuver.street_names[0]}`,
+        name: maneuver.street_names[0].trim(),
+        distance: Number(maneuver?.length ?? 0) * 1000,
+        duration: Number(maneuver?.time ?? 0),
+        instruction: maneuver?.instruction?.trim() || "Ikuti jalur utama",
+      }));
   });
 }
 
@@ -306,6 +308,10 @@ export default function FoRoutePlanner({
   disabled = false,
   mode = "full",
   previewPoints = [],
+  previewGeometryCoordinates = [],
+  previewRoads = [],
+  initialControlPoints = [],
+  initialRouteMeta = null,
   onPreviewClick,
   providerIconUrl = "",
 }) {
@@ -327,12 +333,17 @@ export default function FoRoutePlanner({
   const [flyTarget, setFlyTarget] = useState(null);
   const [manualInput, setManualInput] = useState({});
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const skipNextRouteResetRef = useRef(false);
 
   const providerIcon = useMemo(() => createCompanyIcon(providerIconUrl), [providerIconUrl]);
 
   const selectedBasemap =
     BASEMAP_OPTIONS.find((item) => item.key === basemap) ?? BASEMAP_OPTIONS[0];
   const isPreviewMode = mode === "preview";
+  const initialPlannerControlPoints = useMemo(
+    () => (Array.isArray(initialControlPoints) ? initialControlPoints : []),
+    [initialControlPoints],
+  );
   const previewControlPoints = useMemo(
     () =>
       (Array.isArray(previewPoints) ? previewPoints : []).map(
@@ -346,7 +357,21 @@ export default function FoRoutePlanner({
     [previewPoints],
   );
   const previewRouteGeoJson = useMemo(() => {
-    if (!isPreviewMode || previewControlPoints.length < 2) {
+    if (!isPreviewMode) {
+      return null;
+    }
+
+    if (
+      Array.isArray(previewGeometryCoordinates) &&
+      previewGeometryCoordinates.length >= 2
+    ) {
+      return createRouteGeoJson(previewGeometryCoordinates, {
+        source: "tenant-route-preview",
+        mode: "preview",
+      });
+    }
+
+    if (previewControlPoints.length < 2) {
       return null;
     }
 
@@ -357,10 +382,34 @@ export default function FoRoutePlanner({
         mode: "preview",
       },
     );
-  }, [isPreviewMode, previewControlPoints]);
+  }, [isPreviewMode, previewControlPoints, previewGeometryCoordinates]);
   const previewFitCoordinates = useMemo(
-    () => previewControlPoints.map((point) => [point.lat, point.lng]),
-    [previewControlPoints],
+    () => {
+      if (
+        Array.isArray(previewGeometryCoordinates) &&
+        previewGeometryCoordinates.length >= 2
+      ) {
+        return previewGeometryCoordinates.map(([lng, lat]) => [lat, lng]);
+      }
+
+      return previewControlPoints.map((point) => [point.lat, point.lng]);
+    },
+    [previewControlPoints, previewGeometryCoordinates],
+  );
+  const previewRoadSegments = useMemo(
+    () => {
+      const arr = Array.isArray(previewRoads) ? previewRoads : [];
+      return arr.reduce((acc, road) => {
+        if (road?.name && road.name.trim() && !acc.some((r) => r.name === road.name)) {
+          const lowerName = road.name.toLowerCase();
+          if (lowerName !== "tanpa nama jalan" && !lowerName.includes("segmen manual")) {
+            acc.push(road);
+          }
+        }
+        return acc;
+      }, []);
+    },
+    [previewRoads],
   );
   const controlPoints = useMemo(() => {
     const points = [];
@@ -375,9 +424,8 @@ export default function FoRoutePlanner({
     }
     return points;
   }, [manualWaypoints, pointA, pointB]);
-
-  const showManualRoute =
-    customRouteMode && manualWaypoints.length > 0 && pointA && pointB;
+  const canGenerateRoute = Boolean(pointA && pointB);
+  const canGenerateManualRoute = Boolean(customRouteMode && pointA && pointB);
 
   const pushToast = (title, message, tone = "info") => {
     const toastId = `toast-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -395,157 +443,15 @@ export default function FoRoutePlanner({
   };
 
   useEffect(() => {
-    if (showManualRoute) {
-      const manualPoints = [pointA, ...manualWaypoints, pointB];
-      const totalDistance = manualPoints.reduce((total, point, index) => {
-        if (index === 0) {
-          return total;
-        }
-        return total + haversineDistance(manualPoints[index - 1], point);
-      }, 0);
-
-      const coordinates = manualPoints.map((point) => [point.lng, point.lat]);
-      const roads = manualPoints.slice(1).map((point, index) => ({
-        id: `manual-${index}`,
-        name: point.label?.trim() || `Segmen Manual ${index + 1}`,
-        distance: haversineDistance(manualPoints[index], point),
-        duration: 0,
-        instruction: "Waypoint manual",
-      }));
-
-      setRouteData({
-        mode: "manual",
-        source: "custom-route",
-        distance: totalDistance,
-        duration: 0,
-        geometryCoordinates: coordinates,
-        geoJson: createRouteGeoJson(coordinates, {
-          source: "custom-route",
-          mode: "manual",
-          distance: totalDistance,
-        }),
-        roads,
-      });
-      setRouteError("");
+    if (skipNextRouteResetRef.current) {
+      skipNextRouteResetRef.current = false;
       return;
     }
 
-    if (!pointA || !pointB) {
-      setRouteData(null);
-      setRouteError("");
-      setIsCalculating(false);
-      return;
-    }
-
-    const controller = new AbortController();
-    const routingPoints = [pointA, ...manualWaypoints, pointB];
-    const requestBody = {
-      locations: routingPoints.map((point, index) => ({
-        lat: point.lat,
-        lon: point.lng,
-        type:
-          index === 0 || index === routingPoints.length - 1 ? "break" : "via",
-      })),
-      costing: mapProfileToValhallaCosting(profile),
-      units: "kilometers",
-      directions_options: {
-        units: "kilometers",
-      },
-    };
-
-    const fetchRoute = async () => {
-      setIsCalculating(true);
-      setRouteError("");
-      try {
-        const response = await fetch(`${VALHALLA_LOCAL_HOST}/route`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(requestBody),
-          signal: controller.signal,
-        });
-
-        if (!response.ok) {
-          throw new Error(`Valhalla gagal merespons (${response.status}).`);
-        }
-
-        const result = await response.json();
-        if (Number(result?.error_code ?? 0) > 0) {
-          throw new Error(result?.error ?? "Valhalla gagal menghitung rute.");
-        }
-
-        const trip = result?.trip;
-        const legs = Array.isArray(trip?.legs) ? trip.legs : [];
-        const geometryCoordinates = legs.flatMap((leg) =>
-          decodeValhallaShape(leg?.shape),
-        );
-
-        if (geometryCoordinates.length < 2) {
-          throw new Error("Valhalla tidak mengembalikan geometri rute.");
-        }
-
-        const roads = extractRoadSegments(legs);
-        const distance = Number(trip?.summary?.length ?? 0) * 1000;
-        const duration = Number(trip?.summary?.time ?? 0);
-        const source = "valhalla-local";
-
-        pushToast(
-          "Rute Berhasil Dihitung",
-          "Jalur otomatis dari server Valhalla berhasil dirender.",
-          "success",
-        );
-
-        setRouteData({
-          mode: "valhalla",
-          source,
-          distance,
-          duration,
-          geometryCoordinates,
-          geoJson: createRouteGeoJson(geometryCoordinates, {
-            source,
-            mode: "valhalla",
-            distance,
-            duration,
-            roads,
-          }),
-          roads,
-        });
-        setRouteError("");
-      } catch (error) {
-        if (error?.name === "AbortError") {
-          return;
-        }
-
-        setRouteData(null);
-        setRouteError(
-          error instanceof Error
-            ? error.message
-            : "Gagal menghitung rute Valhalla.",
-        );
-        pushToast(
-          "Rute Gagal Dihitung",
-          error instanceof Error
-            ? error.message
-            : "Server Valhalla tidak tersedia.",
-          "error",
-        );
-      } finally {
-        setIsCalculating(false);
-      }
-    };
-
-    void fetchRoute();
-
-    return () => controller.abort();
-  }, [
-    customRouteMode,
-    manualWaypoints,
-    pointA,
-    pointB,
-    profile,
-    showManualRoute,
-  ]);
+    setRouteData(null);
+    setRouteError("");
+    setIsCalculating(false);
+  }, [customRouteMode, manualWaypoints, pointA, pointB, profile]);
 
   const mapFitCoordinates = useMemo(() => {
     if (!routeData?.geometryCoordinates) {
@@ -556,6 +462,239 @@ export default function FoRoutePlanner({
   }, [routeData?.geometryCoordinates]);
 
   const plannerRoads = Array.isArray(routeData?.roads) ? routeData.roads : [];
+  // Unique named roads only (deduplicate by name and filter placeholders)
+  const namedPlannerRoads = plannerRoads.reduce((acc, road) => {
+    if (road?.name && road.name.trim() && !acc.some((r) => r.name === road.name)) {
+      const lowerName = road.name.toLowerCase();
+      if (lowerName !== "tanpa nama jalan" && !lowerName.includes("segmen manual")) {
+        acc.push(road);
+      }
+    }
+    return acc;
+  }, []);
+
+  useEffect(() => {
+    if (isPreviewMode) {
+      return;
+    }
+
+    const providerPoint =
+      initialPlannerControlPoints.find((point) => point?.role === "provider") ??
+      initialPlannerControlPoints.find((point) => point?.pointType === "awal") ??
+      null;
+    const customerPoint =
+      initialPlannerControlPoints.find((point) => point?.role === "customer") ??
+      initialPlannerControlPoints.find((point) => point?.pointType === "tujuan") ??
+      null;
+    const waypointPoints = initialPlannerControlPoints.filter(
+      (point) =>
+        point?.role === "waypoint" ||
+        point?.pointType === "transit",
+    );
+
+    setPointA(
+      providerPoint
+        ? {
+            id: providerPoint.id ?? "restored-a",
+            lat: Number(providerPoint.lat),
+            lng: Number(providerPoint.lng),
+            label: providerPoint.label ?? providerPoint.pathName ?? "Provider",
+          }
+        : null,
+    );
+    setPointB(
+      customerPoint
+        ? {
+            id: customerPoint.id ?? "restored-b",
+            lat: Number(customerPoint.lat),
+            lng: Number(customerPoint.lng),
+            label: customerPoint.label ?? customerPoint.pathName ?? "Pelanggan",
+          }
+        : null,
+    );
+    setManualWaypoints(
+      waypointPoints.map((point, index) => ({
+        id: point.id ?? `restored-waypoint-${index}`,
+        lat: Number(point.lat),
+        lng: Number(point.lng),
+        label: point.label ?? point.pathName ?? `Waypoint ${index + 1}`,
+      })),
+    );
+
+    const geometryCoordinates = Array.isArray(initialRouteMeta?.geometryCoordinates)
+      ? initialRouteMeta.geometryCoordinates
+      : [];
+    const roads = Array.isArray(initialRouteMeta?.roads)
+      ? initialRouteMeta.roads
+      : [];
+
+    if (geometryCoordinates.length >= 2) {
+      skipNextRouteResetRef.current = true;
+      setRouteData({
+        mode: initialRouteMeta?.mode ?? "manual",
+        source: initialRouteMeta?.source ?? "planner-restored",
+        distance: Number(initialRouteMeta?.distance ?? 0),
+        duration: Number(initialRouteMeta?.duration ?? 0),
+        geometryCoordinates,
+        geoJson: createRouteGeoJson(geometryCoordinates, {
+          source: initialRouteMeta?.source ?? "planner-restored",
+          mode: initialRouteMeta?.mode ?? "manual",
+          distance: Number(initialRouteMeta?.distance ?? 0),
+          duration: Number(initialRouteMeta?.duration ?? 0),
+          roads,
+        }),
+        roads,
+      });
+      setCustomRouteMode(initialRouteMeta?.mode === "manual");
+    }
+  }, [initialPlannerControlPoints, initialRouteMeta, isPreviewMode]);
+
+  const handleGenerateManualRoute = () => {
+    if (!canGenerateManualRoute) {
+      setRouteError("Tentukan Titik A dan Titik B sebelum membuat custom jalur.");
+      return;
+    }
+
+    const manualPoints = [pointA, ...manualWaypoints, pointB];
+    const totalDistance = manualPoints.reduce((total, point, index) => {
+      if (index === 0) {
+        return total;
+      }
+      return total + haversineDistance(manualPoints[index - 1], point);
+    }, 0);
+
+    const coordinates = manualPoints.map((point) => [point.lng, point.lat]);
+    const roads = manualPoints.slice(1).map((point, index) => ({
+      id: `manual-${index}`,
+      name: point.label?.trim() || `Segmen Manual ${index + 1}`,
+      distance: haversineDistance(manualPoints[index], point),
+      duration: 0,
+      instruction: "Waypoint manual",
+    }));
+
+    setRouteData({
+      mode: "manual",
+      source: "custom-route",
+      distance: totalDistance,
+      duration: 0,
+      geometryCoordinates: coordinates,
+      geoJson: createRouteGeoJson(coordinates, {
+        source: "custom-route",
+        mode: "manual",
+        distance: totalDistance,
+      }),
+      roads,
+    });
+    setRouteError("");
+    pushToast(
+      "Custom Jalur Dibuat",
+      "Garis manual berhasil dibuat dari titik yang sudah Anda tetapkan.",
+      "success",
+    );
+  };
+
+  const handleGenerateValhallaRoute = async () => {
+    if (!canGenerateRoute) {
+      setRouteError("Tentukan Titik A dan Titik B sebelum menghitung jalur.");
+      return;
+    }
+
+    const routingPoints = [pointA, ...manualWaypoints, pointB];
+    const costing = mapProfileToValhallaCosting(profile);
+    const requestBody = {
+      locations: routingPoints.map((point, index) => ({
+        lat: point.lat,
+        lon: point.lng,
+        type: index === 0 || index === routingPoints.length - 1 ? "break" : "via",
+      })),
+      costing,
+      units: "kilometers",
+      directions_options: {
+        units: "kilometers",
+      },
+      costing_options: {
+        [costing]: {
+          shortest: true,
+          disable_hierarchy_pruning: true,
+          ...(costing === "auto" ? { use_distance: 1 } : {}),
+        },
+      },
+    };
+
+    setIsCalculating(true);
+    setRouteError("");
+    try {
+      const response = await fetch(`${VALHALLA_LOCAL_HOST}/route`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Valhalla gagal merespons (${response.status}).`);
+      }
+
+      const result = await response.json();
+      if (Number(result?.error_code ?? 0) > 0) {
+        throw new Error(result?.error ?? "Valhalla gagal menghitung rute.");
+      }
+
+      const trip = result?.trip;
+      const legs = Array.isArray(trip?.legs) ? trip.legs : [];
+      const geometryCoordinates = legs.flatMap((leg) =>
+        decodeValhallaShape(leg?.shape),
+      );
+
+      if (geometryCoordinates.length < 2) {
+        throw new Error("Valhalla tidak mengembalikan geometri rute.");
+      }
+
+      const roads = extractRoadSegments(legs);
+      const distance = Number(trip?.summary?.length ?? 0) * 1000;
+      const duration = Number(trip?.summary?.time ?? 0);
+      const source = "valhalla-local";
+
+      setRouteData({
+        mode: "valhalla",
+        source,
+        distance,
+        duration,
+        geometryCoordinates,
+        geoJson: createRouteGeoJson(geometryCoordinates, {
+          source,
+          mode: "valhalla",
+          distance,
+          duration,
+          roads,
+        }),
+        roads,
+      });
+      setRouteError("");
+      pushToast(
+        "Rute Berhasil Dihitung",
+        "Jalur otomatis dari server Valhalla berhasil dirender.",
+        "success",
+      );
+    } catch (error) {
+      setRouteData(null);
+      setRouteError(
+        error instanceof Error
+          ? error.message
+          : "Gagal menghitung rute Valhalla.",
+      );
+      pushToast(
+        "Rute Gagal Dihitung",
+        error instanceof Error
+          ? error.message
+          : "Server Valhalla tidak tersedia.",
+        "error",
+      );
+    } finally {
+      setIsCalculating(false);
+    }
+  };
 
   const assignPoint = (role, lat, lng, label) => {
     const nextPoint = {
@@ -631,7 +770,7 @@ export default function FoRoutePlanner({
         lon: "119.432732",
         limit: "10",
       });
-      
+
       const response = await fetch(`https://photon.komoot.io/api/?${params.toString()}`);
 
       if (!response.ok) {
@@ -875,6 +1014,7 @@ export default function FoRoutePlanner({
       mode: routeData?.mode ?? "manual",
       distance: routeData?.distance ?? 0,
       duration: routeData?.duration ?? 0,
+      geometryCoordinates: routeData?.geometryCoordinates ?? [],
       roads: plannerRoads,
     });
     pushToast(
@@ -935,9 +1075,10 @@ export default function FoRoutePlanner({
                   attribution={selectedBasemap.attribution}
                   url={selectedBasemap.url}
                 />
+                {/* Adjust viewport based on preview or actual route */}
                 <MapViewportController
                   fitCoordinates={previewFitCoordinates}
-                  fitRouteKey={`preview-${previewControlPoints.length}`}
+                  fitRouteKey={isPreviewMode ? `preview-${previewControlPoints.length}-${previewGeometryCoordinates.length}-${previewRoadSegments.length}` : `route-${routeData?.geometryCoordinates?.length || 0}`}
                   flyTarget={null}
                 />
                 {previewControlPoints.map((point) => {
@@ -1042,6 +1183,54 @@ export default function FoRoutePlanner({
                     </p>
                   </div>
                 </div>
+
+                {/* Road segment list */}
+                <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-900">
+                        Ruas Jalan Tersimpan
+                      </h4>
+                      <p className="mt-0.5 text-xs text-slate-500">
+                        Nama lintasan yang dibaca dari jalur terakhir yang sudah diset.
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-black text-slate-600">
+                      {isPreviewMode ? previewRoadSegments.length : plannerRoads.length} ruas
+                    </span>
+                  </div>
+
+                  {(isPreviewMode ? previewRoadSegments : plannerRoads).length === 0 ? (
+                    <p className="mt-3 text-xs italic text-slate-400">
+                      Belum ada nama ruas tersimpan untuk jalur ini.
+                    </p>
+                  ) : (
+                    <div className="mt-3 max-h-[180px] space-y-2 overflow-auto pr-1">
+                      {(isPreviewMode ? previewRoadSegments : plannerRoads).map((road, index) => (
+                        <div
+                          key={road?.id ?? `road-${index}`}
+                          className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="text-xs font-bold text-slate-800">
+                                {road?.name || `Ruas ${index + 1}`}
+                              </p>
+                              <p className="mt-0.5 text-[11px] text-slate-500">
+                                {road?.instruction || "Ikuti jalur tersimpan"}
+                              </p>
+                            </div>
+                            <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-slate-500">
+                              {Number.isFinite(Number(road?.distance))
+                                ? `${(Number(road.distance) / 1000).toFixed(2)} km`
+                                : "-"}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="mt-8 rounded-xl bg-blue-600 p-5 text-white shadow-md shadow-blue-200">
@@ -1140,36 +1329,41 @@ export default function FoRoutePlanner({
       </div>
 
       {/* Floating Sidebar - Responsive Card Style */}
-      <aside 
-        className={`absolute inset-x-0 bottom-0 sm:inset-auto sm:left-4 sm:top-4 sm:bottom-4 z-[1000] w-full sm:w-[400px] max-h-[85vh] sm:max-h-none flex flex-col pointer-events-none transition-transform duration-500 ease-in-out ${
-          isSidebarOpen ? "translate-y-0 sm:translate-x-0" : "translate-y-[calc(100%+2rem)] sm:translate-y-0 sm:-translate-x-[calc(100%+2rem)]"
-        }`}
+      <aside
+        className={`absolute inset-x-0 bottom-0 sm:inset-auto sm:left-4 sm:top-4 sm:bottom-4 z-[1000] w-full sm:w-[360px] max-h-[82vh] sm:max-h-none flex flex-col pointer-events-none transition-transform duration-500 ease-in-out ${isSidebarOpen ? "translate-y-0 sm:translate-x-0" : "translate-y-[calc(100%+2rem)] sm:translate-y-0 sm:-translate-x-[calc(100%+2rem)]"
+          }`}
       >
-        <div className="flex flex-col h-full pointer-events-auto bg-slate-900/95 sm:bg-transparent backdrop-blur-xl sm:backdrop-blur-none sm:space-y-3 p-5 sm:p-0 overflow-auto sm:overflow-visible rounded-t-3xl sm:rounded-none shadow-[0_-10px_40px_rgba(0,0,0,0.3)] sm:shadow-none border-t border-white/10 sm:border-t-0">
+        <div className="flex flex-col h-full pointer-events-auto bg-slate-900/95 sm:bg-transparent backdrop-blur-xl sm:backdrop-blur-none sm:space-y-2.5 p-4 sm:p-0 overflow-auto sm:overflow-visible rounded-t-3xl sm:rounded-none shadow-[0_-10px_40px_rgba(0,0,0,0.3)] sm:shadow-none border-t border-white/10 sm:border-t-0">
           {/* Mobile Handle (Visual only) */}
           <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-white/20 sm:hidden" />
 
           {/* Header Panel */}
-          <header className="rounded-2xl sm:border border-white/10 sm:bg-slate-900/80 sm:p-5 sm:backdrop-blur-md sm:shadow-2xl relative shrink-0">
+          <header className="rounded-2xl sm:border border-white/10 sm:bg-slate-900/80 sm:p-4 sm:backdrop-blur-md sm:shadow-2xl relative shrink-0">
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Tactical Console</p>
-            <h3 className="text-lg font-black text-white leading-tight mt-1">FO Route Planner</h3>
-            
+            <h3 className="text-base font-black text-white leading-tight mt-1">FO Route Planner</h3>
+
             {/* Action Bar */}
-            <div className="mt-4 flex flex-wrap gap-2">
+            <div className="mt-3 grid grid-cols-2 gap-1.5">
               <button
-                className={`flex-1 px-3 py-2 rounded-lg border text-[10px] font-bold uppercase transition ${placementMode === "a" ? "bg-primary border-primary text-white" : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10"}`}
+                className={`px-2.5 py-1.5 rounded-lg border text-[9px] font-bold uppercase transition ${placementMode === "a" ? "bg-primary border-primary text-white" : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10"}`}
                 onClick={() => setPlacementMode("a")}
               >Set A</button>
               <button
-                className={`flex-1 px-3 py-2 rounded-lg border text-[10px] font-bold uppercase transition ${placementMode === "b" ? "bg-primary border-primary text-white" : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10"}`}
+                className={`px-2.5 py-1.5 rounded-lg border text-[9px] font-bold uppercase transition ${placementMode === "b" ? "bg-primary border-primary text-white" : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10"}`}
                 onClick={() => setPlacementMode("b")}
               >Set B</button>
               <button
-                className={`flex-1 px-3 py-2 rounded-lg border text-[10px] font-bold uppercase transition ${customRouteMode ? "bg-amber-500 border-amber-500 text-white" : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10"}`}
+                className={`px-2.5 py-1.5 rounded-lg border text-[9px] font-bold uppercase transition ${customRouteMode ? "bg-amber-500 border-amber-500 text-white" : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10"}`}
                 onClick={() => setCustomRouteMode(!customRouteMode)}
               >{customRouteMode ? "Custom ON" : "Custom OFF"}</button>
+              <button
+                className={`px-2.5 py-1.5 rounded-lg border text-[9px] font-bold uppercase transition ${placementMode === "waypoint" ? "bg-emerald-500 border-emerald-500 text-white" : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10"}`}
+                onClick={() => setPlacementMode("waypoint")}
+                type="button" >
+                Set W
+              </button>
             </div>
-            
+
             {/* Toggle Button (Absolute inside header for desktop, handles the slide) */}
             <button
               className="absolute -right-12 top- -translate-y-1/2 hidden sm:flex h-10 w-10 items-center justify-center rounded-r-xl border border-l-0 border-white/10 bg-slate-900/80 text-white shadow-2xl backdrop-blur-md transition-all hover:bg-primary pointer-events-auto"
@@ -1184,19 +1378,19 @@ export default function FoRoutePlanner({
           </header>
 
           {/* Search Panel */}
-          <section className="rounded-2xl sm:border border-white/10 sm:bg-slate-900/80 sm:p-4 sm:backdrop-blur-md sm:shadow-xl sm:block mt-3 sm:mt-0 shrink-0">
+          <section className="rounded-2xl sm:border border-white/10 sm:bg-slate-900/80 sm:p-3 sm:backdrop-blur-md sm:shadow-xl sm:block mt-2.5 sm:mt-0 shrink-0">
             <form className="flex gap-2" onSubmit={handleSearch}>
               <div className="relative flex-1">
                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
                 <input
-                  className="w-full rounded-xl border border-white/10 bg-white/5 pl-9 pr-4 py-2 text-xs text-white outline-none focus:border-primary/50 transition"
+                  className="w-full rounded-xl border border-white/10 bg-white/5 pl-9 pr-3 py-1.5 text-[11px] text-white outline-none focus:border-primary/50 transition"
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Cari lokasi penarikan..."
                   type="text"
                   value={searchQuery}
                 />
               </div>
-              <button className="rounded-xl bg-primary px-3 py-2 text-[10px] font-bold text-white uppercase" disabled={isSearching}>
+              <button className="rounded-xl bg-primary px-3 py-1.5 text-[9px] font-bold text-white uppercase" disabled={isSearching}>
                 {isSearching ? "..." : "Cari"}
               </button>
             </form>
@@ -1204,7 +1398,7 @@ export default function FoRoutePlanner({
               <p className="mt-2 text-[10px] text-rose-400 font-medium px-1">{searchError}</p>
             )}
             {searchResults.length > 0 && (
-              <div className="mt-3 max-h-[180px] overflow-auto space-y-2 pr-1 custom-scrollbar">
+              <div className="mt-2.5 max-h-[145px] overflow-auto space-y-1.5 pr-1 custom-scrollbar">
                 {searchResults.map((result) => (
                   <div key={result.place_id} className="rounded-lg bg-white/5 p-2 border border-white/5 hover:bg-white/10 transition">
                     <p className="text-[10px] text-white/90 font-medium leading-tight mb-2">{result.display_name}</p>
@@ -1220,11 +1414,11 @@ export default function FoRoutePlanner({
           </section>
 
           {/* Scrollable Waypoint List */}
-          <section className="flex-1 min-h-0 rounded-2xl sm:border border-white/10 sm:bg-slate-900/80 sm:p-4 sm:backdrop-blur-md sm:shadow-xl overflow-hidden flex flex-col mt-3 sm:mt-0">
-            <div className="flex items-center justify-between mb-3">
+          <section className="flex-1 min-h-0 rounded-2xl sm:border border-white/10 sm:bg-slate-900/80 sm:p-3 sm:backdrop-blur-md sm:shadow-xl overflow-hidden flex flex-col mt-2.5 sm:mt-0">
+            <div className="flex items-center justify-between mb-2.5">
               <h4 className="text-[10px] font-black uppercase tracking-widest text-primary">Points & Waypoints</h4>
-              <select 
-                className="bg-transparent text-[10px] font-bold text-white/60 outline-none border-none cursor-pointer"
+              <select
+                className="bg-transparent text-[9px] font-bold text-white/60 outline-none border-none cursor-pointer"
                 onChange={(e) => setProfile(e.target.value)}
                 value={profile}
               >
@@ -1233,21 +1427,21 @@ export default function FoRoutePlanner({
                 <option value="foot">Walking</option>
               </select>
             </div>
-            
-            <div className="flex-1 overflow-auto space-y-2 pr-1 custom-scrollbar">
+
+            <div className="flex-1 overflow-auto space-y-1.5 pr-1 custom-scrollbar">
               {/* Point A */}
-              <div className="flex flex-col gap-2 rounded-xl bg-blue-500/10 border border-blue-500/20 p-3">
+              <div className="flex flex-col gap-1.5 rounded-xl bg-blue-500/10 border border-blue-500/20 p-2.5">
                 <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-lg bg-blue-500 flex items-center justify-center font-black text-white text-xs shadow-lg shadow-blue-500/20">A</div>
+                  <div className="h-7 w-7 rounded-lg bg-blue-500 flex items-center justify-center font-black text-white text-[11px] shadow-lg shadow-blue-500/20">A</div>
                   <div className="flex-1 min-w-0">
                     <p className="text-[9px] font-black uppercase text-blue-400">Titik A (Provider)</p>
                     <p className="text-[11px] font-mono text-white/90 truncate">{pointA ? `${pointA.lat.toFixed(5)}, ${pointA.lng.toFixed(5)}` : "Belum ditentukan"}</p>
                   </div>
                 </div>
-                
+
                 <div className="flex gap-2 items-center mt-1">
                   <input
-                    className="flex-1 bg-white/5 border border-white/10 rounded px-2 py-1 text-[10px] font-mono text-white outline-none focus:border-blue-500/50"
+                    className="flex-1 bg-white/5 border border-white/10 rounded px-2 py-1 text-[9px] font-mono text-white outline-none focus:border-blue-500/50"
                     onBlur={() => commitManualCoordinate("a")}
                     onChange={(e) => handleManualCoordinateChange("a", null, "lat", e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && commitManualCoordinate("a")}
@@ -1255,7 +1449,7 @@ export default function FoRoutePlanner({
                     value={manualInput["a-static-lat"] ?? (pointA?.lat ?? "")}
                   />
                   <input
-                    className="flex-1 bg-white/5 border border-white/10 rounded px-2 py-1 text-[10px] font-mono text-white outline-none focus:border-blue-500/50"
+                    className="flex-1 bg-white/5 border border-white/10 rounded px-2 py-1 text-[9px] font-mono text-white outline-none focus:border-blue-500/50"
                     onBlur={() => commitManualCoordinate("a")}
                     onChange={(e) => handleManualCoordinateChange("a", null, "lng", e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && commitManualCoordinate("a")}
@@ -1266,44 +1460,44 @@ export default function FoRoutePlanner({
               </div>
 
               {manualWaypoints.map((point, index) => (
-                <div key={point.id} className="group flex flex-col gap-2 rounded-xl bg-white/5 border border-white/10 p-3 hover:border-primary/30 transition">
+                <div key={point.id} className="group flex flex-col gap-1.5 rounded-xl bg-white/5 border border-white/10 p-2.5 hover:border-primary/30 transition">
                   <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-lg bg-emerald-500 flex items-center justify-center font-black text-white text-xs shadow-lg shadow-emerald-500/20">{index + 1}</div>
+                    <div className="h-7 w-7 rounded-lg bg-emerald-500 flex items-center justify-center font-black text-white text-[11px] shadow-lg shadow-emerald-500/20">{index + 1}</div>
                     <div className="flex-1 min-w-0">
-                      <input 
-                        className="bg-transparent w-full text-[11px] font-bold text-white outline-none mb-0.5"
+                      <input
+                        className="bg-transparent w-full text-[10px] font-bold text-white outline-none mb-0.5"
                         onChange={(e) => handleWaypointLabelChange(point.id, e.target.value)}
                         placeholder={`Waypoint ${index + 1}`}
                         value={point.label}
                       />
-                      <p className="text-[10px] font-mono text-white/50">{point.lat.toFixed(5)}, {point.lng.toFixed(5)}</p>
-                      </div>
-                      <div className="flex flex-col gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition">
-                      <button 
-                        className="p-1 text-white/40 hover:text-white hover:bg-white/10 rounded transition" 
+                      <p className="text-[9px] font-mono text-white/50">{point.lat.toFixed(5)}, {point.lng.toFixed(5)}</p>
+                    </div>
+                    <div className="flex flex-col gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition">
+                      <button
+                        className="p-1 text-white/40 hover:text-white hover:bg-white/10 rounded transition"
                         onClick={() => handleWaypointMove(point.id, "up")}
                         title="Pindahkan ke atas"
                         type="button"
                       >
                         <span className="material-symbols-outlined text-[14px]">keyboard_arrow_up</span>
                       </button>
-                      <button 
-                        className="p-1 text-white/40 hover:text-white hover:bg-white/10 rounded transition" 
+                      <button
+                        className="p-1 text-white/40 hover:text-white hover:bg-white/10 rounded transition"
                         onClick={() => handleWaypointMove(point.id, "down")}
                         title="Pindahkan ke bawah"
                         type="button"
                       >
                         <span className="material-symbols-outlined text-[14px]">keyboard_arrow_down</span>
                       </button>
-                      </div>
-                      <button className="opacity-100 sm:opacity-0 group-hover:opacity-100 p-1 text-rose-400 hover:bg-rose-500/20 rounded transition" onClick={() => handleWaypointDelete(point.id)}>
+                    </div>
+                    <button className="opacity-100 sm:opacity-0 group-hover:opacity-100 p-1 text-rose-400 hover:bg-rose-500/20 rounded transition" onClick={() => handleWaypointDelete(point.id)}>
                       <span className="material-symbols-outlined text-sm">delete</span>
                     </button>
                   </div>
-                  
+
                   <div className="flex gap-2 items-center mt-1">
                     <input
-                      className="flex-1 bg-white/5 border border-white/10 rounded px-2 py-1 text-[10px] font-mono text-white outline-none focus:border-emerald-500/50"
+                      className="flex-1 bg-white/5 border border-white/10 rounded px-2 py-1 text-[9px] font-mono text-white outline-none focus:border-emerald-500/50"
                       onBlur={() => commitManualCoordinate("waypoint", point.id)}
                       onChange={(e) => handleManualCoordinateChange("waypoint", point.id, "lat", e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && commitManualCoordinate("waypoint", point.id)}
@@ -1311,7 +1505,7 @@ export default function FoRoutePlanner({
                       value={manualInput[`waypoint-${point.id}-lat`] ?? point.lat}
                     />
                     <input
-                      className="flex-1 bg-white/5 border border-white/10 rounded px-2 py-1 text-[10px] font-mono text-white outline-none focus:border-emerald-500/50"
+                      className="flex-1 bg-white/5 border border-white/10 rounded px-2 py-1 text-[9px] font-mono text-white outline-none focus:border-emerald-500/50"
                       onBlur={() => commitManualCoordinate("waypoint", point.id)}
                       onChange={(e) => handleManualCoordinateChange("waypoint", point.id, "lng", e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && commitManualCoordinate("waypoint", point.id)}
@@ -1323,18 +1517,18 @@ export default function FoRoutePlanner({
               ))}
 
               {/* Point B */}
-              <div className="flex flex-col gap-2 rounded-xl bg-pink-500/10 border border-pink-500/20 p-3 mt-1">
+              <div className="flex flex-col gap-1.5 rounded-xl bg-pink-500/10 border border-pink-500/20 p-2.5 mt-1">
                 <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-lg bg-pink-500 flex items-center justify-center font-black text-white text-xs shadow-lg shadow-pink-500/20">B</div>
+                  <div className="h-7 w-7 rounded-lg bg-pink-500 flex items-center justify-center font-black text-white text-[11px] shadow-lg shadow-pink-500/20">B</div>
                   <div className="flex-1 min-w-0">
                     <p className="text-[9px] font-black uppercase text-pink-400">Titik B (Pelanggan)</p>
                     <p className="text-[11px] font-mono text-white/90 truncate">{pointB ? `${pointB.lat.toFixed(5)}, ${pointB.lng.toFixed(5)}` : "Belum ditentukan"}</p>
                   </div>
                 </div>
-                
+
                 <div className="flex gap-2 items-center">
                   <input
-                    className="flex-1 bg-white/5 border border-white/10 rounded px-2 py-1 text-[10px] font-mono text-white outline-none focus:border-pink-500/50"
+                    className="flex-1 bg-white/5 border border-white/10 rounded px-2 py-1 text-[9px] font-mono text-white outline-none focus:border-pink-500/50"
                     onBlur={() => commitManualCoordinate("b")}
                     onChange={(e) => handleManualCoordinateChange("b", null, "lat", e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && commitManualCoordinate("b")}
@@ -1342,7 +1536,7 @@ export default function FoRoutePlanner({
                     value={manualInput["b-static-lat"] ?? (pointB?.lat ?? "")}
                   />
                   <input
-                    className="flex-1 bg-white/5 border border-white/10 rounded px-2 py-1 text-[10px] font-mono text-white outline-none focus:border-pink-500/50"
+                    className="flex-1 bg-white/5 border border-white/10 rounded px-2 py-1 text-[9px] font-mono text-white outline-none focus:border-pink-500/50"
                     onBlur={() => commitManualCoordinate("b")}
                     onChange={(e) => handleManualCoordinateChange("b", null, "lng", e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && commitManualCoordinate("b")}
@@ -1353,19 +1547,76 @@ export default function FoRoutePlanner({
               </div>
             </div>
 
+            {/* Named Road Segments (from Valhalla) */}
+            {namedPlannerRoads.length > 0 && (
+              <div className="mt-2.5 rounded-xl border border-white/10 bg-white/5 p-2.5">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-sky-400">Ruas Jalan</p>
+                  <span className="rounded-full bg-sky-500/20 px-2 py-0.5 text-[9px] font-black text-sky-300">
+                    {namedPlannerRoads.length} ruas
+                  </span>
+                </div>
+                <div className="space-y-1 max-h-[140px] overflow-auto pr-1 custom-scrollbar">
+                  {namedPlannerRoads.map((road, index) => (
+                    <div
+                      key={road.id ?? `named-road-${index}`}
+                      className="flex items-center justify-between gap-2 rounded-lg bg-white/5 px-2.5 py-1.5"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="material-symbols-outlined text-[13px] text-sky-400 shrink-0">route</span>
+                        <p className="text-[10px] font-semibold text-white/90 truncate">{road.name}</p>
+                      </div>
+                      <span className="text-[9px] font-mono text-white/40 shrink-0">
+                        {Number.isFinite(Number(road.distance)) && Number(road.distance) > 0
+                          ? `${(Number(road.distance) / 1000).toFixed(2)} km`
+                          : ""}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Bottom Actions */}
-            <div className="mt-4 pt-4 border-t border-white/5 flex gap-2 shrink-0">
-              <button 
-                className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-black uppercase py-3 rounded-xl transition shadow-lg shadow-emerald-900/20 disabled:opacity-50" 
-                disabled={!pointA || !pointB || isCalculating} 
+            <div className="mt-3 pt-3 border-t border-white/5 space-y-1.5 shrink-0">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr_auto]">
+                <button
+                  className="bg-sky-600 hover:bg-sky-500 text-white text-[9px] font-black uppercase py-2.5 px-2.5 rounded-xl transition shadow-lg shadow-sky-900/20 disabled:opacity-50"
+                  disabled={!canGenerateRoute || isCalculating}
+                  onClick={() => void handleGenerateValhallaRoute()}
+                  type="button"
+                >
+                  {isCalculating ? "Calculating..." : "1. Buat Jalur Valhalla"}
+                </button>
+                <button
+                  className="bg-amber-500 hover:bg-amber-400 text-white text-[9px] font-black uppercase py-2.5 px-2.5 rounded-xl transition shadow-lg shadow-amber-900/20 disabled:opacity-50"
+                  disabled={!canGenerateManualRoute || isCalculating}
+                  onClick={handleGenerateManualRoute}
+                  type="button"
+                >
+                  1. Buat Custom Jalur
+                </button>
+                <button
+                  className="p-2.5 bg-white/5 border border-white/10 text-white/70 hover:text-white rounded-xl transition"
+                  onClick={handleResetPlanner}
+                  title="Reset"
+                  type="button"
+                >
+                  <span className="material-symbols-outlined text-sm">restart_alt</span>
+                </button>
+              </div>
+              <button
+                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-[9px] font-black uppercase py-2.5 rounded-xl transition shadow-lg shadow-emerald-900/20 disabled:opacity-50"
+                disabled={!routeData?.geometryCoordinates || routeData.geometryCoordinates.length < 2 || isCalculating}
                 onClick={handleApplyPlanner}
+                type="button"
               >
-                {isCalculating ? "Calculating..." : "Terapkan Jalur"}
-              </button>
-              <button className="p-3 bg-white/5 border border-white/10 text-white/70 hover:text-white rounded-xl transition" onClick={handleResetPlanner} title="Reset">
-                <span className="material-symbols-outlined text-sm">restart_alt</span>
+                2. Terapkan ke Draft Tenant
               </button>
             </div>
+            <p className="mt-2 text-[10px] text-white/55">
+              Set A, Set B, dan waypoint hanya menaruh titik. Garis baru muncul setelah Anda menekan tombol buat jalur, lalu hasilnya bisa diterapkan ke draft tenant.
+            </p>
           </section>
         </div>
       </aside>
@@ -1402,11 +1653,13 @@ export default function FoRoutePlanner({
         </button>
       </div>
 
-      {routeError && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] rounded-xl border border-rose-500/50 bg-rose-900/90 px-6 py-2 text-[10px] font-black uppercase tracking-widest text-white backdrop-blur-md shadow-2xl">
-          {routeError}
-        </div>
-      )}
-    </section>
+      {
+        routeError && (
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] rounded-xl border border-rose-500/50 bg-rose-900/90 px-6 py-2 text-[10px] font-black uppercase tracking-widest text-white backdrop-blur-md shadow-2xl">
+            {routeError}
+          </div>
+        )
+      }
+    </section >
   );
 }

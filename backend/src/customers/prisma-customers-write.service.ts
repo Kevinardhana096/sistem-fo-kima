@@ -28,6 +28,10 @@ import { CreateCustomerContractDto } from './dto/create-customer-contract.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { UpdateCustomerContractDto } from './dto/update-customer-contract.dto';
 import { UpdateCustomerInvoiceDto } from './dto/update-customer-invoice.dto';
+import {
+  ChangeCustomerRouteDto,
+  EditCustomerRouteDto,
+} from './dto/route-mutations.dto';
 
 type PrismaTx = Prisma.TransactionClient;
 type PrismaExecutor = PrismaTx | PrismaService;
@@ -2934,5 +2938,221 @@ export class PrismaCustomersWriteService {
     }
 
     return next.toISOString().slice(0, 10);
+  }
+
+  async changeRoute(
+    customerId: number,
+    payload: ChangeCustomerRouteDto,
+  ): Promise<number> {
+    const customer = await this.prisma.customer.findUnique({
+      where: { id: customerId },
+    });
+
+    if (!customer) {
+      throw new NotFoundException('Customer not found.');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const latestVersion = await tx.customerRouteVersion.findFirst({
+        where: { customerId },
+        orderBy: { versionNumber: 'desc' },
+        include: {
+          points: {
+            orderBy: { orderNumber: 'asc' },
+          },
+        },
+      });
+
+      const nextVersionNumber = latestVersion
+        ? latestVersion.versionNumber + 1
+        : 1;
+
+      const now = new Date();
+
+      const newVersion = await tx.customerRouteVersion.create({
+        data: {
+          customerId,
+          versionNumber: nextVersionNumber,
+          flowStatus: payload.flowStatus,
+          changeMode: 'ubah_jalur',
+          changeNote: payload.changeNote,
+          basedOnVersionId: latestVersion?.id ?? null,
+          createdAt: now,
+          updatedAt: now,
+          points: {
+            create: payload.points.map((p) => ({
+              pathName: p.pathName,
+              pointType: p.pointType,
+              note: p.note ?? null,
+              orderNumber: p.orderNumber ?? 0,
+              createdAt: now,
+              updatedAt: now,
+            })),
+          },
+        },
+        include: {
+          points: {
+            orderBy: { orderNumber: 'asc' },
+          },
+        },
+      });
+
+      const snapshotBefore = latestVersion
+        ? {
+            flowStatus: latestVersion.flowStatus,
+            points: latestVersion.points.map((p) => ({
+              orderNumber: p.orderNumber,
+              pathName: p.pathName,
+              pointType: p.pointType,
+              note: p.note,
+            })),
+          }
+        : {
+            flowStatus: RouteFlowStatus.Aktif,
+            points: [],
+          };
+
+      const snapshotAfter = {
+        flowStatus: newVersion.flowStatus,
+        points: newVersion.points.map((p) => ({
+          orderNumber: p.orderNumber,
+          pathName: p.pathName,
+          pointType: p.pointType,
+          note: p.note,
+        })),
+      };
+
+      await tx.customerRouteHistory.create({
+        data: {
+          customerId,
+          operation: 'replace',
+          note: payload.changeNote,
+          snapshotBefore: snapshotBefore as object,
+          snapshotAfter: snapshotAfter as object,
+          createdAt: now,
+        },
+      });
+
+      return customerId;
+    });
+  }
+
+  async editRoute(
+    customerId: number,
+    payload: EditCustomerRouteDto,
+  ): Promise<number> {
+    const customer = await this.prisma.customer.findUnique({
+      where: { id: customerId },
+    });
+
+    if (!customer) {
+      throw new NotFoundException('Customer not found.');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      let activeVersion = await tx.customerRouteVersion.findFirst({
+        where: { customerId },
+        orderBy: { versionNumber: 'desc' },
+      });
+
+      if (!activeVersion) {
+        const now = new Date();
+        activeVersion = await tx.customerRouteVersion.create({
+          data: {
+            customerId,
+            versionNumber: 1,
+            flowStatus: RouteFlowStatus.Aktif,
+            changeMode: 'initial',
+            changeNote: 'Inisiasi otomatis melalui edit cepat.',
+            basedOnVersionId: null,
+            createdAt: now,
+            updatedAt: now,
+          },
+        });
+      } else {
+        await tx.customerRouteVersion.update({
+          where: { id: activeVersion.id },
+          data: { updatedAt: new Date() },
+        });
+      }
+
+      switch (payload.operation) {
+        case 'add':
+          if (!payload.pathName || !payload.pointType) {
+            throw new BadRequestException(
+              'pathName and pointType are required for add operation.',
+            );
+          }
+          const existingPointsCount = await tx.customerRoutePoint.count({
+            where: { routeVersionId: activeVersion.id },
+          });
+          await tx.customerRoutePoint.create({
+            data: {
+              routeVersionId: activeVersion.id,
+              pathName: payload.pathName,
+              pointType: payload.pointType,
+              note: payload.note ?? null,
+              orderNumber: existingPointsCount + 1,
+            },
+          });
+          break;
+
+        case 'update':
+          if (!payload.pointId) {
+            throw new BadRequestException('pointId is required for update operation.');
+          }
+          const updateData: any = {};
+          if (payload.pathName !== undefined) updateData.pathName = payload.pathName;
+          if (payload.pointType !== undefined) updateData.pointType = payload.pointType;
+          if (payload.note !== undefined) updateData.note = payload.note;
+
+          await tx.customerRoutePoint.update({
+            where: { id: payload.pointId },
+            data: updateData,
+          });
+          break;
+
+        case 'delete':
+          if (!payload.pointId) {
+            throw new BadRequestException('pointId is required for delete operation.');
+          }
+          await tx.customerRoutePoint.delete({
+            where: { id: payload.pointId },
+          });
+          break;
+
+        case 'reorder':
+          if (
+            !payload.orderedPointIds ||
+            !Array.isArray(payload.orderedPointIds)
+          ) {
+            throw new BadRequestException(
+              'orderedPointIds array is required for reorder operation.',
+            );
+          }
+          for (let i = 0; i < payload.orderedPointIds.length; i++) {
+            await tx.customerRoutePoint.update({
+              where: { id: payload.orderedPointIds[i] },
+              data: { orderNumber: i + 1 },
+            });
+          }
+          break;
+
+        case 'status':
+          if (!payload.flowStatus) {
+            throw new BadRequestException('flowStatus is required for status operation.');
+          }
+          await tx.customerRouteVersion.update({
+            where: { id: activeVersion.id },
+            data: { flowStatus: payload.flowStatus },
+          });
+          break;
+
+        default:
+          throw new BadRequestException('Invalid operation.');
+      }
+
+      return customerId;
+    });
   }
 }

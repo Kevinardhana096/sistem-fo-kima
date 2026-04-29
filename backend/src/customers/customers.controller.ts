@@ -20,6 +20,10 @@ import { UploadContractVersionRenewalFileDto } from './dto/upload-contract-versi
 import { UpdateCustomerContractDto } from './dto/update-customer-contract.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { UpdateCustomerInvoiceDto } from './dto/update-customer-invoice.dto';
+import {
+  ChangeCustomerRouteDto,
+  EditCustomerRouteDto,
+} from './dto/route-mutations.dto';
 
 const buildUploadedFileDataUrl = (file?: Express.Multer.File): string => {
   const mimeType =
@@ -217,6 +221,22 @@ export class CustomersController {
     },
   ) {
     return this.customersService.removeCustomerIsps(customerId, payload);
+  }
+
+  @Post(':customerId/routes/change')
+  changeRoute(
+    @Param('customerId', ParseIntPipe) customerId: number,
+    @Body() payload: ChangeCustomerRouteDto,
+  ) {
+    return this.customersService.changeRoute(customerId, payload);
+  }
+
+  @Post(':customerId/routes/edit')
+  editRoute(
+    @Param('customerId', ParseIntPipe) customerId: number,
+    @Body() payload: EditCustomerRouteDto,
+  ) {
+    return this.customersService.editRoute(customerId, payload);
   }
 
   @Get(':customerId/todo-summary')

@@ -33,6 +33,135 @@ const ROUTE_OPERATION_LABEL_MAP = {
   commit: "Simpan Jalur",
 };
 
+const ROUTE_META_PREFIX = "[FO_ROUTE_META]";
+
+function encodeRoutePlannerMeta(routeMeta) {
+  if (!routeMeta || typeof routeMeta !== "object") {
+    return "";
+  }
+
+  try {
+    return `${ROUTE_META_PREFIX}${btoa(unescape(encodeURIComponent(JSON.stringify(routeMeta))))}`;
+  } catch {
+    return "";
+  }
+}
+
+function decodeRoutePlannerMeta(encodedValue) {
+  if (typeof encodedValue !== "string" || !encodedValue.trim()) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(decodeURIComponent(escape(atob(encodedValue.trim()))));
+  } catch {
+    return null;
+  }
+}
+
+function sanitizeRoutePlannerMeta(routeMeta) {
+  const geometryCoordinates = Array.isArray(routeMeta?.geometryCoordinates)
+    ? routeMeta.geometryCoordinates.filter(
+        (coordinate) =>
+          Array.isArray(coordinate) &&
+          coordinate.length >= 2 &&
+          Number.isFinite(Number(coordinate[0])) &&
+          Number.isFinite(Number(coordinate[1])),
+      )
+    : [];
+
+  return {
+    profile:
+      typeof routeMeta?.profile === "string" ? routeMeta.profile : undefined,
+    source: typeof routeMeta?.source === "string" ? routeMeta.source : "planner",
+    mode: typeof routeMeta?.mode === "string" ? routeMeta.mode : "manual",
+    distance: Number(routeMeta?.distance ?? 0),
+    duration: Number(routeMeta?.duration ?? 0),
+    geometryCoordinates,
+    roads: Array.isArray(routeMeta?.roads) ? routeMeta.roads : [],
+  };
+}
+
+function splitRoutePointNote(note) {
+  const rawNote = typeof note === "string" ? note : "";
+  const metadataIndex = rawNote.indexOf(ROUTE_META_PREFIX);
+
+  if (metadataIndex < 0) {
+    return {
+      displayNote: rawNote.trim(),
+      routeMeta: null,
+    };
+  }
+
+  const displayNote = rawNote.slice(0, metadataIndex).trim();
+  const routeMeta = decodeRoutePlannerMeta(
+    rawNote.slice(metadataIndex + ROUTE_META_PREFIX.length),
+  );
+
+  return {
+    displayNote,
+    routeMeta,
+  };
+}
+
+function mergeRoutePlannerMetaIntoNote(note, routeMeta) {
+  const { displayNote } = splitRoutePointNote(note);
+  const encodedMeta = encodeRoutePlannerMeta(sanitizeRoutePlannerMeta(routeMeta));
+
+  if (!encodedMeta) {
+    return displayNote;
+  }
+
+  return displayNote ? `${displayNote}\n${encodedMeta}` : encodedMeta;
+}
+
+function attachRoutePlannerMetaToDraftPoints(points, routeMeta) {
+  return (Array.isArray(points) ? points : []).map((point, index) => ({
+    ...point,
+    note:
+      index === 0
+        ? mergeRoutePlannerMetaIntoNote(point?.note, routeMeta)
+        : splitRoutePointNote(point?.note).displayNote,
+  }));
+}
+
+function extractRoutePlannerMetaFromPoints(points) {
+  for (const point of Array.isArray(points) ? points : []) {
+    const { routeMeta } = splitRoutePointNote(point?.note);
+    const normalizedMeta = sanitizeRoutePlannerMeta(routeMeta);
+    if (normalizedMeta.geometryCoordinates.length >= 2) {
+      return normalizedMeta;
+    }
+  }
+
+  return null;
+}
+
+function normalizeDraftRoutePoints(points) {
+  const sourcePoints = Array.isArray(points) ? points : [];
+
+  return sourcePoints.map((point, index) => ({
+    ...point,
+    id: point?.id ?? `draft-restored-${Date.now()}-${index}`,
+    pathName:
+      typeof point?.pathName === "string" && point.pathName.trim()
+        ? point.pathName.trim()
+        : `Titik ${index + 1}`,
+    pointType:
+      point?.pointType === "awal" ||
+      point?.pointType === "transit" ||
+      point?.pointType === "tujuan"
+        ? point.pointType
+        : index === 0
+          ? "awal"
+          : index === sourcePoints.length - 1
+            ? "tujuan"
+            : "transit",
+    note: typeof point?.note === "string" ? point.note : "",
+    orderNumber: Number(point?.orderNumber ?? index + 1),
+  }));
+}
+
 function TenantDetailPage({
   customer,
   contextIsp,
@@ -105,6 +234,7 @@ function TenantDetailPage({
   });
   const [editingRoutePointId, setEditingRoutePointId] = useState(null);
   const emptyStateStorageKey = `tenant-contract-empty-state-${customer.id}`;
+  const routeDraftStorageKey = `tenant-route-draft-${customer.id}`;
   const handleSelectTab = useCallback(
     (tabKey) => {
       setActiveTab(tabKey);
@@ -177,6 +307,71 @@ function TenantDetailPage({
     );
   }, [emptyBakRows, emptyContractNumberRows, emptyStateStorageKey]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    try {
+      const rawValue = window.localStorage.getItem(routeDraftStorageKey);
+      if (!rawValue) {
+        return;
+      }
+
+      const parsedValue = JSON.parse(rawValue);
+      const restoredPoints = normalizeDraftRoutePoints(parsedValue?.points);
+
+      if (restoredPoints.length < 2) {
+        window.localStorage.removeItem(routeDraftStorageKey);
+        return;
+      }
+
+      setDraftRoutePoints(restoredPoints);
+      setDraftRouteStatus(
+        parsedValue?.flowStatus === "nonaktif" ||
+          parsedValue?.flowStatus === "gangguan"
+          ? parsedValue.flowStatus
+          : "aktif",
+      );
+      setRouteChangeNote(
+        typeof parsedValue?.changeNote === "string" ? parsedValue.changeNote : "",
+      );
+      setRouteEditMode("ubah_jalur");
+      setIsRouteDrafting(true);
+      setRouteFeedback(
+        "Draft jalur FO sebelumnya dipulihkan. Anda bisa lanjut review atau aktifkan jalur baru.",
+      );
+    } catch {
+      window.localStorage.removeItem(routeDraftStorageKey);
+    }
+  }, [routeDraftStorageKey]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    if (!isRouteDrafting || draftRoutePoints.length < 2) {
+      window.localStorage.removeItem(routeDraftStorageKey);
+      return;
+    }
+
+    window.localStorage.setItem(
+      routeDraftStorageKey,
+      JSON.stringify({
+        flowStatus: draftRouteStatus,
+        changeNote: routeChangeNote,
+        points: draftRoutePoints,
+      }),
+    );
+  }, [
+    draftRoutePoints,
+    draftRouteStatus,
+    isRouteDrafting,
+    routeChangeNote,
+    routeDraftStorageKey,
+  ]);
+
   const tenantName = detail?.name ?? customer?.name;
   const isps = Array.isArray(detail?.isps) ? detail.isps : [];
   const contract = Array.isArray(detail?.contracts)
@@ -230,6 +425,8 @@ function TenantDetailPage({
     [detail?.route?.history],
   );
   const [expandedHistoryIds, setExpandedHistoryIds] = useState([]); // Default closed as requested
+  const previewSourcePoints =
+    isRouteDrafting && draftRoutePoints.length > 0 ? draftRoutePoints : routePoints;
 
   const activeAwalPoint =
     routePoints.find((point) => point.pointType === "awal") ?? null;
@@ -238,11 +435,32 @@ function TenantDetailPage({
   const transitPointIds = routePoints
     .filter((point) => point.pointType === "transit")
     .map((point) => point.id);
+  const activeRoutePlannerMeta = useMemo(
+    () => extractRoutePlannerMetaFromPoints(previewSourcePoints),
+    [previewSourcePoints],
+  );
+  const previewGeometryCoordinates =
+    activeRoutePlannerMeta?.geometryCoordinates ?? [];
+  const previewRoads = activeRoutePlannerMeta?.roads ?? [];
+  // Ruas jalan dari draft (setelah apply planner), unik & punya nama
+  const draftNamedRoads = useMemo(() => {
+    const draftMeta = extractRoutePlannerMetaFromPoints(draftRoutePoints);
+    const roads = Array.isArray(draftMeta?.roads) ? draftMeta.roads : [];
+    return roads.reduce((acc, road) => {
+      if (road?.name && road.name.trim() && !acc.some((r) => r.name === road.name)) {
+        const lowerName = road.name.toLowerCase();
+        if (lowerName !== "tanpa nama jalan" && !lowerName.includes("segmen manual")) {
+          acc.push(road);
+        }
+      }
+      return acc;
+    }, []);
+  }, [draftRoutePoints]);
   const previewRoutePoints = useMemo(
     () =>
-      routePoints
+      previewSourcePoints
         .map((point, index, list) => {
-          const noteText = String(point?.note ?? "");
+          const noteText = splitRoutePointNote(point?.note).displayNote;
           const coordinateMatch = noteText.match(
             /(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/,
           );
@@ -274,7 +492,7 @@ function TenantDetailPage({
           };
         })
         .filter(Boolean),
-    [routePoints],
+    [previewSourcePoints],
   );
   useEffect(() => {
     setContractNumberInput(String(contract?.contractNumber ?? ""));
@@ -1157,6 +1375,15 @@ function TenantDetailPage({
       return;
     }
 
+    const activePoints = isRouteDrafting ? draftRoutePoints : routePoints;
+    const editingPoint = activePoints.find(
+      (point) => String(point.id) === String(editingRoutePointId),
+    );
+    const normalizedNote = mergeRoutePlannerMetaIntoNote(
+      routePointForm.note,
+      splitRoutePointNote(editingPoint?.note).routeMeta,
+    );
+
     if (isRouteDrafting) {
       setRouteError(null);
       if (editingRoutePointId) {
@@ -1167,7 +1394,7 @@ function TenantDetailPage({
                   ...p,
                   pathName: normalizedPathName,
                   pointType: routePointForm.pointType,
-                  note: routePointForm.note,
+                  note: normalizedNote,
                 }
               : p,
           ),
@@ -1179,7 +1406,7 @@ function TenantDetailPage({
           id: Date.now(), // Temp ID
           pathName: normalizedPathName,
           pointType: routePointForm.pointType,
-          note: routePointForm.note,
+          note: routePointForm.note.trim(),
           orderNumber: draftRoutePoints.length + 1,
         };
         setDraftRoutePoints((prev) => [...prev, newPoint]);
@@ -1198,7 +1425,7 @@ function TenantDetailPage({
           pointId: editingRoutePointId,
           pathName: normalizedPathName,
           pointType: routePointForm.pointType,
-          note: routePointForm.note,
+          note: normalizedNote,
         },
         "Titik jalur berhasil diperbarui.",
       );
@@ -1210,7 +1437,7 @@ function TenantDetailPage({
         operation: "add",
         pathName: normalizedPathName,
         pointType: routePointForm.pointType,
-        note: routePointForm.note,
+        note: routePointForm.note.trim(),
       },
       "Titik jalur berhasil ditambahkan.",
     );
@@ -1258,6 +1485,9 @@ function TenantDetailPage({
       setRouteChangeNote("");
       setIsRouteDrafting(false);
       setDraftRoutePoints([]);
+      if (typeof window !== "undefined") {
+        window.localStorage.removeItem(routeDraftStorageKey);
+      }
       setRouteFeedback("Jalur baru berhasil disimpan dan dicatat ke riwayat.");
       await Promise.all([loadDetail(), onRefreshAll?.()]);
     } catch (requestError) {
@@ -1281,9 +1511,13 @@ function TenantDetailPage({
   const cancelDraftingSession = () => {
     setIsRouteDrafting(false);
     setDraftRoutePoints([]);
+    setRouteChangeNote("");
     setEditingRoutePointId(null);
     setRoutePointForm({ pathName: "", pointType: "transit", note: "" });
     setRouteError("");
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem(routeDraftStorageKey);
+    }
   };
 
   const handleDraftMove = (pointId, direction) => {
@@ -1400,7 +1634,7 @@ function TenantDetailPage({
     setRoutePointForm({
       pathName: point.pathName ?? "",
       pointType: point.pointType ?? "transit",
-      note: point.note ?? "",
+      note: splitRoutePointNote(point.note).displayNote,
     });
 
     // Scroll to form
@@ -1511,11 +1745,14 @@ function TenantDetailPage({
     setRouteEditMode("ubah_jalur");
     setEditingRoutePointId(null);
     setDraftRoutePoints(
-      plannedPoints.map((point, index) => ({
-        ...point,
-        id: point?.id ?? `draft-planner-${Date.now()}-${index}`,
-        orderNumber: index + 1,
-      })),
+      attachRoutePlannerMetaToDraftPoints(
+        plannedPoints.map((point, index) => ({
+          ...point,
+          id: point?.id ?? `draft-planner-${Date.now()}-${index}`,
+          orderNumber: index + 1,
+        })),
+        plannerMeta,
+      ),
     );
     setDraftRouteStatus(activeRouteStatus);
     if (!routeChangeNote.trim()) {
@@ -2128,6 +2365,8 @@ function TenantDetailPage({
           <div className="h-full w-full">
             <FoRoutePlanner
               disabled={routeBusy}
+              initialControlPoints={previewRoutePoints}
+              initialRouteMeta={activeRoutePlannerMeta}
               onApplyPlannedRoute={(plannedPoints, plannerMeta) => {
                 handleApplyPlannedRoute(plannedPoints, plannerMeta);
                 window.setTimeout(() => onBack?.(), 800);
@@ -2577,6 +2816,15 @@ function TenantDetailPage({
 
         {activeTab === "jalur" && (
           <div className="space-y-6">
+            <FoRoutePlanner
+              mode="preview"
+              onPreviewClick={() => onOpenRoutePlanner?.(detail ?? customer)}
+              previewGeometryCoordinates={previewGeometryCoordinates}
+              previewRoads={previewRoads}
+              previewPoints={previewRoutePoints}
+              providerIconUrl={isps[0]?.logoUrl || ""}
+            />
+
             {/* Header & Mode Selector */}
             <section className="rounded-2xl bg-surface-container-lowest p-6 shadow-sm border-l-4 border-amber-400">
               <div className="flex flex-wrap items-start justify-between gap-4">
@@ -2593,16 +2841,19 @@ function TenantDetailPage({
                 <div className="flex items-center gap-3">
                   {!isRouteDrafting ? (
                     <>
-                      <button
-                        className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition-all shadow-sm ${routeEditMode === "edit" ? "bg-primary text-white scale-105" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}
-                        onClick={() => setRouteEditMode("edit")}
-                        type="button"
-                      >
-                        <span className="material-symbols-outlined text-sm">
-                          edit_note
-                        </span>
-                        Edit Cepat
-                      </button>
+                      {!isPlannerJalurView && (
+                        <button
+                          className="flex items-center gap-2 rounded-xl bg-sky-600 px-4 py-2 text-sm font-bold text-white transition-all hover:bg-sky-700 shadow-sm hover:scale-105"
+                          onClick={() => onOpenRoutePlanner?.(detail ?? customer)}
+                          type="button"
+                        >
+                          <span className="material-symbols-outlined text-sm">
+                            route
+                          </span>
+                          1. Buka FO Planner
+                        </button>
+                      )}
+
                       <button
                         className="flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2 text-sm font-bold text-white transition-all hover:bg-amber-600 shadow-sm hover:scale-105"
                         onClick={startDraftingSession}
@@ -2640,7 +2891,7 @@ function TenantDetailPage({
                         <span className="material-symbols-outlined text-sm">
                           check_circle
                         </span>
-                        {routeBusy ? "Menyimpan..." : "Aktifkan Jalur Baru"}
+                        {routeBusy ? "Menyimpan..." : "2. Aktifkan Jalur Baru"}
                       </button>
                     </div>
                   )}
@@ -2690,136 +2941,15 @@ function TenantDetailPage({
               )}
             </section>
 
-            <FoRoutePlanner
-              mode="preview"
-              onPreviewClick={() => onOpenRoutePlanner?.(detail ?? customer)}
-              previewPoints={previewRoutePoints}
-              providerIconUrl={isps[0]?.logoUrl || ""}
-            />
-
-            <div className="flex flex-col gap-8">
-              <div className="space-y-8">
-                {/* Form Tambah/Edit Titik */}
-                <section
-                  id="route-point-form"
-                  className="rounded-2xl bg-surface-container-lowest p-6 shadow-sm"
-                >
-                  <h3 className="mb-4 text-sm font-bold text-on-surface flex items-center gap-2">
-                    <span className="material-symbols-outlined text-primary text-lg">
-                      add_location_alt
-                    </span>
-                    {editingRoutePointId
-                      ? "Update Titik Jalur"
-                      : "Tambah Titik Baru"}
-                  </h3>
-                  <form
-                    className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4"
-                    onSubmit={(event) => {
-                      void handleSubmitRoutePoint(event);
-                    }}
-                  >
-                    <div className="md:col-span-2">
-                      <label className="mb-1 block text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">
-                        Nama Jalan / Lintasan
-                      </label>
-                      <input
-                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-primary outline-none"
-                        disabled={!activeRouteId}
-                        onChange={(event) =>
-                          setRoutePointForm((previous) => ({
-                            ...previous,
-                            pathName: event.target.value,
-                          }))
-                        }
-                        placeholder="Contoh: Jl. Ahmad Yani - Manhole 04"
-                        type="text"
-                        value={routePointForm.pathName}
-                      />
-                    </div>
-                    <div className="md:col-span-2">
-                      <label className="mb-1 block text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">
-                        Jenis Titik
-                      </label>
-                      <div className="grid grid-cols-3 gap-2 rounded-lg border border-slate-200 bg-slate-50 p-1">
-                        {Object.entries(routePointTypeMeta).map(
-                          ([typeKey, meta]) => {
-                            const isDisabled =
-                              !activeRouteId ||
-                              (typeKey === "awal" &&
-                                Boolean(
-                                  activeAwalPoint &&
-                                  activeAwalPoint.id !== editingRoutePointId,
-                                )) ||
-                              (typeKey === "tujuan" &&
-                                Boolean(
-                                  activeTujuanPoint &&
-                                  activeTujuanPoint.id !== editingRoutePointId,
-                                ));
-
-                            const isActive =
-                              routePointForm.pointType === typeKey;
-
-                            return (
-                              <button
-                                key={typeKey}
-                                className={`rounded-md px-2 py-1.5 text-left transition-all ${isActive ? "bg-white shadow-sm ring-1 ring-primary/20" : "bg-transparent"} ${isDisabled ? "cursor-not-allowed opacity-40 grayscale" : "hover:bg-white/60"}`}
-                                disabled={isDisabled}
-                                onClick={() =>
-                                  setRoutePointForm((previous) => ({
-                                    ...previous,
-                                    pointType: typeKey,
-                                  }))
-                                }
-                                type="button"
-                              >
-                                <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-700">
-                                  <span className="material-symbols-outlined text-[14px]">
-                                    {meta.icon}
-                                  </span>
-                                  {meta.label}
-                                </div>
-                              </button>
-                            );
-                          },
-                        )}
-                      </div>
-                    </div>
-                    <div className="md:col-span-3">
-                      <label className="mb-1 block text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">
-                        Keterangan Teknis
-                      </label>
-                      <input
-                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-primary outline-none"
-                        disabled={!activeRouteId}
-                        onChange={(event) =>
-                          setRoutePointForm((previous) => ({
-                            ...previous,
-                            note: event.target.value,
-                          }))
-                        }
-                        placeholder="Catatan tambahan (opsional)"
-                        type="text"
-                        value={routePointForm.note}
-                      />
-                    </div>
-                    <div className="flex items-end">
-                      <button
-                        className={`w-full rounded-lg px-4 py-2 text-sm font-bold text-white transition-all shadow-sm ${editingRoutePointId ? "bg-amber-600 hover:bg-amber-700" : "bg-primary hover:bg-primary/90"} disabled:opacity-50`}
-                        disabled={routeBusy || !activeRouteId}
-                        type="submit"
-                      >
-                        {editingRoutePointId ? "Update" : "Tambah"}
-                      </button>
-                    </div>
-                  </form>
+              <div className="flex flex-col gap-8">
+                <div className="space-y-8">
                   {(routeError || routeFeedback) && (
-                    <div
-                      className={`mt-3 rounded-lg border px-3 py-2 text-xs font-semibold animate-in slide-in-from-top-2 duration-300 ${routeError ? "border-rose-200 bg-rose-50 text-rose-700" : "border-emerald-200 bg-emerald-50 text-emerald-700"}`}
-                    >
-                      {routeError || routeFeedback}
-                    </div>
-                  )}
-                </section>
+                  <div
+                    className={`rounded-lg border px-4 py-3 text-sm font-semibold animate-in slide-in-from-top-2 duration-300 shadow-sm ${routeError ? "border-rose-200 bg-rose-50 text-rose-700" : "border-emerald-200 bg-emerald-50 text-emerald-700"}`}
+                  >
+                    {routeError || routeFeedback}
+                  </div>
+                )}
 
                 {/* Tabel Titik Jalur */}
                 <section className="rounded-2xl bg-surface-container-lowest p-6 shadow-sm overflow-hidden">
@@ -2901,7 +3031,7 @@ function TenantDetailPage({
                                 </span>
                               </td>
                               <td className="px-4 py-4 text-[11px] text-on-surface-variant italic">
-                                {point.note || "-"}
+                                {splitRoutePointNote(point.note).displayNote || "-"}
                               </td>
                               <td className="px-4 py-4 text-right">
                                 <div className="inline-flex items-center gap-1">
@@ -2976,6 +3106,57 @@ function TenantDetailPage({
                     </table>
                   </div>
                 </section>
+
+                {/* Daftar Ruas Jalan dari Jalur Draft */}
+                {isRouteDrafting && draftNamedRoads.length > 0 && (
+                  <section className="rounded-2xl bg-surface-container-lowest p-6 shadow-sm overflow-hidden">
+                    <h3 className="mb-4 text-sm font-bold text-on-surface flex items-center gap-2">
+                      <span className="material-symbols-outlined text-sky-500 text-lg">
+                        route
+                      </span>
+                      Ruas Jalan (Draft)
+                      <span className="ml-auto rounded-full bg-sky-100 px-2.5 py-0.5 text-[10px] font-black text-sky-700">
+                        {draftNamedRoads.length} ruas
+                      </span>
+                    </h3>
+                    <div className="overflow-x-auto">
+                      <table className="w-full border-collapse">
+                        <thead>
+                          <tr className="border-b border-slate-100 bg-slate-50/50">
+                            <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-wider text-on-surface-variant">#</th>
+                            <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-wider text-on-surface-variant">Nama Jalan</th>
+                            <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-wider text-on-surface-variant">Instruksi</th>
+                            <th className="px-4 py-3 text-right text-[11px] font-black uppercase tracking-wider text-on-surface-variant">Jarak</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-50">
+                          {draftNamedRoads.map((road, index) => (
+                            <tr
+                              key={road?.id ?? `draft-road-${index}`}
+                              className="bg-white hover:bg-slate-50/50 transition-colors"
+                            >
+                              <td className="px-4 py-3 text-sm font-bold text-slate-400">{index + 1}</td>
+                              <td className="px-4 py-3 text-sm font-semibold text-on-surface">
+                                <div className="flex items-center gap-2">
+                                  <span className="material-symbols-outlined text-[14px] text-sky-500">route</span>
+                                  {road.name}
+                                </div>
+                              </td>
+                              <td className="px-4 py-3 text-xs text-on-surface-variant italic">
+                                {road?.instruction || "-"}
+                              </td>
+                              <td className="px-4 py-3 text-right text-xs font-mono font-semibold text-slate-500">
+                                {Number.isFinite(Number(road?.distance)) && Number(road.distance) > 0
+                                  ? `${(Number(road.distance) / 1000).toFixed(2)} km`
+                                  : "-"}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </section>
+                )}
               </div>
 
               {/* Separator Section */}
