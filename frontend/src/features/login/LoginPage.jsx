@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import heroImage from "../../assets/hero.png";
 import { FieldInput } from "../../components/shared/AppShared";
 
 function normalizeWhatsAppNumber(rawNumber) {
@@ -32,7 +31,7 @@ export default function LoginPage({ onLoginSuccess }) {
     return (
         <div
             className="min-h-screen bg-cover bg-center"
-            style={{ backgroundImage: `url(${heroImage})` }}
+            style={{ backgroundImage: "url(/kima1.jpeg)" }}
         >
             <div className="min-h-screen bg-slate-950/40 px-4 py-10">
                 <div className="mx-auto flex w-full max-w-5xl items-center justify-center">
@@ -46,7 +45,7 @@ export default function LoginPage({ onLoginSuccess }) {
                                         <img
                                             alt="Logo perusahaan"
                                             className="h-28 w-28 rounded-3xl object-contain"
-                                            src={heroImage}
+                                            src="/logo-kima.png"
                                         />
                                         <div className="text-center">
                                             <p className="text-xs font-black uppercase tracking-widest text-on-surface-variant/60">
@@ -181,7 +180,7 @@ export default function LoginPage({ onLoginSuccess }) {
                                         <img
                                             alt="Logo perusahaan"
                                             className="h-28 w-28 rounded-3xl object-contain"
-                                            src={heroImage}
+                                            src="/logo-kima.png"
                                         />
                                         <p className="text-xs font-black uppercase tracking-widest text-on-surface-variant/60">
                                             Support
