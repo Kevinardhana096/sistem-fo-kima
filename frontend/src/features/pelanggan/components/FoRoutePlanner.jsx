@@ -342,15 +342,15 @@ export default function FoRoutePlanner({
   const [manualWaypoints, setManualWaypoints] = useState([]);
   const [customRouteMode, setCustomRouteMode] = useState(false);
   const [routeData, setRouteData] = useState(null);
-  const [isCalculating, setIsCalculating] = useState(false);
+  const [_isCalculating, setIsCalculating] = useState(false);
   const [routeError, setRouteError] = useState("");
   const [toasts, setToasts] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
-  const [searchError, setSearchError] = useState("");
+  const [_searchError, setSearchError] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [flyTarget, setFlyTarget] = useState(null);
-  const [manualInput, setManualInput] = useState({
+  const [manualInput, _setManualInput] = useState({
     aLat: "",
     aLng: "",
     bLat: "",
@@ -736,7 +736,7 @@ export default function FoRoutePlanner({
     );
   };
 
-  const handleWaypointMove = (pointId, direction) => {
+  const _handleWaypointMove = (pointId, direction) => {
     setManualWaypoints((previous) => {
       const index = previous.findIndex((point) => point.id === pointId);
       if (index < 0) {
@@ -761,7 +761,7 @@ export default function FoRoutePlanner({
     );
   };
 
-  const handleManualInputApply = (role) => {
+  const _handleManualInputApply = (role) => {
     const latKey = role === "a" ? "aLat" : role === "b" ? "bLat" : "wLat";
     const lngKey = role === "a" ? "aLng" : role === "b" ? "bLng" : "wLng";
     const lat = Number(manualInput[latKey]);

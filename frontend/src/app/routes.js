@@ -1,4 +1,5 @@
 export const APP_PATHS = {
+    login: "/login",
     dashboard: "/dashboard",
     customers: "/customers",
     customerCreate: "/customers/new",
@@ -47,6 +48,10 @@ export function parseAppRoute(pathname, search) {
 
     if (normalizedPath === "/") {
         return { type: "redirect", to: APP_PATHS.customers };
+    }
+
+    if (normalizedPath === APP_PATHS.login) {
+        return { type: "login" };
     }
 
     if (normalizedPath === APP_PATHS.dashboard) {

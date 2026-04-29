@@ -7,6 +7,7 @@ import IspDetailPage from "./features/pelanggan/IspDetailPage";
 import TenantDetailPage from "./features/pelanggan/TenantDetailPage";
 import TenantAdminFormPage from "./features/pelanggan/TenantAdminFormPage";
 import IspAdminFormPage from "./features/pelanggan/IspAdminFormPage";
+import LoginPage from "./features/login/LoginPage";
 import { sectionMeta } from "./app/constants";
 import { API_BASE_URL, fetchJson, mapCustomerToRow } from "./app/utils";
 import {
@@ -311,6 +312,16 @@ function App() {
                 activeSection={activeSection}
                 onNavigate={handleNavigate}
                 message="Mengarahkan ke halaman pelanggan..."
+            />
+        );
+    }
+
+    if (route.type === "login") {
+        return (
+            <LoginPage
+                onLoginSuccess={() => {
+                    navigateTo(APP_PATHS.customers, { replace: true });
+                }}
             />
         );
     }

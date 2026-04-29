@@ -5,7 +5,6 @@ import { invoiceStatusLabelMap, monitoringMonths } from "../../app/constants";
 import {
     API_BASE_URL,
     fetchJson,
-    formatContractPeriod,
     formatCoreAllocation,
     formatCurrency,
     formatDate,
