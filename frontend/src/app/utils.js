@@ -1,3 +1,18 @@
+const normalizeApiOrigin = (value) => {
+    const normalizedValue = value.replace(/\/$/, "");
+
+    try {
+        const parsedUrl = new URL(normalizedValue);
+        if (parsedUrl.hostname === "0.0.0.0" || parsedUrl.hostname === "::") {
+            parsedUrl.hostname = "localhost";
+        }
+
+        return parsedUrl.toString().replace(/\/$/, "");
+    } catch {
+        return normalizedValue;
+    }
+};
+
 const resolveApiBaseUrl = () => {
     const envBaseUrl = typeof import.meta.env.VITE_API_BASE_URL === "string"
         ? import.meta.env.VITE_API_BASE_URL.trim()
@@ -6,12 +21,15 @@ const resolveApiBaseUrl = () => {
     const fallbackHost = typeof window !== "undefined" && window.location?.hostname
         ? window.location.hostname
         : "localhost";
+    const safeFallbackHost = fallbackHost === "0.0.0.0" || fallbackHost === "::"
+        ? "localhost"
+        : fallbackHost;
     const fallbackProtocol = typeof window !== "undefined" && window.location?.protocol === "https:"
         ? "https:"
         : "http:";
 
-    const fallbackBaseUrl = `${fallbackProtocol}//${fallbackHost}:4000`;
-    const normalizedBaseUrl = (envBaseUrl || fallbackBaseUrl).replace(/\/$/, "");
+    const fallbackBaseUrl = `${fallbackProtocol}//${safeFallbackHost}:4000`;
+    const normalizedBaseUrl = normalizeApiOrigin(envBaseUrl || fallbackBaseUrl);
 
     // Keep fetch calls consistent with `${API_BASE_URL}/api/...` even when env includes `/api`.
     return normalizedBaseUrl.endsWith("/api")

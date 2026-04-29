@@ -641,19 +641,39 @@ function MonitoringSpreadsheetPage({ activeSection, onNavigate, ispOptions, onOp
 
                 <section className="overflow-hidden rounded-xl border border-slate-100 bg-white shadow-sm max-w-full">
                     <div className="overflow-x-auto max-w-full">
-                        <table className="w-full min-w-[2400px] border-collapse text-[13px]">
+                        <table className="w-full min-w-[2400px] table-fixed border-collapse text-[13px]">
+                            <colgroup>
+                                <col style={{ width: "64px" }} />
+                                <col style={{ width: "160px" }} />
+                                <col style={{ width: "240px" }} />
+                                <col style={{ width: "200px" }} />
+                                <col style={{ width: "120px" }} />
+                                <col style={{ width: "120px" }} />
+                                <col style={{ width: "150px" }} />
+                                <col style={{ width: "100px" }} />
+                                <col style={{ width: "180px" }} />
+                                <col style={{ width: "180px" }} />
+                                <col style={{ width: "180px" }} />
+                                <col style={{ width: "160px" }} />
+                                <col style={{ width: "160px" }} />
+                                <col style={{ width: "200px" }} />
+                                {monitoringMonths.map((month) => (
+                                    <col key={`month-${month}`} style={{ width: "48px" }} />
+                                ))}
+                            </colgroup>
                             <thead>
                                 <tr className="bg-slate-50">
-                                    <th rowSpan="2" className="sticky left-0 top-0 z-30 w-[64px] px-4 py-4 text-left font-bold uppercase tracking-tighter text-blue-900 bg-slate-50 border-b border-r border-slate-200">
+                                    <th rowSpan="2" className="relative sticky left-0 top-0 z-30 w-[64px] pl-2 pr-0 py-4 text-left font-bold uppercase tracking-tighter text-blue-900 bg-slate-50 border-b border-slate-200">
                                         No
                                     </th>
-                                    <th rowSpan="2" className="sticky left-[64px] top-0 z-30 w-[160px] px-4 py-4 text-left font-bold uppercase tracking-tighter text-blue-900 bg-slate-50 border-b border-r border-slate-200">
+                                    <th rowSpan="2" className="relative sticky left-[64px] top-0 z-30 -ml-px w-[160px] pl-0 pr-0 py-4 text-left font-bold uppercase tracking-tighter text-blue-900 bg-slate-50 border-b border-slate-200">
                                         Nama ISP
                                     </th>
-                                    <th rowSpan="2" className="sticky left-[224px] top-0 z-30 w-[240px] px-4 py-4 text-left font-bold uppercase tracking-tighter text-blue-900 bg-slate-50 border-b border-r-2 border-slate-300">
+                                    <th rowSpan="2" className="relative sticky left-[224px] top-0 z-30 -ml-px w-[240px] pl-0 pr-2 py-4 text-left font-bold uppercase tracking-tighter text-blue-900 bg-slate-50 border-b border-slate-200">
                                         Nama Pelanggan
+                                        <span className="absolute right-0 top-0 h-full w-px bg-slate-200" />
                                     </th>
-                                    <th rowSpan="2" className="w-[200px] px-4 py-4 text-left font-bold uppercase tracking-tighter text-blue-900 border-b border-r border-slate-200">
+                                    <th rowSpan="2" className="w-[200px] px-4 py-4 text-center font-bold uppercase tracking-tighter text-blue-900 border-b border-r border-slate-200">
                                         Periode Awal
                                     </th>
                                     <th colSpan="2" className="px-4 py-3 text-center font-bold uppercase tracking-tighter text-blue-900 border-b border-r border-slate-200">
@@ -662,7 +682,7 @@ function MonitoringSpreadsheetPage({ activeSection, onNavigate, ispOptions, onOp
                                     <th rowSpan="2" className="w-[150px] px-4 py-4 text-left font-bold uppercase tracking-tighter text-blue-900 border-b border-r border-slate-200">
                                         Paket
                                     </th>
-                                    <th rowSpan="2" className="w-[100px] px-4 py-4 text-left font-bold uppercase tracking-tighter text-blue-900 border-b border-r border-slate-200">
+                                    <th rowSpan="2" className="w-[100px] px-4 py-4 text-center font-bold uppercase tracking-tighter text-blue-900 border-b border-r border-slate-200">
                                         Jumlah
                                     </th>
                                     <th rowSpan="2" className="w-[180px] px-4 py-4 text-left font-bold uppercase tracking-tighter text-blue-900 border-b border-r border-slate-200">
@@ -674,10 +694,10 @@ function MonitoringSpreadsheetPage({ activeSection, onNavigate, ispOptions, onOp
                                     <th rowSpan="2" className="w-[180px] px-6 py-4 text-left font-bold uppercase tracking-tighter text-blue-900 border-b border-r border-slate-200">
                                         Sisa Sewa
                                     </th>
-                                    <th rowSpan="2" className="w-[160px] px-6 py-4 text-left font-bold uppercase tracking-tighter text-blue-900 border-b border-r border-slate-200">
+                                    <th rowSpan="2" className="w-[160px] px-6 py-4 text-center font-bold uppercase tracking-tighter text-blue-900 border-b border-r border-slate-200">
                                         St. Kontrak
                                     </th>
-                                    <th rowSpan="2" className="w-[160px] px-6 py-4 text-left font-bold uppercase tracking-tighter text-blue-900 border-b border-r border-slate-200">
+                                    <th rowSpan="2" className="w-[160px] px-6 py-4 text-center font-bold uppercase tracking-tighter text-blue-900 border-b border-r border-slate-200">
                                         St. Jalur
                                     </th>
                                     <th rowSpan="2" className="w-[200px] px-6 py-4 text-left font-bold uppercase tracking-tighter text-blue-900 border-b border-r border-slate-200">
@@ -724,13 +744,13 @@ function MonitoringSpreadsheetPage({ activeSection, onNavigate, ispOptions, onOp
 
                                 {!isLoading && filteredRows.map((row, rowIndex) => (
                                     <tr key={`${row.customerId}-${rowIndex}`} className="bg-white transition-colors group">
-                                        <td className="sticky left-0 z-20 w-[64px] px-4 py-4 font-medium text-slate-400 text-center bg-white group-hover:bg-slate-50 transition-colors border-r border-slate-200">
+                                        <td className="relative sticky left-0 z-20 w-[64px] pl-2 pr-0 py-4 font-medium text-slate-400 text-center bg-white group-hover:bg-slate-50 transition-colors">
                                             {String(rowIndex + 1).padStart(2, "0")}
                                         </td>
-                                        <td className="sticky left-[64px] z-20 w-[160px] px-4 py-4 font-bold text-blue-900 bg-white group-hover:bg-slate-50 transition-colors border-r border-slate-200">
+                                        <td className="relative sticky left-[64px] z-20 -ml-px w-[160px] pl-0 pr-0 py-4 font-bold text-blue-900 bg-white group-hover:bg-slate-50 transition-colors">
                                             {row.ispName}
                                         </td>
-                                        <td className="sticky left-[224px] z-20 w-[240px] px-4 py-4 bg-white group-hover:bg-slate-50 transition-colors border-r-2 border-slate-300">
+                                        <td className="relative sticky left-[224px] z-20 -ml-px w-[240px] pl-0 pr-2 py-4 bg-white group-hover:bg-slate-50 transition-colors">
                                             <p className="font-semibold text-slate-700 truncate max-w-[200px]">{row.customerName}</p>
                                             <button
                                                 className="mt-1 inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline"
@@ -740,8 +760,9 @@ function MonitoringSpreadsheetPage({ activeSection, onNavigate, ispOptions, onOp
                                                 <span className="material-symbols-outlined text-sm">open_in_new</span>
                                                 Detail
                                             </button>
+                                            <span className="absolute right-0 top-0 h-full w-px bg-slate-200" />
                                         </td>
-                                        <td className="px-4 py-4 text-on-surface-variant group-hover:bg-slate-50 transition-colors border-r border-slate-200">
+                                        <td className="px-4 py-4 text-on-surface-variant text-center group-hover:bg-slate-50 transition-colors border-r border-slate-200">
                                             {formatDate(row.ispContractStart)}
                                         </td>
                                         <td className="px-4 py-4 text-on-surface-variant group-hover:bg-slate-50 transition-colors border-r border-slate-200">
@@ -753,7 +774,7 @@ function MonitoringSpreadsheetPage({ activeSection, onNavigate, ispOptions, onOp
                                         <td className="px-4 py-4 text-on-surface-variant transition-colors group-hover:bg-slate-50 border-r border-slate-200">
                                             {toTitleCase(row.coreType)}
                                         </td>
-                                        <td className="px-4 py-4 text-on-surface-variant transition-colors group-hover:bg-slate-50 border-r border-slate-200">
+                                        <td className="px-4 py-4 text-on-surface-variant text-center transition-colors group-hover:bg-slate-50 border-r border-slate-200">
                                             {row.coreTotal ?? "-"}
                                         </td>
                                         <td className="px-4 py-4 text-on-surface-variant font-mono text-[11px] transition-colors group-hover:bg-slate-50 border-r border-slate-200">
@@ -781,7 +802,7 @@ function MonitoringSpreadsheetPage({ activeSection, onNavigate, ispOptions, onOp
                                                 return <span className="font-semibold text-blue-700">{remainingDays} hari lagi</span>;
                                             })()}
                                         </td>
-                                        <td className="px-6 py-4 transition-colors group-hover:bg-slate-50 border-r border-slate-200">
+                                        <td className="px-6 py-4 text-center transition-colors group-hover:bg-slate-50 border-r border-slate-200">
                                             {(() => {
                                                 const remainingDays = getRemainingRentalDays(row.contractEnd);
                                                 let label = "Beroperasi";
@@ -802,7 +823,7 @@ function MonitoringSpreadsheetPage({ activeSection, onNavigate, ispOptions, onOp
                                                 );
                                             })()}
                                         </td>
-                                        <td className="px-6 py-4 transition-colors group-hover:bg-slate-50 border-r border-slate-200">
+                                        <td className="px-6 py-4 text-center transition-colors group-hover:bg-slate-50 border-r border-slate-200">
                                             {(() => {
                                                 const status = row.routeStatus ?? "aktif";
                                                 const style = {
