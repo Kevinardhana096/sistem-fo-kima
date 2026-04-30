@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -252,5 +253,18 @@ export class CustomersController {
   @Get(':customerId/timeline')
   getTimeline(@Param('customerId', ParseIntPipe) customerId: number) {
     return this.customersService.getTimeline(customerId);
+  }
+
+  @Delete(':customerId/routes/history/:historyId')
+  deleteRouteHistory(
+    @Param('customerId', ParseIntPipe) customerId: number,
+    @Param('historyId', ParseIntPipe) historyId: number,
+  ) {
+    return this.customersService.deleteRouteHistory(customerId, historyId);
+  }
+
+  @Delete(':customerId/routes/history')
+  deleteAllRouteHistory(@Param('customerId', ParseIntPipe) customerId: number) {
+    return this.customersService.deleteAllRouteHistory(customerId);
   }
 }

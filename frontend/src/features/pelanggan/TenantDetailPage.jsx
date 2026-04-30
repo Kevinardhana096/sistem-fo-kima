@@ -442,20 +442,28 @@ function TenantDetailPage({
   const previewGeometryCoordinates =
     activeRoutePlannerMeta?.geometryCoordinates ?? [];
   const previewRoads = activeRoutePlannerMeta?.roads ?? [];
-  // Ruas jalan dari draft (setelah apply planner), unik & punya nama
-  const draftNamedRoads = useMemo(() => {
-    const draftMeta = extractRoutePlannerMetaFromPoints(draftRoutePoints);
-    const roads = Array.isArray(draftMeta?.roads) ? draftMeta.roads : [];
+  // Ruas jalan yang unik & punya nama, mendukung draft maupun aktif
+  const displayNamedRoads = useMemo(() => {
+    const roads = Array.isArray(activeRoutePlannerMeta?.roads)
+      ? activeRoutePlannerMeta.roads
+      : [];
     return roads.reduce((acc, road) => {
-      if (road?.name && road.name.trim() && !acc.some((r) => r.name === road.name)) {
+      if (
+        road?.name &&
+        road.name.trim() &&
+        !acc.some((r) => r.name === road.name)
+      ) {
         const lowerName = road.name.toLowerCase();
-        if (lowerName !== "tanpa nama jalan" && !lowerName.includes("segmen manual")) {
+        if (
+          lowerName !== "tanpa nama jalan" &&
+          !lowerName.includes("segmen manual")
+        ) {
           acc.push(road);
         }
       }
       return acc;
     }, []);
-  }, [draftRoutePoints]);
+  }, [activeRoutePlannerMeta]);
   const previewRoutePoints = useMemo(
     () =>
       previewSourcePoints
@@ -3107,38 +3115,50 @@ function TenantDetailPage({
                   </div>
                 </section>
 
-                {/* Daftar Ruas Jalan dari Jalur Draft */}
-                {isRouteDrafting && draftNamedRoads.length > 0 && (
+                {/* Daftar Ruas Jalan */}
+                {displayNamedRoads.length > 0 && (
                   <section className="rounded-2xl bg-surface-container-lowest p-6 shadow-sm overflow-hidden">
                     <h3 className="mb-4 text-sm font-bold text-on-surface flex items-center gap-2">
                       <span className="material-symbols-outlined text-sky-500 text-lg">
                         route
                       </span>
-                      Ruas Jalan (Draft)
+                      Ruas Jalan {isRouteDrafting ? "(DRAFT)" : "Aktif"}
                       <span className="ml-auto rounded-full bg-sky-100 px-2.5 py-0.5 text-[10px] font-black text-sky-700">
-                        {draftNamedRoads.length} ruas
+                        {displayNamedRoads.length} ruas
                       </span>
                     </h3>
                     <div className="overflow-x-auto">
                       <table className="w-full border-collapse">
                         <thead>
                           <tr className="border-b border-slate-100 bg-slate-50/50">
-                            <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-wider text-on-surface-variant">#</th>
-                            <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-wider text-on-surface-variant">Nama Jalan</th>
-                            <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-wider text-on-surface-variant">Instruksi</th>
-                            <th className="px-4 py-3 text-right text-[11px] font-black uppercase tracking-wider text-on-surface-variant">Jarak</th>
+                            <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-wider text-on-surface-variant">
+                              #
+                            </th>
+                            <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-wider text-on-surface-variant">
+                              Nama Jalan
+                            </th>
+                            <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-wider text-on-surface-variant">
+                              Instruksi
+                            </th>
+                            <th className="px-4 py-3 text-right text-[11px] font-black uppercase tracking-wider text-on-surface-variant">
+                              Jarak
+                            </th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50">
-                          {draftNamedRoads.map((road, index) => (
+                          {displayNamedRoads.map((road, index) => (
                             <tr
-                              key={road?.id ?? `draft-road-${index}`}
+                              key={road?.id ?? `display-road-${index}`}
                               className="bg-white hover:bg-slate-50/50 transition-colors"
                             >
-                              <td className="px-4 py-3 text-sm font-bold text-slate-400">{index + 1}</td>
+                              <td className="px-4 py-3 text-sm font-bold text-slate-400">
+                                {index + 1}
+                              </td>
                               <td className="px-4 py-3 text-sm font-semibold text-on-surface">
                                 <div className="flex items-center gap-2">
-                                  <span className="material-symbols-outlined text-[14px] text-sky-500">route</span>
+                                  <span className="material-symbols-outlined text-[14px] text-sky-500">
+                                    route
+                                  </span>
                                   {road.name}
                                 </div>
                               </td>
@@ -3146,7 +3166,8 @@ function TenantDetailPage({
                                 {road?.instruction || "-"}
                               </td>
                               <td className="px-4 py-3 text-right text-xs font-mono font-semibold text-slate-500">
-                                {Number.isFinite(Number(road?.distance)) && Number(road.distance) > 0
+                                {Number.isFinite(Number(road?.distance)) &&
+                                Number(road.distance) > 0
                                   ? `${(Number(road.distance) / 1000).toFixed(2)} km`
                                   : "-"}
                               </td>

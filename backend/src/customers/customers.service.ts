@@ -178,6 +178,14 @@ export class CustomersService {
     return this.prismaRead.getTimeline(customerId);
   }
 
+  async deleteRouteHistory(customerId: number, historyId: number) {
+    return this.prismaWrite.deleteRouteHistory(customerId, historyId);
+  }
+
+  async deleteAllRouteHistory(customerId: number) {
+    return this.prismaWrite.deleteAllRouteHistory(customerId);
+  }
+
   private normalizeRequiredString(value: unknown, field: string): string {
     if (typeof value !== 'string') {
       throw new BadRequestException(`${field} must be a string.`);

@@ -3155,4 +3155,28 @@ export class PrismaCustomersWriteService {
       return customerId;
     });
   }
+
+  async deleteRouteHistory(customerId: number, historyId: number): Promise<{ deletedId: number }> {
+    const history = await this.prisma.customerRouteHistory.findFirst({
+      where: { id: historyId, customerId },
+    });
+
+    if (!history) {
+      throw new NotFoundException('Route history not found.');
+    }
+
+    await this.prisma.customerRouteHistory.delete({
+      where: { id: historyId },
+    });
+
+    return { deletedId: historyId };
+  }
+
+  async deleteAllRouteHistory(customerId: number): Promise<{ deletedCount: number }> {
+    const result = await this.prisma.customerRouteHistory.deleteMany({
+      where: { customerId },
+    });
+
+    return { deletedCount: result.count };
+  }
 }

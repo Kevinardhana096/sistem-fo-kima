@@ -1459,92 +1459,145 @@ export default function FoRoutePlanner({
                 </div>
               </div>
 
-              {manualWaypoints.map((point, index) => (
-                <div key={point.id} className="group flex flex-col gap-1.5 rounded-xl bg-white/5 border border-white/10 p-2.5 hover:border-primary/30 transition">
-                  <div className="flex items-center gap-3">
-                    <div className="h-7 w-7 rounded-lg bg-emerald-500 flex items-center justify-center font-black text-white text-[11px] shadow-lg shadow-emerald-500/20">{index + 1}</div>
-                    <div className="flex-1 min-w-0">
-                      <input
-                        className="bg-transparent w-full text-[10px] font-bold text-white outline-none mb-0.5"
-                        onChange={(e) => handleWaypointLabelChange(point.id, e.target.value)}
-                        placeholder={`Waypoint ${index + 1}`}
-                        value={point.label}
-                      />
-                      <p className="text-[9px] font-mono text-white/50">{point.lat.toFixed(5)}, {point.lng.toFixed(5)}</p>
-                    </div>
-                    <div className="flex flex-col gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition">
-                      <button
-                        className="p-1 text-white/40 hover:text-white hover:bg-white/10 rounded transition"
-                        onClick={() => handleWaypointMove(point.id, "up")}
-                        title="Pindahkan ke atas"
-                        type="button"
-                      >
-                        <span className="material-symbols-outlined text-[14px]">keyboard_arrow_up</span>
-                      </button>
-                      <button
-                        className="p-1 text-white/40 hover:text-white hover:bg-white/10 rounded transition"
-                        onClick={() => handleWaypointMove(point.id, "down")}
-                        title="Pindahkan ke bawah"
-                        type="button"
-                      >
-                        <span className="material-symbols-outlined text-[14px]">keyboard_arrow_down</span>
-                      </button>
-                    </div>
-                    <button className="opacity-100 sm:opacity-0 group-hover:opacity-100 p-1 text-rose-400 hover:bg-rose-500/20 rounded transition" onClick={() => handleWaypointDelete(point.id)}>
-                      <span className="material-symbols-outlined text-sm">delete</span>
-                    </button>
-                  </div>
+              {/* Waypoints with road segments */}
+              {manualWaypoints.map((point, index) => {
+                const roadToThis = plannerRoads.find(r => r.id === `manual-${index}` || r.id?.startsWith(`${index}-`));
 
-                  <div className="flex gap-2 items-center mt-1">
-                    <input
-                      className="flex-1 bg-white/5 border border-white/10 rounded px-2 py-1 text-[9px] font-mono text-white outline-none focus:border-emerald-500/50"
-                      onBlur={() => commitManualCoordinate("waypoint", point.id)}
-                      onChange={(e) => handleManualCoordinateChange("waypoint", point.id, "lat", e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && commitManualCoordinate("waypoint", point.id)}
-                      placeholder="Latitude"
-                      value={manualInput[`waypoint-${point.id}-lat`] ?? point.lat}
-                    />
-                    <input
-                      className="flex-1 bg-white/5 border border-white/10 rounded px-2 py-1 text-[9px] font-mono text-white outline-none focus:border-emerald-500/50"
-                      onBlur={() => commitManualCoordinate("waypoint", point.id)}
-                      onChange={(e) => handleManualCoordinateChange("waypoint", point.id, "lng", e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && commitManualCoordinate("waypoint", point.id)}
-                      placeholder="Longitude"
-                      value={manualInput[`waypoint-${point.id}-lng`] ?? point.lng}
-                    />
+                return (
+                  <div key={point.id} className="space-y-1.5">
+                    {roadToThis && (
+                      <div className="mx-6 flex items-center gap-2 border-l-2 border-dashed border-white/10 py-1 pl-4">
+                        <span className="material-symbols-outlined text-[12px] text-sky-400">route</span>
+                        <p className="text-[9px] font-medium text-white/40 truncate">{roadToThis.name}</p>
+                        <span className="text-[8px] font-mono text-white/30 shrink-0">
+                          {Number.isFinite(Number(roadToThis.distance)) && Number(roadToThis.distance) > 0
+                            ? `${(Number(roadToThis.distance) / 1000).toFixed(2)} km`
+                            : ""}
+                        </span>
+                      </div>
+                    )}
+                    
+                    <div className="group flex flex-col gap-1.5 rounded-xl bg-white/5 border border-white/10 p-2.5 hover:border-primary/30 transition">
+                      <div className="flex items-center gap-3">
+                        <div className="h-7 w-7 rounded-lg bg-emerald-500 flex items-center justify-center font-black text-white text-[11px] shadow-lg shadow-emerald-500/20">{index + 1}</div>
+                        <div className="flex-1 min-w-0">
+                          <input
+                            className="bg-transparent w-full text-[10px] font-bold text-white outline-none mb-0.5"
+                            onChange={(e) => handleWaypointLabelChange(point.id, e.target.value)}
+                            placeholder={`Waypoint ${index + 1}`}
+                            value={point.label}
+                          />
+                          <p className="text-[9px] font-mono text-white/50">{point.lat.toFixed(5)}, {point.lng.toFixed(5)}</p>
+                        </div>
+                        <div className="flex flex-col gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition">
+                          <button
+                            className="p-1 text-white/40 hover:text-white hover:bg-white/10 rounded transition"
+                            onClick={() => handleWaypointMove(point.id, "up")}
+                            title="Pindahkan ke atas"
+                            type="button"
+                          >
+                            <span className="material-symbols-outlined text-[14px]">keyboard_arrow_up</span>
+                          </button>
+                          <button
+                            className="p-1 text-white/40 hover:text-white hover:bg-white/10 rounded transition"
+                            onClick={() => handleWaypointMove(point.id, "down")}
+                            title="Pindahkan ke bawah"
+                            type="button"
+                          >
+                            <span className="material-symbols-outlined text-[14px]">keyboard_arrow_down</span>
+                          </button>
+                        </div>
+                        <button className="opacity-100 sm:opacity-0 group-hover:opacity-100 p-1 text-rose-400 hover:bg-rose-500/20 rounded transition" onClick={() => handleWaypointDelete(point.id)}>
+                          <span className="material-symbols-outlined text-sm">delete</span>
+                        </button>
+                      </div>
+
+                      <div className="flex gap-2 items-center mt-1">
+                        <input
+                          className="flex-1 bg-white/5 border border-white/10 rounded px-2 py-1 text-[9px] font-mono text-white outline-none focus:border-emerald-500/50"
+                          onBlur={() => commitManualCoordinate("waypoint", point.id)}
+                          onChange={(e) => handleManualCoordinateChange("waypoint", point.id, "lat", e.target.value)}
+                          onKeyDown={(e) => e.key === "Enter" && commitManualCoordinate("waypoint", point.id)}
+                          placeholder="Latitude"
+                          value={manualInput[`waypoint-${point.id}-lat`] ?? point.lat}
+                        />
+                        <input
+                          className="flex-1 bg-white/5 border border-white/10 rounded px-2 py-1 text-[9px] font-mono text-white outline-none focus:border-emerald-500/50"
+                          onBlur={() => commitManualCoordinate("waypoint", point.id)}
+                          onChange={(e) => handleManualCoordinateChange("waypoint", point.id, "lng", e.target.value)}
+                          onKeyDown={(e) => e.key === "Enter" && commitManualCoordinate("waypoint", point.id)}
+                          placeholder="Longitude"
+                          value={manualInput[`waypoint-${point.id}-lng`] ?? point.lng}
+                        />
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
 
               {/* Point B */}
-              <div className="flex flex-col gap-1.5 rounded-xl bg-pink-500/10 border border-pink-500/20 p-2.5 mt-1">
-                <div className="flex items-center gap-3">
-                  <div className="h-7 w-7 rounded-lg bg-pink-500 flex items-center justify-center font-black text-white text-[11px] shadow-lg shadow-pink-500/20">B</div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[9px] font-black uppercase text-pink-400">Titik B (Pelanggan)</p>
-                    <p className="text-[11px] font-mono text-white/90 truncate">{pointB ? `${pointB.lat.toFixed(5)}, ${pointB.lng.toFixed(5)}` : "Belum ditentukan"}</p>
+              {pointB && (
+                <div className="space-y-1.5">
+                  {(() => {
+                    const lastIndex = manualWaypoints.length;
+                    const roadToB = plannerRoads.find(r => r.id === `manual-${lastIndex}` || r.id?.startsWith(`${lastIndex}-`));
+                    if (!roadToB) return null;
+                    
+                    return (
+                      <div className="mx-6 flex items-center gap-2 border-l-2 border-dashed border-white/10 py-1 pl-4">
+                        <span className="material-symbols-outlined text-[12px] text-sky-400">route</span>
+                        <p className="text-[9px] font-medium text-white/40 truncate">{roadToB.name}</p>
+                        <span className="text-[8px] font-mono text-white/30 shrink-0">
+                          {Number.isFinite(Number(roadToB.distance)) && Number(roadToB.distance) > 0
+                            ? `${(Number(roadToB.distance) / 1000).toFixed(2)} km`
+                            : ""}
+                        </span>
+                      </div>
+                    );
+                  })()}
+                  
+                  <div className="flex flex-col gap-1.5 rounded-xl bg-pink-500/10 border border-pink-500/20 p-2.5 mt-1">
+                    <div className="flex items-center gap-3">
+                      <div className="h-7 w-7 rounded-lg bg-pink-500 flex items-center justify-center font-black text-white text-[11px] shadow-lg shadow-pink-500/20">B</div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[9px] font-black uppercase text-pink-400">Titik B (Pelanggan)</p>
+                        <p className="text-[11px] font-mono text-white/90 truncate">{pointB ? `${pointB.lat.toFixed(5)}, ${pointB.lng.toFixed(5)}` : "Belum ditentukan"}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 items-center">
+                      <input
+                        className="flex-1 bg-white/5 border border-white/10 rounded px-2 py-1 text-[9px] font-mono text-white outline-none focus:border-pink-500/50"
+                        onBlur={() => commitManualCoordinate("b")}
+                        onChange={(e) => handleManualCoordinateChange("b", null, "lat", e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && commitManualCoordinate("b")}
+                        placeholder="Latitude"
+                        value={manualInput["b-static-lat"] ?? (pointB?.lat ?? "")}
+                      />
+                      <input
+                        className="flex-1 bg-white/5 border border-white/10 rounded px-2 py-1 text-[9px] font-mono text-white outline-none focus:border-pink-500/50"
+                        onBlur={() => commitManualCoordinate("b")}
+                        onChange={(e) => handleManualCoordinateChange("b", null, "lng", e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && commitManualCoordinate("b")}
+                        placeholder="Longitude"
+                        value={manualInput["b-static-lng"] ?? (pointB?.lng ?? "")}
+                      />
+                    </div>
                   </div>
                 </div>
-
-                <div className="flex gap-2 items-center">
-                  <input
-                    className="flex-1 bg-white/5 border border-white/10 rounded px-2 py-1 text-[9px] font-mono text-white outline-none focus:border-pink-500/50"
-                    onBlur={() => commitManualCoordinate("b")}
-                    onChange={(e) => handleManualCoordinateChange("b", null, "lat", e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && commitManualCoordinate("b")}
-                    placeholder="Latitude"
-                    value={manualInput["b-static-lat"] ?? (pointB?.lat ?? "")}
-                  />
-                  <input
-                    className="flex-1 bg-white/5 border border-white/10 rounded px-2 py-1 text-[9px] font-mono text-white outline-none focus:border-pink-500/50"
-                    onBlur={() => commitManualCoordinate("b")}
-                    onChange={(e) => handleManualCoordinateChange("b", null, "lng", e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && commitManualCoordinate("b")}
-                    placeholder="Longitude"
-                    value={manualInput["b-static-lng"] ?? (pointB?.lng ?? "")}
-                  />
+              )}
+              
+              {!pointB && (
+                <div className="flex flex-col gap-1.5 rounded-xl bg-pink-500/10 border border-pink-500/20 p-2.5 mt-1">
+                  <div className="flex items-center gap-3">
+                    <div className="h-7 w-7 rounded-lg bg-pink-500 flex items-center justify-center font-black text-white text-[11px] shadow-lg shadow-pink-500/20">B</div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[9px] font-black uppercase text-pink-400">Titik B (Pelanggan)</p>
+                      <p className="text-[11px] font-mono text-white/90 truncate">Belum ditentukan</p>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Named Road Segments (from Valhalla) */}
