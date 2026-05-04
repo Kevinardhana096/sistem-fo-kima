@@ -10,7 +10,7 @@ import {
   IsString,
   ValidateNested,
 } from 'class-validator';
-import { BillingUnit, CustomerStatus } from '../shared/types/domain.types';
+import { BillingUnit, CustomerStatus } from '../../shared/types/domain.types';
 
 export class CreateInvoiceDraftDto {
   @IsOptional()

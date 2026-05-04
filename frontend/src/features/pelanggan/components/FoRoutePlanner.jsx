@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  AttributionControl,
   GeoJSON,
   MapContainer,
   Marker,
@@ -1066,6 +1067,7 @@ export default function FoRoutePlanner({
             />
             <div className="relative z-10 h-full">
               <MapContainer
+                attributionControl={false}
                 center={DEFAULT_CENTER}
                 className="h-full w-full bg-slate-100"
                 scrollWheelZoom
@@ -1075,6 +1077,7 @@ export default function FoRoutePlanner({
                   attribution={selectedBasemap.attribution}
                   url={selectedBasemap.url}
                 />
+                <AttributionControl position="bottomleft" />
                 {/* Adjust viewport based on preview or actual route */}
                 <MapViewportController
                   fitCoordinates={previewFitCoordinates}
@@ -1214,6 +1217,7 @@ export default function FoRoutePlanner({
       {/* Background Map - Fills entire container */}
       <div className="absolute inset-0 z-0">
         <MapContainer
+          attributionControl={false}
           center={DEFAULT_CENTER}
           className="h-full w-full bg-slate-100"
           scrollWheelZoom
@@ -1224,6 +1228,7 @@ export default function FoRoutePlanner({
             attribution={selectedBasemap.attribution}
             url={selectedBasemap.url}
           />
+          <AttributionControl position="bottomleft" />
           <MapClickHandler onMapClick={handleMapClick} />
           <MapViewportController
             fitCoordinates={mapFitCoordinates}

@@ -81,8 +81,31 @@
 }
 
 /* Override Leaflet Controls Position */
+.leaflet-control-attribution {
+    background: rgba(15, 23, 42, 0.6) !important;
+    backdrop-filter: blur(8px) !important;
+    padding: 4px 10px !important;
+    border-radius: 8px !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    font-size: 9px !important;
+    color: rgba(255, 255, 255, 0.4) !important;
+    z-index: 800 !important;
+}
+
+.leaflet-control-attribution a {
+    color: var(--fo-text-muted) !important;
+    text-decoration: none !important;
+}
+
+.leaflet-bottom.leaflet-left {
+    bottom: 24px !important;
+    left: 24px !important;
+    margin: 0 !important;
+    z-index: 800;
+}
+
 .leaflet-bottom.leaflet-right {
-    bottom: 280px !important;
+    bottom: 24px !important;
     right: 24px !important;
     display: flex;
     flex-direction: column;
@@ -93,6 +116,7 @@
 
 .leaflet-control-zoom {
     margin: 0 !important;
+    margin-bottom: 256px !important;
     border: 1px solid rgba(255,255,255,0.1) !important;
     border-radius: 16px !important;
     background-color: rgba(15, 23, 42, 0.8) !important;
