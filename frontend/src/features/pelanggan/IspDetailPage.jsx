@@ -653,7 +653,8 @@ function IspDetailPage({ isp, onBack, onEditIsp, onNavigate, onOpenCreateTenant,
                                     <span className="rounded-full bg-rose-100 px-3 py-1 text-xs font-bold text-rose-700">Berhenti: {tenants.filter(t => t.status === "berhenti" || (!["aktif", "expired"].includes(t.status))).length}</span>
                                     <span className="h-4 w-[1px] bg-slate-300"></span>
                                     <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-700">Jalur Aktif: {tenants.filter(t => (t.route?.activeFlowStatus ?? t.status_jalur) === "aktif").length}</span>
-                                    <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-bold text-orange-700">Jalur Tidak Aktif/Gangguan: {tenants.filter(t => ["nonaktif", "gangguan"].includes(t.route?.activeFlowStatus ?? t.status_jalur)).length}</span>
+                                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">Jalur Nonaktif: {tenants.filter(t => (t.route?.activeFlowStatus ?? t.status_jalur) === "nonaktif").length}</span>
+                                    <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-bold text-orange-700">Jalur Gangguan: {tenants.filter(t => (t.route?.activeFlowStatus ?? t.status_jalur) === "gangguan").length}</span>
                                 </div>
                             </div>
                             <div className="flex flex-wrap items-center gap-2">
