@@ -125,7 +125,16 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
                 <div className="rounded-lg bg-surface-container-lowest p-8 shadow-sm">
                     <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                         <FieldInput label="Nama ISP" value={form.name} onChange={(value) => setForm((previous) => ({ ...previous, name: value }))} />
-                        <FieldSelect label="Status" value={form.status} onChange={(value) => setForm((previous) => ({ ...previous, status: value }))} options={[{ value: "aktif", label: "Beroperasi" }, { value: "expired", label: "Expired" }, { value: "berhenti", label: "Berhenti" }]} />
+                        <FieldSelect 
+                            label="Status" 
+                            value={form.status} 
+                            onChange={(value) => setForm((previous) => ({ ...previous, status: value }))} 
+                            options={[
+                                { value: "aktif", label: "Beroperasi" }, 
+                                ...(isEditMode ? [{ value: "expired", label: "Expired" }] : []),
+                                { value: "berhenti", label: "Berhenti" }
+                            ]} 
+                        />
 
                         {!isEditMode && (
                             <>

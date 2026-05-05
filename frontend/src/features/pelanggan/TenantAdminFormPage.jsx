@@ -164,7 +164,16 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                         <div className="rounded-xl bg-surface-container-lowest p-3 md:p-8 shadow-sm">
                             <div className="grid grid-cols-1 gap-3 md:gap-6">
                                 <FieldInput label="Nama Tenant" value={form.name} onChange={(value) => setForm((previous) => ({ ...previous, name: value }))} />
-                                <FieldSelect label="Status" value={form.status} onChange={(value) => setForm((previous) => ({ ...previous, status: value }))} options={[{ value: "aktif", label: "Beroperasi" }, { value: "expired", label: "Expired" }, { value: "berhenti", label: "Berhenti" }]} />
+                                <FieldSelect 
+                                    label="Status" 
+                                    value={form.status} 
+                                    onChange={(value) => setForm((previous) => ({ ...previous, status: value }))} 
+                                    options={[
+                                        { value: "aktif", label: "Beroperasi" }, 
+                                        ...(isEditMode ? [{ value: "expired", label: "Expired" }] : []),
+                                        { value: "berhenti", label: "Berhenti" }
+                                    ]} 
+                                />
                                 {!isEditMode && (
                                     <>
                                         <FieldSelect label="Paket" value={form.paket} onChange={(value) => setForm((previous) => ({ ...previous, paket: value }))} options={[{ value: "core", label: "Core" }, { value: "shared", label: "Shared" }]} />
