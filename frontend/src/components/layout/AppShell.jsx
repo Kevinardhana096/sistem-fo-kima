@@ -5,6 +5,7 @@ import { getRoleConfig } from "../../roles";
 export default function AppShell({
     activeSection,
     onNavigate,
+    onLogout,
     children,
     hideSidebar = false,
     full = false,
@@ -33,6 +34,7 @@ export default function AppShell({
             {!hideSidebar && (
                 <TopNav
                     onToggleMenu={() => setIsMobileMenuOpen((prev) => !prev)}
+                    onLogout={onLogout}
                     roleConfig={roleConfig}
                 />
             )}
@@ -41,6 +43,7 @@ export default function AppShell({
                     activeSection={activeSection}
                     onClose={() => setIsMobileMenuOpen(false)}
                     onNavigate={handleMobileNavigate}
+                    onLogout={onLogout}
                     roleConfig={roleConfig}
                 />
             )}
@@ -58,7 +61,9 @@ export default function AppShell({
     );
 }
 
-function TopNav({ onToggleMenu, roleConfig }) {
+function TopNav({ onToggleMenu, onLogout, roleConfig }) {
+    const [isProfileOpen, setIsProfileOpen] = useState(false);
+
     return (
         <nav className="fixed top-0 z-40 flex h-16 w-full items-center justify-between px-6 font-manrope antialiased glass-navbar md:ml-64 md:w-[calc(100%-16rem)] md:px-8">
             <div className="flex items-center gap-3">
@@ -79,25 +84,57 @@ function TopNav({ onToggleMenu, roleConfig }) {
                     <span className="material-symbols-outlined">notifications</span>
                     <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-primary-container"></span>
                 </button>
-                <div className="hidden items-center gap-3 pl-4 md:flex">
-                    <div className="text-right">
-                        <p className="text-sm font-semibold text-on-surface">{roleConfig.profileTitle}</p>
-                        <p className="text-[10px] uppercase tracking-wider text-on-surface-variant">
-                            {roleConfig.profileSubtitle}
-                        </p>
-                    </div>
-                    <img
-                        alt="Administrator Profile"
-                        className="h-10 w-10 rounded-full object-cover shadow-soft"
-                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuBAFhnZ3sLh08K-pb9OHZ3RVbGsMO5bKg2zux3NkoQNNOv96Mff-nuHjRBNqlG8PKMPx0E-6VsMGTfB_Jn7lpTk0cWXlblrf-mzL1KZ3O724-QrQBwXPmLINGHLBuxACZGsByzSGBD6Yt9GVvuswzU7_IhGniplwUFCUhvp7w5cU0m_k8DzEjXtMaYsXa-5x15vort0mEzRr9ygaZgu9n6dL3xd-XNV_AxamcvQyVEuceozL2mSLxCaP6gqaGvVKvIN6DZvZzpMQh8"
-                    />
+                <div className="relative">
+                    <button
+                        className="flex items-center gap-3 rounded-2xl p-1.5 transition-all hover:bg-surface-container-low"
+                        onClick={() => setIsProfileOpen(!isProfileOpen)}
+                        type="button"
+                    >
+                        <div className="hidden text-right md:block">
+                            <p className="text-sm font-semibold text-on-surface">{roleConfig.profileTitle}</p>
+                            <p className="text-[10px] uppercase tracking-wider text-on-surface-variant">
+                                {roleConfig.profileSubtitle}
+                            </p>
+                        </div>
+                        <img
+                            alt="Profile"
+                            className="h-9 w-9 rounded-full object-cover shadow-soft ring-2 ring-white"
+                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuBAFhnZ3sLh08K-pb9OHZ3RVbGsMO5bKg2zux3NkoQNNOv96Mff-nuHjRBNqlG8PKMPx0E-6VsMGTfB_Jn7lpTk0cWXlblrf-mzL1KZ3O724-QrQBwXPmLINGHLBuxACZGsByzSGBD6Yt9GVvuswzU7_IhGniplwUFCUhvp7w5cU0m_k8DzEjXtMaYsXa-5x15vort0mEzRr9ygaZgu9n6dL3xd-XNV_AxamcvQyVEuceozL2mSLxCaP6gqaGvVKvIN6DZvZzpMQh8"
+                        />
+                    </button>
+
+                    {isProfileOpen && (
+                        <>
+                            <div
+                                className="fixed inset-0 z-10"
+                                onClick={() => setIsProfileOpen(false)}
+                            ></div>
+                            <div className="absolute right-0 mt-2 z-20 w-56 origin-top-right rounded-2xl bg-white p-2 shadow-2xl ring-1 ring-black/5 animate-in fade-in zoom-in duration-200">
+                                <div className="px-3 py-2 border-b border-slate-50 md:hidden">
+                                    <p className="text-sm font-bold text-on-surface">{roleConfig.profileTitle}</p>
+                                    <p className="text-[10px] uppercase tracking-widest text-on-surface-variant">{roleConfig.profileSubtitle}</p>
+                                </div>
+                                <button
+                                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-rose-600 transition-colors hover:bg-rose-50"
+                                    onClick={() => {
+                                        setIsProfileOpen(false);
+                                        onLogout?.();
+                                    }}
+                                    type="button"
+                                >
+                                    <span className="material-symbols-outlined text-lg">logout</span>
+                                    <span>Keluar / Logout</span>
+                                </button>
+                            </div>
+                        </>
+                    )}
                 </div>
             </div>
         </nav>
     );
 }
 
-function MobileDropdownMenu({ activeSection, onNavigate, onClose, roleConfig }) {
+function MobileDropdownMenu({ activeSection, onNavigate, onClose, onLogout, roleConfig }) {
     const handleSectionClick = (event, sectionKey) => {
         if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) {
             return;
@@ -149,6 +186,20 @@ function MobileDropdownMenu({ activeSection, onNavigate, onClose, roleConfig }) 
                             </div>
                         );
                     })}
+                </div>
+
+                <div className="mt-2 border-t border-slate-100 pt-2">
+                    <button
+                        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-rose-600 transition-colors hover:bg-rose-50"
+                        onClick={() => {
+                            onClose();
+                            onLogout?.();
+                        }}
+                        type="button"
+                    >
+                        <span className="material-symbols-outlined text-lg">logout</span>
+                        <span>Keluar / Logout</span>
+                    </button>
                 </div>
             </div>
         </div>

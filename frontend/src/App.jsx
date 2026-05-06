@@ -313,6 +313,11 @@ function App() {
         navigateTo(appPaths.customers, { replace: true });
     }, [appPaths, loadCustomers, loadIsps, navigateTo]);
 
+    const handleLogout = useCallback(() => {
+        // We just redirect to login, which will effectively "logout" since App handles route access
+        navigateTo(appPaths.login, { replace: true });
+    }, [appPaths.login, navigateTo]);
+
     const handleOpenCustomerById = useCallback((customerId, initialTab = "overview") => {
         const normalizedCustomerId = Number(customerId);
         const targetCustomer = customers.find((item) => Number(item.id) === normalizedCustomerId);
@@ -329,6 +334,7 @@ function App() {
                 activeSection={activeSection}
                 currentRole={currentRole}
                 onNavigate={handleNavigate}
+                onLogout={handleLogout}
                 message="Mengarahkan ke halaman pelanggan..."
             />
         );
@@ -340,6 +346,7 @@ function App() {
                 activeSection={fallbackSection}
                 currentRole={currentRole}
                 onNavigate={handleNavigate}
+                onLogout={handleLogout}
                 defaultSection={fallbackSection}
                 roleLabel={roleConfig.label}
             />
@@ -377,7 +384,9 @@ function App() {
                 activeSection={activeSection}
                 customers={customers}
                 isLoadingCustomers={isLoadingCustomers}
+                currentRole={currentRole}
                 onNavigate={handleNavigate}
+                onLogout={handleLogout}
             />
         );
     }
@@ -387,7 +396,9 @@ function App() {
             <MonitoringSpreadsheetPage
                 activeSection={activeSection}
                 ispOptions={ispOptions}
+                currentRole={currentRole}
                 onNavigate={handleNavigate}
+                onLogout={handleLogout}
                 onOpenCustomerById={handleOpenCustomerById}
                 onOpenTableOnly={() => navigateTo(appPaths.monitoringFullscreen)}
             />
@@ -398,7 +409,9 @@ function App() {
         return (
             <MonitoringSpreadsheetPage
                 ispOptions={ispOptions}
+                currentRole={currentRole}
                 layout="plain"
+                onLogout={handleLogout}
                 onOpenCustomerById={handleOpenCustomerById}
                 tableOnly
                 onCloseTableOnly={() => navigateTo(appPaths.monitoring)}
@@ -410,7 +423,9 @@ function App() {
         return (
             <TrashPage
                 activeSection={activeSection}
+                currentRole={currentRole}
                 onNavigate={handleNavigate}
+                onLogout={handleLogout}
             />
         );
     }
@@ -422,6 +437,7 @@ function App() {
                 lockedIsp={createTenantContextIsp}
                 onCancel={handleCancelCreate}
                 onNavigate={handleNavigate}
+                onLogout={handleLogout}
                 onSaved={(entity) => handleEntitySaved(entity, "tenant")}
             />
         );
@@ -432,6 +448,7 @@ function App() {
             <IspAdminFormPage
                 onCancel={handleCancelCreate}
                 onNavigate={handleNavigate}
+                onLogout={handleLogout}
                 onSaved={(entity) => handleEntitySaved(entity, "isp")}
             />
         );
@@ -468,6 +485,7 @@ function App() {
                 mode="edit"
                 onCancel={handleCancelCreate}
                 onNavigate={handleNavigate}
+                onLogout={handleLogout}
                 onSaved={async () => {
                     await Promise.all([loadCustomers(), loadIsps()]);
                     navigateTo(appPaths.customerDetail(editingCustomer.id), { replace: true });
@@ -483,6 +501,7 @@ function App() {
                     activeSection={activeSection}
                     currentRole={currentRole}
                     onNavigate={handleNavigate}
+                    onLogout={handleLogout}
                     message="Memuat data ISP untuk halaman edit..."
                 />
             );
@@ -494,6 +513,7 @@ function App() {
                     activeSection={activeSection}
                     currentRole={currentRole}
                     onNavigate={handleNavigate}
+                    onLogout={handleLogout}
                     title="ISP tidak ditemukan"
                     description="ISP yang diminta tidak tersedia atau belum dimuat."
                 />
@@ -506,6 +526,7 @@ function App() {
                 mode="edit"
                 onCancel={handleCancelCreate}
                 onNavigate={handleNavigate}
+                onLogout={handleLogout}
                 onSaved={async () => {
                     await Promise.all([loadCustomers(), loadIsps()]);
                     navigateTo(appPaths.ispDetail(editingIsp.id), { replace: true });
@@ -541,9 +562,11 @@ function App() {
         return (
             <IspDetailPage
                 isp={selectedIsp}
+                currentRole={currentRole}
                 onBack={() => navigateTo(appPaths.customers, { replace: true })}
                 onEditIsp={handleOpenEditIsp}
                 onNavigate={handleNavigate}
+                onLogout={handleLogout}
                 onOpenCreateTenant={handleOpenCreateTenantFromIsp}
                 onOpenTenant={(tenant, initialTab = "overview") =>
                     handleOpenTenantDetail(tenant, initialTab, selectedIsp)}
@@ -588,12 +611,14 @@ function App() {
                 customer={selectedCustomer}
                 contextIsp={selectedCustomerContextIsp}
                 initialTab={route.initialTab}
+                currentRole={currentRole}
                 onBack={() => {
                     navigateTo(appPaths.customers, { replace: true });
                 }}
                 onEditTenant={handleOpenEditTenant}
                 onCreateIsp={handleOpenCreateIsp}
                 onNavigate={handleNavigate}
+                onLogout={handleLogout}
                 onRefreshAll={async () => {
                     await Promise.all([loadCustomers(), loadIsps()]);
                 }}
@@ -651,12 +676,14 @@ function App() {
             <TenantDetailPage
                 customer={selectedCustomer}
                 initialTab="jalur"
+                currentRole={currentRole}
                 backLabel="Kembali ke Detail Tenant"
                 onBack={() => {
                     navigateTo(appPaths.customerDetail(selectedCustomer.id), { replace: true });
                 }}
                 onEditTenant={handleOpenEditTenant}
                 onNavigate={handleNavigate}
+                onLogout={handleLogout}
                 onRefreshAll={async () => {
                     await Promise.all([loadCustomers(), loadIsps()]);
                 }}
@@ -696,12 +723,14 @@ function App() {
             <TenantDetailPage
                 customer={selectedCustomer}
                 initialTab="jalur"
+                currentRole={currentRole}
                 backLabel="Kembali ke Detail Tenant"
                 onBack={() => {
                     navigateTo(appPaths.customerDetail(selectedCustomer.id), { replace: true });
                 }}
                 onEditTenant={handleOpenEditTenant}
                 onNavigate={handleNavigate}
+                onLogout={handleLogout}
                 onRefreshAll={async () => {
                     await Promise.all([loadCustomers(), loadIsps()]);
                 }}
@@ -749,12 +778,14 @@ function App() {
             <TenantDetailPage
                 customer={selectedCustomer}
                 initialTab="jalur"
+                currentRole={currentRole}
                 backLabel="Kembali ke Halaman Jalur"
                 onBack={() => {
                     navigateTo(appPaths.customerJalur(selectedCustomer.id), { replace: true });
                 }}
                 onEditTenant={handleOpenEditTenant}
                 onNavigate={handleNavigate}
+                onLogout={handleLogout}
                 onRefreshAll={async () => {
                     await Promise.all([loadCustomers(), loadIsps()]);
                 }}
@@ -785,7 +816,9 @@ function App() {
             error={customersError}
             secondaryError={ispsError}
             isLoading={isLoadingCustomers || isLoadingIsps}
+            currentRole={currentRole}
             onNavigate={handleNavigate}
+            onLogout={handleLogout}
             onOpenTenant={handleOpenTenantDetail}
             onOpenIsp={handleOpenIspDetail}
             onOpenCreateTenant={handleOpenCreateTenant}
@@ -797,11 +830,11 @@ function App() {
             canCreateTenant={roleCapabilities.canCreateTenant}
         />
     );
-}
+    }
 
-function RouteLoadingPage({ activeSection, currentRole, onNavigate, message }) {
+    function RouteLoadingPage({ activeSection, currentRole, onNavigate, onLogout, message }) {
     return (
-        <AppShell activeSection={activeSection} currentRole={currentRole} onNavigate={onNavigate}>
+        <AppShell activeSection={activeSection} currentRole={currentRole} onNavigate={onNavigate} onLogout={onLogout}>
             <div className="mx-auto flex min-h-[50vh] max-w-4xl items-center justify-center">
                 <div className="rounded-2xl border border-slate-100 bg-surface-container-lowest px-6 py-5 text-sm text-on-surface-variant shadow-sm">
                     {message}
@@ -809,11 +842,11 @@ function RouteLoadingPage({ activeSection, currentRole, onNavigate, message }) {
             </div>
         </AppShell>
     );
-}
+    }
 
-function RouteMissingPage({ activeSection, currentRole, onNavigate, title, description }) {
+    function RouteMissingPage({ activeSection, currentRole, onNavigate, onLogout, title, description }) {
     return (
-        <AppShell activeSection={activeSection} currentRole={currentRole} onNavigate={onNavigate}>
+        <AppShell activeSection={activeSection} currentRole={currentRole} onNavigate={onNavigate} onLogout={onLogout}>
             <div className="mx-auto max-w-4xl">
                 <section className="rounded-2xl border border-slate-100 bg-surface-container-lowest p-8 shadow-sm">
                     <div className="mb-6 flex items-center gap-3">
@@ -842,11 +875,11 @@ function RouteMissingPage({ activeSection, currentRole, onNavigate, title, descr
             </div>
         </AppShell>
     );
-}
+    }
 
-function RouteForbiddenPage({ activeSection, currentRole, onNavigate, defaultSection, roleLabel }) {
+    function RouteForbiddenPage({ activeSection, currentRole, onNavigate, onLogout, defaultSection, roleLabel }) {
     return (
-        <AppShell activeSection={activeSection} currentRole={currentRole} onNavigate={onNavigate}>
+        <AppShell activeSection={activeSection} currentRole={currentRole} onNavigate={onNavigate} onLogout={onLogout}>
             <div className="mx-auto max-w-4xl">
                 <section className="rounded-2xl border border-amber-100 bg-surface-container-lowest p-8 shadow-sm">
                     <div className="mb-6 flex items-center gap-3">
@@ -875,14 +908,14 @@ function RouteForbiddenPage({ activeSection, currentRole, onNavigate, defaultSec
             </div>
         </AppShell>
     );
-}
+    }
 
-function SectionPlaceholderPage({ activeSection, currentRole, onNavigate }) {
+    function SectionPlaceholderPage({ activeSection, currentRole, onNavigate, onLogout }) {
     const section = sectionMeta[activeSection] ?? sectionMeta.dashboard;
     const isTrashSection = activeSection === "trash";
 
     return (
-        <AppShell activeSection={activeSection} currentRole={currentRole} onNavigate={onNavigate}>
+        <AppShell activeSection={activeSection} currentRole={currentRole} onNavigate={onNavigate} onLogout={onLogout}>
             <div className="mx-auto max-w-5xl">
                 <header className="mb-10">
                     <h1 className="text-4xl font-extrabold tracking-tight text-primary">{section.title}</h1>

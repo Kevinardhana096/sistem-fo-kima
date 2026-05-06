@@ -18,7 +18,9 @@ import {
 function MonitoringSpreadsheetPage({
     activeSection,
     onNavigate,
+    onLogout,
     ispOptions,
+    currentRole = "admin",
     onOpenCustomerById,
     layout = "shell",
     showEnterTableButton = false,
@@ -26,42 +28,26 @@ function MonitoringSpreadsheetPage({
     onOpenTableOnly,
     onCloseTableOnly,
 }) {
+    const isTeknisi = currentRole === "teknisi";
     const currentYear = String(new Date().getUTCFullYear());
 
-    const headerRow1Ref = useRef(null);
     const [headerRow1Height, setHeaderRow1Height] = useState(0);
-
-    useLayoutEffect(() => {
-        if (typeof window === "undefined") {
-            return undefined;
-        }
-
-        const headerRow1 = headerRow1Ref.current;
-        if (!headerRow1) {
-            return undefined;
-        }
-
-        const updateHeight = () => {
-            setHeaderRow1Height(headerRow1.getBoundingClientRect().height);
-        };
-
-        updateHeight();
-
-        let resizeObserver;
-        if (typeof ResizeObserver !== "undefined") {
-            resizeObserver = new ResizeObserver(updateHeight);
-            resizeObserver.observe(headerRow1);
-        } else {
-            window.addEventListener("resize", updateHeight);
-        }
-
-        return () => {
-            if (resizeObserver) {
-                resizeObserver.disconnect();
+    const headerRow1Ref = useCallback((node) => {
+        if (node !== null) {
+            const updateHeight = () => {
+                const height = node.getBoundingClientRect().height;
+                setHeaderRow1Height(height);
+            };
+            updateHeight();
+            
+            if (typeof ResizeObserver !== "undefined") {
+                const resizeObserver = new ResizeObserver(updateHeight);
+                resizeObserver.observe(node);
+                return () => resizeObserver.disconnect();
             }
-            window.removeEventListener("resize", updateHeight);
-        };
+        }
     }, []);
+
     const [filters, setFilters] = useState(() => ({
         search: "",
         year: currentYear,
@@ -212,6 +198,11 @@ function MonitoringSpreadsheetPage({
                     description: event.description ?? "-",
                     date: event.date ?? null,
                 })))
+                .filter((activity) => {
+                    const technicalKeywords = ["jalur", "peta", "route", "core", "gangguan", "aktivasi", "survey", "titik", "pop"];
+                    const haystack = (activity.title + " " + activity.description).toLowerCase();
+                    return technicalKeywords.some((keyword) => haystack.includes(keyword));
+                })
                 .sort((left, right) => {
                     const leftDate = parseDateValue(left.date)?.getTime() ?? 0;
                     const rightDate = parseDateValue(right.date)?.getTime() ?? 0;
@@ -296,34 +287,34 @@ function MonitoringSpreadsheetPage({
     };
 
     const actionNeededToday = useMemo(() => {
-        return alerts
-            .slice(0, 8)
-            .map((alert) => ({
-                ...alert,
-                actionLabel: {
-                    missing_contract: "Buka & Buat Surat Kontrak",
-                    missing_invoice_current_month: "Buka & Buat Surat Invoice",
-                    payment_overdue: "Buka & Follow Up Pembayaran",
-                    contract_expiring: "Buka & Tindak Masa Sewa",
-                    bak_missing: "Buka & Upload BAK",
-                    missing_required_document: "Buka & Lengkapi Dokumen",
-                    invoice_not_uploaded: "Buka & Lengkapi Invoice",
-                    has_termination_document: "Buka & Verifikasi Terminasi",
-                    activation_fee_unpaid: "Buka & Update Aktivasi",
-                }[alert.code] ?? "Buka Detail Pelanggan",
-                targetTab: {
-                    missing_contract: "contracts",
-                    missing_invoice_current_month: "invoices",
-                    payment_overdue: "invoices",
-                    contract_expiring: "contracts",
-                    bak_missing: "documents",
-                    missing_required_document: "documents",
-                    invoice_not_uploaded: "invoices",
-                    has_termination_document: "documents",
-                    activation_fee_unpaid: "overview",
-                }[alert.code] ?? "overview",
-            }));
-    }, [alerts]);
+        const technicalAlerts = [];
+
+        billingRows.forEach((row) => {
+            if (row.routeStatus === "gangguan") {
+                technicalAlerts.push({
+                    customerId: row.customerId,
+                    customerName: row.customerName,
+                    code: "route_gangguan",
+                    message: "Jalur sedang gangguan, butuh penanganan segera.",
+                    actionLabel: "Buka & Perbaiki Jalur",
+                    targetTab: "jalur",
+                });
+            }
+
+            if (!row.routeStatus && row.customerStatus === "aktif") {
+                technicalAlerts.push({
+                    customerId: row.customerId,
+                    customerName: row.customerName,
+                    code: "missing_jalur",
+                    message: "Data jalur belum lengkap, segera input jalur.",
+                    actionLabel: "Buka & Input Jalur",
+                    targetTab: "jalur",
+                });
+            }
+        });
+
+        return technicalAlerts.slice(0, 10);
+    }, [billingRows]);
 
     const yearOptions = [
         String(Number(currentYear) - 1),
@@ -336,12 +327,14 @@ function MonitoringSpreadsheetPage({
 
         const headers = [
             "No", "Nama ISP", "Nama Pelanggan", "Periode Awal", "Berjalan Awal", "Berjalan Akhir",
-            "Paket", "Jumlah", "No. Kontrak", "No. Invoice", "Sisa Sewa", "Status Kontrak", "Status Jalur", "Aktivasi",
-            ...monitoringMonths
+            "Paket", "Jumlah",
+            ...(isTeknisi ? [] : ["No. Kontrak", "No. Invoice"]),
+            "Sisa Sewa", "Status Kontrak", "Status Jalur",
+            ...(isTeknisi ? [] : ["Aktivasi", ...monitoringMonths])
         ];
 
         const csvRows = filteredRows.map((row, index) => {
-            const monthsData = monitoringMonths.map((_, i) => {
+            const monthsData = isTeknisi ? [] : monitoringMonths.map((_, i) => {
                 const status = Array.isArray(row.months) ? row.months[i] : "belum_ditagih";
                 return invoiceStatusLabelMap[status] || status;
             });
@@ -355,13 +348,11 @@ function MonitoringSpreadsheetPage({
                 formatDate(row.contractEnd),
                 toTitleCase(row.coreType),
                 row.coreTotal ?? "-",
-                row.contractNumber ?? "-",
-                row.currentInvoiceNumber ?? "-",
+                ...(isTeknisi ? [] : [row.contractNumber ?? "-", row.currentInvoiceNumber ?? "-"]),
                 getRemainingRentalDays(row.contractEnd) ?? "-",
                 row.customerStatus === "nonaktif" ? "Berhenti" : "Beroperasi",
                 row.routeStatus || "aktif",
-                row.activationFeePaidAt ? "Selesai" : formatCurrency(row.activationFeeAmount),
-                ...monthsData
+                ...(isTeknisi ? [] : [row.activationFeePaidAt ? "Selesai" : formatCurrency(row.activationFeeAmount), ...monthsData])
             ];
             return data.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",");
         });
@@ -395,7 +386,7 @@ function MonitoringSpreadsheetPage({
             id="monitoring-table"
         >
             <div className={`max-w-full overflow-auto ${tableOnly ? "flex-1 min-h-0" : ""}`}>
-                <table className="w-full min-w-[2400px] table-fixed border-collapse text-[13px]">
+                <table className="w-full min-w-[2400px] table-fixed border-separate border-spacing-0 text-[13px]">
                     <colgroup>
                         <col style={{ width: "64px" }} />
                         <col style={{ width: "160px" }} />
@@ -405,32 +396,36 @@ function MonitoringSpreadsheetPage({
                         <col style={{ width: "120px" }} />
                         <col style={{ width: "150px" }} />
                         <col style={{ width: "100px" }} />
-                        <col style={{ width: "180px" }} />
-                        <col style={{ width: "180px" }} />
+                        {!isTeknisi && (
+                            <>
+                                <col style={{ width: "180px" }} />
+                                <col style={{ width: "180px" }} />
+                            </>
+                        )}
                         <col style={{ width: "180px" }} />
                         <col style={{ width: "160px" }} />
                         <col style={{ width: "160px" }} />
-                        <col style={{ width: "200px" }} />
-                        {monitoringMonths.map((month) => (
+                        {!isTeknisi && <col style={{ width: "200px" }} />}
+                        {!isTeknisi && monitoringMonths.map((month) => (
                             <col key={`month-${month}`} style={{ width: "48px" }} />
                         ))}
                     </colgroup>
                     <thead>
-                        <tr ref={headerRow1Ref} className="bg-slate-50">
-                            <th rowSpan="2" className="relative sticky left-0 top-0 z-50 w-[64px] pl-2 pr-0 py-4 text-left font-bold uppercase tracking-tighter text-blue-900 bg-slate-50 border-b border-slate-200">
+                        <tr className="bg-slate-50">
+                            <th rowSpan="2" className="sticky left-0 top-0 z-50 w-[64px] pl-2 pr-0 py-4 text-left font-bold uppercase tracking-tighter text-blue-900 bg-slate-50 border-b border-slate-200">
                                 No
                             </th>
-                            <th rowSpan="2" className="relative sticky left-[64px] top-0 z-50 -ml-px w-[160px] pl-0 pr-0 py-4 text-left font-bold uppercase tracking-tighter text-blue-900 bg-slate-50 border-b border-slate-200">
+                            <th rowSpan="2" className="sticky left-[64px] top-0 z-50 -ml-px w-[160px] pl-0 pr-0 py-4 text-left font-bold uppercase tracking-tighter text-blue-900 bg-slate-50 border-b border-slate-200">
                                 Nama ISP
                             </th>
-                            <th rowSpan="2" className="relative sticky left-[224px] top-0 z-50 -ml-px w-[240px] pl-0 pr-2 py-4 text-left font-bold uppercase tracking-tighter text-blue-900 bg-slate-50 border-b border-slate-200">
+                            <th rowSpan="2" className="sticky left-[224px] top-0 z-50 -ml-px w-[240px] pl-0 pr-2 py-4 text-left font-bold uppercase tracking-tighter text-blue-900 bg-slate-50 border-b border-slate-200">
                                 Nama Pelanggan
                                 <span className="absolute right-0 top-0 h-full w-px bg-slate-200" />
                             </th>
                             <th rowSpan="2" className="sticky top-0 z-40 w-[200px] px-4 py-4 text-center font-bold uppercase tracking-tighter text-blue-900 bg-slate-50 border-b border-r border-slate-200">
                                 Periode Awal
                             </th>
-                            <th colSpan="2" className="sticky top-0 z-40 px-4 py-3 text-center font-bold uppercase tracking-tighter text-blue-900 bg-slate-50 border-b border-r border-slate-200">
+                            <th ref={headerRow1Ref} colSpan="2" className="sticky top-0 z-40 px-4 py-3 text-center font-bold uppercase tracking-tighter text-blue-900 bg-slate-50 border-b border-r border-slate-200">
                                 Periode Berjalan
                             </th>
                             <th rowSpan="2" className="sticky top-0 z-40 w-[150px] px-4 py-4 text-left font-bold uppercase tracking-tighter text-blue-900 bg-slate-50 border-b border-r border-slate-200">
@@ -439,12 +434,16 @@ function MonitoringSpreadsheetPage({
                             <th rowSpan="2" className="sticky top-0 z-40 w-[100px] px-4 py-4 text-center font-bold uppercase tracking-tighter text-blue-900 bg-slate-50 border-b border-r border-slate-200">
                                 Jumlah
                             </th>
-                            <th rowSpan="2" className="sticky top-0 z-40 w-[180px] px-4 py-4 text-left font-bold uppercase tracking-tighter text-blue-900 bg-slate-50 border-b border-r border-slate-200">
-                                No. Kontrak
-                            </th>
-                            <th rowSpan="2" className="sticky top-0 z-40 w-[180px] px-4 py-4 text-left font-bold uppercase tracking-tighter text-blue-900 bg-slate-50 border-b border-r border-slate-200">
-                                No. Invoice
-                            </th>
+                            {!isTeknisi && (
+                                <>
+                                    <th rowSpan="2" className="sticky top-0 z-40 w-[180px] px-4 py-4 text-left font-bold uppercase tracking-tighter text-blue-900 bg-slate-50 border-b border-r border-slate-200">
+                                        No. Kontrak
+                                    </th>
+                                    <th rowSpan="2" className="sticky top-0 z-40 w-[180px] px-4 py-4 text-left font-bold uppercase tracking-tighter text-blue-900 bg-slate-50 border-b border-r border-slate-200">
+                                        No. Invoice
+                                    </th>
+                                </>
+                            )}
                             <th rowSpan="2" className="sticky top-0 z-40 w-[180px] px-6 py-4 text-left font-bold uppercase tracking-tighter text-blue-900 bg-slate-50 border-b border-r border-slate-200">
                                 Sisa Sewa
                             </th>
@@ -454,31 +453,34 @@ function MonitoringSpreadsheetPage({
                             <th rowSpan="2" className="sticky top-0 z-40 w-[160px] px-6 py-4 text-center font-bold uppercase tracking-tighter text-blue-900 bg-slate-50 border-b border-r border-slate-200">
                                 St. Jalur
                             </th>
-                            <th rowSpan="2" className="sticky top-0 z-40 w-[200px] px-6 py-4 text-left font-bold uppercase tracking-tighter text-blue-900 bg-slate-50 border-b border-r border-slate-200">
-                                Aktivasi
-                            </th>
-                            <th colSpan="12" className="sticky top-0 z-40 px-6 py-3 text-center font-bold uppercase tracking-widest text-blue-900 bg-slate-50 border-b border-r border-slate-200">
-                                Monitoring Billing {appliedFilters.year}
-                            </th>
+                            {!isTeknisi && (
+                                <>
+                                    <th rowSpan="2" className="sticky top-0 z-40 w-[200px] px-6 py-4 text-left font-bold uppercase tracking-tighter text-blue-900 bg-slate-50 border-b border-r border-slate-200">
+                                        Aktivasi
+                                    </th>
+                                    <th colSpan="12" className="sticky top-0 z-40 px-6 py-3 text-center font-bold uppercase tracking-widest text-blue-900 bg-slate-50 border-b border-r border-slate-200">
+                                        Monitoring Billing {appliedFilters.year}
+                                    </th>
+                                </>
+                            )}
                         </tr>
                         <tr className="bg-slate-50">
                             <th
                                 className="sticky z-30 w-[120px] px-4 py-2 text-center font-bold text-[10px] uppercase text-blue-900 bg-slate-50 border-b border-r border-slate-200"
-                                style={{ top: headerRow1Height }}
+                                style={{ top: `${headerRow1Height}px` }}
                             >
                                 Awal
                             </th>
                             <th
                                 className="sticky z-30 w-[120px] px-4 py-2 text-center font-bold text-[10px] uppercase text-blue-900 bg-slate-50 border-b border-r border-slate-200"
-                                style={{ top: headerRow1Height }}
+                                style={{ top: `${headerRow1Height}px` }}
                             >
                                 Akhir
                             </th>
-                            {monitoringMonths.map((month) => (
+                            {!isTeknisi && monitoringMonths.map((month) => (
                                 <th
-                                    key={month}
                                     className="sticky z-30 w-12 px-2 py-2 text-center font-bold text-[10px] uppercase text-blue-900 bg-slate-50 border-b border-r border-slate-200"
-                                    style={{ top: headerRow1Height }}
+                                    style={{ top: `${headerRow1Height}px` }}
                                 >
                                     {month}
                                 </th>
@@ -538,12 +540,16 @@ function MonitoringSpreadsheetPage({
                                 <td className="px-4 py-4 text-on-surface-variant text-center transition-colors group-hover:bg-slate-50 border-r border-slate-200">
                                     {row.coreTotal ?? "-"}
                                 </td>
-                                <td className="px-4 py-4 text-on-surface-variant font-mono text-[11px] transition-colors group-hover:bg-slate-50 border-r border-slate-200">
-                                    {row.contractNumber ?? "-"}
-                                </td>
-                                <td className="px-4 py-4 text-on-surface-variant font-mono text-[11px] transition-colors group-hover:bg-slate-50 border-r border-slate-200">
-                                    {row.currentInvoiceNumber ?? "-"}
-                                </td>
+                                {!isTeknisi && (
+                                    <>
+                                        <td className="px-4 py-4 text-on-surface-variant font-mono text-[11px] transition-colors group-hover:bg-slate-50 border-r border-slate-200">
+                                            {row.contractNumber ?? "-"}
+                                        </td>
+                                        <td className="px-4 py-4 text-on-surface-variant font-mono text-[11px] transition-colors group-hover:bg-slate-50 border-r border-slate-200">
+                                            {row.currentInvoiceNumber ?? "-"}
+                                        </td>
+                                    </>
+                                )}
                                 <td className="px-6 py-4 whitespace-nowrap transition-colors group-hover:bg-slate-50 border-r border-slate-200">
                                     {(() => {
                                         const remainingDays = getRemainingRentalDays(row.contractEnd);
@@ -600,60 +606,64 @@ function MonitoringSpreadsheetPage({
                                         );
                                     })()}
                                 </td>
-                                <td className="px-6 py-4 transition-colors group-hover:bg-slate-50 border-r border-slate-200">
-                                    {row.activationFeePaidAt ? (
-                                        <div className="whitespace-nowrap">
-                                            <span className="inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-700">
-                                                Selesai
-                                            </span>
-                                            <p className="mt-1 text-[11px] text-on-surface-variant">{formatDate(row.activationFeePaidAt)}</p>
-                                        </div>
-                                    ) : (
-                                        <span className="text-xs font-bold text-amber-700 whitespace-nowrap">
-                                            {formatCurrency(row.activationFeeAmount)}
-                                        </span>
-                                    )}
-                                </td>
-
-                                {monitoringMonths.map((month, monthIndex) => {
-                                    const status = Array.isArray(row.months)
-                                        ? row.months[monthIndex]
-                                        : "belum_ditagih";
-
-                                    return (
-                                        <td
-                                            key={`${row.customerId}-${month}`}
-                                            className="p-0 transition-colors group-hover:bg-slate-50 border-r border-slate-200"
-                                        >
-                                            <button
-                                                className={`h-10 w-full transition hover:opacity-80 ${getMonthStatusClass(status)}`}
-                                                onClick={() =>
-                                                    setSelectedInvoiceCell({
-                                                        customerId: row.customerId,
-                                                        customerName: row.customerName,
-                                                        customerCode: row.customerCode,
-                                                        ispName: row.ispName,
-                                                        month,
-                                                        monthIndex,
-                                                        status,
-                                                        year: appliedFilters.year,
-                                                        contractStart: row.contractStart,
-                                                        contractEnd: row.contractEnd,
-                                                        coreType: row.coreType,
-                                                        coreTotal: row.coreTotal,
-                                                        sharingRatio: row.sharingRatio,
-                                                    })
-                                                }
-                                                title={invoiceStatusLabelMap[status] ?? status}
-                                                type="button"
-                                            >
-                                                <span className="sr-only">
-                                                    {row.customerName} {month} {appliedFilters.year} {invoiceStatusLabelMap[status] ?? status}
+                                {!isTeknisi && (
+                                    <>
+                                        <td className="px-6 py-4 transition-colors group-hover:bg-slate-50 border-r border-slate-200">
+                                            {row.activationFeePaidAt ? (
+                                                <div className="whitespace-nowrap">
+                                                    <span className="inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-700">
+                                                        Selesai
+                                                    </span>
+                                                    <p className="mt-1 text-[11px] text-on-surface-variant">{formatDate(row.activationFeePaidAt)}</p>
+                                                </div>
+                                            ) : (
+                                                <span className="text-xs font-bold text-amber-700 whitespace-nowrap">
+                                                    {formatCurrency(row.activationFeeAmount)}
                                                 </span>
-                                            </button>
+                                            )}
                                         </td>
-                                    );
-                                })}
+
+                                        {monitoringMonths.map((month, monthIndex) => {
+                                            const status = Array.isArray(row.months)
+                                                ? row.months[monthIndex]
+                                                : "belum_ditagih";
+
+                                            return (
+                                                <td
+                                                    key={`${row.customerId}-${month}`}
+                                                    className="p-0 transition-colors group-hover:bg-slate-50 border-r border-slate-200"
+                                                >
+                                                    <button
+                                                        className={`h-10 w-full transition hover:opacity-80 ${getMonthStatusClass(status)}`}
+                                                        onClick={() =>
+                                                            setSelectedInvoiceCell({
+                                                                customerId: row.customerId,
+                                                                customerName: row.customerName,
+                                                                customerCode: row.customerCode,
+                                                                ispName: row.ispName,
+                                                                month,
+                                                                monthIndex,
+                                                                status,
+                                                                year: appliedFilters.year,
+                                                                contractStart: row.contractStart,
+                                                                contractEnd: row.contractEnd,
+                                                                coreType: row.coreType,
+                                                                coreTotal: row.coreTotal,
+                                                                sharingRatio: row.sharingRatio,
+                                                            })
+                                                        }
+                                                        title={invoiceStatusLabelMap[status] ?? status}
+                                                        type="button"
+                                                    >
+                                                        <span className="sr-only">
+                                                            {row.customerName} {month} {appliedFilters.year} {invoiceStatusLabelMap[status] ?? status}
+                                                        </span>
+                                                    </button>
+                                                </td>
+                                            );
+                                        })}
+                                    </>
+                                )}
                             </tr>
                         ))}
                     </tbody>
@@ -794,7 +804,7 @@ function MonitoringSpreadsheetPage({
         }
 
         return (
-            <AppShell activeSection={activeSection} onNavigate={onNavigate}>
+            <AppShell activeSection={activeSection} onNavigate={onNavigate} onLogout={onLogout} currentRole={currentRole}>
                 {tableOnlyContent}
             </AppShell>
         );
@@ -806,8 +816,6 @@ function MonitoringSpreadsheetPage({
                     <section className="flex flex-col justify-between gap-4 md:flex-row md:items-end px-1">
                         <div className="space-y-1">
                             <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-slate-400">
-                                <span>Dashboard</span>
-                                <span className="material-symbols-outlined text-[10px]">chevron_right</span>
                                 <span className="font-bold text-primary">Monitoring Operasional</span>
                             </div>
                             <h2 className="text-3xl font-extrabold tracking-tight text-blue-900 text-pretty">
@@ -868,31 +876,33 @@ function MonitoringSpreadsheetPage({
                         </div>
                     )}
 
-                    <section className={`rounded-xl border px-5 py-4 ${hasIssues ? "border-amber-200 bg-amber-50" : "border-emerald-200 bg-emerald-50"}`}>
-                        {hasIssues ? (
-                            <div className="flex items-start gap-3">
-                                <span className="material-symbols-outlined text-amber-700">warning</span>
-                                <div>
-                                    <p className="text-sm font-bold text-amber-800">Ada kendala yang butuh tindakan</p>
-                                    <p className="text-sm text-amber-700">
-                                        Terdapat {totalAlerts} alert. Cek bagian Action Needed Today
-                                        lalu buka Detail Pelanggan untuk mengedit kontrak, invoice, dokumen,
-                                        atau status aktivasi.
-                                    </p>
+                    {!isTeknisi && (
+                        <section className={`rounded-xl border px-5 py-4 ${hasIssues ? "border-amber-200 bg-amber-50" : "border-emerald-200 bg-emerald-50"}`}>
+                            {hasIssues ? (
+                                <div className="flex items-start gap-3">
+                                    <span className="material-symbols-outlined text-amber-700">warning</span>
+                                    <div>
+                                        <p className="text-sm font-bold text-amber-800">Ada kendala yang butuh tindakan</p>
+                                        <p className="text-sm text-amber-700">
+                                            Terdapat {totalAlerts} alert. Cek bagian Action Needed Today
+                                            lalu buka Detail Pelanggan untuk mengedit kontrak, invoice, dokumen,
+                                            atau status aktivasi.
+                                        </p>
+                                    </div>
                                 </div>
-                            </div>
-                        ) : (
-                            <div className="flex items-start gap-3">
-                                <span className="material-symbols-outlined text-emerald-700">verified</span>
-                                <div>
-                                    <p className="text-sm font-bold text-emerald-800">Semua aman</p>
-                                    <p className="text-sm text-emerald-700">
-                                        Tidak ada kendala aktif. Lanjutkan pemantauan melalui mode spreadsheet dan filtering.
-                                    </p>
+                            ) : (
+                                <div className="flex items-start gap-3">
+                                    <span className="material-symbols-outlined text-emerald-700">verified</span>
+                                    <div>
+                                        <p className="text-sm font-bold text-emerald-800">Semua aman</p>
+                                        <p className="text-sm text-emerald-700">
+                                            Tidak ada kendala aktif. Lanjutkan pemantauan melalui mode spreadsheet dan filtering.
+                                        </p>
+                                    </div>
                                 </div>
-                            </div>
-                        )}
-                    </section>
+                            )}
+                        </section>
+                    )}
 
                     <section className="grid grid-cols-1 gap-6 md:grid-cols-3">
                         <div className="rounded-xl border border-slate-100 border-l-4 border-l-blue-500 bg-white p-6 shadow-sm">
@@ -911,15 +921,20 @@ function MonitoringSpreadsheetPage({
 
                         <div className="rounded-xl border border-slate-100 border-l-4 border-l-red-500 bg-white p-6 shadow-sm">
                             <h4 className="mb-1 text-xs font-bold uppercase tracking-wider text-on-surface-variant">
-                                Pelanggan Perlu Tindak Lanjut
+                                {isTeknisi ? "Jalur Bermasalah" : "Pelanggan Perlu Tindak Lanjut"}
                             </h4>
-                            <p className="text-2xl font-black text-blue-900">{uniqueAlertCustomers}</p>
+                            <p className="text-2xl font-black text-blue-900">
+                                {isTeknisi 
+                                    ? billingRows.filter(r => r.routeStatus === "gangguan" || (!r.routeStatus && r.customerStatus === "aktif")).length
+                                    : uniqueAlertCustomers
+                                }
+                            </p>
                         </div>
                     </section>
 
-                    {hasIssues && (
-                        <section className="grid grid-cols-1 gap-6 xl:grid-cols-5">
-                            <div className="xl:col-span-3 rounded-xl border border-slate-100 bg-white p-6 shadow-sm overflow-hidden">
+                    {(isTeknisi || hasIssues) && (
+                        <section className="grid grid-cols-1 gap-6">
+                            <div className="rounded-xl border border-slate-100 bg-white p-6 shadow-sm overflow-hidden">
                                 <div className="mb-4 flex items-center justify-between gap-3">
                                     <div>
                                         <p className="text-xs font-black uppercase tracking-widest text-primary">Action Needed Today</p>
@@ -957,27 +972,6 @@ function MonitoringSpreadsheetPage({
                                             </button>
                                         </div>
                                     ))}
-                                </div>
-                            </div>
-
-                            <div className="xl:col-span-2 rounded-xl border border-slate-100 bg-white p-6 shadow-sm relative overflow-hidden">
-                                <div className="mb-4 flex items-center justify-between gap-3">
-                                    <div>
-                                        <p className="text-xs font-black uppercase tracking-widest text-primary">Ringkasan Cepat</p>
-                                        <h3 className="text-lg font-bold text-on-surface">Ringkasan Alert</h3>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Total Alert</p>
-                                        <p className="text-2xl font-black text-red-600 leading-none">{totalAlerts}</p>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-3 relative z-10">
-                                    <IssueCountRow label="Surat kontrak belum dibuat" value={issueCounts.missingContract} />
-                                    <IssueCountRow label="Surat invoice bulan ini belum dibuat" value={issueCounts.missingInvoice} />
-                                    <IssueCountRow label="Kontrak mendekati habis" value={issueCounts.contractExpiring} />
-                                    <IssueCountRow label="Biaya aktivasi belum dibayar" value={issueCounts.activationFee} />
-                                    <IssueCountRow label="Dokumen terminasi terdeteksi" value={issueCounts.terminationDoc} />
                                 </div>
                             </div>
                         </section>
@@ -1031,27 +1025,29 @@ function MonitoringSpreadsheetPage({
                                 </select>
                             </div>
 
-                            <div>
-                                <label className="mb-1.5 ml-1 block text-[10px] font-black uppercase tracking-widest text-slate-400">
-                                    Status Invoice
-                                </label>
-                                <select
-                                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-medium text-on-surface-variant transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
-                                    onChange={(event) =>
-                                        setFilters((previous) => ({
-                                            ...previous,
-                                            status: event.target.value,
-                                        }))
-                                    }
-                                    value={filters.status}
-                                >
-                                    <option value="">Semua Status</option>
-                                    <option value="lunas">Lunas</option>
-                                    <option value="belum_bayar">Belum Bayar</option>
-                                    <option value="terlambat">Terlambat</option>
-                                    <option value="belum_ditagih">Belum Ditagih</option>
-                                </select>
-                            </div>
+                            {!isTeknisi && (
+                                <div>
+                                    <label className="mb-1.5 ml-1 block text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                        Status Invoice
+                                    </label>
+                                    <select
+                                        className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-medium text-on-surface-variant transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                        onChange={(event) =>
+                                            setFilters((previous) => ({
+                                                ...previous,
+                                                status: event.target.value,
+                                            }))
+                                        }
+                                        value={filters.status}
+                                    >
+                                        <option value="">Semua Status</option>
+                                        <option value="lunas">Lunas</option>
+                                        <option value="belum_bayar">Belum Bayar</option>
+                                        <option value="terlambat">Terlambat</option>
+                                        <option value="belum_ditagih">Belum Ditagih</option>
+                                    </select>
+                                </div>
+                            )}
 
                             <div>
                                 <label className="mb-1.5 ml-1 block text-[10px] font-black uppercase tracking-widest text-slate-400">
@@ -1296,7 +1292,7 @@ function MonitoringSpreadsheetPage({
     }
 
     return (
-        <AppShell activeSection={activeSection} onNavigate={onNavigate}>
+        <AppShell activeSection={activeSection} onNavigate={onNavigate} onLogout={onLogout} currentRole={currentRole}>
             {content}
         </AppShell>
     );

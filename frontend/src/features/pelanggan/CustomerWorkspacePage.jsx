@@ -11,6 +11,7 @@ function CustomerWorkspacePage({
     secondaryError,
     isLoading,
     onNavigate,
+    onLogout,
     onOpenTenant,
     onOpenIsp,
     onOpenCreateTenant,
@@ -18,7 +19,9 @@ function CustomerWorkspacePage({
     onRefresh,
     canCreateTenant = true,
     canCreateIsp = true,
+    currentRole = "admin",
 }) {
+    const isTeknisi = currentRole === "teknisi";
     const [searchTerm, setSearchTerm] = useState("");
     const [listType, setListType] = useState("current");
     const [ispSortMethod, setIspSortMethod] = useState("newest");
@@ -259,7 +262,7 @@ function CustomerWorkspacePage({
     };
 
     return (
-        <AppShell activeSection={activeSection} onNavigate={onNavigate}>
+        <AppShell activeSection={activeSection} onNavigate={onNavigate} onLogout={onLogout} currentRole={currentRole}>
             {/* Background Decorative Blobs */}
             <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
                 <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[40%] rounded-full bg-primary/5 blur-[120px]" />
@@ -278,7 +281,7 @@ function CustomerWorkspacePage({
                             ISP & <span className="text-primary">Tenants.</span>
                         </h1>
                         <p className="max-w-xl text-sm font-medium leading-relaxed text-on-surface/60">
-                            Visualisasi layer grouping ISP dan entitas operasional tenant dalam satu dashboard terintegrasi.
+                            Visualisasi layer grouping ISP dan entitas operasional tenant dalam satu panel terintegrasi.
                         </p>
                     </div>
 
@@ -405,20 +408,22 @@ function CustomerWorkspacePage({
                             </span>
                         </div>
 
-                        <div className="relative">
-                            <select
-                                className="glass-input w-full rounded-2xl pl-4 pr-10 py-4 text-sm font-bold outline-none cursor-pointer appearance-none"
-                                onChange={(e) => handleFilterChange(setTodoFilter, e.target.value)}
-                                value={todoFilter}
-                            >
-                                <option value="all">Status Tindakan</option>
-                                <option value="perlu_tindakan">⚠️ Perlu Tindakan</option>
-                                <option value="tidak_ada">✅ Selesai</option>
-                            </select>
-                            <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface/40 text-lg">
-                                expand_more
-                            </span>
-                        </div>
+                        {!isTeknisi && (
+                            <div className="relative">
+                                <select
+                                    className="glass-input w-full rounded-2xl pl-4 pr-10 py-4 text-sm font-bold outline-none cursor-pointer appearance-none"
+                                    onChange={(e) => handleFilterChange(setTodoFilter, e.target.value)}
+                                    value={todoFilter}
+                                >
+                                    <option value="all">Status Tindakan</option>
+                                    <option value="perlu_tindakan">⚠️ Perlu Tindakan</option>
+                                    <option value="tidak_ada">✅ Selesai</option>
+                                </select>
+                                <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface/40 text-lg">
+                                    expand_more
+                                </span>
+                            </div>
+                        )}
 
                         <div className="relative">
                             <select
@@ -445,9 +450,11 @@ function CustomerWorkspacePage({
                         <div className="px-4 py-2 rounded-xl bg-on-surface/[0.03] border border-on-surface/5 text-[11px] font-bold text-on-surface/60">
                             <span className="text-secondary mr-1">●</span> {allGroups.length} ISP Terhubung
                         </div>
-                        <div className="px-4 py-2 rounded-xl bg-rose-50 border border-rose-100 text-[11px] font-bold text-rose-600">
-                            <span className="mr-1">●</span> {filteredActionTenantCount} Butuh Perhatian
-                        </div>
+                        {!isTeknisi && (
+                            <div className="px-4 py-2 rounded-xl bg-rose-50 border border-rose-100 text-[11px] font-bold text-rose-600">
+                                <span className="mr-1">●</span> {filteredActionTenantCount} Butuh Perhatian
+                            </div>
+                        )}
                     </div>
                 </section>
 
@@ -490,18 +497,22 @@ function CustomerWorkspacePage({
                                             <div className="px-4 py-2 rounded-xl bg-white/50 text-[11px] font-black text-on-surface">
                                                 {group.tenants.length} <span className="text-on-surface/40">TENANTS</span>
                                             </div>
-                                            <div
-                                                className={`px-4 py-2 rounded-xl text-[11px] font-black border ${group.totalActionCount > 0
-                                                    ? "bg-rose-50 text-rose-600 border-rose-100"
-                                                    : "bg-white/50 text-on-surface border-on-surface/10"
-                                                    }`}
-                                            >
-                                                {group.totalActionCount} <span className="opacity-70">ACTIONS</span>
-                                            </div>
-                                            {group.actionTenantCount > 0 && (
-                                                <div className="px-4 py-2 rounded-xl bg-rose-500 text-[11px] font-black text-white shadow-lg shadow-rose-200">
-                                                    {group.actionTenantCount} ACTION REQUIRED
-                                                </div>
+                                            {!isTeknisi && (
+                                                <>
+                                                    <div
+                                                        className={`px-4 py-2 rounded-xl text-[11px] font-black border ${group.totalActionCount > 0
+                                                            ? "bg-rose-50 text-rose-600 border-rose-100"
+                                                            : "bg-white/50 text-on-surface border-on-surface/10"
+                                                            }`}
+                                                    >
+                                                        {group.totalActionCount} <span className="opacity-70">ACTIONS</span>
+                                                    </div>
+                                                    {group.actionTenantCount > 0 && (
+                                                        <div className="px-4 py-2 rounded-xl bg-rose-500 text-[11px] font-black text-white shadow-lg shadow-rose-200">
+                                                            {group.actionTenantCount} ACTION REQUIRED
+                                                        </div>
+                                                    )}
+                                                </>
                                             )}
                                             <button
                                                 className="h-[48px] px-6 rounded-xl bg-on-surface text-white text-xs font-bold hover:bg-primary transition-colors"
@@ -509,15 +520,17 @@ function CustomerWorkspacePage({
                                             >
                                                 Detail ISP
                                             </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => handleDeleteIsp(group)}
-                                                className="h-[48px] w-[48px] rounded-xl border border-rose-200 bg-white text-rose-600 hover:bg-rose-50 transition-colors flex items-center justify-center"
-                                                title={`Hapus ISP ${group.name}`}
-                                                aria-label={`Hapus ISP ${group.name}`}
-                                            >
-                                                <span className="material-symbols-outlined text-[20px]">delete</span>
-                                            </button>
+                                            {!isTeknisi && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleDeleteIsp(group)}
+                                                    className="h-[48px] w-[48px] rounded-xl border border-rose-200 bg-white text-rose-600 hover:bg-rose-50 transition-colors flex items-center justify-center"
+                                                    title={`Hapus ISP ${group.name}`}
+                                                    aria-label={`Hapus ISP ${group.name}`}
+                                                >
+                                                    <span className="material-symbols-outlined text-[20px]">delete</span>
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
 
@@ -530,14 +543,14 @@ function CustomerWorkspacePage({
                                                         <tr className="border-b border-on-surface/5">
                                                             <th className="px-8 py-5 text-left text-[10px] font-black uppercase tracking-widest text-on-surface/40">Tenant Info</th>
                                                             <th className="px-8 py-5 text-left text-[10px] font-black uppercase tracking-widest text-on-surface/40">Operational Status</th>
-                                                            <th className="px-8 py-5 text-left text-[10px] font-black uppercase tracking-widest text-on-surface/40">To-Do Metrics</th>
+                                                            {!isTeknisi && <th className="px-8 py-5 text-left text-[10px] font-black uppercase tracking-widest text-on-surface/40">To-Do Metrics</th>}
                                                             <th className="px-8 py-5 text-right text-[10px] font-black uppercase tracking-widest text-on-surface/40">Actions</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody className="divide-y divide-on-surface/5">
                                                         {group.tenants.length === 0 ? (
                                                             <tr>
-                                                                <td className="px-8 py-8 text-sm font-medium text-on-surface/50" colSpan={4}>
+                                                                <td className="px-8 py-8 text-sm font-medium text-on-surface/50" colSpan={isTeknisi ? 3 : 4}>
                                                                     Belum ada tenant terhubung ke ISP ini.
                                                                 </td>
                                                             </tr>
@@ -573,29 +586,33 @@ function CustomerWorkspacePage({
                                                                             </span>
                                                                         </div>
                                                                     </td>
-                                                                    <td className="px-8 py-5">
-                                                                        <div className="flex items-center gap-4">
-                                                                            <div className="flex flex-col">
-                                                                                <span className="text-xs font-black text-on-surface">{tenant.todoSummary?.counts?.priority ?? 0}</span>
-                                                                                <span className="text-[9px] font-bold text-rose-500 uppercase">Priority</span>
+                                                                    {!isTeknisi && (
+                                                                        <td className="px-8 py-5">
+                                                                            <div className="flex items-center gap-4">
+                                                                                <div className="flex flex-col">
+                                                                                    <span className="text-xs font-black text-on-surface">{tenant.todoSummary?.counts?.priority ?? 0}</span>
+                                                                                    <span className="text-[9px] font-bold text-rose-500 uppercase">Priority</span>
+                                                                                </div>
+                                                                                <div className="w-px h-6 bg-on-surface/5" />
+                                                                                <div className="flex flex-col">
+                                                                                    <span className="text-xs font-black text-on-surface">{tenant.todoSummary?.counts?.needAction ?? 0}</span>
+                                                                                    <span className="text-[9px] font-bold text-on-surface/30 uppercase">Actions</span>
+                                                                                </div>
                                                                             </div>
-                                                                            <div className="w-px h-6 bg-on-surface/5" />
-                                                                            <div className="flex flex-col">
-                                                                                <span className="text-xs font-black text-on-surface">{tenant.todoSummary?.counts?.needAction ?? 0}</span>
-                                                                                <span className="text-[9px] font-bold text-on-surface/30 uppercase">Actions</span>
-                                                                            </div>
-                                                                        </div>
-                                                                    </td>
+                                                                        </td>
+                                                                    )}
                                                                     <td className="px-8 py-5 text-right">
                                                                         <div className="flex justify-end gap-2">
-                                                                            <button
-                                                                                className="inline-flex items-center gap-1 rounded-lg border border-emerald-100 bg-emerald-50 px-2 py-1 text-[10px] font-black text-emerald-700 shadow-sm transition-all hover:bg-emerald-100 active:scale-95"
-                                                                                onClick={() => onOpenTenant(tenant, "invoices", group)}
-                                                                                type="button"
-                                                                            >
-                                                                                <span className="material-symbols-outlined text-[12px]">receipt_long</span>
-                                                                                Invoice
-                                                                            </button>
+                                                                            {!isTeknisi && (
+                                                                                <button
+                                                                                    className="inline-flex items-center gap-1 rounded-lg border border-emerald-100 bg-emerald-50 px-2 py-1 text-[10px] font-black text-emerald-700 shadow-sm transition-all hover:bg-emerald-100 active:scale-95"
+                                                                                    onClick={() => onOpenTenant(tenant, "invoices", group)}
+                                                                                    type="button"
+                                                                                >
+                                                                                    <span className="material-symbols-outlined text-[12px]">receipt_long</span>
+                                                                                    Invoice
+                                                                                </button>
+                                                                            )}
                                                                             <button
                                                                                 className="inline-flex items-center gap-1 rounded-lg bg-white px-2 py-1 text-[10px] font-black text-on-surface border border-on-surface/5 shadow-sm hover:border-primary hover:text-primary transition-all active:scale-95"
                                                                                 onClick={() => handleOpenTenantDetail(tenant, group)}
@@ -604,17 +621,18 @@ function CustomerWorkspacePage({
                                                                                 <span className="material-symbols-outlined text-[12px]">open_in_new</span>
                                                                                 Detail
                                                                             </button>
-                                                                            <button
-                                                                                className="inline-flex items-center justify-center rounded-lg bg-rose-50 px-2 py-1 text-rose-700 border border-rose-100 shadow-sm hover:bg-rose-100 transition-all active:scale-95"
-                                                                                onClick={() => handleArchiveTenant(tenant)}
-                                                                                title="Hapus Tenant"
-                                                                                type="button"
-                                                                            >
-                                                                                <span className="material-symbols-outlined text-[14px]">delete</span>
-                                                                            </button>
+                                                                            {!isTeknisi && (
+                                                                                <button
+                                                                                    className="inline-flex items-center justify-center rounded-lg bg-rose-50 px-2 py-1 text-rose-700 border border-rose-100 shadow-sm hover:bg-rose-100 transition-all active:scale-95"
+                                                                                    onClick={() => handleArchiveTenant(tenant)}
+                                                                                    title="Hapus Tenant"
+                                                                                    type="button"
+                                                                                >
+                                                                                    <span className="material-symbols-outlined text-[14px]">delete</span>
+                                                                                </button>
+                                                                            )}
                                                                         </div>
-                                                                    </td>
-                                                                </tr>
+                                                                    </td>                                                                </tr>
                                                             ))
                                                         )}
                                                     </tbody>

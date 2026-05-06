@@ -26,10 +26,12 @@ import {
 export default function DashboardPage({
     activeSection,
     onNavigate,
+    onLogout,
     customers,
     isLoadingCustomers,
+    currentRole = "admin"
 }) {
-    const [displayYear, setDisplayYear] = useState(() => String(new Date().getUTCFullYear()));
+    const [displayYear] = useState(() => String(new Date().getUTCFullYear()));
     const [availableYears] = useState(["2022", "2023", "2024", "2025", "2026"]);
     const [timeFilter, setTimeFilter] = useState("last_5_years");
     const [customStartYear, setCustomStartYear] = useState("2022");
@@ -156,7 +158,7 @@ export default function DashboardPage({
     const kpiCard = "bg-white/80 backdrop-blur-lg rounded-[2.5rem] shadow-sm border border-white/50 p-8 flex flex-col justify-between transition-transform hover:-translate-y-1";
 
     return (
-        <AppShell activeSection={activeSection} onNavigate={onNavigate}>
+        <AppShell activeSection={activeSection} onNavigate={onNavigate} onLogout={onLogout} currentRole={currentRole}>
             <div className="mx-auto max-w-[1400px] space-y-10 pb-20 px-4">
                 
                 {/* Header Section */}
@@ -443,14 +445,14 @@ export default function DashboardPage({
 
                 <div className="grid grid-cols-1 gap-8 xl:grid-cols-3">
                     {/* SECTION 7: ALERT / TO DO */}
-                    <div className={`${glassCard} flex flex-col h-full`}>
+                    <div className={`${glassCard} flex flex-col h-[520px]`}>
                         <div className="mb-6 flex items-center justify-between shrink-0">
                             <h2 className="text-xl font-black text-slate-800 tracking-tight">Tindakan Prioritas</h2>
                             <span className="flex h-7 w-7 items-center justify-center rounded-full bg-rose-500 text-white text-[11px] font-black">{alerts.length}</span>
                         </div>
                         
                         <div className="flex-1 space-y-4 overflow-y-auto pr-2 custom-scrollbar min-h-0">
-                            {alerts.slice(0, 8).map((alert, i) => (
+                            {alerts.map((alert, i) => (
                                 <div key={i} className="group flex items-center gap-4 border-l-4 border-rose-500 bg-rose-50/50 p-4 rounded-r-2xl transition-all hover:bg-rose-50">
                                     <span className="material-symbols-outlined text-rose-600">error_outline</span>
                                     <div className="flex-1">
@@ -474,12 +476,12 @@ export default function DashboardPage({
                     </div>
 
                     {/* SECTION 8: TOP ISP */}
-                    <div className={glassCard}>
-                        <div>
+                    <div className={`${glassCard} flex flex-col h-[520px]`}>
+                        <div className="shrink-0">
                             <h2 className="text-xl font-black text-slate-800 tracking-tight">Top ISP</h2>
                             <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">Berdasarkan Jumlah Tenant</p>
                         </div>
-                        <div className="mt-6 space-y-3">
+                        <div className="mt-6 space-y-3 flex-1 overflow-y-auto pr-2 custom-scrollbar min-h-0">
                             {topIsps.map((isp, index) => (
                                 <div key={isp.id || index} className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50/80 border border-slate-100 transition-colors hover:bg-slate-100">
                                     <div className="flex items-center gap-3">
@@ -502,47 +504,57 @@ export default function DashboardPage({
                         </div>
                     </div>
 
-                    {/* SECTION 9: STATUS OPERASIONAL */}
-                    <div className={glassCard}>
-                        <h2 className="text-xl font-black text-slate-800 tracking-tight">Status Jalur</h2>
-                        <div className="mt-8 space-y-6">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                                    <span className="text-xs font-black text-slate-600 uppercase tracking-widest">Aktif</span>
+                    {/* COLUMN 3: STATUS CARDS */}
+                    <div className="flex flex-col gap-4 h-[520px]">
+                        {/* SECTION 9: STATUS JALUR */}
+                        <div className={`${glassCard} flex-1 flex flex-col p-5`}>
+                            <h2 className="text-lg font-black text-slate-800 tracking-tight mb-2">Status Jalur</h2>
+                            <div className="space-y-2 flex-1 flex flex-col justify-center">
+                                <div className="flex items-center justify-between bg-emerald-50/60 p-2.5 rounded-xl border border-emerald-100/50">
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                                        <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">Aktif</span>
+                                    </div>
+                                    <span className="text-base font-black text-emerald-800">42</span>
                                 </div>
-                                <span className="text-lg font-black text-slate-800">42</span>
+                                <div className="flex items-center justify-between bg-slate-50/60 p-2.5 rounded-xl border border-slate-100/50">
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-2 w-2 rounded-full bg-slate-400"></div>
+                                        <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Nonaktif</span>
+                                    </div>
+                                    <span className="text-base font-black text-slate-800">12</span>
+                                </div>
+                                <div className="flex items-center justify-between bg-rose-50/60 p-2.5 rounded-xl border border-rose-100/50">
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-2 w-2 rounded-full bg-rose-500"></div>
+                                        <span className="text-[10px] font-black text-rose-700 uppercase tracking-widest">Gangguan</span>
+                                    </div>
+                                    <span className="text-base font-black text-rose-800">3</span>
+                                </div>
                             </div>
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="h-2 w-2 rounded-full bg-slate-300"></div>
-                                    <span className="text-xs font-black text-slate-600 uppercase tracking-widest">Nonaktif</span>
+                        </div>
+
+                        {/* SECTION 10: STATUS KONTRAK */}
+                        <div className={`${glassCard} flex-1 flex flex-col p-5`}>
+                            <h2 className="text-lg font-black text-slate-800 tracking-tight mb-2">Status Kontrak</h2>
+                            <div className="space-y-2 flex-1 flex flex-col justify-center">
+                                <div className="flex items-center justify-between bg-emerald-50/60 p-2.5 rounded-xl border border-emerald-100/50">
+                                    <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest flex items-center gap-2">
+                                        <span className="material-symbols-outlined text-[16px]">check_circle</span> Beroperasi
+                                    </span>
+                                    <span className="text-xs font-black text-emerald-800">58 <span className="opacity-60">Unit</span></span>
                                 </div>
-                                <span className="text-lg font-black text-slate-800">12</span>
-                            </div>
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="h-2 w-2 rounded-full bg-rose-500"></div>
-                                    <span className="text-xs font-black text-slate-600 uppercase tracking-widest">Gangguan</span>
+                                <div className="flex items-center justify-between bg-slate-50/60 p-2.5 rounded-xl border border-slate-100/50">
+                                    <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2">
+                                        <span className="material-symbols-outlined text-[16px]">pause_circle</span> Berhenti
+                                    </span>
+                                    <span className="text-xs font-black text-slate-700">5 <span className="opacity-60">Unit</span></span>
                                 </div>
-                                <span className="text-lg font-black text-slate-800">3</span>
-                            </div>
-                            
-                            <div className="mt-6 h-[2px] w-full bg-slate-50"></div>
-                            
-                            <h2 className="text-lg font-black text-slate-800 tracking-tight mt-8">Status Kontrak</h2>
-                            <div className="mt-4 space-y-3">
-                                <div className="flex items-center justify-between bg-emerald-50 p-3.5 rounded-xl border border-emerald-100 transition-colors hover:bg-emerald-100/50">
-                                    <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest flex items-center gap-2"><span className="material-symbols-outlined text-[14px]">check_circle</span> Beroperasi</span>
-                                    <span className="text-sm font-black text-emerald-800">58 <span className="text-[10px] font-bold opacity-60">Unit</span></span>
-                                </div>
-                                <div className="flex items-center justify-between bg-slate-50 p-3.5 rounded-xl border border-slate-100 transition-colors hover:bg-slate-100">
-                                    <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2"><span className="material-symbols-outlined text-[14px]">pause_circle</span> Berhenti</span>
-                                    <span className="text-sm font-black text-slate-700">5 <span className="text-[10px] font-bold opacity-60">Unit</span></span>
-                                </div>
-                                <div className="flex items-center justify-between bg-rose-50 p-3.5 rounded-xl border border-rose-100 transition-colors hover:bg-rose-100/50">
-                                    <span className="text-[10px] font-black text-rose-700 uppercase tracking-widest flex items-center gap-2"><span className="material-symbols-outlined text-[14px]">cancel</span> Kedaluwarsa</span>
-                                    <span className="text-sm font-black text-rose-800">2 <span className="text-[10px] font-bold opacity-60">Unit</span></span>
+                                <div className="flex items-center justify-between bg-rose-50/60 p-2.5 rounded-xl border border-rose-100/50">
+                                    <span className="text-[10px] font-black text-rose-700 uppercase tracking-widest flex items-center gap-2">
+                                        <span className="material-symbols-outlined text-[16px]">cancel</span> Kedaluwarsa
+                                    </span>
+                                    <span className="text-xs font-black text-rose-800">2 <span className="opacity-60">Unit</span></span>
                                 </div>
                             </div>
                         </div>

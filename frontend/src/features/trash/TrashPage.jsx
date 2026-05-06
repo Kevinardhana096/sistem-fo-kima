@@ -33,15 +33,20 @@ const INITIAL_DELETION_STATS = {
     }
 };
 
-export default function TrashPage({ activeSection, onNavigate }) {
+export default function TrashPage({ activeSection, onNavigate, currentRole = "admin" }) {
+    const isTeknisi = currentRole === "teknisi";
     const [searchQuery, setSearchQuery] = useState("");
     const [trashItems, setTrashItems] = useState(MOCK_TRASH_ITEMS);
     const [deletionStats, setDeletionStats] = useState(INITIAL_DELETION_STATS);
 
-    const filteredItems = trashItems.filter(item => 
-        item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.type.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const filteredItems = trashItems.filter(item => {
+        const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                             item.type.toLowerCase().includes(searchQuery.toLowerCase());
+        if (isTeknisi) {
+            return matchesSearch && item.type === "Jalur";
+        }
+        return matchesSearch;
+    });
 
     const handleRestore = (id) => {
         // In a real app, this would call an API
@@ -70,8 +75,8 @@ export default function TrashPage({ activeSection, onNavigate }) {
     };
 
     return (
-        <AppShell activeSection={activeSection} onNavigate={onNavigate}>
-            <div className="mx-auto max-w-5xl px-4 py-8 space-y-8">
+        <AppShell activeSection={activeSection} onNavigate={onNavigate} currentRole={currentRole}>
+            <div className="mx-auto max-w-5xl space-y-6">
                 <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <h1 className="text-3xl font-extrabold tracking-tight text-primary">Tempat Sampah</h1>
@@ -108,15 +113,17 @@ export default function TrashPage({ activeSection, onNavigate }) {
                             </div>
                         </div>
                     </div>
-                    <div className="mt-6 flex flex-wrap gap-3 pt-6 border-t border-rose-100/50">
-                        {Object.entries(deletionStats.breakdown).map(([type, count]) => count > 0 && (
-                            <div key={type} className="flex items-center gap-2 rounded-xl bg-white px-3 py-1.5 shadow-sm border border-rose-50">
-                                <span className={`h-2 w-2 rounded-full ${TYPE_LABELS[type]?.color?.split(' ')[0] || 'bg-slate-300'}`}></span>
-                                <span className="text-xs font-bold text-slate-600">Data {type}</span>
-                                <span className="text-xs font-black text-slate-800 bg-slate-50 px-1.5 rounded">{count}</span>
-                            </div>
-                        ))}
-                    </div>
+                    {!isTeknisi && (
+                        <div className="mt-6 flex flex-wrap gap-3 pt-6 border-t border-rose-100/50">
+                            {Object.entries(deletionStats.breakdown).map(([type, count]) => count > 0 && (
+                                <div key={type} className="flex items-center gap-2 rounded-xl bg-white px-3 py-1.5 shadow-sm border border-rose-50">
+                                    <span className={`h-2 w-2 rounded-full ${TYPE_LABELS[type]?.color?.split(' ')[0] || 'bg-slate-300'}`}></span>
+                                    <span className="text-xs font-bold text-slate-600">Data {type}</span>
+                                    <span className="text-xs font-black text-slate-800 bg-slate-50 px-1.5 rounded">{count}</span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
                 <div className="overflow-hidden rounded-3xl bg-white/30 shadow-sm backdrop-blur-md">

@@ -169,6 +169,7 @@ function TenantDetailPage({
   onBack,
   onEditTenant,
   onNavigate,
+  onLogout,
   onOpenRoutePlanner,
   onTabChange,
   onRefreshAll,
@@ -177,6 +178,7 @@ function TenantDetailPage({
   hideSidebar = false,
   canEditTenant = true,
   canDeleteTenant = true,
+  currentRole = "admin",
 }) {
   const [activeTab, setActiveTab] = useState(initialTab);
   const [detail, setDetail] = useState(null);
@@ -1152,6 +1154,7 @@ function TenantDetailPage({
     }
     setIsSubmittingVersion(true);
     setVersionError("");
+    setDocumentFeedback("");
     try {
       await fetchJson(
         `${API_BASE_URL}/api/customers/${customer.id}/contracts/${contract.id}/versions`,
@@ -1250,6 +1253,7 @@ function TenantDetailPage({
 
     setIsUploadingContractFile(true);
     setError("");
+    setDocumentFeedback("");
     try {
       const formData = new FormData();
       formData.append("jenisDokumen", "kontrak");
@@ -2340,6 +2344,7 @@ function TenantDetailPage({
       <AppShell
         activeSection="customers"
         onNavigate={onNavigate}
+        onLogout={onLogout}
         hideSidebar={true}
         full={true}
       >
@@ -2399,19 +2404,22 @@ function TenantDetailPage({
   const tabs = [
     { key: "overview", label: "Ringkasan" },
     { key: "jalur", label: "Jalur" },
-    { key: "contracts", label: "Kontrak & Riwayat" },
-    { key: "invoices", label: "Tagihan / Invoice" },
-    { key: "documents", label: "Arsip Dokumen" },
-    { key: "timeline", label: "Timeline Aktifitas" },
+    ...(currentRole !== "teknisi" ? [
+      { key: "contracts", label: "Kontrak & Riwayat" },
+      { key: "invoices", label: "Tagihan / Invoice" },
+      { key: "documents", label: "Arsip Dokumen" },
+      { key: "timeline", label: "Timeline Aktifitas" }
+    ] : []),
   ];
 
   return (
     <AppShell
       activeSection="customers"
       onNavigate={onNavigate}
+      onLogout={onLogout}
       hideSidebar={hideSidebar}
-    >
-      <div className="mx-auto max-w-7xl space-y-8">
+      currentRole={currentRole}
+    >      <div className="mx-auto max-w-7xl space-y-8">
         <button
           className="inline-flex items-center gap-2 rounded-lg bg-surface-container-low px-4 py-2 text-sm font-semibold text-primary transition-colors hover:bg-surface-container"
           onClick={onBack}
@@ -2457,11 +2465,6 @@ function TenantDetailPage({
                   ? isps.map((item) => item.name).join(", ")
                   : "-"}
               </p>
-              {contextIsp?.name && (
-                <p className="mt-1 text-sm text-on-surface-variant">
-                  Dibuka dari grup ISP: {contextIsp.name}
-                </p>
-              )}
             </div>
             <div className="flex flex-wrap gap-3">
               <button
@@ -3409,11 +3412,16 @@ function TenantDetailPage({
               >
                 <span className="material-symbols-outlined text-base">add</span>
                 Tambah Kontrak / Perubahan
-              </button>
-            </div>
+                </button>
+                </div>
 
-            {/* Desktop Table View */}
-            <div className="hidden lg:block overflow-x-auto">
+                {documentFeedback && (
+                <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+                {documentFeedback}
+                </div>
+                )}
+
+                {/* Desktop Table View */}            <div className="hidden lg:block overflow-x-auto">
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50/50">
