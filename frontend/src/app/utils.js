@@ -425,6 +425,8 @@ export const mapCustomerToRow = (customer, index) => {
         contractPeriodEnd: customer.contractPeriodEnd ?? null,
         activationFeeAmount,
         activationFeePaidAt,
+        paket: customer.paket ?? null,
+        jumlah: customer.jumlah ?? null,
     };
 };
 

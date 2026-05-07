@@ -148,9 +148,9 @@ export default function DashboardPage({
                     <div>
                         <div className="flex items-center gap-3 mb-2">
                             <span className="h-[2px] w-8 bg-gold-accent shadow-gold-glow"></span>
-                            <p className="text-[10px] font-black text-gold-accent uppercase tracking-[0.4em]">Analytics Engine</p>
+                            <p className="text-[10px] font-black text-gold-accent uppercase tracking-[0.4em]">Mesin Analitik</p>
                         </div>
-                        <h1 className="text-3xl md:text-4xl xl:text-5xl font-black text-on-surface tracking-tight leading-tight">Ecosystem <span className="text-gold-accent italic">Intelligence</span></h1>
+                        <h1 className="text-3xl md:text-4xl xl:text-5xl font-black text-on-surface tracking-tight leading-tight">Ekosistem <span className="text-gold-accent italic">Intelijen</span></h1>
                     </div>
                     
                     <div className="flex flex-col items-end gap-3">
@@ -169,10 +169,10 @@ export default function DashboardPage({
 
                 {/* KPI Section */}
                 <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    <StatCard label="Revenue Realized" value={formatCurrency(insights?.totals?.revenuePaid ?? 0)} icon="account_balance_wallet" accent="gold" sub="Lunas Terverifikasi" />
-                    <StatCard label="Projected Billing" value={formatCurrency(insights?.totals?.revenueProjected ?? 0)} icon="analytics" accent="gold" sub="Total Tagihan Berjalan" />
-                    <StatCard label="Partner Network" value={stats.ispCount} icon="hub" accent="gold" sub="Mitra ISP Terintegrasi" />
-                    <StatCard label="Active Tenants" value={stats.tenantCount} icon="groups" accent="gold" sub="Total Unit Pelanggan" />
+                    <StatCard label="Pendapatan Terealisasi" value={formatCurrency(insights?.totals?.revenuePaid ?? 0)} icon="account_balance_wallet" accent="gold" sub="Lunas Terverifikasi" />
+                    <StatCard label="Proyeksi Tagihan" value={formatCurrency(insights?.totals?.revenueProjected ?? 0)} icon="analytics" accent="gold" sub="Total Tagihan Berjalan" />
+                    <StatCard label="Jaringan Mitra" value={stats.ispCount} icon="hub" accent="gold" sub="Mitra ISP Terintegrasi" />
+                    <StatCard label="Total Lokasi Aktif" value={stats.tenantCount} icon="groups" accent="gold" sub="Total Unit Lokasi" />
                 </section>
 
                 {/* Core Infrastructure Section */}
@@ -209,7 +209,7 @@ export default function DashboardPage({
                         </div>
                         <div className="mt-4">
                             <span className="text-[10px] font-black text-white/70 uppercase tracking-widest leading-relaxed block">
-                                <span className="text-white text-lg mr-1">32</span> Tenant Menggunakan
+                                <span className="text-white text-lg mr-1">32</span> Lokasi Menggunakan
                             </span>
                         </div>
                     </div>
@@ -272,7 +272,7 @@ export default function DashboardPage({
                     {/* Financial Chart */}
                     <div className={`${glassCardClass} lg:col-span-2 xl:col-span-2 flex flex-col`}>
                         <div className="flex flex-col md:flex-row md:items-center justify-between mb-2 gap-4">
-                            <h2 className="text-xl md:text-2xl font-black text-on-surface tracking-tight">Financial Performance</h2>
+                            <h2 className="text-xl md:text-2xl font-black text-on-surface tracking-tight">Kinerja Keuangan</h2>
                             <ChartFilterSelector filter={financialFilter} setFilter={setFinancialFilter} availableYears={availableYears} />
                         </div>
                         <div className="flex-1 h-[300px] md:h-[400px] w-full mt-4">
@@ -288,14 +288,14 @@ export default function DashboardPage({
                             </ResponsiveContainer>
                         </div>
                         <div className="flex flex-wrap items-center justify-start gap-x-6 gap-y-2 mt-4">
-                            <LegendItem dotColor="bg-yellow-200" label="Paid" />
-                            <LegendItem dotColor="bg-gold-accent/40" label="Projected" />
+                            <LegendItem dotColor="bg-yellow-200" label="Lunas" />
+                            <LegendItem dotColor="bg-gold-accent/40" label="Proyeksi" />
                         </div>
                     </div>
 
                     {/* Circular Progress */}
                     <div className={glassCardClass}>
-                        <h2 className="text-lg md:text-xl font-black text-on-surface tracking-tight uppercase tracking-widest">Liquidity Status</h2>
+                        <h2 className="text-lg md:text-xl font-black text-on-surface tracking-tight uppercase tracking-widest">Status Likuiditas</h2>
                         <div className="mt-8 flex flex-col items-center">
                             <div className="relative flex h-48 w-48 xl:h-56 xl:w-56 items-center justify-center">
                                 <svg className="h-full w-full -rotate-90">
@@ -308,13 +308,13 @@ export default function DashboardPage({
                                 </svg>
                                 <div className="absolute inset-0 flex flex-col items-center justify-center">
                                     <span className="text-4xl xl:text-5xl font-black text-on-surface tracking-tighter">{paymentRatio}%</span>
-                                    <span className="text-[10px] font-black text-gold-accent uppercase tracking-[0.3em] mt-2">Collection</span>
+                                    <span className="text-[10px] font-black text-gold-accent uppercase tracking-[0.3em] mt-2">Koleksi</span>
                                 </div>
                             </div>
                             <div className="mt-10 w-full space-y-3">
-                                <StatusRow label="Settled Units" value={billingSummary.lunas} color="bg-gold-accent" />
-                                <StatusRow label="Pending Units" value={billingSummary.belum_bayar} color="bg-black/10" />
-                                <StatusRow label="Overdue Alert" value={billingSummary.terlambat} color="bg-rose-500" isAlert />
+                                <StatusRow label="Unit Lunas" value={billingSummary.lunas} color="bg-gold-accent" />
+                                <StatusRow label="Unit Tertunda" value={billingSummary.belum_bayar} color="bg-black/10" />
+                                <StatusRow label="Peringatan Terlambat" value={billingSummary.terlambat} color="bg-rose-500" isAlert />
                             </div>
                         </div>
                     </div>
@@ -324,7 +324,7 @@ export default function DashboardPage({
                     {/* Growth Chart */}
                     <div className={`${glassCardClass} lg:col-span-2 xl:col-span-2`}>
                         <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
-                            <h2 className="text-xl md:text-2xl font-black text-on-surface tracking-tight">Growth Velocity</h2>
+                            <h2 className="text-xl md:text-2xl font-black text-on-surface tracking-tight">Pertumbuhan</h2>
                             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                                 <ChartFilterSelector filter={growthFilter} setFilter={setGrowthFilter} availableYears={availableYears} />
                                 <div className="inline-flex rounded-xl bg-white/10 p-1 border border-white/15">
@@ -338,7 +338,7 @@ export default function DashboardPage({
                                                     : "text-white/70 hover:text-white"
                                             }`}
                                         >
-                                            {type}
+                                            {type === "tenant" ? "Lokasi" : "ISP"}
                                         </button>
                                     ))}
                                 </div>
@@ -359,8 +359,8 @@ export default function DashboardPage({
                     {/* Alerts */}
                     <div className={`${glassCardClass} flex flex-col h-[400px] md:h-[480px]`}>
                         <div className="mb-8 flex items-center justify-between">
-                            <h2 className="text-xl font-black text-on-surface tracking-tight">Critical Actions</h2>
-                            <span className="px-4 py-1 rounded-full bg-rose-500/10 text-rose-600 text-[10px] font-black uppercase">{alerts.length} ISSUES</span>
+                            <h2 className="text-xl font-black text-on-surface tracking-tight">Tindakan Kritis</h2>
+                            <span className="px-4 py-1 rounded-full bg-rose-500/10 text-rose-600 text-[10px] font-black uppercase">{alerts.length} MASALAH</span>
                         </div>
                         <div className="flex-1 space-y-3 overflow-y-auto pr-2 custom-scrollbar">
                             {alerts.map((alert, i) => (
@@ -430,7 +430,7 @@ export default function DashboardPage({
                         <div className="flex-1 flex flex-col justify-between mt-2">
                             <div className="space-y-4">
                                 <ContractStatusRow label="Beroperasi" count={stats.contract.beroperasi} color="text-emerald-500" bg="bg-emerald-500/10 border-emerald-500/20" icon="check_circle" />
-                                <ContractStatusRow label="Expired" count={stats.contract.expired} color="text-amber-500" bg="bg-amber-500/10 border-amber-500/20" icon="warning" />
+                                <ContractStatusRow label="Belum Diperpanjang" count={stats.contract.expired} color="text-amber-500" bg="bg-amber-500/10 border-amber-500/20" icon="warning" />
                                 <ContractStatusRow label="Berhenti" count={stats.contract.berhenti} color="text-rose-500" bg="bg-rose-500/10 border-rose-500/20" icon="cancel" />
                             </div>
                             <div className="mt-6 p-5 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between shrink-0">

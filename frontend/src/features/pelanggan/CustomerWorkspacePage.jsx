@@ -137,9 +137,9 @@ function CustomerWorkspacePage({
         if (otherTenants.length > 0) {
             groups.push({
                 id: "other",
-                name: "Tenant Tanpa ISP Terdaftar",
+                name: "Lokasi Tanpa ISP Terdaftar",
                 logoUrl: null,
-                contractReference: "Kumpulan tenant yang belum terhubung ke ISP master",
+                contractReference: "Kumpulan lokasi yang belum terhubung ke ISP master",
                 tenants: otherTenants.sort((a, b) => a.name.localeCompare(b.name)),
                 activeTenantCount: otherTenants.filter((tenant) => isTenantActive(tenant)).length,
                 actionTenantCount: otherTenants.filter((tenant) => {
@@ -244,7 +244,7 @@ function CustomerWorkspacePage({
     };
 
     const handleArchiveTenant = async (tenant) => {
-        if (!confirm(`Apakah Anda yakin ingin memindahkan tenant "${tenant.name}" ke sampah?`)) {
+        if (!confirm(`Apakah Anda yakin ingin memindahkan lokasi "${tenant.name}" ke sampah?`)) {
             return;
         }
 
@@ -253,11 +253,11 @@ function CustomerWorkspacePage({
                 method: "PATCH",
             });
 
-            alert("Tenant berhasil dipindahkan ke sampah.");
+            alert("Lokasi berhasil dipindahkan ke sampah.");
             onRefresh?.();
         } catch (error) {
             console.error(error);
-            alert(error instanceof Error ? error.message : "Terjadi kesalahan saat mengarsipkan tenant.");
+            alert(error instanceof Error ? error.message : "Terjadi kesalahan saat mengarsipkan lokasi.");
         }
     };
 
@@ -278,10 +278,10 @@ function CustomerWorkspacePage({
                             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Workspace</span>
                         </div>
                         <h1 className="text-5xl font-black tracking-tighter text-on-surface">
-                            ISP & <span className="text-primary">Tenants.</span>
+                            ISP & <span className="text-primary">Lokasi.</span>
                         </h1>
                         <p className="max-w-xl text-sm font-medium leading-relaxed text-on-surface/60">
-                            Visualisasi layer grouping ISP dan entitas operasional tenant dalam satu panel terintegrasi.
+                            Visualisasi layer grouping ISP dan entitas operasional lokasi dalam satu panel terintegrasi.
                         </p>
                     </div>
 
@@ -301,7 +301,7 @@ function CustomerWorkspacePage({
                                 className="btn-gradient h-[56px] inline-flex items-center gap-2 rounded-2xl px-6 text-sm font-bold active:scale-95"
                             >
                                 <span className="material-symbols-outlined">person_add</span>
-                                Tenant Baru
+                                Lokasi Baru
                             </button>
                         )}
                         <button
@@ -332,127 +332,189 @@ function CustomerWorkspacePage({
                 {/* 3. SUMMARY CARDS */}
                 <section className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
                     <SummaryCard label="Total ISP" value={isps.length} icon="device_hub" className="glass-card border-b-4 border-b-primary/40" />
-                    <SummaryCard label="Total Tenant" value={customers.length} icon="groups" className="glass-card" />
-                    <SummaryCard label="Active Tenant" value={totalActiveTenants} icon="check_circle" className="glass-card text-secondary" />
-                    <SummaryCard label="Non-active Tenant" value={totalNonActiveTenants} icon="cancel" className="glass-card" />
+                    <SummaryCard label="Total Lokasi" value={customers.length} icon="groups" className="glass-card" />
+                    <SummaryCard label="Lokasi Aktif" value={totalActiveTenants} icon="check_circle" className="glass-card text-secondary" />
+                    <SummaryCard label="Lokasi Nonaktif" value={totalNonActiveTenants} icon="cancel" className="glass-card" />
                 </section>
 
                 {/* 4. FILTER PANEL */}
-                <section className="glass-card rounded-[2.5rem] p-8 space-y-8">
-                    <div className="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
-                        <nav className="flex bg-surface-container-low p-1.5 rounded-2xl w-fit">
+                <section className="space-y-4">
+                    {/* Row 1: Tab + Search + Reset */}
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+                        {/* Tab Switch */}
+                        <div className="flex shrink-0 p-1 rounded-2xl gap-1" style={{background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)"}}>
                             <button
-                                className={`px-8 py-2.5 rounded-xl text-xs font-black transition-all ${listType === "current" ? "bg-white text-primary shadow-sm" : "text-on-surface/40 hover:text-on-surface"}`}
+                                className={`px-6 py-2.5 rounded-xl text-xs font-black tracking-widest uppercase transition-all ${listType === "current" ? "bg-white/20 text-white shadow-md border border-white/30" : "text-white/40 hover:text-white/70"}`}
                                 onClick={() => setListType("current")}
                             >
-                                SAAT INI
+                                Saat Ini
                             </button>
                             <button
-                                className={`px-8 py-2.5 rounded-xl text-xs font-black transition-all ${listType === "riwayat" ? "bg-white text-primary shadow-sm" : "text-on-surface/40 hover:text-on-surface"}`}
+                                className={`px-6 py-2.5 rounded-xl text-xs font-black tracking-widest uppercase transition-all ${listType === "riwayat" ? "bg-white/20 text-white shadow-md border border-white/30" : "text-white/40 hover:text-white/70"}`}
                                 onClick={() => setListType("riwayat")}
                             >
-                                RIWAYAT
+                                Riwayat
                             </button>
-                        </nav>
+                        </div>
 
+                        {/* Search Bar */}
+                        <div className="relative flex-1 group">
+                            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-primary transition-colors text-xl">search</span>
+                            <input
+                                className="w-full rounded-2xl py-3.5 pl-12 pr-4 text-sm font-medium outline-none transition-all"
+                                style={{
+                                    background: "rgba(255,255,255,0.10)",
+                                    border: "1px solid rgba(255,255,255,0.18)",
+                                    color: "rgba(255,255,255,0.9)",
+                                    backdropFilter: "blur(12px)"
+                                }}
+                                onChange={(e) => handleFilterChange(setSearchTerm, e.target.value)}
+                                placeholder="Cari ID, ISP, atau nama lokasi..."
+                                type="text"
+                                value={searchTerm}
+                            />
+                        </div>
+
+                        {/* Reset */}
                         <button
                             disabled={!isAnyFilterActive}
                             onClick={handleResetFilters}
-                            className="inline-flex items-center gap-2 text-xs font-black text-primary/60 hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed uppercase tracking-widest transition-colors"
+                            className="shrink-0 inline-flex items-center gap-2 px-4 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                            style={{background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.6)"}}
                         >
                             <span className="material-symbols-outlined text-sm">restart_alt</span>
-                            Reset Filter
+                            Reset
                         </button>
                     </div>
 
-                    <div className="relative group">
-                        <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface/30 group-focus-within:text-primary transition-colors">search</span>
-                        <input
-                            className="glass-input w-full rounded-2xl py-4 pl-12 pr-4 text-sm font-medium outline-none"
-                            onChange={(e) => handleFilterChange(setSearchTerm, e.target.value)}
-                            placeholder="Cari ID, ISP, atau nama tenant..."
-                            type="text"
-                            value={searchTerm}
-                        />
-                    </div>
+                    {/* Row 2: Filter Dropdowns */}
+                    <div className={`grid grid-cols-1 gap-3 ${isTeknisi ? "md:grid-cols-3" : "md:grid-cols-2 xl:grid-cols-4"}`}>
 
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-                        <div className="relative">
-                            <select
-                                className="glass-input w-full rounded-2xl pl-4 pr-10 py-4 text-sm font-bold outline-none cursor-pointer appearance-none"
-                                onChange={(e) => handleFilterChange(setContractStatusFilter, e.target.value)}
-                                value={contractStatusFilter}
-                            >
-                                <option value="all">Status Kontrak</option>
-                                <option value="beroperasi">Beroperasi</option>
-                                <option value="expired">Expired</option>
-                            </select>
-                            <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface/40 text-lg">
-                                expand_more
-                            </span>
-                        </div>
-
-                        <div className="relative">
-                            <select
-                                className="glass-input w-full rounded-2xl pl-4 pr-10 py-4 text-sm font-bold outline-none cursor-pointer appearance-none"
-                                onChange={(e) => handleFilterChange(setRouteStatusFilter, e.target.value)}
-                                value={routeStatusFilter}
-                            >
-                                <option value="all">Status Jalur</option>
-                                <option value="aktif">Aktif</option>
-                                <option value="nonaktif">Nonaktif</option>
-                                <option value="gangguan">Gangguan</option>
-                            </select>
-                            <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface/40 text-lg">
-                                expand_more
-                            </span>
-                        </div>
-
-                        {!isTeknisi && (
+                        {/* Filter: Status Kontrak */}
+                        <div className="relative group">
+                            <p className="text-[9px] font-black uppercase tracking-[0.2em] mb-1.5 pl-1" style={{color:"rgba(255,255,255,0.45)"}}>Status Kontrak</p>
                             <div className="relative">
+                                <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-base pointer-events-none" style={{color: contractStatusFilter !== "all" ? "#d4a937" : "rgba(255,255,255,0.35)"}}>description</span>
                                 <select
-                                    className="glass-input w-full rounded-2xl pl-4 pr-10 py-4 text-sm font-bold outline-none cursor-pointer appearance-none"
-                                    onChange={(e) => handleFilterChange(setTodoFilter, e.target.value)}
-                                    value={todoFilter}
+                                    className="w-full rounded-xl pl-10 pr-8 py-3 text-sm font-bold outline-none cursor-pointer appearance-none transition-all"
+                                    style={{
+                                        background: contractStatusFilter !== "all" ? "rgba(212,169,55,0.12)" : "rgba(255,255,255,0.08)",
+                                        border: contractStatusFilter !== "all" ? "1px solid rgba(212,169,55,0.35)" : "1px solid rgba(255,255,255,0.14)",
+                                        color: "rgba(255,255,255,0.88)",
+                                        backdropFilter: "blur(10px)"
+                                    }}
+                                    onChange={(e) => handleFilterChange(setContractStatusFilter, e.target.value)}
+                                    value={contractStatusFilter}
                                 >
-                                    <option value="all">Status Tindakan</option>
-                                    <option value="perlu_tindakan">⚠️ Perlu Tindakan</option>
-                                    <option value="tidak_ada">✅ Selesai</option>
+                                    <option value="all">Semua Status</option>
+                                    <option value="beroperasi">Beroperasi</option>
+                                    <option value="expired">Belum Diperpanjang</option>
                                 </select>
-                                <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface/40 text-lg">
-                                    expand_more
-                                </span>
+                                <span className="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-base" style={{color:"rgba(255,255,255,0.35)"}}>expand_more</span>
+                            </div>
+                        </div>
+
+                        {/* Filter: Status Jalur */}
+                        <div className="relative group">
+                            <p className="text-[9px] font-black uppercase tracking-[0.2em] mb-1.5 pl-1" style={{color:"rgba(255,255,255,0.45)"}}>Status Jalur</p>
+                            <div className="relative">
+                                <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-base pointer-events-none" style={{color: routeStatusFilter !== "all" ? "#00687b" : "rgba(255,255,255,0.35)"}}>lan</span>
+                                <select
+                                    className="w-full rounded-xl pl-10 pr-8 py-3 text-sm font-bold outline-none cursor-pointer appearance-none transition-all"
+                                    style={{
+                                        background: routeStatusFilter !== "all" ? "rgba(0,104,123,0.14)" : "rgba(255,255,255,0.08)",
+                                        border: routeStatusFilter !== "all" ? "1px solid rgba(0,104,123,0.35)" : "1px solid rgba(255,255,255,0.14)",
+                                        color: "rgba(255,255,255,0.88)",
+                                        backdropFilter: "blur(10px)"
+                                    }}
+                                    onChange={(e) => handleFilterChange(setRouteStatusFilter, e.target.value)}
+                                    value={routeStatusFilter}
+                                >
+                                    <option value="all">Semua Jalur</option>
+                                    <option value="aktif">Aktif</option>
+                                    <option value="nonaktif">Nonaktif</option>
+                                    <option value="gangguan">Gangguan</option>
+                                </select>
+                                <span className="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-base" style={{color:"rgba(255,255,255,0.35)"}}>expand_more</span>
+                            </div>
+                        </div>
+
+                        {/* Filter: Status Tindakan (non-teknisi) */}
+                        {!isTeknisi && (
+                            <div className="relative group">
+                                <p className="text-[9px] font-black uppercase tracking-[0.2em] mb-1.5 pl-1" style={{color:"rgba(255,255,255,0.45)"}}>Status Tindakan</p>
+                                <div className="relative">
+                                    <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-base pointer-events-none" style={{color: todoFilter !== "all" ? "#f43f5e" : "rgba(255,255,255,0.35)"}}>task_alt</span>
+                                    <select
+                                        className="w-full rounded-xl pl-10 pr-8 py-3 text-sm font-bold outline-none cursor-pointer appearance-none transition-all"
+                                        style={{
+                                            background: todoFilter !== "all" ? "rgba(244,63,94,0.12)" : "rgba(255,255,255,0.08)",
+                                            border: todoFilter !== "all" ? "1px solid rgba(244,63,94,0.30)" : "1px solid rgba(255,255,255,0.14)",
+                                            color: "rgba(255,255,255,0.88)",
+                                            backdropFilter: "blur(10px)"
+                                        }}
+                                        onChange={(e) => handleFilterChange(setTodoFilter, e.target.value)}
+                                        value={todoFilter}
+                                    >
+                                        <option value="all">Semua Tindakan</option>
+                                        <option value="perlu_tindakan">⚠️ Perlu Tindakan</option>
+                                        <option value="tidak_ada">✅ Selesai</option>
+                                    </select>
+                                    <span className="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-base" style={{color:"rgba(255,255,255,0.35)"}}>expand_more</span>
+                                </div>
                             </div>
                         )}
 
-                        <div className="relative">
-                            <select
-                                className="glass-input w-full rounded-2xl pl-4 pr-10 py-4 text-sm font-bold outline-none cursor-pointer appearance-none"
-                                onChange={(e) => handleFilterChange(setIspSortMethod, e.target.value)}
-                                value={ispSortMethod}
-                            >
-                                <option value="newest">Urutan: Terbaru</option>
-                                <option value="oldest">Urutan: Terlama</option>
-                                <option value="name_asc">Urutan: Nama A-Z</option>
-                                <option value="name_desc">Urutan: Nama Z-A</option>
-                            </select>
-                            <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface/40 text-lg">
-                                expand_more
-                            </span>
+                        {/* Urutan */}
+                        <div className="relative group">
+                            <p className="text-[9px] font-black uppercase tracking-[0.2em] mb-1.5 pl-1" style={{color:"rgba(255,255,255,0.45)"}}>Urutan</p>
+                            <div className="relative">
+                                <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-base pointer-events-none" style={{color:"rgba(255,255,255,0.35)"}}>sort</span>
+                                <select
+                                    className="w-full rounded-xl pl-10 pr-8 py-3 text-sm font-bold outline-none cursor-pointer appearance-none transition-all"
+                                    style={{
+                                        background: "rgba(255,255,255,0.08)",
+                                        border: "1px solid rgba(255,255,255,0.14)",
+                                        color: "rgba(255,255,255,0.88)",
+                                        backdropFilter: "blur(10px)"
+                                    }}
+                                    onChange={(e) => handleFilterChange(setIspSortMethod, e.target.value)}
+                                    value={ispSortMethod}
+                                >
+                                    <option value="newest">Terbaru</option>
+                                    <option value="oldest">Terlama</option>
+                                    <option value="name_asc">Nama A–Z</option>
+                                    <option value="name_desc">Nama Z–A</option>
+                                </select>
+                                <span className="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-base" style={{color:"rgba(255,255,255,0.35)"}}>expand_more</span>
+                            </div>
                         </div>
                     </div>
 
-                    {/* Filter Indicators */}
-                    <div className="flex flex-wrap gap-3 pt-2">
-                        <div className="px-4 py-2 rounded-xl bg-on-surface/[0.03] border border-on-surface/5 text-[11px] font-bold text-on-surface/60">
-                            <span className="text-primary mr-1">●</span> {filteredTenantCount} Tenant Terfilter
+                    {/* Row 3: Result Indicators */}
+                    <div className="flex flex-wrap items-center gap-2.5 pt-1">
+                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-black"
+                            style={{background:"rgba(255,255,255,0.08)", border:"1px solid rgba(255,255,255,0.12)", color:"rgba(255,255,255,0.7)"}}>
+                            <span className="material-symbols-outlined text-sm text-primary">location_on</span>
+                            <span><span className="text-white font-black">{filteredTenantCount}</span> Lokasi Terfilter</span>
                         </div>
-                        <div className="px-4 py-2 rounded-xl bg-on-surface/[0.03] border border-on-surface/5 text-[11px] font-bold text-on-surface/60">
-                            <span className="text-secondary mr-1">●</span> {allGroups.length} ISP Terhubung
+                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-black"
+                            style={{background:"rgba(0,104,123,0.12)", border:"1px solid rgba(0,104,123,0.25)", color:"rgba(255,255,255,0.7)"}}>
+                            <span className="material-symbols-outlined text-sm" style={{color:"#00687b"}}>device_hub</span>
+                            <span><span className="text-white font-black">{allGroups.length}</span> ISP Terhubung</span>
                         </div>
-                        {!isTeknisi && (
-                            <div className="px-4 py-2 rounded-xl bg-rose-50 border border-rose-100 text-[11px] font-bold text-rose-600">
-                                <span className="mr-1">●</span> {filteredActionTenantCount} Butuh Perhatian
+                        {!isTeknisi && filteredActionTenantCount > 0 && (
+                            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-black"
+                                style={{background:"rgba(244,63,94,0.14)", border:"1px solid rgba(244,63,94,0.28)", color:"#fda4af"}}>
+                                <span className="material-symbols-outlined text-sm animate-pulse">warning</span>
+                                <span><span className="font-black text-white">{filteredActionTenantCount}</span> Butuh Perhatian</span>
+                            </div>
+                        )}
+                        {isAnyFilterActive && (
+                            <div className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-black"
+                                style={{background:"rgba(212,169,55,0.12)", border:"1px solid rgba(212,169,55,0.25)", color:"#d4a937"}}>
+                                <span className="material-symbols-outlined text-sm">filter_list</span>
+                                Filter Aktif
                             </div>
                         )}
                     </div>
@@ -495,7 +557,7 @@ function CustomerWorkspacePage({
 
                                         <div className="flex flex-wrap items-center gap-3">
                                             <div className="px-4 py-2 rounded-xl bg-white/50 text-[11px] font-black text-on-surface">
-                                                {group.tenants.length} <span className="text-on-surface/40">TENANTS</span>
+                                                {group.tenants.length} <span className="text-on-surface/40">LOKASI</span>
                                             </div>
                                             {!isTeknisi && (
                                                 <>
@@ -509,7 +571,7 @@ function CustomerWorkspacePage({
                                                     </div>
                                                     {group.actionTenantCount > 0 && (
                                                         <div className="px-4 py-2 rounded-xl bg-rose-500 text-[11px] font-black text-white shadow-lg shadow-rose-200">
-                                                            {group.actionTenantCount} ACTION REQUIRED
+                                                            {group.actionTenantCount} PERLU TINDAKAN
                                                         </div>
                                                     )}
                                                 </>
@@ -541,17 +603,19 @@ function CustomerWorkspacePage({
                                                 <table className="w-full border-collapse">
                                                     <thead>
                                                         <tr className="border-b border-on-surface/5">
-                                                            <th className="px-8 py-5 text-left text-[10px] font-black uppercase tracking-widest text-on-surface/40">Tenant Info</th>
-                                                            <th className="px-8 py-5 text-left text-[10px] font-black uppercase tracking-widest text-on-surface/40">Operational Status</th>
-                                                            {!isTeknisi && <th className="px-8 py-5 text-left text-[10px] font-black uppercase tracking-widest text-on-surface/40">To-Do Metrics</th>}
-                                                            <th className="px-8 py-5 text-right text-[10px] font-black uppercase tracking-widest text-on-surface/40">Actions</th>
+                                                            <th className="px-8 py-5 text-left text-[10px] font-black uppercase tracking-widest text-on-surface/40">Info Lokasi</th>
+                                                            <th className="px-8 py-5 text-left text-[10px] font-black uppercase tracking-widest text-on-surface/40">Paket</th>
+                                                            <th className="px-8 py-5 text-left text-[10px] font-black uppercase tracking-widest text-on-surface/40">Jumlah</th>
+                                                            <th className="px-8 py-5 text-left text-[10px] font-black uppercase tracking-widest text-on-surface/40">Status Operasional</th>
+                                                            {!isTeknisi && <th className="px-8 py-5 text-left text-[10px] font-black uppercase tracking-widest text-on-surface/40">Metrik Tindakan</th>}
+                                                            <th className="px-8 py-5 text-right text-[10px] font-black uppercase tracking-widest text-on-surface/40">Aksi</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody className="divide-y divide-on-surface/5">
                                                         {group.tenants.length === 0 ? (
                                                             <tr>
-                                                                <td className="px-8 py-8 text-sm font-medium text-on-surface/50" colSpan={isTeknisi ? 3 : 4}>
-                                                                    Belum ada tenant terhubung ke ISP ini.
+                                                                <td className="px-8 py-8 text-sm font-medium text-on-surface/50" colSpan={isTeknisi ? 5 : 6}>
+                                                                    Belum ada lokasi terhubung ke ISP ini.
                                                                 </td>
                                                             </tr>
                                                         ) : (
@@ -560,6 +624,27 @@ function CustomerWorkspacePage({
                                                                     <td className="px-8 py-5">
                                                                         <p className="text-sm font-black text-on-surface group-hover/row:text-primary transition-colors">{tenant.name}</p>
                                                                         <p className="text-[10px] font-bold text-on-surface/30 tracking-widest">{tenant.customerId}</p>
+                                                                    </td>
+                                                                    <td className="px-8 py-5">
+                                                                        {tenant.paket ? (
+                                                                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter border ${
+                                                                                (tenant.paket ?? "").toLowerCase() === "core"
+                                                                                    ? "bg-violet-50 text-violet-700 border-violet-200"
+                                                                                    : "bg-amber-50 text-amber-700 border-amber-200"
+                                                                            }`}>
+                                                                                <span className={`w-1.5 h-1.5 rounded-full ${
+                                                                                    (tenant.paket ?? "").toLowerCase() === "core" ? "bg-violet-500" : "bg-amber-500"
+                                                                                }`} />
+                                                                                {String(tenant.paket).toUpperCase()}
+                                                                            </span>
+                                                                        ) : (
+                                                                            <span className="text-[10px] font-bold text-on-surface/30">-</span>
+                                                                        )}
+                                                                    </td>
+                                                                    <td className="px-8 py-5">
+                                                                        <span className="text-sm font-bold text-on-surface/70">
+                                                                            {tenant.jumlah != null && tenant.jumlah !== "" ? tenant.jumlah : "-"}
+                                                                        </span>
                                                                     </td>
                                                                     <td className="px-8 py-5">
                                                                         <div className="flex flex-wrap items-center gap-2">
@@ -591,12 +676,12 @@ function CustomerWorkspacePage({
                                                                             <div className="flex items-center gap-4">
                                                                                 <div className="flex flex-col">
                                                                                     <span className="text-xs font-black text-on-surface">{tenant.todoSummary?.counts?.priority ?? 0}</span>
-                                                                                    <span className="text-[9px] font-bold text-rose-500 uppercase">Priority</span>
+                                                                                    <span className="text-[9px] font-bold text-rose-500 uppercase">Prioritas</span>
                                                                                 </div>
                                                                                 <div className="w-px h-6 bg-on-surface/5" />
                                                                                 <div className="flex flex-col">
                                                                                     <span className="text-xs font-black text-on-surface">{tenant.todoSummary?.counts?.needAction ?? 0}</span>
-                                                                                    <span className="text-[9px] font-bold text-on-surface/30 uppercase">Actions</span>
+                                                                                    <span className="text-[9px] font-bold text-on-surface/30 uppercase">Tindakan</span>
                                                                                 </div>
                                                                             </div>
                                                                         </td>
@@ -625,7 +710,7 @@ function CustomerWorkspacePage({
                                                                                 <button
                                                                                     className="inline-flex items-center justify-center rounded-lg bg-rose-50 px-2 py-1 text-rose-700 border border-rose-100 shadow-sm hover:bg-rose-100 transition-all active:scale-95"
                                                                                     onClick={() => handleArchiveTenant(tenant)}
-                                                                                    title="Hapus Tenant"
+                                                                                    title="Hapus Lokasi"
                                                                                     type="button"
                                                                                 >
                                                                                     <span className="material-symbols-outlined text-[14px]">delete</span>
@@ -686,7 +771,7 @@ function CustomerWorkspacePage({
                                 <span className="material-symbols-outlined text-4xl text-on-surface/20">search_off</span>
                             </div>
                             <h2 className="text-xl font-black text-on-surface">Data tidak ditemukan</h2>
-                            <p className="text-sm text-on-surface/40 mt-2 max-w-xs mx-auto">Kami tidak menemukan ISP atau Tenant dengan kriteria filter tersebut.</p>
+                            <p className="text-sm text-on-surface/40 mt-2 max-w-xs mx-auto">Kami tidak menemukan ISP atau Lokasi dengan kriteria filter tersebut.</p>
                             <button
                                 onClick={handleResetFilters}
                                 className="mt-8 px-8 py-3 bg-primary text-white rounded-2xl text-xs font-bold shadow-lg shadow-primary/20 hover:scale-105 transition-all"

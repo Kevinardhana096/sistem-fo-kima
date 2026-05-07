@@ -274,7 +274,7 @@ function IspDetailPage({
             <div className="mx-auto max-w-7xl space-y-8">
                 <button className="inline-flex items-center gap-2 rounded-lg bg-surface-container-low px-4 py-2 text-sm font-semibold text-primary transition-colors hover:bg-surface-container" onClick={onBack} type="button">
                     <span className="material-symbols-outlined text-base">arrow_back</span>
-                    {isTeknisi ? "Kembali ke Pelanggan" : "Kembali ke Customer Page"}
+                    {isTeknisi ? "Kembali ke Halaman Utama" : "Kembali ke Halaman Utama"}
                 </button>
 
                 <section className="rounded-2xl bg-gradient-to-br from-primary/10 to-primary-container p-6 lg:p-8">
@@ -284,7 +284,7 @@ function IspDetailPage({
                                 <div className="mb-2 inline-flex items-center gap-2">
                                     <span className="rounded-md bg-white/50 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-primary">ISP</span>
                                     <span className="rounded-md bg-white/50 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-primary">{['aktif', 'expired'].includes(detail?.status ?? isp.status) ? "Beroperasi" : "Berhenti"}</span>
-                                    <span className={`rounded-md px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ${ (detail?.status ?? isp.status) === 'expired' ? 'bg-rose-100 text-rose-700' : 'bg-white/50 text-primary'}`}>Kontrak: { (detail?.status ?? isp.status) === 'expired' ? 'Expired' : 'Aktif' }</span>
+                                    <span className={`rounded-md px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ${ (detail?.status ?? isp.status) === 'expired' ? 'bg-rose-100 text-rose-700' : 'bg-white/50 text-primary'}`}>Kontrak: { (detail?.status ?? isp.status) === 'expired' ? 'Belum Diperpanjang' : 'Aktif' }</span>
                                 </div>
                                 <h1 className="text-4xl font-extrabold tracking-tight text-on-surface">{ispName}</h1>
                                 <p className="mt-2 flex items-center gap-2 text-sm text-on-surface-variant"><span className="material-symbols-outlined text-base">description</span>Kontrak Induk: {contractRef}</p>
@@ -292,7 +292,7 @@ function IspDetailPage({
                             <div className="flex flex-wrap gap-4">
                                 <div className="rounded-xl bg-white/60 px-4 py-3 shadow-sm"><p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Periode Berjalan</p><p className="mt-1 text-sm font-bold text-on-surface">{formatContractPeriod(detail?.contractPeriodStart ?? isp.contractPeriodStart, detail?.contractPeriodEnd ?? isp.contractPeriodEnd)}</p></div>
                                 {isTeknisi && (
-                                    <div className="rounded-xl bg-white/60 px-4 py-3 shadow-sm"><p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Status Kontrak</p><p className={`mt-1 text-sm font-bold ${ (detail?.status ?? isp.status) === 'expired' ? 'text-rose-600' : 'text-emerald-600' }`}>{ (detail?.status ?? isp.status) === 'expired' ? 'Sudah Berakhir' : 'Beroperasi (Aktif)' }</p></div>
+                                    <div className="rounded-xl bg-white/60 px-4 py-3 shadow-sm"><p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Status Kontrak</p><p className={`mt-1 text-sm font-bold ${(detail?.status ?? isp.status) === 'expired' ? 'text-rose-600' : 'text-emerald-600'}`}>{(detail?.status ?? isp.status) === 'expired' ? 'Sudah Berakhir' : 'Beroperasi (Aktif)'}</p></div>
                                 )}
                             </div>
                         </div>
@@ -304,9 +304,9 @@ function IspDetailPage({
                             </div>
                         )}
                         {isTeknisi && (
-                             <div className="flex gap-3">
+                            <div className="flex gap-3">
                                 <button className="rounded-xl border border-blue-200 bg-white px-5 py-2.5 text-sm font-bold text-blue-700 shadow-sm transition-colors hover:bg-blue-50" onClick={() => void loadDetail()} type="button">Refresh Data</button>
-                             </div>
+                            </div>
                         )}
                     </div>
                 </section>
@@ -315,10 +315,10 @@ function IspDetailPage({
                     <nav className="-mb-px flex gap-6 overflow-x-auto">
                         {[
                             { id: "overview", label: "Ringkasan", icon: "dashboard" },
-                            { id: "customers", label: "Pelanggan/Tenant", icon: "groups" },
+                            { id: "customers", label: "Daftar Lokasi", icon: "groups" },
                             { id: "jalur", label: "Jalur", icon: "map" },
                             ...(currentRole !== "teknisi" ? [
-                                { id: "contracts", label: "Kontrak", icon: "description" }, 
+                                { id: "contracts", label: "Kontrak", icon: "description" },
                                 { id: "risalah", label: "Risalah Rapat", icon: "campaign" },
                                 { id: "timeline", label: "Timeline", icon: "history" }
                             ] : []),
@@ -336,11 +336,11 @@ function IspDetailPage({
                 {!isLoading && activeTab === "overview" && (
                     <div className="space-y-6">
                         <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-                            <SummaryCard label="Total Tenant" value={summary.tenantCount ?? tenants.length} icon="groups" />
-                            <SummaryCard label="Tenant Aktif" value={tenants.filter(t => t.status === "aktif" || t.status === "expired").length} icon="check_circle" />
-                            <SummaryCard label="Tenant Non-aktif" value={tenants.filter(t => t.status === "berhenti" || !["aktif", "expired"].includes(t.status)).length} icon="cancel" />
-                            <SummaryCard label="Total Aktif Jalur" value={tenants.filter(t => (t.route?.activeFlowStatus ?? t.status_jalur) === "aktif").length} icon="lan" />
-                            <SummaryCard label="Total Aktif Kontrak" value={tenants.filter(t => t.status === "aktif" || t.status === "expired").length} icon="description" />
+                            <SummaryCard label="Total Lokasi" value={summary.tenantCount ?? tenants.length} icon="groups" />
+                            <SummaryCard label="Lokasi Aktif" value={tenants.filter(t => t.status === "aktif" || t.status === "expired").length} icon="check_circle" />
+                            <SummaryCard label="Lokasi Nonaktif" value={tenants.filter(t => t.status === "berhenti" || !["aktif", "expired"].includes(t.status)).length} icon="cancel" />
+                            <SummaryCard label="Total Jalur Aktif" value={tenants.filter(t => (t.route?.activeFlowStatus ?? t.status_jalur) === "aktif").length} icon="lan" />
+                            <SummaryCard label="Total Kontrak Aktif" value={tenants.filter(t => t.status === "aktif" || t.status === "expired").length} icon="description" />
                             <div className="flex flex-col rounded-xl bg-white p-5 shadow-sm border border-slate-100">
                                 <span className="mb-2 material-symbols-outlined text-2xl text-blue-500">calendar_today</span>
                                 <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Awal Periode Kontrak</p>
@@ -365,7 +365,7 @@ function IspDetailPage({
                                             const gangguanTenants = tenants.filter(t => (t.route?.activeFlowStatus ?? t.status_jalur) === "gangguan");
                                             const noJalurTenants = tenants.filter(t => !t.route && t.status === "aktif");
                                             if (isTeknisi) {
-                                                if (gangguanTenants.length === 0 && noJalurTenants.length === 0) return <p className="text-sm text-on-surface-variant italic">Semua jalur tenant terpantau normal & lengkap.</p>;
+                                                if (gangguanTenants.length === 0 && noJalurTenants.length === 0) return <p className="text-sm text-on-surface-variant italic">Semua jalur lokasi terpantau normal & lengkap.</p>;
                                                 return (
                                                     <>
                                                         {gangguanTenants.map(t => (
@@ -395,8 +395,8 @@ function IspDetailPage({
                                 {!isTeknisi && (
                                     <div className="rounded-2xl bg-surface-container-lowest p-6 shadow-sm">
                                         <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-on-surface">
-                                            <span className="material-symbols-outlined text-xl text-blue-500">groups</span>
-                                            Status Kelengkapan Berkas Tenant
+                                        <span className="material-symbols-outlined text-xl text-blue-500">groups</span>
+                                        Status Kelengkapan Berkas Lokasi
                                         </h3>
                                         <div className="space-y-3">
                                             {tenantActionRows.map((t) => (
@@ -405,7 +405,7 @@ function IspDetailPage({
                                                     <p className={`mt-1 flex items-center gap-1 text-xs font-medium ${t.totalActions > 0 ? "text-amber-600" : "text-emerald-600"}`}><span className="material-symbols-outlined text-xs">{t.totalActions > 0 ? "error" : "check_circle"}</span>{t.name} terdapat {t.totalActions} masalah yang perlu ditindaklanjuti</p>
                                                 </div>
                                             ))}
-                                            {tenantActionRows.length === 0 && <p className="text-sm text-on-surface-variant">Tidak ada tindak lanjut tenant aktif saat ini.</p>}
+                                            {tenantActionRows.length === 0 && <p className="text-sm text-on-surface-variant">Tidak ada tindak lanjut lokasi aktif saat ini.</p>}
                                         </div>
                                     </div>
                                 )}
@@ -419,7 +419,7 @@ function IspDetailPage({
                                             <p className="mt-2 text-3xl font-black text-rose-700">{isTeknisi ? tenants.filter(t => (t.route?.activeFlowStatus ?? t.status_jalur) === "gangguan").length : ispActionItems.length}</p>
                                         </div>
                                         <div className="rounded-xl border border-orange-100 bg-orange-50 p-5">
-                                            <p className="text-[10px] font-bold uppercase tracking-widest text-orange-600">{isTeknisi ? "Belum Ada Jalur" : "Action Tenant"}</p>
+                                            <p className="text-[10px] font-bold uppercase tracking-widest text-orange-600">{isTeknisi ? "Belum Ada Jalur" : "Tindakan Lokasi"}</p>
                                             <p className="mt-2 text-3xl font-black text-orange-700">{isTeknisi ? tenants.filter(t => !t.route && t.status === "aktif").length : totalTenantActionCount}</p>
                                         </div>
                                     </div>
@@ -448,9 +448,9 @@ function IspDetailPage({
                     <section className="rounded-2xl bg-surface-container-lowest p-6 shadow-sm">
                         <div className="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-center">
                             <div>
-                                <h2 className="text-lg font-bold text-on-surface">Daftar Pelanggan Tenant</h2>
+                                <h2 className="text-lg font-bold text-on-surface">Daftar Lokasi</h2>
                                 <div className="mt-2 flex flex-wrap items-center gap-3">
-                                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">Total Tenant: {tenants.length}</span>
+                                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">Total Lokasi: {tenants.length}</span>
                                     <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">Beroperasi: {tenants.filter(t => t.status === "aktif" || t.status === "expired").length}</span>
                                     <span className="rounded-full bg-rose-100 px-3 py-1 text-xs font-bold text-rose-700">Nonaktif/Berhenti: {tenants.filter(t => t.status === "berhenti" || (!["aktif", "expired"].includes(t.status))).length}</span>
                                     <span className="h-4 w-[1px] bg-slate-300"></span>
@@ -461,17 +461,17 @@ function IspDetailPage({
                             {!isTeknisi && (
                                 <div className="flex flex-wrap items-center gap-2">
                                     <button className="inline-flex cursor-not-allowed items-center gap-2 rounded-xl border border-slate-200 bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-500" disabled><span className="material-symbols-outlined text-base">table_view</span>Konversi ke Excel</button>
-                                    {canCreateTenant && <button className="rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-primary/90" onClick={() => onOpenCreateTenant?.(detail ?? isp)} type="button">Tambah Tenant</button>}
+                                    {canCreateTenant && <button className="rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-primary/90" onClick={() => onOpenCreateTenant?.(detail ?? isp)} type="button">Tambah Lokasi</button>}
                                 </div>
                             )}
                         </div>
-                        {tenants.length === 0 ? renderEmptyState("Belum ada tenant pada ISP ini.") : (
+                        {tenants.length === 0 ? renderEmptyState("Belum ada lokasi pada ISP ini.") : (
                             <div className="overflow-x-auto">
                                 <table className="w-full border-collapse">
                                     <thead>
                                         <tr className="border-b border-slate-100 bg-slate-50">
                                             <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-wider text-on-surface-variant">No</th>
-                                            <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-wider text-on-surface-variant">Tenant</th>
+                                            <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-wider text-on-surface-variant">Lokasi</th>
                                             <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-wider text-on-surface-variant">Status Kontrak</th>
                                             <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-wider text-on-surface-variant">Status Jalur</th>
                                             <th className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-wider text-on-surface-variant">Paket</th>
@@ -527,8 +527,8 @@ function IspDetailPage({
                 {!isLoading && activeTab === "jalur" && (
                     <section className="rounded-2xl bg-surface-container-lowest p-6 shadow-sm min-h-[500px] flex flex-col items-center justify-center border-2 border-dashed border-slate-200">
                         <span className="material-symbols-outlined text-6xl text-slate-300">map</span>
-                        <h2 className="mt-4 text-xl font-bold text-slate-600">Maps Jalur Tenant</h2>
-                        <p className="mt-2 text-sm text-slate-500 max-w-md text-center">Fitur visualisasi maps untuk memantau jalur semua tenant di bawah ISP ini sedang dalam tahap perancangan layout.</p>
+                        <h2 className="mt-4 text-xl font-bold text-slate-600">Peta Jalur Lokasi</h2>
+                        <p className="mt-2 text-sm text-slate-500 max-w-md text-center">Fitur visualisasi peta untuk memantau jalur semua lokasi di bawah ISP ini sedang dalam tahap perancangan layout.</p>
                     </section>
                 )}
 
