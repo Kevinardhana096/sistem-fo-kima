@@ -41,15 +41,13 @@ const CustomSelect = ({ value, onChange, options, icon, label, variant = "defaul
                 {/* Trigger */}
                 <div
                     onClick={() => setIsOpen(!isOpen)}
-                    className={`w-full rounded-xl flex items-center text-[11px] font-bold cursor-pointer transition-all border relative z-20 ${
-                        isCompact 
-                        ? "h-[38px] px-3 pr-8 bg-white/5 border-white/10 text-white hover:bg-white/10" 
-                        : `h-14 pl-14 pr-12 uppercase font-black tracking-widest shadow-inner-glass ${
-                            isOpen || isSelected 
-                            ? "bg-gold-accent/10 border-gold-accent/60 text-gold-accent shadow-gold-glow" 
-                            : "bg-black/20 border-white/10 text-white/70 hover:border-white/30"
-                          }`
-                    }`}
+                    className={`w-full rounded-xl flex items-center text-[11px] font-bold cursor-pointer transition-all border relative z-20 ${isCompact
+                            ? "h-[38px] px-3 pr-8 bg-white/5 border-white/10 text-white hover:bg-white/10"
+                            : `h-14 pl-14 pr-12 uppercase font-black tracking-widest shadow-inner-glass ${isOpen || isSelected
+                                ? "bg-gold-accent/10 border-gold-accent/60 text-gold-accent shadow-gold-glow"
+                                : "bg-black/20 border-white/10 text-white/70 hover:border-white/30"
+                            }`
+                        }`}
                 >
                     {!isCompact && icon && (
                         <span className="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 text-xl transition-all duration-300 group-hover:scale-110" style={{ color: isOpen || isSelected ? "#d4a937" : "rgba(255,255,255,0.2)" }}>
@@ -69,7 +67,7 @@ const CustomSelect = ({ value, onChange, options, icon, label, variant = "defaul
                     <div className={`absolute left-0 right-0 bg-black/60 border border-white/10 rounded-2xl overflow-hidden z-50 shadow-2xl backdrop-blur-3xl animate-in fade-in slide-in-from-top-2 duration-300 ${isCompact ? "top-[calc(100%+4px)] min-w-[200px]" : "top-[calc(100%+8px)]"}`}>
                         {/* Shimmer Effect */}
                         <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none"></div>
-                        
+
                         <div className="relative p-2 max-h-64 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10">
                             {options.map((opt) => (
                                 <div
@@ -78,11 +76,10 @@ const CustomSelect = ({ value, onChange, options, icon, label, variant = "defaul
                                         onChange(opt.value);
                                         setIsOpen(false);
                                     }}
-                                    className={`px-5 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest cursor-pointer transition-all mb-1 last:mb-0 flex items-center justify-between group/item ${
-                                        value === opt.value 
-                                        ? "text-black shadow-gold-glow relative overflow-hidden" 
-                                        : "text-white/40 hover:bg-white/5 hover:text-white"
-                                    }`}
+                                    className={`px-5 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest cursor-pointer transition-all mb-1 last:mb-0 flex items-center justify-between group/item ${value === opt.value
+                                            ? "text-black shadow-gold-glow relative overflow-hidden"
+                                            : "text-white/40 hover:bg-white/5 hover:text-white"
+                                        }`}
                                 >
                                     {value === opt.value && (
                                         <div className="absolute inset-0 bg-gold-gradient animate-shimmer"></div>
@@ -164,15 +161,15 @@ function MonitoringSpreadsheetPage({
     const [error, setError] = useState("");
 
     const invoiceDetailModal = selectedInvoiceCell && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#05080a]/80 backdrop-blur-xl px-4 animate-in fade-in duration-300">
-            <div className="w-full max-w-xl rounded-premium border border-white/20 bg-[#0f172a]/90 p-8 shadow-glass-depth relative overflow-hidden group">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4 animate-in fade-in duration-300">
+            <div className="relative w-full max-w-xl rounded-3xl bg-slate-900/80 backdrop-blur-2xl p-8 shadow-2xl animate-in fade-in zoom-in duration-300 border border-white/10 overflow-hidden group">
                 <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-gold-accent/5 blur-3xl transition-all duration-700 group-hover:bg-gold-accent/10" />
-                
+
                 <div className="relative mb-8 flex items-start justify-between gap-6">
                     <div>
                         <div className="flex items-center gap-2 mb-1">
                             <span className="h-1.5 w-1.5 rounded-full bg-gold-accent animate-pulse" />
-                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gold-accent/80">Ringkasan Billing Unit</p>
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gold-accent/80">Invoice Detail (Read Only)</p>
                         </div>
                         <h3 className="text-2xl font-black text-white tracking-tight leading-tight">
                             {selectedInvoiceCell.customerName}
@@ -207,15 +204,21 @@ function MonitoringSpreadsheetPage({
                         </dd>
                     </div>
                     <div className="rounded-xl bg-white/5 border border-white/5 p-4 transition-colors hover:bg-white/[0.07]">
-                        <dt className="text-[10px] font-black uppercase tracking-[0.15em] text-white/30 mb-2">Masa Kontrak</dt>
+                        <dt className="text-[10px] font-black uppercase tracking-[0.15em] text-white/30 mb-2">Kontrak Awal</dt>
                         <dd className="text-xs font-bold text-white/70">
-                            {formatDate(selectedInvoiceCell.contractStart)} — {formatDate(selectedInvoiceCell.contractEnd)}
+                            {formatDate(selectedInvoiceCell.contractStart)}
                         </dd>
                     </div>
                     <div className="rounded-xl bg-white/5 border border-white/5 p-4 transition-colors hover:bg-white/[0.07]">
-                        <dt className="text-[10px] font-black uppercase tracking-[0.15em] text-white/30 mb-2">Konfigurasi Paket</dt>
+                        <dt className="text-[10px] font-black uppercase tracking-[0.15em] text-white/30 mb-2">Kontrak Akhir</dt>
                         <dd className="text-xs font-bold text-white/70">
-                            {toTitleCase(selectedInvoiceCell.coreType)} 
+                            {formatDate(selectedInvoiceCell.contractEnd)}
+                        </dd>
+                    </div>
+                    <div className="rounded-xl bg-white/5 border border-white/5 p-4 transition-colors hover:bg-white/[0.07]">
+                        <dt className="text-[10px] font-black uppercase tracking-[0.15em] text-white/30 mb-2">Paket</dt>
+                        <dd className="text-xs font-bold text-white/70">
+                            {toTitleCase(selectedInvoiceCell.coreType)}
                             <span className="mx-2 text-white/10">•</span>
                             {formatCoreAllocation({
                                 coreType: selectedInvoiceCell.coreType,
@@ -224,12 +227,19 @@ function MonitoringSpreadsheetPage({
                             })}
                         </dd>
                     </div>
+                    <div className="rounded-xl bg-white/5 border border-white/5 p-4 transition-colors hover:bg-white/[0.07]">
+                        <dt className="text-[10px] font-black uppercase tracking-[0.15em] text-white/30 mb-2">Sisa Masa Sewa</dt>
+                        <dd className="text-xs font-bold text-white/70 flex items-center gap-2">
+                            <span className="material-symbols-outlined text-gold-accent text-sm">timer</span>
+                            {getRemainingRentalDays(selectedInvoiceCell.contractEnd)} Hari
+                        </dd>
+                    </div>
                 </div>
 
                 <div className="rounded-xl bg-amber-500/5 border border-amber-500/10 p-4 mb-8">
                     <p className="text-[11px] leading-relaxed text-amber-200/60 font-medium italic">
                         <span className="font-black not-italic text-amber-500 mr-1 uppercase">Catatan:</span>
-                        Dashboard monitoring bersifat informatif (read-only). Untuk melakukan perubahan data, cetak invoice, atau mengunggah berkas, silakan buka detail unit melalui tombol di bawah.
+                        Monitoring ini bersifat informatif. Gunakan Detail Lokasi untuk meninjau data kontrak, invoice, dan dokumen secara terpusat.
                     </p>
                 </div>
 
@@ -250,7 +260,7 @@ function MonitoringSpreadsheetPage({
                         type="button"
                     >
                         <span className="material-symbols-outlined text-sm">open_in_new</span>
-                        Buka Detail Unit
+                        Buka Detail Lokasi
                     </button>
                 </div>
             </div>
@@ -1071,16 +1081,16 @@ function MonitoringSpreadsheetPage({
                             <button
                                 className="h-[44px] px-4 rounded-xl bg-white/5 border border-white/10 flex items-center gap-2 active:scale-95 transition-transform shrink-0 hover:bg-white/10 group"
                                 onClick={() => {
-                                    const reset = { 
-                                        search: "", 
-                                        year: currentYear, 
+                                    const reset = {
+                                        search: "",
+                                        year: currentYear,
                                         contractStatus: "all",
                                         routeStatus: "all",
                                         todoStatus: "all",
                                         package: "all"
                                     };
                                     setFilters(reset);
-                                    setAppliedFilters({ 
+                                    setAppliedFilters({
                                         year: currentYear,
                                         contractStatus: "all",
                                         routeStatus: "all",
@@ -1222,15 +1232,15 @@ function MonitoringSpreadsheetPage({
                             <button
                                 className="h-14 bg-white/5 hover:bg-white/10 text-on-surface-variant px-6 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all border border-white/10 hover:border-white/20 active:scale-95 flex items-center gap-2"
                                 onClick={() => {
-                                    setFilters({ 
-                                        search: "", 
-                                        year: currentYear, 
+                                    setFilters({
+                                        search: "",
+                                        year: currentYear,
                                         contractStatus: "all",
                                         routeStatus: "all",
                                         todoStatus: "all",
                                         package: "all"
                                     });
-                                    setAppliedFilters({ 
+                                    setAppliedFilters({
                                         year: currentYear,
                                         contractStatus: "all",
                                         routeStatus: "all",
@@ -1342,19 +1352,19 @@ function MonitoringSpreadsheetPage({
 
                 <section className="flex flex-wrap items-center gap-x-10 gap-y-4 rounded-premium glass-premium p-6 border-white/30">
                     <div className="flex items-center gap-2">
-                        <span className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
+                        <span className="h-2 w-2 rounded-full bg-[#00c853] shadow-[0_0_12px_rgba(0,200,83,0.4)]"></span>
                         <span className="text-[10px] font-black uppercase tracking-widest text-on-surface/60">Lunas</span>
                     </div>
                     <div className="flex items-center gap-2">
-                        <span className="h-2 w-2 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]"></span>
+                        <span className="h-2 w-2 rounded-full bg-[#ff2400] shadow-[0_0_12px_rgba(255,36,0,0.4)]"></span>
                         <span className="text-[10px] font-black uppercase tracking-widest text-on-surface/60">Belum Bayar</span>
                     </div>
                     <div className="flex items-center gap-2">
-                        <span className="h-2 w-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]"></span>
+                        <span className="h-2 w-2 rounded-full bg-[#ffab00] shadow-[0_0_12px_rgba(255,171,0,0.4)]"></span>
                         <span className="text-[10px] font-black uppercase tracking-widest text-on-surface/60">Terlambat</span>
                     </div>
                     <div className="flex items-center gap-2">
-                        <span className="h-2 w-2 rounded-full bg-white/20 border border-white/10"></span>
+                        <span className="h-2 w-2 rounded-full bg-white/10 border border-white/10"></span>
                         <span className="text-[10px] font-black uppercase tracking-widest text-on-surface/60">Belum Ditagih</span>
                     </div>
                     <div className="flex-1 flex justify-end">

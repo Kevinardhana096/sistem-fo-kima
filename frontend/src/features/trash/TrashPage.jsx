@@ -16,7 +16,7 @@ const TYPE_CONFIG = {
     Jalur: { icon: "route", color: "text-indigo-400", bg: "bg-indigo-400/10" },
     Lokasi: { icon: "location_on", color: "text-amber-400", bg: "bg-amber-400/10" },
     Kontrak: { icon: "article", color: "text-emerald-400", bg: "bg-emerald-400/10" },
-    Invoice: { icon: "receipt_long", color: "text-[#FF3B30]", bg: "bg-red-500/10" },
+    Invoice: { icon: "receipt_long", color: "text-[#ff2400]", bg: "bg-[#ff2400]/10" },
     Dokumen: { icon: "description", color: "text-slate-400", bg: "bg-slate-400/10" },
 };
 
@@ -38,15 +38,22 @@ export default function TrashPage({ activeSection, onNavigate, currentRole = "ad
     const [searchQuery, setSearchQuery] = useState("");
     const [trashItems, setTrashItems] = useState(MOCK_TRASH_ITEMS);
     const [deletionStats, setDeletionStats] = useState(INITIAL_DELETION_STATS);
+    const [sortOrder, setSortOrder] = useState("newest"); // "newest" or "oldest"
 
-    const filteredItems = trashItems.filter(item => {
-        const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            item.type.toLowerCase().includes(searchQuery.toLowerCase());
-        if (isTeknisi) {
-            return matchesSearch && item.type === "Jalur";
-        }
-        return matchesSearch;
-    });
+    const filteredItems = trashItems
+        .filter(item => {
+            const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                item.type.toLowerCase().includes(searchQuery.toLowerCase());
+            if (isTeknisi) {
+                return matchesSearch && item.type === "Jalur";
+            }
+            return matchesSearch;
+        })
+        .sort((a, b) => {
+            const dateA = new Date(a.deletedAt).getTime();
+            const dateB = new Date(b.deletedAt).getTime();
+            return sortOrder === "newest" ? dateB - dateA : dateA - dateB;
+        });
 
     const handleRestore = (id) => {
         setTrashItems(prev => prev.filter(item => item.id !== id));
@@ -84,7 +91,7 @@ export default function TrashPage({ activeSection, onNavigate, currentRole = "ad
                         </h1>
                     </div>
 
-                    <div className="flex flex-col md:flex-row items-center gap-4 w-full lg:w-auto">
+                    <div className="flex flex-wrap items-center gap-4 w-full lg:w-auto">
                         <div className="relative w-full md:w-80 group">
                             <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-gold-accent transition-colors">
                                 search
@@ -92,37 +99,52 @@ export default function TrashPage({ activeSection, onNavigate, currentRole = "ad
                             <input
                                 type="text"
                                 placeholder="Cari data yang dihapus..."
-                                className="w-full rounded-2xl border border-white/10 bg-white/5 py-3 pl-12 pr-4 text-sm font-bold text-white placeholder:text-white/20 outline-none transition-all focus:bg-white/10 focus:border-gold-accent/40 focus:ring-4 focus:ring-gold-accent/5"
+                                className="w-full h-12 rounded-xl border border-white/10 bg-white/5 pl-12 pr-4 text-[10px] font-black uppercase tracking-widest text-white placeholder:text-white/20 outline-none transition-all focus:bg-black/40 focus:border-gold-accent/40 shadow-inner-glass"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
                         </div>
 
+                        <div className="w-48">
+                            <div className="relative group">
+                                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold-accent transition-colors z-10">filter_list</span>
+                                <select
+                                    value={sortOrder}
+                                    onChange={(e) => setSortOrder(e.target.value)}
+                                    className="w-full h-12 pl-12 pr-4 rounded-xl bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white/40 outline-none focus:border-gold-accent/40 focus:bg-black/40 transition-all appearance-none cursor-pointer"
+                                >
+                                    <option value="newest" className="bg-[#0f141e]">Terbaru</option>
+                                    <option value="oldest" className="bg-[#0f141e]">Terlama</option>
+                                </select>
+                                <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-white/10 pointer-events-none">expand_more</span>
+                            </div>
+                        </div>
+
+                        <div className="w-px h-10 bg-white/5 mx-2 hidden lg:block" />
+
                         <div className="flex items-center gap-3 w-full lg:w-auto justify-end">
                             {!isTeknisi && (
                                 <button
-                                    className="inline-flex h-[56px] items-center gap-3 rounded-2xl bg-red-600/20 backdrop-blur-md border border-[#FF3B30]/30 px-8 text-red-50 transition-all hover:bg-red-600/30 hover:border-[#FF3B30]/50 hover:-translate-y-1 hover:shadow-[0_15px_30px_rgba(255,59,48,0.3)] active:scale-95 group shadow-lg"
+                                    className="inline-flex h-12 items-center gap-3 rounded-xl bg-[#ff2400]/10 border border-[#ff2400]/20 px-8 text-[#ff2400] transition-all hover:bg-[#ff2400] hover:text-white active:scale-95 group shadow-sm text-[10px] font-black uppercase tracking-widest"
                                     onClick={() => { if (confirm("Hapus semua sampah secara permanen?")) setTrashItems([]); }}
                                 >
-                                    <span className="material-symbols-outlined text-xl text-red-50">delete_sweep</span>
-                                    <span className="text-[11px] font-black uppercase tracking-widest text-red-50">Hapus Permanen</span>
+                                    <span className="material-symbols-outlined text-lg">delete_sweep</span>
+                                    Hapus Permanen
                                 </button>
                             )}
 
-                            <div className="flex items-center gap-2 bg-white/10 p-1.5 rounded-2xl border border-white/15 backdrop-blur-md ml-2">
-                                <button
-                                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl btn-premium active:scale-95 transition-transform"
-                                    onClick={() => {
-                                        // Mock refresh
-                                        const btn = document.activeElement;
-                                        btn?.classList.add('animate-spin');
-                                        setTimeout(() => btn?.classList.remove('animate-spin'), 1000);
-                                    }}
-                                    title="Refresh Data"
-                                >
-                                    <span className="material-symbols-outlined text-xl">sync</span>
-                                </button>
-                            </div>
+                            <button
+                                className="h-12 w-12 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white/40 hover:bg-white/10 hover:text-white transition-all active:scale-95 group"
+                                onClick={() => {
+                                    // Mock refresh
+                                    const btn = document.activeElement;
+                                    btn?.querySelector('.material-symbols-outlined')?.classList.add('animate-spin');
+                                    setTimeout(() => btn?.querySelector('.material-symbols-outlined')?.classList.remove('animate-spin'), 1000);
+                                }}
+                                title="Refresh Data"
+                            >
+                                <span className="material-symbols-outlined text-lg group-hover:rotate-180 transition-transform duration-500">sync</span>
+                            </button>
                         </div>
                     </div>
                 </header>
@@ -152,7 +174,7 @@ export default function TrashPage({ activeSection, onNavigate, currentRole = "ad
                                     Jalur: "hover:border-indigo-500/40",
                                     Lokasi: "hover:border-amber-500/40",
                                     Kontrak: "hover:border-emerald-500/40",
-                                    Invoice: "hover:border-red-500/40",
+                                    Invoice: "hover:border-[#ff2400]/40",
                                     Dokumen: "hover:border-white/30",
                                 }[type] || "hover:border-white/20";
 
@@ -172,8 +194,14 @@ export default function TrashPage({ activeSection, onNavigate, currentRole = "ad
 
                 {/* List Section in Card Container */}
                 <div className="rounded-premium p-6 md:p-8 border border-white/10 bg-white/10 backdrop-blur-xl shadow-glass-depth cursor-default">
-                    <div className="flex items-center gap-3 mb-8">
-                        <h2 className="text-xl font-black text-white uppercase tracking-widest">Daftar Item Terhapus</h2>
+                    <div className="flex items-center justify-between mb-8">
+                        <div className="flex items-center gap-3">
+                            <h2 className="text-xl font-black text-white uppercase tracking-widest">Daftar Item Terhapus</h2>
+                        </div>
+                        <div className="flex items-center gap-3 px-6 py-2 rounded-xl bg-white/5 border border-white/10">
+                            <span className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em]">Total Sampah:</span>
+                            <span className="text-lg font-black text-gold-accent">{trashItems.length}</span>
+                        </div>
                     </div>
 
                     <div className="space-y-4">
@@ -186,7 +214,7 @@ export default function TrashPage({ activeSection, onNavigate, currentRole = "ad
                                         Jalur: "hover:border-indigo-500/40",
                                         Lokasi: "hover:border-amber-500/40",
                                         Kontrak: "hover:border-emerald-500/40",
-                                        Invoice: "hover:border-red-500/40",
+                                        Invoice: "hover:border-[#ff2400]/40",
                                         Dokumen: "hover:border-white/30",
                                     }[item.type] || "hover:border-white/20";
 
@@ -224,7 +252,7 @@ export default function TrashPage({ activeSection, onNavigate, currentRole = "ad
                                                         </div>
                                                         <div className="h-1 w-1 rounded-full bg-white/20 hidden sm:block" />
                                                         <p className="text-[10px] font-bold text-white/70 uppercase tracking-widest flex items-center gap-1.5">
-                                                            <span className="text-[#FF3B30] font-black">{new Date(item.deletedAt).toLocaleString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                                                            <span className="text-[#ff2400] font-black">{new Date(item.deletedAt).toLocaleString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                                                         </p>
                                                     </div>
                                                 </div>
@@ -240,7 +268,7 @@ export default function TrashPage({ activeSection, onNavigate, currentRole = "ad
                                                 </button>
                                                 <button
                                                     onClick={() => handleDeletePermanently(item.id)}
-                                                    className="flex h-11 w-11 items-center justify-center rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 transition-all hover:bg-red-500 hover:text-white hover:shadow-lg hover:shadow-red-500/20 active:scale-95"
+                                                    className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#ff2400]/10 border border-[#ff2400]/20 text-[#ff2400] transition-all hover:bg-[#ff2400] hover:text-white hover:scale-[1.02] active:scale-95"
                                                     title="Hapus Permanen"
                                                 >
                                                     <span className="material-symbols-outlined text-lg">delete_forever</span>

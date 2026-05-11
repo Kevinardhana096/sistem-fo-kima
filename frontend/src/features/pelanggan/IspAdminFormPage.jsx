@@ -205,14 +205,14 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
                     
                     <div className="flex items-center gap-4">
                         <button 
-                            className="h-[64px] px-8 rounded-2xl bg-white/5 border border-white/10 text-[11px] font-black uppercase tracking-[0.2em] text-white/60 hover:text-white hover:bg-white/10 transition-all active:scale-95 shadow-glass-depth"
+                            className="h-12 px-6 rounded-xl bg-white/5 border border-white/10 text-[11px] font-black uppercase tracking-[0.2em] text-white/60 hover:text-white hover:bg-white/10 transition-all active:scale-95 shadow-glass-depth"
                             onClick={onCancel} 
                             type="button"
                         >
                             Batal
                         </button>
                         <button 
-                            className="h-[64px] px-10 rounded-2xl btn-premium text-[11px] font-black uppercase tracking-[0.2em] text-white shadow-gold-glow active:scale-95 transition-all disabled:opacity-50 disabled:pointer-events-none" 
+                            className="h-12 px-8 rounded-xl btn-premium text-[11px] font-black uppercase tracking-[0.2em] text-white shadow-gold-glow active:scale-95 transition-all disabled:opacity-50 disabled:pointer-events-none" 
                             disabled={isSubmitting} 
                             type="submit"
                         >
@@ -237,9 +237,9 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
                     </div>
                 )}
 
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                <div className="grid grid-cols-1 gap-8 items-start">
                     {/* Left Column - Core Info */}
-                    <div className="lg:col-span-7 space-y-8">
+                    <div className="space-y-8">
                         {/* Section: Identitas ISP */}
                         <div className="glass-card rounded-premium p-8 border-white/20 shadow-glass-depth relative overflow-hidden">
                             <div className="absolute top-0 right-0 w-32 h-32 bg-gold-accent/5 rounded-full -mr-16 -mt-16 blur-3xl pointer-events-none"></div>
@@ -374,103 +374,6 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
                         )}
                     </div>
 
-                    {/* Right Column - Legal & Files */}
-                    <div className="lg:col-span-5 space-y-8">
-                        <div className="glass-card rounded-premium p-8 border-white/20 shadow-glass-depth">
-                            <div className="flex items-center gap-3 mb-8">
-                                <span className="h-6 w-1.5 bg-gold-accent rounded-full shadow-gold-glow"></span>
-                                <h3 className="text-xl font-black text-white uppercase tracking-widest">Detail Kontrak</h3>
-                            </div>
-                            
-                            {!isEditMode ? (
-                                <div className="space-y-8">
-                                    <div className="grid grid-cols-1 gap-8">
-                                        <GlassFieldInput 
-                                            label="Tanggal Awal Kontrak" 
-                                            type="date" 
-                                            icon="calendar_month"
-                                            value={form.contractStartDate} 
-                                            onChange={(val) => setForm(p => ({ ...p, contractStartDate: val }))} 
-                                        />
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <GlassFieldInput 
-                                                label="Periode Mulai" 
-                                                type="date" 
-                                                icon="calendar_today"
-                                                value={form.contractPeriodStart} 
-                                                onChange={(val) => setForm(p => ({ ...p, contractPeriodStart: val }))} 
-                                            />
-                                            <GlassFieldInput 
-                                                label="Periode Akhir" 
-                                                type="date" 
-                                                icon="calendar_today"
-                                                value={form.contractPeriodEnd} 
-                                                onChange={(val) => setForm(p => ({ ...p, contractPeriodEnd: val }))} 
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-6 pt-4">
-                                        <GlassFieldInput 
-                                            label="Nomor Kontrak Induk (Opsional)" 
-                                            icon="description"
-                                            placeholder="KIM-ISP/2024/XXX"
-                                            value={form.contractReference} 
-                                            onChange={(val) => setForm(p => ({ ...p, contractReference: val }))} 
-                                        />
-
-                                        <div className="space-y-3">
-                                            <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-gold-accent/60 ml-1">Berkas Kontrak (Opsional)</label>
-                                            <div className="relative h-14 rounded-2xl bg-black/20 border border-white/10 flex items-center px-6 overflow-hidden group hover:border-gold-accent/40 transition-all cursor-pointer">
-                                                <span className="material-symbols-outlined text-white/20 mr-4 group-hover:text-gold-accent transition-colors">cloud_upload</span>
-                                                <span className="text-sm font-bold text-white/60 truncate group-hover:text-white transition-colors">
-                                                    {form.contractFileName || "Unggah Salinan Kontrak (PDF)"}
-                                                </span>
-                                                <input
-                                                    accept=".pdf"
-                                                    className="absolute inset-0 opacity-0 cursor-pointer"
-                                                    onChange={(e) => {
-                                                        const file = e.target.files?.[0];
-                                                        if (file) readFileAsDataUrl(file).then(url => setForm(p => ({ ...p, contractFileName: file.name, contractFileDataUrl: url })));
-                                                    }}
-                                                    type="file"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-3">
-                                            <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-gold-accent/60 ml-1">Berkas BAK (Opsional)</label>
-                                            <div className="relative h-14 rounded-2xl bg-black/20 border border-white/10 flex items-center px-6 overflow-hidden group hover:border-gold-accent/40 transition-all cursor-pointer">
-                                                <span className="material-symbols-outlined text-white/20 mr-4 group-hover:text-gold-accent transition-colors">upload_file</span>
-                                                <span className="text-sm font-bold text-white/60 truncate group-hover:text-white transition-colors">
-                                                    {form.bakFileName || "Unggah Salinan BAK"}
-                                                </span>
-                                                <input
-                                                    accept=".pdf,.png,.jpg,.jpeg,.zip"
-                                                    className="absolute inset-0 opacity-0 cursor-pointer"
-                                                    onChange={(e) => {
-                                                        const file = e.target.files?.[0];
-                                                        if (file) readFileAsDataUrl(file).then(url => setForm(p => ({ ...p, bakFileName: file.name, bakFileDataUrl: url })));
-                                                    }}
-                                                    type="file"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="py-12 flex flex-col items-center justify-center text-center px-4">
-                                    <div className="h-16 w-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-6">
-                                        <span className="material-symbols-outlined text-3xl text-white/20">lock</span>
-                                    </div>
-                                    <p className="text-sm font-bold text-white uppercase tracking-widest mb-2">Legalitas Terkunci</p>
-                                    <p className="text-xs text-white/40 leading-relaxed max-w-[240px] font-medium">
-                                        Detail kontrak dan berkas hukum hanya dapat diatur saat pendaftaran awal. Silakan hubungi admin sistem untuk perubahan legalitas.
-                                    </p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
                 </div>
             </form>
         </AppShell>

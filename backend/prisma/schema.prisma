@@ -16,6 +16,7 @@ model User {
   isActive     Boolean  @default(true) @map("is_active")
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt    DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  isp          Isp?
 
   @@index([role], map: "idx_users_role")
   @@index([isActive], map: "idx_users_is_active")
@@ -66,6 +67,9 @@ model Isp {
   logoUrl             String?                 @map("logo_url")
   contractFileName    String?                 @map("contract_file_name") @db.VarChar(255)
   contractFileUrl     String?                 @map("contract_file_url")
+  userId              Int?                    @unique @map("user_id")
+  passwordPlain       String?                 @map("password_plain") @db.VarChar(255)
+  user                User?                   @relation(fields: [userId], references: [id], onDelete: SetNull)
   customerMemberships CustomerIspMembership[]
   contractRows        IspContractRow[]
 

@@ -58,4 +58,12 @@ export class CreateIspDto {
   @IsOptional()
   @IsString()
   logoUrl?: string | null;
+
+  @IsOptional()
+  @IsString()
+  userEmail?: string | null;
+
+  @IsOptional()
+  @IsString()
+  userPassword?: string | null;
 }

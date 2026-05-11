@@ -432,22 +432,22 @@ export const mapCustomerToRow = (customer, index) => {
 
 export const getMonthStatusClass = (status) => {
     if (status === "lunas") {
-        return "bg-emerald-500";
+        return "bg-[#00c853] text-white shadow-[#00c853]/20";
     }
 
     if (status === "belum_bayar") {
-        return "bg-red-500";
+        return "bg-[#ff2400] text-white shadow-[#ff2400]/20";
     }
 
     if (status === "terlambat") {
-        return "bg-orange-400";
+        return "bg-[#ffab00] text-white shadow-[#ffab00]/20";
     }
 
     if (status === "belum_ditagih") {
-        return "bg-amber-200";
+        return "bg-white/10 text-white/40 border border-white/10";
     }
 
-    return "bg-slate-100 opacity-40";
+    return "bg-slate-100/10 text-white/20 border-white/5 opacity-40";
 };
 
 export const createDefaultDocumentForm = () => ({
@@ -465,8 +465,8 @@ export async function fetchJson(url, options) {
 
     try {
         const response = await fetch(url, {
-            ...options,
             signal: options?.signal ?? controller.signal,
+            ...options,
         });
         const result = await response.json().catch(() => null);
 

@@ -549,6 +549,31 @@ export class PrismaIspsService {
 
       await this.syncRenewalFollowUpsForRow(tx, row.id);
       await this.syncIspContractSnapshotFromRows(tx, isp.id);
+
+      // Buat akun user jika email & password disediakan
+      const userEmail = this.normalizeOptionalString(payload.userEmail);
+      const userPassword = this.normalizeOptionalString(payload.userPassword);
+      if (userEmail && userPassword) {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const bcrypt = require('bcrypt') as typeof import('bcrypt');
+        const passwordHash = await bcrypt.hash(userPassword, 10);
+        const username = userEmail.split('@')[0].replace(/[^a-z0-9_]/gi, '_').toLowerCase();
+        const user = await tx.user.create({
+          data: {
+            username,
+            email: userEmail.toLowerCase(),
+            passwordHash,
+            role: 'isp',
+            displayName: name,
+            isActive: true,
+          },
+        });
+        await tx.isp.update({
+          where: { id: isp.id },
+          data: { userId: user.id, passwordPlain: userPassword },
+        });
+      }
+
       return isp.id;
     });
 
@@ -1630,6 +1655,148 @@ export class PrismaIspsService {
       success: true,
       message: 'ISP contract file uploaded successfully.',
       data: this.mapIsp(updatedIsp),
+    };
+  }
+
+  async getIspUser(ispId: number) {
+    await this.ensureIspExists(ispId);
+
+    const isp = await this.prisma.isp.findUnique({
+      where: { id: ispId },
+      include: { user: true },
+    });
+
+    if (!isp?.user) {
+      return { hasUser: false, user: null };
+    }
+
+    return {
+      hasUser: true,
+      user: {
+        id: isp.user.id,
+        username: isp.user.username,
+        email: isp.user.email,
+        displayName: isp.user.displayName ?? null,
+        isActive: isp.user.isActive,
+        role: isp.user.role,
+        passwordPlain: isp.passwordPlain ?? null,
+      },
+    };
+  }
+
+  async upsertIspUser(
+    ispId: number,
+    payload: {
+      username?: string;
+      email?: string;
+      password?: string;
+      displayName?: string;
+    },
+  ) {
+    await this.ensureIspExists(ispId);
+
+    const isp = await this.prisma.isp.findUnique({
+      where: { id: ispId },
+      include: { user: true },
+    });
+
+    if (!isp) throw new NotFoundException('ISP not found.');
+
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const bcrypt = require('bcrypt') as typeof import('bcrypt');
+
+    if (isp.user) {
+      // UPDATE existing user
+      const updates: Record<string, unknown> = {};
+      const ispUpdates: Record<string, unknown> = {};
+
+      if (payload.username !== undefined) {
+        const username = String(payload.username).trim();
+        if (!username) throw new BadRequestException('username cannot be empty.');
+        updates.username = username;
+      }
+      if (payload.email !== undefined) {
+        const email = String(payload.email).trim().toLowerCase();
+        if (!email) throw new BadRequestException('email cannot be empty.');
+        updates.email = email;
+      }
+      if (payload.password !== undefined && String(payload.password).trim()) {
+        const plain = String(payload.password).trim();
+        updates.passwordHash = await bcrypt.hash(plain, 10);
+        ispUpdates.passwordPlain = plain;
+      }
+      if (payload.displayName !== undefined) {
+        updates.displayName = String(payload.displayName).trim() || null;
+      }
+
+      if (Object.keys(updates).length === 0 && Object.keys(ispUpdates).length === 0) {
+        throw new BadRequestException('No valid fields provided for update.');
+      }
+
+      if (Object.keys(updates).length > 0) {
+        await this.prisma.user.update({ where: { id: isp.user.id }, data: updates });
+      }
+      if (Object.keys(ispUpdates).length > 0) {
+        await this.prisma.isp.update({ where: { id: ispId }, data: ispUpdates });
+      }
+
+      const updated = await this.prisma.user.findUniqueOrThrow({ where: { id: isp.user.id } });
+      const updatedIsp = await this.prisma.isp.findUniqueOrThrow({ where: { id: ispId } });
+
+      return {
+        hasUser: true,
+        user: {
+          id: updated.id,
+          username: updated.username,
+          email: updated.email,
+          displayName: updated.displayName ?? null,
+          isActive: updated.isActive,
+          role: updated.role,
+          passwordPlain: updatedIsp.passwordPlain ?? null,
+        },
+      };
+    }
+
+    // CREATE new user linked to this ISP
+    const username = String(payload.username ?? '').trim();
+    const email = String(payload.email ?? '').trim().toLowerCase();
+    const password = String(payload.password ?? '').trim();
+
+    if (!username) throw new BadRequestException('username is required.');
+    if (!email) throw new BadRequestException('email is required.');
+    if (!password) throw new BadRequestException('password is required.');
+
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    const created = await this.prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({
+        data: {
+          username,
+          email,
+          passwordHash,
+          role: 'isp',
+          displayName: String(payload.displayName ?? '').trim() || isp.name,
+          isActive: true,
+        },
+      });
+      await tx.isp.update({
+        where: { id: ispId },
+        data: { userId: user.id, passwordPlain: password },
+      });
+      return user;
+    });
+
+    return {
+      hasUser: true,
+      user: {
+        id: created.id,
+        username: created.username,
+        email: created.email,
+        displayName: created.displayName ?? null,
+        isActive: created.isActive,
+        role: created.role,
+        passwordPlain: password,
+      },
     };
   }
 }

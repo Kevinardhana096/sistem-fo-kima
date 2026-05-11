@@ -578,8 +578,6 @@ function CustomerWorkspacePage({
                             const isExpanded = normalizedSearch ? true : !(collapsedMap[group.id] ?? true);
                             return (
                                 <div key={group.id} className="relative group/group">
-                                    {/* Decorative Side Accent */}
-                                    <div className="absolute -left-1 top-10 bottom-10 w-2 bg-gold-accent rounded-full blur-[1px] opacity-0 group-hover/group:opacity-100 transition-all duration-500 shadow-gold-glow"></div>
 
                                     <div className="rounded-premium bg-white/5 border border-white/10 backdrop-blur-xl overflow-hidden transition-all duration-500 hover:border-gold-accent/40 shadow-glass-depth hover:shadow-gold-accent/5">
                                         {/* Group Header */}

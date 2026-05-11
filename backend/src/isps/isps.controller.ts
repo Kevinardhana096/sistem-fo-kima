@@ -222,4 +222,17 @@ export class IspsController {
       payload?.fileName?.trim() || file?.originalname || 'kontrak.pdf',
     );
   }
+
+  @Get(':ispId/user')
+  getIspUser(@Param('ispId', ParseIntPipe) ispId: number) {
+    return this.ispsService.getIspUser(ispId);
+  }
+
+  @Patch(':ispId/user')
+  upsertIspUser(
+    @Param('ispId', ParseIntPipe) ispId: number,
+    @Body() payload: { username?: string; email?: string; password?: string; displayName?: string },
+  ) {
+    return this.ispsService.upsertIspUser(ispId, payload);
+  }
 }

@@ -125,4 +125,20 @@ export class IspsService {
       fileName,
     );
   }
+
+  async getIspUser(ispId: number) {
+    return this.prismaIsps.getIspUser(ispId);
+  }
+
+  async upsertIspUser(
+    ispId: number,
+    payload: {
+      username?: string;
+      email?: string;
+      password?: string;
+      displayName?: string;
+    },
+  ) {
+    return this.prismaIsps.upsertIspUser(ispId, payload);
+  }
 }

@@ -138,6 +138,7 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
     ).sort((a, b) => {
         if (ispSortBy === "name_asc") return a.name.localeCompare(b.name);
         if (ispSortBy === "name_desc") return b.name.localeCompare(a.name);
+        if (ispSortBy === "oldest") return (a.id || 0) - (b.id || 0);
         return (b.id || 0) - (a.id || 0); // newest default
     });
     
@@ -233,14 +234,14 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                     
                     <div className="flex items-center gap-4">
                         <button 
-                            className="h-[64px] px-8 rounded-2xl bg-white/5 border border-white/10 text-[11px] font-black uppercase tracking-[0.2em] text-white/60 hover:text-white hover:bg-white/10 transition-all active:scale-95 shadow-glass-depth"
+                            className="h-12 px-6 rounded-xl bg-white/5 border border-white/10 text-[11px] font-black uppercase tracking-[0.2em] text-white/60 hover:text-white hover:bg-white/10 transition-all active:scale-95 shadow-glass-depth"
                             onClick={onCancel} 
                             type="button"
                         >
                             Batal
                         </button>
                         <button 
-                            className="h-[64px] px-10 rounded-2xl btn-premium text-[11px] font-black uppercase tracking-[0.2em] text-white shadow-gold-glow active:scale-95 transition-all disabled:opacity-50 disabled:pointer-events-none" 
+                            className="h-12 px-8 rounded-xl btn-premium text-[11px] font-black uppercase tracking-[0.2em] text-white shadow-gold-glow active:scale-95 transition-all disabled:opacity-50 disabled:pointer-events-none" 
                             disabled={isSubmitting} 
                             type="submit"
                         >
@@ -250,7 +251,7 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                                     Memproses...
                                 </span>
                             ) : (
-                                isEditMode ? "Simpan Perubahan" : "Simpan Lokasi"
+                                isEditMode ? "Simpan Perubahan" : "Tambah Lokasi"
                             )}
                         </button>
                     </div>
@@ -378,6 +379,7 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                                                 iconOnly={true}
                                                 options={[
                                                     { value: "newest", label: "TERBARU" },
+                                                    { value: "oldest", label: "TERLAMA" },
                                                     { value: "name_asc", label: "NAMA A-Z" },
                                                     { value: "name_desc", label: "NAMA Z-A" }
                                                 ]}
