@@ -128,14 +128,69 @@ Autentikasi menggunakan username/password dengan session berbasis role. Setiap r
 
 ## 6. Arsitektur Teknis
 
-| Komponen | Teknologi |
-|---|---|
-| Frontend | React + Vite + Tailwind CSS |
-| Backend | NestJS (TypeScript) |
-| Database | PostgreSQL via Prisma ORM |
-| Routing Engine | Valhalla (OSM-based, Sulawesi) |
-| Containerisasi | Docker Compose |
-| Web Server (FE) | Nginx |
+### 6.1 Environment Setup
+
+Sistem FO KIMA menggunakan arsitektur **dual-environment** untuk memisahkan development dan production:
+
+#### **Production Environment** (`backend-supabase/`)
+- **Database**: Supabase PostgreSQL (cloud-hosted, managed)
+- **Backend**: Supabase Edge Functions (Deno runtime, serverless)
+- **Storage**: Supabase Storage untuk file uploads
+- **Auth**: Supabase Auth untuk authentication
+- **Deployment**: Serverless, auto-scaling, zero maintenance
+- **URL**: `https://jkzjqzskrzcdmahrikwm.supabase.co`
+
+**Karakteristik Production:**
+- ✅ Serverless - tidak perlu manage server
+- ✅ Auto-scaling - scale otomatis sesuai traffic
+- ✅ Global CDN - akses cepat dari mana saja
+- ✅ Built-in backup & monitoring
+- ✅ Zero maintenance - fully managed by Supabase
+
+#### **Local Development Environment** (`backend/` + Docker)
+- **Database**: PostgreSQL via Docker (`localhost:5432`)
+- **Backend**: NestJS (Node.js, `localhost:4000`)
+- **Frontend**: React + Vite (`localhost:5173`)
+- **Deployment**: Docker Compose untuk local development
+
+**Karakteristik Local:**
+- ✅ Full control - debug dan test offline
+- ✅ Fast iteration - tidak perlu deploy untuk test
+- ✅ Isolated - tidak affect production
+- ✅ Easy seeding & testing - mudah reset dan seed data
+
+#### **Workflow Development**
+```
+Development (Local)          Production (Supabase)
+┌─────────────────┐         ┌─────────────────┐
+│   Frontend      │         │   Frontend      │
+│ localhost:5173  │         │   (Netlify)     │
+└────────┬────────┘         └────────┬────────┘
+         │                           │
+         ▼                           ▼
+┌─────────────────┐         ┌─────────────────┐
+│   Backend       │         │  Edge Functions │
+│ localhost:4000  │         │  (Serverless)   │
+└────────┬────────┘         └────────┬────────┘
+         │                           │
+         ▼                           ▼
+┌─────────────────┐         ┌─────────────────┐
+│  PostgreSQL     │         │  Supabase       │
+│  (Docker)       │         │  PostgreSQL     │
+└─────────────────┘         └─────────────────┘
+```
+
+### 6.2 Tech Stack
+
+| Komponen | Local Development | Production |
+|---|---|---|
+| Frontend | React + Vite + Tailwind CSS | React + Vite + Tailwind CSS |
+| Backend | NestJS (TypeScript) | Supabase Edge Functions (Deno) |
+| Database | PostgreSQL via Docker | Supabase PostgreSQL (Cloud) |
+| ORM | Prisma | Prisma |
+| Routing Engine | Valhalla (OSM-based, Sulawesi) | Valhalla (OSM-based, Sulawesi) |
+| Containerisasi | Docker Compose | N/A (Serverless) |
+| Hosting | localhost | Netlify (FE) + Supabase (BE) |
 
 ### Struktur Backend (NestJS Modules)
 - `auth` — autentikasi login, JWT/session
@@ -144,6 +199,45 @@ Autentikasi menggunakan username/password dengan session berbasis role. Setiap r
 - `documents` — upload dan manajemen dokumen
 - `monitoring` — proyeksi billing dan alerts
 - `prisma` — database service layer
+
+### Struktur Folder Project
+```
+sistem-fo-kima/
+├── backend/                    # Local development backend (NestJS)
+│   ├── src/                   # Source code
+│   ├── prisma/                # Database schema & migrations
+│   │   ├── schema.prisma      # Database schema
+│   │   ├── seed.ts            # Sample data seeding
+│   │   └── migrations/        # Database migrations
+│   └── .env                   # Local: postgresql://localhost:5432
+│
+├── backend-supabase/          # Production backend (Supabase)
+│   ├── supabase/
+│   │   ├── functions/         # Edge Functions (serverless)
+│   │   ├── migrations/        # SQL migrations
+│   │   └── config.toml        # Supabase config
+│   └── .env                   # Production: Supabase credentials
+│
+├── frontend/                  # Frontend (React + Vite)
+│   ├── src/
+│   ├── .env.development       # Local API: http://localhost:4000
+│   └── .env.production        # Production API: Supabase URL
+│
+├── docker-compose.yml         # Local PostgreSQL setup
+│
+└── prd/                       # Product Requirements & Docs
+    └── PRD-sistem-arsip-kima.md
+```
+
+### Configuration Files
+
+**Local Development:**
+- `backend/.env`: `DATABASE_URL=postgresql://postgres:postgres@localhost:5432/arsip_kima`
+- `frontend/.env.development`: `VITE_API_BASE_URL=http://localhost:4000`
+
+**Production:**
+- `backend-supabase/.env`: Supabase credentials (URL, keys, DATABASE_URL)
+- `frontend/.env.production`: `VITE_API_BASE_URL=https://[project].supabase.co/functions/v1`
 
 ### Struktur Frontend (Feature-based)
 - `features/login` — halaman autentikasi
@@ -220,7 +314,102 @@ GET    /api/monitoring/alerts?year=
 
 ---
 
-## 10. Roadmap Implementasi
+## 10. Deployment & Operations
+
+### 10.1 Local Development Setup
+
+**Prerequisites:**
+- Docker & Docker Compose
+- Node.js 20+
+- npm atau yarn
+
+**Steps:**
+```bash
+# 1. Start PostgreSQL via Docker
+docker-compose up -d
+
+# 2. Setup Backend
+cd backend
+npm install
+npx prisma migrate dev
+npx prisma generate
+npm run start:dev
+
+# 3. Setup Frontend
+cd ../frontend
+npm install
+npm run dev
+```
+
+**Access:**
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:4000
+- Database: localhost:5432
+
+### 10.2 Production Deployment (Supabase)
+
+**Prerequisites:**
+- Supabase account & project
+- Supabase CLI installed
+- Netlify account (untuk frontend)
+
+**Backend Deployment:**
+```bash
+cd backend-supabase
+
+# Login to Supabase
+supabase login
+
+# Link to project
+supabase link --project-ref [project-id]
+
+# Deploy Edge Functions
+supabase functions deploy
+
+# Apply migrations
+supabase db push
+```
+
+**Frontend Deployment:**
+- Push ke Git repository
+- Connect repository ke Netlify
+- Auto-deploy on push to main branch
+
+**Environment Variables:**
+- Set `VITE_API_BASE_URL` di Netlify dashboard
+- Set Supabase credentials di backend-supabase/.env
+
+### 10.3 Data Migration
+
+**Local → Production:**
+```bash
+# 1. Export schema from local
+cd backend
+npx prisma migrate diff --to-schema-datamodel prisma/schema.prisma
+
+# 2. Apply to Supabase
+cd ../backend-supabase
+supabase db push
+```
+
+**Seeding Data:**
+- Local: `npm run prisma:seed` (via backend/)
+- Production: Via Supabase SQL Editor atau seed script
+
+### 10.4 Monitoring & Maintenance
+
+**Local:**
+- Logs: `docker-compose logs -f`
+- Database: pgAdmin atau DBeaver
+
+**Production:**
+- Supabase Dashboard → Logs
+- Supabase Dashboard → Database → Table Editor
+- Netlify Dashboard → Deploy logs
+
+---
+
+## 11. Roadmap Implementasi
 
 ### Fase 1 — Core (Selesai / In Progress)
 - [x] Autentikasi login dengan role-based access
@@ -243,7 +432,7 @@ GET    /api/monitoring/alerts?year=
 
 ---
 
-## 11. Glosarium
+## 12. Glosarium
 
 | Istilah | Definisi |
 |---|---|
@@ -255,3 +444,12 @@ GET    /api/monitoring/alerts?year=
 | Pemutusan | Terminasi kontrak/layanan pelanggan |
 | FO | Fiber Optik |
 | Valhalla | Open-source routing engine berbasis OSM |
+| Edge Functions | Serverless functions yang berjalan di Supabase |
+| Supabase | Backend-as-a-Service platform (database, auth, storage) |
+| Docker Compose | Tool untuk menjalankan multi-container Docker applications |
+
+---
+
+**Dokumen ini terakhir diperbarui:** 2026-05-12  
+**Versi:** 1.1  
+**Status:** Active Development
