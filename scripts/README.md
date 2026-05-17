@@ -25,6 +25,7 @@ Folder ini berisi script operasional untuk Supabase, seed data, maintenance data
 | [seed/rollback-cendikia-supabase.sql](seed/rollback-cendikia-supabase.sql) | Rollback data seed Cendikia/customer. |
 | [seed/insert-charoen-pokphand-production.sql](seed/insert-charoen-pokphand-production.sql) | Insert data PT Charoen Pokphand. |
 | [seed/insert-cendikia-additional-customers-production.sql](seed/insert-cendikia-additional-customers-production.sql) | Insert batch customer tambahan PT Cendikia Global Solusi dari spreadsheet. |
+| [seed/insert-icon-plus-customers-production.sql](seed/insert-icon-plus-customers-production.sql) | Insert batch customer PT Indonesia Comnets Plus (ICON+) dari spreadsheet. |
 
 ## Maintenance dan Audit Data
 
