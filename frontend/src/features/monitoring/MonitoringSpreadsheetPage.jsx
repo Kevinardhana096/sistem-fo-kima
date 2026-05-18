@@ -544,13 +544,14 @@ function MonitoringSpreadsheetPage({
         });
 
         alerts.forEach((alert) => {
+            const alertCode = alert.code || alert.type || "";
             combined.push({
                 customerId: alert.customerId,
                 customerName: alert.customerName,
-                code: alert.code,
+                code: alertCode,
                 message: alert.message,
                 actionLabel: "Tindak Lanjuti",
-                targetTab: alert.code.includes("invoice") ? "invoices" : "overview",
+                targetTab: alertCode.includes("invoice") || alertCode.includes("payment") ? "invoices" : "overview",
             });
         });
 

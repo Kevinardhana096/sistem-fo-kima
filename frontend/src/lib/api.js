@@ -855,7 +855,10 @@ export const monitoringApi = {
 
     (contractsResult.data || []).forEach(contract => {
       alerts.push({
+        code: 'contract_expiring',
         type: 'contract_expiring',
+        customerId: contract.customer?.id,
+        customerName: contract.customer?.name || 'Customer',
         title: 'Kontrak akan berakhir',
         message: `${contract.customer?.name || 'Customer'} berakhir pada ${contract.end_date}`,
         severity: 'warning',
@@ -863,11 +866,15 @@ export const monitoringApi = {
     });
 
     (invoicesResult.data || []).forEach(invoice => {
+      const isOverdue = invoice.status === 'terlambat';
       alerts.push({
+        code: isOverdue ? 'payment_overdue' : 'invoice_not_uploaded',
         type: 'invoice_attention',
+        customerId: invoice.customer?.id,
+        customerName: invoice.customer?.name || 'Customer',
         title: 'Invoice perlu perhatian',
         message: `${invoice.customer?.name || 'Customer'} invoice ${invoice.invoice_number || '-'} ${invoice.status}`,
-        severity: invoice.status === 'terlambat' ? 'critical' : 'warning',
+        severity: isOverdue ? 'critical' : 'warning',
       });
     });
 
@@ -882,7 +889,10 @@ export const monitoringApi = {
       const routeStatus = String(latestRoute?.flow_status || 'aktif').trim().toLowerCase();
       if (['gangguan', 'perbaikan', 'maintenance'].includes(routeStatus)) {
         alerts.push({
+          code: 'route_attention',
           type: 'route_attention',
+          customerId: customer.id,
+          customerName: customer.name || 'Customer',
           title: 'Jalur perlu perhatian',
           message: `${customer.name || 'Customer'} jalur ${routeStatus}`,
           severity: routeStatus === 'gangguan' ? 'critical' : 'warning',
