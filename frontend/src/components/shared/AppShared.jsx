@@ -122,7 +122,8 @@ export function StatCard({ label, value, icon, accent, sub }) {
     };
     
     return (
-        <div className="glass-card rounded-premium p-6 group hover:border-gold-accent/40 transition-all duration-500">
+        <div className="glass-card rounded-premium p-6 group hover:border-gold-accent/40 transition-all duration-500"
+            style={{ backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)" }}>
             <div className="flex justify-between items-start mb-6">
                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-on-surface-variant group-hover:text-gold-accent transition-colors">{label}</p>
                 <div className={`h-12 w-12 flex items-center justify-center rounded-2xl ${accents[accent] || accents.white} shadow-sm group-hover:shadow-gold-glow transition-all`}>
