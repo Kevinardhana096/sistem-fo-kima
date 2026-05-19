@@ -499,6 +499,7 @@ function App() {
                 <DashboardPage
                     activeSection={activeSection}
                     customers={customers}
+                    notifications={notifications}
                     isLoadingCustomers={isLoadingCustomers}
                     currentRole={currentRole}
                     onNavigate={handleNavigate}

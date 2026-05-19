@@ -24,6 +24,7 @@ export default function DashboardPage({
     onNavigate,
     onLogout,
     customers,
+    notifications = [],
     currentRole = "admin"
 }) {
     const [availableYears] = useState([
@@ -41,7 +42,7 @@ export default function DashboardPage({
         end: String(new Date().getUTCFullYear())
     });
 
-    const [alerts, setAlerts] = useState([]);
+    const [alerts, setAlerts] = useState(() => notifications.slice(0, 20));
     const [dashboardMetrics, setDashboardMetrics] = useState(null);
     const [isLoadingOperational, setIsLoadingOperational] = useState(false);
     const [growthType, setGrowthType] = useState("tenant");
@@ -57,11 +58,7 @@ export default function DashboardPage({
     const loadOperationalData = useCallback(async (year) => {
         setIsLoadingOperational(true);
         try {
-            const [alertsResult, metricsResult] = await Promise.all([
-                api.notifications.list({ year: Number(year), limit: 20 }),
-                api.monitoring.getDashboardMetrics({ year: Number(year) }),
-            ]);
-            setAlerts(Array.isArray(alertsResult) ? alertsResult : []);
+            const metricsResult = await api.monitoring.getDashboardMetrics({ year: Number(year) });
             setDashboardMetrics(metricsResult ?? null);
         } catch (error) {
             console.error("Dashboard load error:", error);
@@ -71,6 +68,7 @@ export default function DashboardPage({
     }, []);
 
     useEffect(() => { loadOperationalData(String(new Date().getUTCFullYear())); }, [loadOperationalData]);
+    useEffect(() => { setAlerts(notifications.slice(0, 20)); }, [notifications]);
 
     const stats = useMemo(() => {
         const isps = customers.filter(c => c.type === "ISP" || c.is_isp);
@@ -90,15 +88,6 @@ export default function DashboardPage({
             activeTenantCount: beroperasi,
             contract: { beroperasi, expired, berhenti, totalOperational: beroperasi + expired }
         };
-    }, [customers]);
-
-    const topIsps = useMemo(() => {
-        const isps = customers.filter(c => c.type === "ISP" || c.is_isp);
-        const tenants = customers.filter(c => c.type === "TENANT" || !c.is_isp);
-        return isps.map(isp => ({
-            ...isp,
-            tenantCount: tenants.filter(t => Array.isArray(t.ispList) && t.ispList.includes(isp.name)).length
-        })).sort((a, b) => b.tenantCount - a.tenantCount).slice(0, 5);
     }, [customers]);
 
     const sharingRows = useMemo(() => ([

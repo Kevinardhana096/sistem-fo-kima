@@ -17,12 +17,12 @@ import {
   formatDateTime,
   formatPackageRatio,
   isOpenableFileUrl,
-  readFileAsDataUrl,
   resolveCustomerContractPeriodInfo,
   resolveCustomerPackageInfo,
   toTitleCase,
 } from "../../app/utils";
 import api from "../../lib/api";
+import { uploadFileForRecord } from "../../lib/files";
 
 const ROUTE_OPERATION_LABEL_MAP = {
   add: "Tambah Titik",
@@ -1279,7 +1279,7 @@ function TenantDetailPage({
     setDocumentError("");
     setDocumentFeedback("");
     try {
-      const fileUrl = await readFileAsDataUrl(documentDraft.uploadedFile);
+      const fileUrl = await uploadFileForRecord(documentDraft.uploadedFile, ["customers", customer.id, "documents"]);
       await api.documents.create({
         customer_id: customer.id,
         contract_id: contract?.id ?? null,
@@ -1327,7 +1327,7 @@ function TenantDetailPage({
     setError("");
     setDocumentFeedback("");
     try {
-      const fileUrl = await readFileAsDataUrl(file);
+      const fileUrl = await uploadFileForRecord(file, ["customers", customer.id, "contracts"]);
       await api.documents.create({
         customer_id: customer.id,
         contract_id: contractId,
@@ -1879,7 +1879,7 @@ function TenantDetailPage({
     setError("");
     setInvoiceFeedback("");
     try {
-      const invoiceFileUrl = await readFileAsDataUrl(file);
+      const invoiceFileUrl = await uploadFileForRecord(file, ["customers", customer.id, "invoices"]);
       if (followUpId) {
         await api.invoiceFollowUps.update(followUpId, {
           invoice_number: followUpDraft.invoiceNumber.trim(),
@@ -1930,7 +1930,7 @@ function TenantDetailPage({
     setError("");
     setInvoiceFeedback("");
     try {
-      const paymentProofFileUrl = await readFileAsDataUrl(file);
+      const paymentProofFileUrl = await uploadFileForRecord(file, ["customers", customer.id, "payment-proofs"]);
       await api.invoices.update(invoice.id, {
         payment_proof_file_url: paymentProofFileUrl,
       });
@@ -2052,7 +2052,7 @@ function TenantDetailPage({
 
     setError("");
     try {
-      const renewalFileUrl = await readFileAsDataUrl(file);
+      const renewalFileUrl = await uploadFileForRecord(file, ["customers", customer.id, "renewals"]);
       if (followUpId) {
         await api.contractVersionRenewalFollowUps.update(followUpId, {
           renewal_file_url: renewalFileUrl,
@@ -2087,7 +2087,7 @@ function TenantDetailPage({
 
     setError("");
     try {
-      const responseFileUrl = await readFileAsDataUrl(file);
+      const responseFileUrl = await uploadFileForRecord(file, ["customers", customer.id, "renewal-responses"]);
       if (followUpId) {
         await api.contractVersionRenewalFollowUps.update(followUpId, {
           response_file_url: responseFileUrl,

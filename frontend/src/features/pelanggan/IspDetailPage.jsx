@@ -7,11 +7,11 @@ import {
     getIspContractActionItems,
     isOpenableFileUrl,
     openSafeFile,
-    readFileAsDataUrl,
     resolveCustomerContractPeriodInfo,
     resolveCustomerPackageInfo,
 } from "../../app/utils";
 import api from "../../lib/api";
+import { uploadFileForRecord } from "../../lib/files";
 
 const getPackageDisplay = (packageValue) => {
     const normalizedPackage = String(packageValue ?? "").toLowerCase();
@@ -25,6 +25,36 @@ const getPackageDisplay = (packageValue) => {
 
 const normalizeOperationalStatus = (status) => String(status ?? "").trim().toLowerCase();
 const isStoppedStatus = (status) => ["berhenti", "nonaktif"].includes(normalizeOperationalStatus(status));
+const getPrimaryIspContractRowId = (ispId) => `primary-isp-contract-${ispId}`;
+
+const buildPrimaryIspContractRow = (ispDetail, fallbackIsp) => {
+    const source = ispDetail ?? fallbackIsp ?? {};
+    const hasPrimaryContractData = [
+        source.contractReference ?? source.contract_reference,
+        source.contractStartDate ?? source.contract_start_date,
+        source.contractPeriodStart ?? source.contract_period_start,
+        source.contractPeriodEnd ?? source.contract_period_end,
+        source.bakFileUrl ?? source.bak_file_url,
+        source.contractFileUrl ?? source.contract_file_url,
+    ].some((value) => String(value ?? "").trim().length > 0);
+
+    if (!hasPrimaryContractData) return null;
+
+    return {
+        id: getPrimaryIspContractRowId(source.id ?? fallbackIsp?.id),
+        isPrimaryIspContract: true,
+        contractReference: source.contractReference ?? source.contract_reference ?? null,
+        contractFileUrl: source.contractFileUrl ?? source.contract_file_url ?? null,
+        contractFileName: source.contractFileName ?? source.contract_file_name ?? null,
+        contractStartDate: source.contractStartDate ?? source.contract_start_date ?? null,
+        periodStart: source.contractPeriodStart ?? source.contract_period_start ?? null,
+        periodEnd: source.contractPeriodEnd ?? source.contract_period_end ?? null,
+        bakFileUrl: source.bakFileUrl ?? source.bak_file_url ?? null,
+        bakFileName: source.bakFileName ?? source.bak_file_name ?? null,
+        renewalFollowUps: [],
+    };
+};
+
 const getOperationalLabel = (status) => {
     const normalizedStatus = normalizeOperationalStatus(status);
     if (isStoppedStatus(normalizedStatus)) return "Berhenti";
@@ -273,9 +303,16 @@ function IspDetailPage({
         try {
             const ispResult = await api.isps.getById(isp.id);
             const rowsResult = Array.isArray(ispResult?.contractRows) ? ispResult.contractRows : [];
+            const primaryContractRow = buildPrimaryIspContractRow(ispResult, isp);
+            const nextContractRows = primaryContractRow
+                ? [
+                    primaryContractRow,
+                    ...rowsResult.filter((row) => !row?.isPrimaryIspContract),
+                ]
+                : rowsResult;
 
             setDetail(ispResult ?? null);
-            setContractRows(rowsResult);
+            setContractRows(nextContractRows);
             setRisalahRows(
                 Array.isArray(ispResult?.risalah)
                     ? ispResult.risalah.map((row, index) => ({
@@ -309,7 +346,7 @@ function IspDetailPage({
         } finally {
             setIsLoading(false);
         }
-    }, [isp.id]);
+    }, [isp]);
 
     useEffect(() => {
         void loadDetail();
@@ -444,15 +481,26 @@ function IspDetailPage({
 
     const ispName = detail?.name ?? isp.name;
     const contractRef = detail?.contractReference ?? isp.contractReference ?? "-";
-    const accountInfo = getIspAccountInfo(detail ?? isp);
 
     const handleFileUpload = async (rowId, type, file, followUpId = null) => {
         if (!file) return;
         setIsActionLoading(true);
         setError("");
         try {
-            const fileDataUrl = await readFileAsDataUrl(file);
-            if (type === "renewal" && followUpId) {
+            const targetRow = contractRows.find((row) => row.id === rowId);
+            if (targetRow?.isPrimaryIspContract && !["bak", "contract"].includes(type)) {
+                setError("Perpanjangan dan tanggapan dikelola melalui baris adendum.");
+                return;
+            }
+
+            const fileDataUrl = await uploadFileForRecord(file, ["isps", isp.id, type]);
+            if (targetRow?.isPrimaryIspContract) {
+                const fieldMap = {
+                    bak: { bakFileUrl: fileDataUrl, bakFileName: file.name },
+                    contract: { contractFileUrl: fileDataUrl, contractFileName: file.name },
+                };
+                await api.isps.update(isp.id, fieldMap[type]);
+            } else if (type === "renewal" && followUpId) {
                 await api.ispRenewalFollowUps.update(followUpId, {
                     renewal_file_url: fileDataUrl,
                     renewal_file_name: file.name,
@@ -480,7 +528,7 @@ function IspDetailPage({
         setIsActionLoading(true);
         setError("");
         try {
-            const fileDataUrl = await readFileAsDataUrl(file);
+            const fileDataUrl = await uploadFileForRecord(file, ["isps", isp.id, "responses"]);
             if (followUpId) {
                 await api.ispRenewalFollowUps.update(followUpId, {
                     response_file_url: fileDataUrl,
@@ -523,6 +571,10 @@ function IspDetailPage({
     };
 
     const renderRenewalFollowUps = (row, columnType) => {
+        if (row?.isPrimaryIspContract) {
+            return <span className="text-[10px] font-bold text-white/20 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">Baris utama ISP</span>;
+        }
+
         const followUps = Array.isArray(row?.renewalFollowUps) ? row.renewalFollowUps : [];
         if (followUps.length === 0) {
             if (columnType === "renewal") {
@@ -583,7 +635,16 @@ function IspDetailPage({
     const handleUpdateRow = async (rowId, updates) => {
         setIsActionLoading(true);
         try {
-            await api.ispContractRows.update(rowId, updates);
+            const targetRow = contractRows.find((row) => row.id === rowId);
+            if (targetRow?.isPrimaryIspContract) {
+                await api.isps.update(isp.id, {
+                    contractReference: updates.contract_reference,
+                    contractPeriodStart: updates.period_start,
+                    contractPeriodEnd: updates.period_end,
+                });
+            } else {
+                await api.ispContractRows.update(rowId, updates);
+            }
             setEditingRow(null);
             await loadDetail();
         } catch { setError("Gagal memperbarui data baris."); } finally { setIsActionLoading(false); }
@@ -594,7 +655,7 @@ function IspDetailPage({
 
     const handleRisalahEditorFileChange = (file) => {
         if (!file) { setRisalahEditor((p) => p ? { ...p, fileUrl: "", uploadedFileName: "" } : p); return; }
-        void readFileAsDataUrl(file).then((fileUrl) => { setRisalahEditor((p) => p ? { ...p, fileUrl, uploadedFileName: file.name } : p); }).catch((re) => { setError(re instanceof Error ? re.message : "Gagal membaca berkas."); });
+        void uploadFileForRecord(file, ["isps", isp.id, "risalah"]).then((fileUrl) => { setRisalahEditor((p) => p ? { ...p, fileUrl, uploadedFileName: file.name } : p); }).catch((re) => { setError(re instanceof Error ? re.message : "Gagal membaca berkas."); });
     };
 
     const handleSaveRisalah = () => {
@@ -1607,7 +1668,7 @@ function IspDetailPage({
                                                                 value={editingRow.periodStart || ""}
                                                                 onChange={(e) => setEditingRow({ ...editingRow, periodStart: e.target.value })}
                                                                 onClick={(e) => {
-                                                                    try { e.currentTarget.showPicker(); } catch (err) {}
+                                                                    try { e.currentTarget.showPicker(); } catch { /* Browser tidak mendukung showPicker. */ }
                                                                 }}
                                                             />
                                                         ) : <span className="text-sm font-bold text-white">{formatDate(row.periodStart)}</span>}
@@ -1620,7 +1681,7 @@ function IspDetailPage({
                                                                 value={editingRow.periodEnd || ""}
                                                                 onChange={(e) => setEditingRow({ ...editingRow, periodEnd: e.target.value })}
                                                                 onClick={(e) => {
-                                                                    try { e.currentTarget.showPicker(); } catch (err) {}
+                                                                    try { e.currentTarget.showPicker(); } catch { /* Browser tidak mendukung showPicker. */ }
                                                                 }}
                                                             />
                                                         ) : <span className="text-sm font-bold text-gold-accent italic">{formatDate(row.periodEnd)}</span>}
@@ -1633,7 +1694,7 @@ function IspDetailPage({
                                                     <td className="px-6 py-6 min-w-[280px] border-r border-white/10">
                                                         <div className="flex items-center gap-3">
                                                             {renderRenewalFollowUps(row, "renewal")}
-                                                            <button className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 border border-white/10 text-white/40 transition-all hover:bg-white/10 disabled:opacity-30" disabled={!hasInitialRenewalUpload(row)} onClick={() => handleAddRenewalSplit(row.id)} type="button">
+                                                            <button className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 border border-white/10 text-white/40 transition-all hover:bg-white/10 disabled:opacity-30" disabled={row.isPrimaryIspContract || !hasInitialRenewalUpload(row)} onClick={() => handleAddRenewalSplit(row.id)} type="button">
                                                                 <span className="material-symbols-outlined text-sm">add_circle</span>
                                                             </button>
                                                         </div>
@@ -1871,7 +1932,7 @@ function IspDetailPage({
                                                     className="w-full rounded-2xl bg-black/40 border border-white/10 pl-12 pr-4 py-4 text-sm font-bold text-white outline-none focus:border-gold-accent transition-all appearance-none custom-date-input cursor-pointer"
                                                     onChange={(e) => setRisalahEditor(p => p ? { ...p, tanggal: e.target.value } : p)}
                                                     onClick={(e) => {
-                                                        try { e.currentTarget.showPicker(); } catch (err) {}
+                                                        try { e.currentTarget.showPicker(); } catch { /* Browser tidak mendukung showPicker. */ }
                                                     }}
                                                     type="date"
                                                     value={risalahEditor.tanggal}

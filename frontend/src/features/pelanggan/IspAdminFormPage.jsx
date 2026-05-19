@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import AppShell from "../../components/layout/AppShell";
-import { readFileAsDataUrl } from "../../app/utils";
 import api, { getApiErrorDetails } from "../../lib/api";
+import { uploadFileForRecord } from "../../lib/files";
 
 const GlassFieldInput = ({ label, type = "text", value, onChange, placeholder = "", icon, error = "" }) => {
     return (
@@ -30,7 +30,7 @@ const GlassFieldInput = ({ label, type = "text", value, onChange, placeholder = 
     );
 };
 
-const FileUploadCard = ({ label, fileName, onFileSelected, onClear, icon = "upload_file", error = "" }) => (
+const FileUploadCard = ({ label, fileName, onFileSelected, onClear, uploadPathParts = [], icon = "upload_file", error = "" }) => (
     <div className="space-y-3">
         <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-gold-accent/60 ml-1">{label}</label>
         <div className={`relative overflow-hidden rounded-2xl border border-dashed bg-black/20 p-6 transition-all hover:border-gold-accent/40 backdrop-blur-md ${error ? "border-rose-500/70 ring-4 ring-rose-500/10" : "border-white/10"}`}>
@@ -39,7 +39,7 @@ const FileUploadCard = ({ label, fileName, onFileSelected, onClear, icon = "uplo
                 onChange={(event) => {
                     const file = event.target.files?.[0];
                     if (!file) return;
-                    readFileAsDataUrl(file).then((dataUrl) => onFileSelected(file, dataUrl));
+                    uploadFileForRecord(file, uploadPathParts).then((fileUrl) => onFileSelected(file, fileUrl));
                     event.target.value = "";
                 }}
                 type="file"
@@ -314,7 +314,7 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
                                                 className="absolute inset-0 cursor-pointer opacity-0 z-10"
                                                 onChange={(e) => {
                                                     const file = e.target.files?.[0];
-                                                    if (file) readFileAsDataUrl(file).then(url => setForm(p => ({ ...p, logoFileDataUrl: url })));
+                                                    if (file) uploadFileForRecord(file, ["isps", initialData?.id ?? "new", "logos"]).then(url => setForm(p => ({ ...p, logoFileDataUrl: url })));
                                                 }}
                                                 type="file"
                                             />
@@ -462,6 +462,7 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
                                         label="Upload BAK (Opsional)"
                                         fileName={form.bakFileName}
                                         error={fieldErrors.bakFileDataUrl}
+                                        uploadPathParts={["isps", initialData?.id ?? "new", "bak"]}
                                         onFileSelected={(file, dataUrl) => setForm(p => ({ ...p, bakFileName: file.name, bakFileDataUrl: dataUrl }))}
                                         onClear={() => setForm(p => ({ ...p, bakFileName: "", bakFileDataUrl: "" }))}
                                     />
@@ -469,6 +470,7 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
                                         label="Upload Kontrak (Opsional)"
                                         fileName={form.contractFileName}
                                         error={fieldErrors.contractFileDataUrl}
+                                        uploadPathParts={["isps", initialData?.id ?? "new", "contracts"]}
                                         onFileSelected={(file, dataUrl) => setForm(p => ({ ...p, contractFileName: file.name, contractFileDataUrl: dataUrl }))}
                                         onClear={() => setForm(p => ({ ...p, contractFileName: "", contractFileDataUrl: "" }))}
                                     />

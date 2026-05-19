@@ -17,18 +17,13 @@ const chunkArray = (items, size = QUERY_CHUNK_SIZE) => {
 };
 
 const fetchInChunks = async (items, fetchChunk, size = QUERY_CHUNK_SIZE) => {
-  const chunks = chunkArray(items, size);
-  const results = [];
+  const chunkResults = await Promise.all(
+    chunkArray(items, size)
+      .filter((chunk) => chunk.length > 0)
+      .map((chunk) => fetchChunk(chunk))
+  );
 
-  for (const chunk of chunks) {
-    if (chunk.length === 0) continue;
-    const data = await fetchChunk(chunk);
-    if (Array.isArray(data)) {
-      results.push(...data);
-    }
-  }
-
-  return results;
+  return chunkResults.flatMap((data) => Array.isArray(data) ? data : []);
 };
 
 const getErrorText = (error) => [
@@ -231,7 +226,7 @@ const ACTIVITY_ENTITY_CONFIG = {
   contracts: { entityType: 'contract', nameFields: ['contract_number'] },
   invoices: { entityType: 'invoice', nameFields: ['invoice_number'] },
   documents: { entityType: 'document', nameFields: ['nomor_dokumen', 'jenis_dokumen'] },
-  customer_route_versions: { entityType: 'route', nameFields: ['version_name', 'status'] },
+  customer_route_versions: { entityType: 'route', nameFields: ['change_note', 'flow_status', 'version_number'] },
 };
 
 const getEntityDisplayName = (row, fallback = 'Data') => {
@@ -241,7 +236,9 @@ const getEntityDisplayName = (row, fallback = 'Data') => {
     ?? row.invoice_number
     ?? row.nomor_dokumen
     ?? row.jenis_dokumen
-    ?? row.version_name
+    ?? row.change_note
+    ?? (row.version_number ? `Jalur v${row.version_number}` : null)
+    ?? row.flow_status
     ?? fallback;
 };
 
@@ -332,14 +329,31 @@ const createIspDerivedNotification = ({ code, type, severity = 'warning', title,
 });
 
 const getIspDerivedNotifications = async () => {
-  const { data: isps, error } = await supabase
-    .from('isps')
-    .select('id,name,status,contract_reference,contract_start_date,contract_period_start,contract_period_end,bak_file_url,contract_file_url')
-    .is('deleted_at', null);
+  const [ispsResult, missingBakResult, missingContractResult] = await Promise.all([
+    supabase
+      .from('isps')
+      .select('id,name,status,contract_reference,contract_start_date,contract_period_start,contract_period_end')
+      .is('deleted_at', null),
+    supabase
+      .from('isps')
+      .select('id')
+      .is('deleted_at', null)
+      .or('bak_file_url.is.null,bak_file_url.eq.'),
+    supabase
+      .from('isps')
+      .select('id')
+      .is('deleted_at', null)
+      .or('contract_file_url.is.null,contract_file_url.eq.'),
+  ]);
 
-  if (error) throw error;
+  if (ispsResult.error) throw ispsResult.error;
+  if (missingBakResult.error) throw missingBakResult.error;
+  if (missingContractResult.error) throw missingContractResult.error;
 
-  return (isps || []).flatMap((isp) => {
+  const missingBakIds = new Set((missingBakResult.data || []).map((isp) => Number(isp.id)));
+  const missingContractIds = new Set((missingContractResult.data || []).map((isp) => Number(isp.id)));
+
+  return (ispsResult.data || []).flatMap((isp) => {
     const ispId = isp.id;
     const ispName = isp.name || `ISP #${ispId}`;
     const ispStatus = String(isp.status || '').trim().toLowerCase();
@@ -376,7 +390,7 @@ const getIspDerivedNotifications = async () => {
         ispName,
       }));
     }
-    if (!String(isp.bak_file_url || '').trim()) {
+    if (missingBakIds.has(Number(ispId))) {
       notifications.push(createIspDerivedNotification({
         code: 'isp_bak_missing',
         type: 'isp_document',
@@ -387,7 +401,7 @@ const getIspDerivedNotifications = async () => {
         actionLabel: 'Buka Dokumen',
       }));
     }
-    if (!String(isp.contract_file_url || '').trim()) {
+    if (missingContractIds.has(Number(ispId))) {
       notifications.push(createIspDerivedNotification({
         code: 'isp_contract_file_missing',
         type: 'isp_document',
@@ -405,23 +419,60 @@ const getIspDerivedNotifications = async () => {
 
 const getDerivedNotifications = async () => {
   const todayIso = new Date().toISOString().slice(0, 10);
-  const { data: customers, error } = await supabase
-    .from('customers')
-    .select(`
-      id,
-      name,
-      status,
-      activation_fee_amount,
-      activation_fee_paid_at,
-      contracts(id, contract_number, status),
-      invoices(id, invoice_number, amount, due_date, period_end_date, status, payment_proof_file_url, invoice_file_url, schedule_status),
-      routeVersions:customer_route_versions(version_number, flow_status, created_at)
-    `)
-    .is('deleted_at', null);
+  const baseInvoiceColumns = 'id,customer_id,invoice_number,amount,due_date,period_end_date,status,schedule_status';
+  const [customersResult, incompleteInvoicesResult, missingFileInvoicesResult] = await Promise.all([
+    supabase
+      .from('customers')
+      .select(`
+        id,
+        name,
+        status,
+        activation_fee_amount,
+        activation_fee_paid_at,
+        contracts(id, contract_number, status),
+        routeVersions:customer_route_versions(version_number, flow_status, created_at)
+      `)
+      .is('deleted_at', null),
+    supabase
+      .from('invoices')
+      .select(baseInvoiceColumns)
+      .in('status', ['belum_bayar', 'terlambat', 'belum_ditagih'])
+      .eq('schedule_status', 'active')
+      .or('due_date.is.null,amount.lte.0'),
+    supabase
+      .from('invoices')
+      .select(baseInvoiceColumns)
+      .in('status', ['belum_bayar', 'terlambat', 'belum_ditagih'])
+      .eq('schedule_status', 'active')
+      .or('due_date.not.is.null,period_end_date.not.is.null')
+      .or('invoice_file_url.is.null,invoice_file_url.eq.')
+      .or('payment_proof_file_url.is.null,payment_proof_file_url.eq.'),
+  ]);
 
-  if (error) throw error;
+  if (customersResult.error) throw customersResult.error;
+  if (incompleteInvoicesResult.error) throw incompleteInvoicesResult.error;
+  if (missingFileInvoicesResult.error) throw missingFileInvoicesResult.error;
 
-  return (customers || []).flatMap((customer) => {
+  const invoicesByCustomerId = new Map();
+  const invoicesById = new Map();
+  (incompleteInvoicesResult.data || []).forEach((invoice) => {
+    invoicesById.set(invoice.id, { ...invoice, isIncomplete: true, isMissingFiles: false });
+  });
+  (missingFileInvoicesResult.data || []).forEach((invoice) => {
+    invoicesById.set(invoice.id, {
+      ...(invoicesById.get(invoice.id) || invoice),
+      ...invoice,
+      isMissingFiles: true,
+    });
+  });
+
+  Array.from(invoicesById.values()).forEach((invoice) => {
+    const list = invoicesByCustomerId.get(invoice.customer_id) || [];
+    list.push(invoice);
+    invoicesByCustomerId.set(invoice.customer_id, list);
+  });
+
+  return (customersResult.data || []).flatMap((customer) => {
     const customerId = customer.id;
     const customerName = customer.name || `Pelanggan #${customerId}`;
     const customerStatus = String(customer.status || '').trim().toLowerCase();
@@ -478,16 +529,12 @@ const getDerivedNotifications = async () => {
       }));
     }
 
-    const invoices = Array.isArray(customer.invoices) ? customer.invoices : [];
-    invoices
-      .filter((invoice) => invoice.schedule_status !== 'inactive' && ['belum_bayar', 'terlambat', 'belum_ditagih'].includes(String(invoice.status || '').toLowerCase()))
-      .forEach((invoice) => {
+    const invoices = invoicesByCustomerId.get(customer.id) || [];
+    invoices.forEach((invoice) => {
         const dueDate = invoice.due_date || invoice.period_end_date || null;
         const amount = Number(invoice.amount || 0);
-        const hasInvoiceFile = Boolean(String(invoice.invoice_file_url || '').trim());
-        const hasPaymentProof = Boolean(String(invoice.payment_proof_file_url || '').trim());
 
-        if (!dueDate || amount <= 0) {
+        if (invoice.isIncomplete && (!dueDate || amount <= 0)) {
           notifications.push(createDerivedNotification({
             code: 'invoice_setup_incomplete',
             type: 'invoice_setup',
@@ -502,7 +549,7 @@ const getDerivedNotifications = async () => {
         }
 
         const reminderDate = addDaysToIsoDate(dueDate, -7);
-        if (dueDate && reminderDate && reminderDate <= todayIso && !hasInvoiceFile && !hasPaymentProof) {
+        if (invoice.isMissingFiles && dueDate && reminderDate && reminderDate <= todayIso) {
           notifications.push(createDerivedNotification({
             code: 'invoice_h_minus_7',
             type: 'invoice_reminder',
@@ -979,6 +1026,192 @@ const mapCustomerDetail = (customer) => {
   };
 };
 
+const CUSTOMER_DETAIL_SELECT = `
+  id,
+  customer_code,
+  isp_name,
+  name,
+  status,
+  activation_fee_amount,
+  activation_fee_paid_at,
+  contract_start_date,
+  notes,
+  created_at,
+  updated_at,
+  deleted_at,
+  deleted_by,
+  ispMemberships:customer_isp_memberships(
+    id,
+    customer_id,
+    isp_id,
+    created_at,
+    updated_at,
+    isp:isps(
+      id,
+      name,
+      status,
+      logo_url,
+      contract_reference,
+      contract_start_date,
+      contract_period_start,
+      contract_period_end,
+      paket,
+      jumlah,
+      billing_period_mode,
+      billing_custom_every,
+      billing_custom_unit,
+      activation_fee_amount,
+      activation_fee_paid_at,
+      created_at,
+      updated_at
+    )
+  ),
+  contracts(
+    id,
+    customer_id,
+    contract_number,
+    start_date,
+    end_date,
+    core_type,
+    core_total,
+    sharing_ratio,
+    status,
+    billing_every,
+    billing_unit,
+    created_at,
+    updated_at,
+    deleted_at,
+    deleted_by,
+    versions:contract_versions(
+      id,
+      contract_id,
+      customer_id,
+      version_number,
+      start_date,
+      end_date,
+      core_type,
+      core_total,
+      shared_core_ratio,
+      bak_document_id,
+      renewal_file_url,
+      renewal_file_name,
+      response_file_url,
+      response_file_name,
+      monthly_amount,
+      yearly_amount,
+      remarks,
+      created_at,
+      updated_at,
+      deleted_at,
+      deleted_by,
+      renewalFollowUps:contract_version_renewal_follow_ups(
+        id,
+        version_id,
+        split_order,
+        source,
+        trigger_code,
+        title,
+        description,
+        status,
+        renewal_file_url,
+        renewal_file_name,
+        response_file_url,
+        response_file_name,
+        response_decision,
+        created_at,
+        updated_at
+      )
+    )
+  ),
+  invoices(
+    id,
+    customer_id,
+    invoice_number,
+    contract_id,
+    contract_version_id,
+    contract_number,
+    period_month,
+    period_year,
+    period_start_date,
+    period_end_date,
+    due_date,
+    amount,
+    status,
+    schedule_version,
+    schedule_status,
+    document_id,
+    paid_at,
+    invoice_file_url,
+    payment_proof_file_url,
+    created_at,
+    updated_at,
+    deleted_at,
+    deleted_by,
+    invoiceFollowUps:invoice_follow_ups(
+      id,
+      invoice_id,
+      split_order,
+      source,
+      trigger_code,
+      title,
+      description,
+      status,
+      invoice_number,
+      invoice_file_url,
+      created_at,
+      updated_at
+    )
+  ),
+  documents(
+    id,
+    customer_id,
+    contract_id,
+    contract_version_id,
+    contract_number,
+    jenis_dokumen,
+    nomor_dokumen,
+    tanggal_dokumen,
+    file_url,
+    created_at,
+    deleted_at,
+    deleted_by
+  ),
+  routeVersions:customer_route_versions(
+    id,
+    customer_id,
+    version_number,
+    flow_status,
+    change_mode,
+    change_note,
+    based_on_version_id,
+    created_at,
+    updated_at,
+    deleted_at,
+    deleted_by,
+    points:customer_route_points(
+      id,
+      route_version_id,
+      order_number,
+      path_name,
+      point_type,
+      note,
+      created_at,
+      updated_at,
+      deleted_at,
+      deleted_by
+    )
+  ),
+  routeHistory:customer_route_history(
+    id,
+    customer_id,
+    operation,
+    note,
+    snapshot_before,
+    snapshot_after,
+    created_at
+  )
+`;
+
 export const customersApi = {
   // Get all customers
   async getAll({ limit = LIST_PAGE_SIZE, offset = 0 } = {}) {
@@ -1111,29 +1344,7 @@ export const customersApi = {
   async getById(id) {
     const { data, error } = await supabase
       .from('customers')
-      .select(`
-        *,
-        ispMemberships:customer_isp_memberships(
-          isp:isps(*)
-        ),
-        contracts(
-          *,
-          versions:contract_versions(
-            *,
-            renewalFollowUps:contract_version_renewal_follow_ups(*)
-          )
-        ),
-        invoices(
-          *,
-          invoiceFollowUps:invoice_follow_ups(*)
-        ),
-        documents(*),
-        routeVersions:customer_route_versions(
-          *,
-          points:customer_route_points(*)
-        ),
-        routeHistory:customer_route_history(*)
-      `)
+      .select(CUSTOMER_DETAIL_SELECT)
       .eq('id', id)
       .single();
 
@@ -1413,15 +1624,154 @@ const mapIsp = (isp) => isp ? ({
     ? isp.accountMappings
     : Array.isArray(isp.isp_user_accounts)
       ? isp.isp_user_accounts
-      : [],
+	      : [],
 }) : isp;
+
+const ISP_DETAIL_SELECT = `
+  id,
+  name,
+  status,
+  contract_reference,
+  contract_start_date,
+  contract_period_start,
+  contract_period_end,
+  paket,
+  jumlah,
+  billing_period_mode,
+  billing_custom_every,
+  billing_custom_unit,
+  activation_fee_amount,
+  activation_fee_paid_at,
+  created_at,
+  updated_at,
+  logo_url,
+  contract_file_name,
+  contract_file_url,
+  user_id,
+  password_plain,
+  deleted_at,
+  deleted_by,
+  bak_file_url,
+  bak_file_name,
+  contractRows:isp_contract_rows(
+    id,
+    isp_id,
+    contract_reference,
+    period_start,
+    period_end,
+    renewal_status,
+    bak_file_url,
+    bak_file_name,
+    renewal_file_url,
+    renewal_file_name,
+    response_file_url,
+    response_file_name,
+    contract_file_name,
+    contract_file_url,
+    created_at,
+    updated_at,
+    deleted_at,
+    deleted_by,
+    renewalFollowUps:isp_renewal_follow_ups(
+      id,
+      row_id,
+      split_order,
+      source,
+      trigger_code,
+      title,
+      description,
+      status,
+      renewal_file_url,
+      renewal_file_name,
+      response_file_url,
+      response_file_name,
+      response_decision,
+      created_at,
+      updated_at
+    )
+  ),
+  accountMappings:isp_user_accounts(
+    id,
+    auth_user_id,
+    isp_id,
+    email,
+    display_name,
+    created_at,
+    updated_at
+  ),
+  customerMemberships:customer_isp_memberships(
+    id,
+    customer_id,
+    isp_id,
+    customer:customers(
+      id,
+      customer_code,
+      isp_name,
+      name,
+      status,
+      activation_fee_amount,
+      activation_fee_paid_at,
+      contract_start_date,
+      notes,
+      created_at,
+      updated_at,
+      deleted_at,
+      deleted_by,
+      contracts(
+        id,
+        customer_id,
+        contract_number,
+        start_date,
+        end_date,
+        core_type,
+        core_total,
+        sharing_ratio,
+        status,
+        billing_every,
+        billing_unit,
+        created_at,
+        updated_at,
+        deleted_at,
+        deleted_by,
+        versions:contract_versions(
+          id,
+          contract_id,
+          customer_id,
+          version_number,
+          start_date,
+          end_date,
+          core_type,
+          core_total,
+          shared_core_ratio,
+          monthly_amount,
+          yearly_amount,
+          remarks,
+          created_at,
+          updated_at,
+          deleted_at,
+          deleted_by
+        )
+      ),
+      routeVersions:customer_route_versions(
+        id,
+        customer_id,
+        version_number,
+        flow_status,
+        created_at,
+        updated_at,
+        deleted_at,
+        deleted_by
+      )
+    )
+  )
+`;
 
 export const ispsApi = {
   // Get all ISPs
   async getAll() {
     const { data, error } = await supabase
       .from('isps')
-      .select('id,name,status,logo_url,contract_reference,contract_start_date,contract_period_start,contract_period_end,bak_file_url,bak_file_name,contract_file_url,contract_file_name,paket,jumlah,billing_period_mode,activation_fee_amount,created_at,updated_at,user_id,password_plain')
+      .select('id,name,status,logo_url,contract_reference,contract_start_date,contract_period_start,contract_period_end,bak_file_name,contract_file_name,paket,jumlah,billing_period_mode,activation_fee_amount,created_at,updated_at,user_id')
       .is('deleted_at', null)
       .order('name', { ascending: true });
 
@@ -1433,24 +1783,7 @@ export const ispsApi = {
   async getById(id) {
     const { data, error } = await supabase
       .from('isps')
-      .select(`
-        *,
-        contractRows:isp_contract_rows(
-          *,
-          renewalFollowUps:isp_renewal_follow_ups(*)
-        ),
-        accountMappings:isp_user_accounts(*),
-        customerMemberships:customer_isp_memberships(
-          customer:customers(
-            *,
-            contracts(
-              *,
-              versions:contract_versions(*)
-            ),
-            routeVersions:customer_route_versions(*)
-          )
-        )
-      `)
+      .select(ISP_DETAIL_SELECT)
       .eq('id', id)
       .single();
 
@@ -2111,7 +2444,8 @@ export const monitoringApi = {
         `)
         .gte('end_date', today)
         .lte('end_date', warningDateIso)
-        .eq('status', 'aktif'),
+        .eq('status', 'aktif')
+        .is('deleted_at', null),
       supabase
         .from('invoices')
         .select(`
@@ -2125,7 +2459,8 @@ export const monitoringApi = {
         `)
         .eq('period_year', selectedYear)
         .eq('schedule_status', 'active')
-        .in('status', ['belum_bayar', 'terlambat']),
+        .in('status', ['belum_bayar', 'terlambat'])
+        .is('deleted_at', null),
       supabase
         .from('customers')
         .select(`
@@ -2135,6 +2470,7 @@ export const monitoringApi = {
           routeVersions:customer_route_versions(version_number, flow_status, created_at)
         `)
         .eq('status', 'aktif')
+        .is('deleted_at', null)
     ]);
 
     if (contractsResult.error) throw contractsResult.error;
@@ -2272,10 +2608,12 @@ export const monitoringApi = {
             versions:contract_versions(version_number, start_date, end_date, core_type, core_total, shared_core_ratio)
           ),
           routeVersions:customer_route_versions(version_number, flow_status, created_at)
-        `),
+        `)
+        .is('deleted_at', null),
       supabase
         .from('isps')
         .select('id, name, status, paket, jumlah, created_at')
+        .is('deleted_at', null)
     ]);
 
     if (customersResult.error) throw customersResult.error;
@@ -2686,13 +3024,15 @@ export const customerRoutesApi = {
       .limit(1);
 
     if (latestVersionError) throw latestVersionError;
+    const nextVersionNumber = Number(latestVersions?.[0]?.version_number ?? 0) + 1;
 
     const { data: version, error: versionError } = await supabase
       .from('customer_route_versions')
       .insert({
         customer_id: customerId,
-        version_number: Number(latestVersions?.[0]?.version_number ?? 0) + 1,
+        version_number: nextVersionNumber,
         flow_status: flowStatus,
+        change_mode: nextVersionNumber === 1 ? 'initial' : 'ubah_jalur',
         change_note: changeNote,
         updated_at: now,
       })
@@ -2887,10 +3227,17 @@ export const trashApi = {
       
       supabase
         .from('customer_route_versions')
-        .select('id, version_name, customer_id, status, created_at, deleted_at, deleted_by, customers(name)')
+        .select('id, customer_id, version_number, flow_status, change_note, created_at, deleted_at, deleted_by, customers(name)')
         .not('deleted_at', 'is', null)
         .order('deleted_at', { ascending: false }),
     ]);
+
+    const queryErrors = [isps, customers, contracts, invoices, documents, routes]
+      .map((result) => result.error)
+      .filter(Boolean);
+    if (queryErrors.length > 0) {
+      throw queryErrors[0];
+    }
 
     return {
       isps: isps.data || [],
@@ -2964,9 +3311,11 @@ export const trashApi = {
       )
     );
 
-    const errors = results.filter(r => r.status === 'rejected');
+    const errors = results
+      .map((result) => result.status === 'rejected' ? result.reason : result.value?.error)
+      .filter(Boolean);
     if (errors.length > 0) {
-      throw new Error(`Failed to empty trash: ${errors.map(e => e.reason).join(', ')}`);
+      throw new Error(`Failed to empty trash: ${errors.map((error) => error.message ?? String(error)).join(', ')}`);
     }
 
     return { success: true };
@@ -2982,6 +3331,13 @@ export const trashApi = {
       supabase.from('documents').select('id', { count: 'exact', head: true }).not('deleted_at', 'is', null),
       supabase.from('customer_route_versions').select('id', { count: 'exact', head: true }).not('deleted_at', 'is', null),
     ]);
+
+    const countErrors = [isps, customers, contracts, invoices, documents, routes]
+      .map((result) => result.error)
+      .filter(Boolean);
+    if (countErrors.length > 0) {
+      throw countErrors[0];
+    }
 
     // Get last cleared timestamp (oldest deleted_at)
     const { data: lastCleared } = await supabase

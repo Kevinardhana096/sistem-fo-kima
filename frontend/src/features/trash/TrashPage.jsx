@@ -124,7 +124,7 @@ export default function TrashPage({ activeSection, onNavigate, onLogout: _onLogo
                 })),
                 ...data.routes.map(item => ({
                     id: item.id,
-                    name: item.version_name || 'Jalur FO',
+                    name: item.change_note || (item.version_number ? `Jalur FO v${item.version_number}` : 'Jalur FO'),
                     type: 'Jalur',
                     origin: `${item.customers?.name || 'N/A'} / Jalur`,
                     deletedAt: item.deleted_at,
