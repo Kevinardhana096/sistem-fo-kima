@@ -45,6 +45,8 @@
     z-index: -1;
     background: rgba(10, 15, 30, 0.55);
     pointer-events: none;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
   }
 
   /* Subtle Warm Decorative Glows */

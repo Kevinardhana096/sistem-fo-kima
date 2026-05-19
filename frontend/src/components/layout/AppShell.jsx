@@ -47,7 +47,7 @@ export default function AppShell({
     }
 
     return (
-        <div className="relative min-h-screen font-inter antialiased selection:bg-gold-accent/20 selection:text-gold-accent backdrop-blur-md">
+        <div className="relative min-h-screen font-inter antialiased selection:bg-gold-accent/20 selection:text-gold-accent">
             {/* Background Layers */}
             <div id="bg-image-layer"></div>
             <div id="bg-glass-overlay"></div>

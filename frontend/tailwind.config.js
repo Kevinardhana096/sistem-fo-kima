@@ -15,7 +15,7 @@ export default {
                 "teal-accent": "#00687b",
                 "glass-white": "rgba(255, 255, 255, 0.6)",
                 "glass-border": "rgba(255, 255, 255, 0.8)",
-                
+
                 /* Mapping for components */
                 "primary": "#d4a937",
                 "surface-container-low": "rgba(255, 255, 255, 0.3)",

@@ -342,15 +342,6 @@ export default function DashboardPage({
                         </div>
                     </div>
                 </div>
-
-                <div className="relative rounded-premium glass-premium p-6 flex flex-col lg:flex-row items-center gap-6 border border-white/40 shadow-glass-depth">
-                    <div className="h-16 w-16 shrink-0 flex items-center justify-center rounded-2xl bg-gold-gradient shadow-gold-glow">
-                        <span className="material-symbols-outlined text-white text-3xl">auto_awesome</span>
-                    </div>
-                    <h2 className="text-base md:text-lg font-medium text-on-surface leading-snug italic text-center lg:text-left">
-                        "Pertumbuhan ekosistem diproyeksikan meningkat <span className="text-gold-accent font-black">22.4%</span> dalam Q3-2026 berdasarkan optimalisasi retensi mitra ISP."
-                    </h2>
-                </div>
             </div>
         </AppShell>
     );

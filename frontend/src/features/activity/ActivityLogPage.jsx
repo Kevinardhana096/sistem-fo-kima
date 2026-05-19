@@ -89,7 +89,7 @@ function CustomDropdown({ value, options, onChange, align = "left", triggerClass
 
     return (
         <div className="relative w-full h-full">
-            <button 
+            <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
                 className={`flex w-full h-full items-center justify-between gap-1 appearance-none bg-transparent border-none font-black focus:outline-none ${triggerClass}`}
@@ -97,7 +97,7 @@ function CustomDropdown({ value, options, onChange, align = "left", triggerClass
                 <span className="truncate">{selectedOption.label}</span>
                 <span className={`material-symbols-outlined text-[16px] shrink-0 transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`}>expand_more</span>
             </button>
-            
+
             {isOpen && (
                 <>
                     <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)}></div>
@@ -121,17 +121,80 @@ function CustomDropdown({ value, options, onChange, align = "left", triggerClass
         </div>
     );
 }
+const getLocalDateString = (d) => {
+    const offset = d.getTimezoneOffset();
+    const local = new Date(d.getTime() - (offset * 60 * 1000));
+    return local.toISOString().slice(0, 10);
+};
+
+const getTodayDate = () => getLocalDateString(new Date());
+
+const getYesterdayDate = () => {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    return getLocalDateString(d);
+};
+
+const getStartOfWeekDate = () => {
+    const d = new Date();
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    d.setDate(diff);
+    return getLocalDateString(d);
+};
+
+const getStartOfMonthDate = () => {
+    const d = new Date();
+    return getLocalDateString(new Date(d.getFullYear(), d.getMonth(), 1));
+};
 
 export default function ActivityLogPage({ activeSection, onNavigate, onLogout, currentRole = "admin" }) {
     const [logs, setLogs] = useState([]);
     const [searchQuery, setSearchQuery] = useState("");
     const [entityType, setEntityType] = useState("");
     const [action, setAction] = useState("");
+
+    // Default is "all" (Semua Waktu) with empty dates initially
+    const [dateMode, setDateMode] = useState("all");
     const [dateFrom, setDateFrom] = useState("");
     const [dateTo, setDateTo] = useState("");
+    const [selectedYear, setSelectedYear] = useState(String(new Date().getFullYear()));
+
+    // Pagination states
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
+
     const [selectedLog, setSelectedLog] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
+
+    const handleDateModeChange = (mode) => {
+        setDateMode(mode);
+        setCurrentPage(1);
+        const today = getTodayDate();
+        if (mode === "all") {
+            setDateFrom("");
+            setDateTo("");
+        } else if (mode === "range") {
+            setDateFrom(getYesterdayDate());
+            setDateTo(today);
+        } else if (mode === "till_today") {
+            setDateFrom(getYesterdayDate());
+            setDateTo(today);
+        } else if (mode === "year") {
+            setDateFrom(`${selectedYear}-01-01`);
+            setDateTo(`${selectedYear}-12-31`);
+        }
+    };
+
+    const handleYearChange = (year) => {
+        setSelectedYear(year);
+        setCurrentPage(1);
+        if (dateMode === "year") {
+            setDateFrom(`${year}-01-01`);
+            setDateTo(`${year}-12-31`);
+        }
+    };
 
     const actionOptions = useMemo(() => Object.entries(ACTION_LABELS), []);
 
@@ -160,10 +223,38 @@ export default function ActivityLogPage({ activeSection, onNavigate, onLogout, c
         loadLogs();
     }, [loadLogs]);
 
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery, entityType, action, dateFrom, dateTo]);
+
     const handleApplyFilter = (event) => {
         event.preventDefault();
         loadLogs();
     };
+
+    const totalPages = Math.max(Math.ceil(logs.length / itemsPerPage), 1);
+
+    const pageNumbers = useMemo(() => {
+        const delta = 1;
+        const range = [];
+        for (let i = Math.max(2, currentPage - delta); i <= Math.min(totalPages - 1, currentPage + delta); i++) {
+            range.push(i);
+        }
+
+        if (currentPage - delta > 2) {
+            range.unshift("...");
+        }
+        if (currentPage + delta < totalPages - 1) {
+            range.push("...");
+        }
+
+        range.unshift(1);
+        if (totalPages > 1) {
+            range.push(totalPages);
+        }
+
+        return range;
+    }, [currentPage, totalPages]);
 
     return (
         <AppShell activeSection={activeSection} onNavigate={onNavigate} onLogout={onLogout} currentRole={currentRole}>
@@ -193,7 +284,12 @@ export default function ActivityLogPage({ activeSection, onNavigate, onLogout, c
                 </header>
 
                 <form onSubmit={handleApplyFilter} className="relative z-50 rounded-premium border border-white/10 bg-white/10 p-5 shadow-glass-depth backdrop-blur-xl">
-                    <div className="grid gap-4 lg:grid-cols-[1.3fr_0.8fr_1fr_0.7fr_0.7fr_auto]">
+                    <div className={`grid gap-4 ${dateMode === "range" || dateMode === "till_today"
+                            ? "lg:grid-cols-[1.2fr_0.8fr_1fr_1.1fr_0.8fr_0.8fr_auto]"
+                            : dateMode === "year"
+                                ? "lg:grid-cols-[1.2fr_0.8fr_1fr_1.1fr_0.8fr_auto]"
+                                : "lg:grid-cols-[1.5fr_0.9fr_1.1fr_1.1fr_auto]"
+                        }`}>
                         <div className="relative w-full group">
                             <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-gold-accent transition-colors z-10 pointer-events-none">
                                 search
@@ -206,11 +302,11 @@ export default function ActivityLogPage({ activeSection, onNavigate, onLogout, c
                                 onChange={(event) => setSearchQuery(event.target.value)}
                             />
                         </div>
-                        
+
                         <div className="relative z-[60]">
                             <div className="relative group h-12 rounded-xl bg-white/5 border border-white/10 focus-within:border-gold-accent/40 focus-within:bg-black/40 transition-all backdrop-blur-md">
                                 <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold-accent transition-colors z-10 pointer-events-none">category</span>
-                                <CustomDropdown 
+                                <CustomDropdown
                                     value={entityType}
                                     onChange={setEntityType}
                                     options={[
@@ -226,7 +322,7 @@ export default function ActivityLogPage({ activeSection, onNavigate, onLogout, c
                         <div className="relative z-50">
                             <div className="relative group h-12 rounded-xl bg-white/5 border border-white/10 focus-within:border-gold-accent/40 focus-within:bg-black/40 transition-all backdrop-blur-md">
                                 <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold-accent transition-colors z-10 pointer-events-none">manage_history</span>
-                                <CustomDropdown 
+                                <CustomDropdown
                                     value={action}
                                     onChange={setAction}
                                     options={[
@@ -239,24 +335,91 @@ export default function ActivityLogPage({ activeSection, onNavigate, onLogout, c
                             </div>
                         </div>
 
-                        <div className="relative group">
-                            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold-accent transition-colors z-10 pointer-events-none">calendar_today</span>
-                            <input
-                                type="date"
-                                className="relative w-full h-12 rounded-xl border border-white/10 bg-white/5 pl-12 pr-4 text-[10px] font-black uppercase tracking-widest text-white/40 outline-none transition-all focus:bg-black/40 focus:border-gold-accent/40 shadow-inner-glass backdrop-blur-md [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0"
-                                value={dateFrom}
-                                onChange={(event) => setDateFrom(event.target.value)}
-                            />
+                        <div className="relative z-40">
+                            <div className="relative group h-12 rounded-xl bg-white/5 border border-white/10 focus-within:border-gold-accent/40 focus-within:bg-black/40 transition-all backdrop-blur-md">
+                                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold-accent transition-colors z-10 pointer-events-none">date_range</span>
+                                <CustomDropdown
+                                    value={dateMode}
+                                    onChange={handleDateModeChange}
+                                    options={[
+                                        { value: "all", label: "Semua Waktu" },
+                                        { value: "range", label: "Rentang Kustom" },
+                                        { value: "till_today", label: "Sampai Hari Ini" },
+                                        { value: "year", label: "Tahun Spesifik" }
+                                    ]}
+                                    triggerClass="pl-12 pr-4 text-[10px] uppercase tracking-widest text-white/40 group-focus-within:text-gold-accent"
+                                    align="left"
+                                />
+                            </div>
                         </div>
-                        <div className="relative group">
-                            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold-accent transition-colors z-10 pointer-events-none">event</span>
-                            <input
-                                type="date"
-                                className="relative w-full h-12 rounded-xl border border-white/10 bg-white/5 pl-12 pr-4 text-[10px] font-black uppercase tracking-widest text-white/40 outline-none transition-all focus:bg-black/40 focus:border-gold-accent/40 shadow-inner-glass backdrop-blur-md [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0"
-                                value={dateTo}
-                                onChange={(event) => setDateTo(event.target.value)}
-                            />
-                        </div>
+
+                        {dateMode === "range" && (
+                            <>
+                                <div className="relative group">
+                                    <span className="absolute left-4 top-2 text-[7px] font-black uppercase tracking-widest text-gold-accent/70 pointer-events-none z-10">Dari Tanggal</span>
+                                    <input
+                                        type="date"
+                                        className="relative w-full h-12 rounded-xl border border-white/10 bg-white/5 pl-4 pr-4 pt-4 pb-1 text-[10px] font-black uppercase tracking-widest text-white outline-none transition-all focus:bg-black/40 focus:border-gold-accent/40 shadow-inner-glass backdrop-blur-md [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0"
+                                        value={dateFrom}
+                                        onChange={(event) => setDateFrom(event.target.value)}
+                                    />
+                                </div>
+                                <div className="relative group">
+                                    <span className="absolute left-4 top-2 text-[7px] font-black uppercase tracking-widest text-gold-accent/70 pointer-events-none z-10">Sampai Tanggal</span>
+                                    <input
+                                        type="date"
+                                        className="relative w-full h-12 rounded-xl border border-white/10 bg-white/5 pl-4 pr-4 pt-4 pb-1 text-[10px] font-black uppercase tracking-widest text-white outline-none transition-all focus:bg-black/40 focus:border-gold-accent/40 shadow-inner-glass backdrop-blur-md [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0"
+                                        value={dateTo}
+                                        onChange={(event) => setDateTo(event.target.value)}
+                                    />
+                                </div>
+                            </>
+                        )}
+
+                        {dateMode === "till_today" && (
+                            <>
+                                <div className="relative group">
+                                    <span className="absolute left-4 top-2 text-[7px] font-black uppercase tracking-widest text-gold-accent/70 pointer-events-none z-10">Pilih Dari Kapan</span>
+                                    <input
+                                        type="date"
+                                        className="relative w-full h-12 rounded-xl border border-white/10 bg-white/5 pl-4 pr-4 pt-4 pb-1 text-[10px] font-black uppercase tracking-widest text-white outline-none transition-all focus:bg-black/40 focus:border-gold-accent/40 shadow-inner-glass backdrop-blur-md [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0"
+                                        value={dateFrom}
+                                        onChange={(event) => setDateFrom(event.target.value)}
+                                    />
+                                </div>
+                                <div className="relative group opacity-60">
+                                    <span className="absolute left-4 top-2 text-[7px] font-black uppercase tracking-widest text-white/40 pointer-events-none z-10">Sampai Hari Ini</span>
+                                    <input
+                                        type="date"
+                                        disabled
+                                        className="relative w-full h-12 rounded-xl border border-white/10 bg-white/5 pl-4 pr-4 pt-4 pb-1 text-[10px] font-black uppercase tracking-widest text-white/50 outline-none shadow-inner-glass backdrop-blur-md cursor-not-allowed"
+                                        value={dateTo}
+                                    />
+                                </div>
+                            </>
+                        )}
+
+                        {dateMode === "year" && (
+                            <div className="relative z-40">
+                                <div className="relative group h-12 rounded-xl bg-white/5 border border-white/10 focus-within:border-gold-accent/40 focus-within:bg-black/40 transition-all backdrop-blur-md">
+                                    <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold-accent transition-colors z-10 pointer-events-none">calendar_today</span>
+                                    <CustomDropdown
+                                        value={selectedYear}
+                                        onChange={handleYearChange}
+                                        options={[
+                                            String(new Date().getFullYear() - 3),
+                                            String(new Date().getFullYear() - 2),
+                                            String(new Date().getFullYear() - 1),
+                                            String(new Date().getFullYear()),
+                                            String(new Date().getFullYear() + 1),
+                                        ].map(y => ({ value: y, label: `Tahun ${y}` }))}
+                                        triggerClass="pl-12 pr-4 text-[10px] uppercase tracking-widest text-white/40 group-focus-within:text-gold-accent"
+                                        align="left"
+                                    />
+                                </div>
+                            </div>
+                        )}
+
                         <button
                             className="flex h-12 w-12 items-center justify-center rounded-xl bg-gold-accent text-black transition-all hover:brightness-110 active:scale-95 shadow-gold-glow"
                             type="submit"
@@ -291,7 +454,7 @@ export default function ActivityLogPage({ activeSection, onNavigate, onLogout, c
                         </div>
                     ) : logs.length > 0 ? (
                         <div className="space-y-4">
-                            {logs.map((log) => {
+                            {logs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((log) => {
                                 const config = ENTITY_CONFIG[log.entity_type] || { icon: "history", color: "text-white/40", bg: "bg-white/5" };
                                 return (
                                     <div key={log.id} className="group flex flex-col gap-5 rounded-2xl border border-white/10 bg-white/5 p-5 transition-all hover:bg-white/10 lg:flex-row lg:items-center lg:justify-between backdrop-blur-md">
@@ -324,6 +487,60 @@ export default function ActivityLogPage({ activeSection, onNavigate, onLogout, c
                                     </div>
                                 );
                             })}
+
+                            {/* Pagination controls */}
+                            {totalPages > 1 && (
+                                <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-white/10 pt-6">
+                                    <button
+                                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                        disabled={currentPage === 1}
+                                        className="flex h-10 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 text-[10px] font-black uppercase tracking-widest text-white/60 transition-all hover:bg-white/10 hover:text-white disabled:opacity-30 backdrop-blur-md w-full sm:w-auto"
+                                        type="button"
+                                    >
+                                        <span className="material-symbols-outlined text-sm">chevron_left</span>
+                                        Sebelumnya
+                                    </button>
+
+                                    <div className="flex items-center gap-1.5 flex-wrap justify-center">
+                                        {pageNumbers.map((page, idx) => {
+                                            if (page === "...") {
+                                                return (
+                                                    <span
+                                                        key={`ellipsis-${idx}`}
+                                                        className="w-9 h-9 flex items-center justify-center text-[10px] font-black text-white/30 cursor-default"
+                                                    >
+                                                        ...
+                                                    </span>
+                                                );
+                                            }
+                                            const isActive = page === currentPage;
+                                            return (
+                                                <button
+                                                    key={`page-${page}`}
+                                                    onClick={() => setCurrentPage(page)}
+                                                    className={`w-9 h-9 rounded-xl flex items-center justify-center text-[10px] font-black transition-all ${isActive
+                                                            ? "bg-gold-accent text-black shadow-gold-glow"
+                                                            : "border border-white/5 bg-white/5 text-white/50 hover:bg-white/10 hover:text-white"
+                                                        } backdrop-blur-md`}
+                                                    type="button"
+                                                >
+                                                    {page}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+
+                                    <button
+                                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                        disabled={currentPage === totalPages}
+                                        className="flex h-10 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 text-[10px] font-black uppercase tracking-widest text-white/60 transition-all hover:bg-white/10 hover:text-white disabled:opacity-30 backdrop-blur-md w-full sm:w-auto"
+                                        type="button"
+                                    >
+                                        Berikutnya
+                                        <span className="material-symbols-outlined text-sm">chevron_right</span>
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     ) : (
                         <div className="flex flex-col items-center justify-center py-20 animate-in fade-in zoom-in duration-500">
