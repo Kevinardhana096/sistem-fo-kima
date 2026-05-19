@@ -15,7 +15,7 @@ const GlassFieldInput = ({ label, type = "text", value, onChange, placeholder = 
                     </span>
                 )}
                 <input
-                    className={`w-full h-14 rounded-2xl bg-black/20 border ${error ? "border-rose-500/70 ring-4 ring-rose-500/10" : "border-white/10 focus:border-gold-accent/40 focus:ring-4 focus:ring-gold-accent/5"} ${icon ? "pl-14" : "px-6"} pr-6 text-sm font-bold placeholder:text-white/10 outline-none transition-all focus:bg-black/40 shadow-inner-glass ${type === "date" ? "text-white/40 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer" : "text-white"} [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
+                    className={`w-full h-14 rounded-2xl bg-black/20 border backdrop-blur-md ${error ? "border-rose-500/70 ring-4 ring-rose-500/10" : "border-white/10 focus:border-gold-accent/40 focus:ring-4 focus:ring-gold-accent/5"} ${icon ? "pl-14" : "px-6"} pr-6 text-sm font-bold placeholder:text-white/10 outline-none transition-all focus:bg-black/40 shadow-inner-glass ${type === "date" ? "text-white/40 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer" : "text-white"} [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
                     onChange={(event) => onChange(event.target.value)}
                     onKeyDown={(e) => {
                         if (type === "date") e.preventDefault();
@@ -56,7 +56,7 @@ const GlassCustomSelect = ({ label, value, onChange, options, icon, heightClass 
             <div className="relative">
                 <div
                     onClick={() => setIsOpen(!isOpen)}
-                    className={`rounded-2xl bg-black/20 border flex items-center justify-center transition-all cursor-pointer shadow-inner-glass relative z-20 ${isOpen ? "border-gold-accent/60 bg-black/40 shadow-gold-glow" : "border-white/10 text-white/70 hover:border-white/30"} ${heightClass} ${iconOnly ? "w-11 px-0" : "w-full pl-14 pr-12 text-[10px] font-black"}`}
+                    className={`rounded-2xl bg-black/20 border flex items-center justify-center transition-all cursor-pointer shadow-inner-glass relative z-20 backdrop-blur-md ${isOpen ? "border-gold-accent/60 bg-black/40 shadow-gold-glow" : "border-white/10 text-white/70 hover:border-white/30"} ${heightClass} ${iconOnly ? "w-11 px-0" : "w-full pl-14 pr-12 text-[10px] font-black"}`}
                 >
                     <span className={`material-symbols-outlined transition-all duration-300 ${iconOnly ? "text-xl" : "absolute left-5 top-1/2 -translate-y-1/2 text-xl"}`} style={{ color: isOpen ? "#d4a937" : "rgba(255,255,255,0.2)" }}>
                         {icon}
@@ -70,7 +70,7 @@ const GlassCustomSelect = ({ label, value, onChange, options, icon, heightClass 
                 </div>
 
                 {isOpen && (
-                    <div className={`absolute top-full mt-2 p-2 rounded-2xl bg-black/60 backdrop-blur-3xl border border-white/10 shadow-glass-depth z-50 animate-in fade-in zoom-in-95 duration-200 overflow-hidden ${iconOnly ? "right-0 w-48" : "left-0 right-0"}`}>
+                    <div className={`absolute top-full mt-2 p-2 rounded-2xl bg-black/80 backdrop-blur-3xl border border-white/10 shadow-glass-depth z-50 animate-in fade-in zoom-in-95 duration-200 overflow-hidden ${iconOnly ? "right-0 w-48" : "left-0 right-0"}`}>
                         {options.map((opt) => (
                             <div
                                 key={opt.value}
@@ -102,7 +102,7 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
         contractStartDate: "",
         contractPeriodStart: "",
         contractPeriodEnd: "",
-        
+
         billingPeriodMode: "bulanan",
         billingCustomEvery: "",
         billingCustomUnit: "bulan",
@@ -112,7 +112,7 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
     const [submitError, setSubmitError] = useState("");
     const [fieldErrors, setFieldErrors] = useState({});
     const [isSubmitting, setIsSubmitting] = useState(false);
-    
+
     // State for Search, Sort and Pagination
     const [ispSearchTerm, setIspSearchTerm] = useState("");
     const [ispSortBy, setIspSortBy] = useState("newest");
@@ -141,7 +141,7 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
         setFieldErrors((errors) => ({ ...errors, selectedIspId: "" }));
     };
 
-    const filteredIsps = isps.filter(isp => 
+    const filteredIsps = isps.filter(isp =>
         isp.name.toLowerCase().includes(ispSearchTerm.toLowerCase()) ||
         (isp.contractReference && isp.contractReference.toLowerCase().includes(ispSearchTerm.toLowerCase()))
     ).sort((a, b) => {
@@ -150,7 +150,7 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
         if (ispSortBy === "oldest") return (a.id || 0) - (b.id || 0);
         return (b.id || 0) - (a.id || 0); // newest default
     });
-    
+
     const totalPages = Math.ceil(filteredIsps.length / itemsPerPage);
     const displayedIsps = filteredIsps.slice((ispPage - 1) * itemsPerPage, ispPage * itemsPerPage);
 
@@ -225,15 +225,14 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
         <AppShell activeSection="customers" onNavigate={onNavigate}>
             {/* Background Glows */}
             <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
-                <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[40%] rounded-full bg-gold-accent/5 blur-[120px]" />
-                <div className="absolute bottom-[-5%] left-[-5%] w-[30%] h-[30%] rounded-full bg-gold-accent/5 blur-[100px]" />
+                <div className="absolute bottom-[-5%] left-[-5%] w-[30%] h-[30%] rounded-full bg-gold-accent/5 blur-[100px] backdrop-blur-md" />
             </div>
 
             <form className="relative z-10 mx-auto max-w-7xl space-y-10 pb-20 pt-4 px-6" onSubmit={handleSubmit}>
                 {/* Header Section */}
                 <header className="flex flex-col justify-between gap-8 md:flex-row md:items-end mb-6 px-2">
                     <div className="space-y-4">
-                        <div className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-gold-accent/10 border border-gold-accent/20">
+                        <div className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-gold-accent/10 border border-gold-accent/20 backdrop-blur-md">
                             <span className="w-2 h-2 rounded-full bg-gold-accent animate-pulse shadow-gold-glow" />
                             <span className="text-[10px] font-black uppercase tracking-[0.4em] text-gold-accent">
                                 {isEditMode ? "Modul Pengeditan" : "Modul Pendaftaran"}
@@ -246,18 +245,18 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                             Silakan lengkapi data administratif dan konfigurasi layanan untuk {isEditMode ? "memperbarui lokasi" : "mendaftarkan titik lokasi baru"}.
                         </p>
                     </div>
-                    
+
                     <div className="flex items-center gap-4">
-                        <button 
-                            className="h-12 px-6 rounded-xl bg-white/5 border border-white/10 text-[11px] font-black uppercase tracking-[0.2em] text-white/60 hover:text-white hover:bg-white/10 transition-all active:scale-95 shadow-glass-depth"
-                            onClick={onCancel} 
+                        <button
+                            className="h-12 px-6 rounded-xl bg-white/5 border border-white/10 text-[11px] font-black uppercase tracking-[0.2em] text-white/60 hover:text-white hover:bg-white/10 transition-all active:scale-95 shadow-glass-depth backdrop-blur-md"
+                            onClick={onCancel}
                             type="button"
                         >
                             Batal
                         </button>
-                        <button 
-                            className="h-12 px-8 rounded-xl btn-premium text-[11px] font-black uppercase tracking-[0.2em] text-white shadow-gold-glow active:scale-95 transition-all disabled:opacity-50 disabled:pointer-events-none" 
-                            disabled={isSubmitting} 
+                        <button
+                            className="h-12 px-8 rounded-xl btn-premium text-[11px] font-black uppercase tracking-[0.2em] text-white shadow-gold-glow active:scale-95 transition-all disabled:opacity-50 disabled:pointer-events-none"
+                            disabled={isSubmitting}
                             type="submit"
                         >
                             {isSubmitting ? (
@@ -303,16 +302,16 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                                         setFieldErrors((errors) => ({ ...errors, name: "" }));
                                     }}
                                 />
-                                <GlassCustomSelect 
-                                    label="Status Operasional" 
+                                <GlassCustomSelect
+                                    label="Status Operasional"
                                     icon="verified_user"
-                                    value={form.status} 
-                                    onChange={(val) => setForm(p => ({ ...p, status: val }))} 
+                                    value={form.status}
+                                    onChange={(val) => setForm(p => ({ ...p, status: val }))}
                                     options={[
-                                        { value: "aktif", label: "BEROPERASI" }, 
+                                        { value: "aktif", label: "BEROPERASI" },
                                         ...(isEditMode ? [{ value: "expired", label: "MASA BERLAKU HABIS" }] : []),
                                         { value: "berhenti", label: "BERHENTI" }
-                                    ]} 
+                                    ]}
                                 />
                             </div>
                         </div>
@@ -334,11 +333,11 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                                             options={[
                                                 { value: "core", label: "CORE" },
                                                 { value: "shared", label: "SHARING CORE" }
-                                            ]} 
+                                            ]}
                                         />
                                         {form.paket === "core" ? (
-                                            <GlassFieldInput 
-                                                label="Jumlah Core" 
+                                            <GlassFieldInput
+                                                label="Jumlah Core"
                                                 icon="hub"
                                                 type="number"
                                                 min="0"
@@ -353,11 +352,11 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                                                 <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-gold-accent/60 ml-1">Ratio Shared</label>
                                                 <div className="flex items-center gap-4">
                                                     <div className="relative flex-1">
-                                                        <input className="w-full h-14 rounded-2xl bg-black/20 border border-white/10 px-6 text-sm font-bold text-white outline-none focus:border-gold-accent/40 shadow-inner-glass text-center" type="number" min="1" onKeyDown={(e) => { if (e.key === '-' || e.key === 'e' || e.key === 'E') e.preventDefault(); }} value={form.ratioLeft} onChange={(e) => { if (e.target.value === '' || Number(e.target.value) >= 1) setForm(p => ({ ...p, ratioLeft: e.target.value })); }} />
+                                                        <input className="w-full h-14 rounded-2xl bg-black/20 border border-white/10 px-6 text-sm font-bold text-white outline-none focus:border-gold-accent/40 shadow-inner-glass text-center backdrop-blur-md" type="number" min="1" onKeyDown={(e) => { if (e.key === '-' || e.key === 'e' || e.key === 'E') e.preventDefault(); }} value={form.ratioLeft} onChange={(e) => { if (e.target.value === '' || Number(e.target.value) >= 1) setForm(p => ({ ...p, ratioLeft: e.target.value })); }} />
                                                     </div>
                                                     <span className="text-xl font-black text-white/20">:</span>
                                                     <div className="relative flex-1">
-                                                        <input className="w-full h-14 rounded-2xl bg-black/20 border border-white/10 px-6 text-sm font-bold text-white outline-none focus:border-gold-accent/40 shadow-inner-glass text-center" type="number" min="1" onKeyDown={(e) => { if (e.key === '-' || e.key === 'e' || e.key === 'E') e.preventDefault(); }} value={form.ratioRight} onChange={(e) => { if (e.target.value === '' || Number(e.target.value) >= 1) setForm(p => ({ ...p, ratioRight: e.target.value })); }} />
+                                                        <input className="w-full h-14 rounded-2xl bg-black/20 border border-white/10 px-6 text-sm font-bold text-white outline-none focus:border-gold-accent/40 shadow-inner-glass text-center backdrop-blur-md" type="number" min="1" onKeyDown={(e) => { if (e.key === '-' || e.key === 'e' || e.key === 'E') e.preventDefault(); }} value={form.ratioRight} onChange={(e) => { if (e.target.value === '' || Number(e.target.value) >= 1) setForm(p => ({ ...p, ratioRight: e.target.value })); }} />
                                                     </div>
                                                 </div>
                                             </div>
@@ -384,16 +383,16 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                                     <div className="flex flex-col md:flex-row items-center gap-3">
                                         <div className="relative group w-full md:w-72">
                                             <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold-accent transition-colors">search</span>
-                                            <input 
-                                                type="text" 
-                                                placeholder="Cari ISP..." 
+                                            <input
+                                                type="text"
+                                                placeholder="Cari ISP..."
                                                 className="w-full h-11 pl-12 pr-4 rounded-xl bg-black/40 border border-white/10 text-xs font-bold text-white outline-none focus:border-gold-accent/40 transition-all shadow-inner-glass"
                                                 value={ispSearchTerm}
                                                 onChange={(e) => setIspSearchTerm(e.target.value)}
                                             />
                                         </div>
                                         <div className="flex-none">
-                                            <GlassCustomSelect 
+                                            <GlassCustomSelect
                                                 value={ispSortBy}
                                                 onChange={setIspSortBy}
                                                 icon="sort"
@@ -416,8 +415,8 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     {displayedIsps.map((isp) => (
-                                        <div 
-                                            key={isp.id} 
+                                        <div
+                                            key={isp.id}
                                             onClick={() => selectIsp(isp.id)}
                                             className={`relative overflow-hidden group cursor-pointer rounded-2xl border transition-all duration-300 p-5 ${selectedIspId === isp.id ? "bg-gold-accent/10 border-gold-accent shadow-gold-glow" : "bg-white/5 border-white/10 hover:border-white/30"}`}
                                         >
@@ -443,19 +442,19 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                                     <div className="mt-8 flex items-center justify-between border-t border-white/5 pt-6">
                                         <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em]">Halaman {ispPage} / {totalPages}</p>
                                         <div className="flex gap-2">
-                                            <button 
+                                            <button
                                                 type="button"
                                                 disabled={ispPage === 1}
                                                 onClick={() => setIspPage(p => p - 1)}
-                                                className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-white disabled:opacity-20 transition-all"
+                                                className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-white disabled:opacity-20 transition-all backdrop-blur-md"
                                             >
                                                 <span className="material-symbols-outlined">chevron_left</span>
                                             </button>
-                                            <button 
+                                            <button
                                                 type="button"
                                                 disabled={ispPage === totalPages}
                                                 onClick={() => setIspPage(p => p + 1)}
-                                                className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-white disabled:opacity-20 transition-all"
+                                                className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-white disabled:opacity-20 transition-all backdrop-blur-md"
                                             >
                                                 <span className="material-symbols-outlined">chevron_right</span>
                                             </button>
@@ -470,7 +469,6 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                     {!isEditMode && (
                         <div className="lg:col-span-4 space-y-8">
                             <div className="glass-card rounded-premium p-8 border-white/20 shadow-glass-depth relative z-10">
-                                <div className="absolute top-0 right-0 w-32 h-32 bg-gold-accent/5 rounded-full -mr-16 -mt-16 blur-3xl pointer-events-none"></div>
                                 <div className="flex items-center gap-3 mb-8">
                                     <span className="h-6 w-1.5 bg-gold-accent rounded-full shadow-gold-glow"></span>
                                     <h3 className="text-xl font-black text-white uppercase tracking-widest">Billing & Biaya</h3>
@@ -481,8 +479,8 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                                         <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-gold-accent/60 ml-1">Siklus Penagihan</label>
                                         <div className="grid grid-cols-3 gap-2">
                                             {["bulanan", "3bulanan", "custom"].map((modeValue) => (
-                                                <button 
-                                                    key={modeValue} 
+                                                <button
+                                                    key={modeValue}
                                                     type="button"
                                                     onClick={() => setForm(p => ({ ...p, billingPeriodMode: modeValue }))}
                                                     className={`h-11 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${form.billingPeriodMode === modeValue ? "bg-gold-accent text-slate-900 shadow-gold-glow" : "bg-white/5 text-white/40 hover:bg-white/10 hover:text-white border border-white/5"}`}
@@ -491,7 +489,7 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                                                 </button>
                                             ))}
                                         </div>
-                                        
+
                                         {form.billingPeriodMode === "custom" && (
                                             <div className="p-5 rounded-2xl bg-black/40 border border-white/10 space-y-4 animate-in slide-in-from-top-4 duration-500 shadow-inner-glass">
                                                 <div className="flex items-center gap-3 mb-2">
@@ -500,18 +498,18 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                                                 <div className="flex gap-3">
                                                     <div className="flex-[2] relative group">
                                                         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[9px] font-black text-gold-accent/40 uppercase tracking-widest pointer-events-none group-focus-within:text-gold-accent transition-colors">SETIAP</span>
-                                                        <input 
-                                                            className="w-full h-12 pl-16 pr-4 rounded-xl bg-black/20 border border-white/10 text-xs font-bold text-white outline-none focus:border-gold-accent/40 focus:bg-black/40 transition-all shadow-inner-glass [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
-                                                            min="1" 
+                                                        <input
+                                                            className="w-full h-12 pl-16 pr-4 rounded-xl bg-black/20 border border-white/10 text-xs font-bold text-white outline-none focus:border-gold-accent/40 focus:bg-black/40 transition-all shadow-inner-glass [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none backdrop-blur-md"
+                                                            min="1"
                                                             onKeyDown={(e) => { if (e.key === '-' || e.key === 'e' || e.key === 'E') e.preventDefault(); }}
-                                                            type="number" 
+                                                            type="number"
                                                             placeholder="0"
-                                                            value={form.billingCustomEvery} 
-                                                            onChange={(e) => { if (e.target.value === '' || Number(e.target.value) >= 1) setForm(p => ({ ...p, billingCustomEvery: e.target.value })); }} 
+                                                            value={form.billingCustomEvery}
+                                                            onChange={(e) => { if (e.target.value === '' || Number(e.target.value) >= 1) setForm(p => ({ ...p, billingCustomEvery: e.target.value })); }}
                                                         />
                                                     </div>
                                                     <div className="flex-[3]">
-                                                        <GlassCustomSelect 
+                                                        <GlassCustomSelect
                                                             value={form.billingCustomUnit}
                                                             onChange={(val) => setForm(p => ({ ...p, billingCustomUnit: val }))}
                                                             heightClass="h-12"
@@ -527,18 +525,18 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                                         )}
                                     </div>
 
-                                    <GlassFieldInput 
-                                        label="Biaya Aktivasi (IDR)" 
+                                    <GlassFieldInput
+                                        label="Biaya Aktivasi (IDR)"
                                         icon="payments"
                                         type="number"
                                         min="0"
                                         onKeyDown={(e) => { if (e.key === '-' || e.key === 'e' || e.key === 'E') e.preventDefault(); }}
                                         placeholder="0"
-                                        value={form.activationFeeAmount} 
-                                        onChange={(val) => { if (val === '' || Number(val) >= 0) setForm(p => ({ ...p, activationFeeAmount: val })); }} 
+                                        value={form.activationFeeAmount}
+                                        onChange={(val) => { if (val === '' || Number(val) >= 0) setForm(p => ({ ...p, activationFeeAmount: val })); }}
                                     />
 
-                                    <div className="p-6 rounded-2xl bg-gold-accent/5 border border-gold-accent/20">
+                                    <div className="p-6 rounded-2xl bg-gold-accent/5 border border-gold-accent/20 backdrop-blur-md">
                                         <div className="flex items-center gap-3 mb-2">
                                             <span className="material-symbols-outlined text-gold-accent text-sm">info</span>
                                             <p className="text-[10px] font-black text-gold-accent uppercase tracking-widest">Informasi Sistem</p>

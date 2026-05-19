@@ -16,7 +16,7 @@ const GlassFieldInput = ({ label, type = "text", value, onChange, placeholder = 
                     </span>
                 )}
                 <input
-                    className={`w-full h-14 rounded-2xl bg-black/20 border ${error ? "border-rose-500/70 ring-4 ring-rose-500/10" : "border-white/10 focus:border-gold-accent/40 focus:ring-4 focus:ring-gold-accent/5"} ${icon ? "pl-14" : "px-6"} pr-6 text-sm font-bold placeholder:text-white/10 outline-none transition-all focus:bg-black/40 shadow-inner-glass ${type === "date" ? "text-white/40 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer" : "text-white"} [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
+                    className={`w-full h-14 rounded-2xl bg-black/20 border backdrop-blur-md ${error ? "border-rose-500/70 ring-4 ring-rose-500/10" : "border-white/10 focus:border-gold-accent/40 focus:ring-4 focus:ring-gold-accent/5"} ${icon ? "pl-14" : "px-6"} pr-6 text-sm font-bold placeholder:text-white/10 outline-none transition-all focus:bg-black/40 shadow-inner-glass ${type === "date" ? "text-white/40 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer" : "text-white"} [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
                     onChange={(event) => onChange(event.target.value)}
                     onKeyDown={(e) => type === "date" && e.preventDefault()}
                     onClick={(e) => type === "date" && e.target.showPicker && e.target.showPicker()}
@@ -33,7 +33,7 @@ const GlassFieldInput = ({ label, type = "text", value, onChange, placeholder = 
 const FileUploadCard = ({ label, fileName, onFileSelected, onClear, icon = "upload_file", error = "" }) => (
     <div className="space-y-3">
         <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-gold-accent/60 ml-1">{label}</label>
-        <div className={`relative overflow-hidden rounded-2xl border border-dashed bg-black/20 p-6 transition-all hover:border-gold-accent/40 ${error ? "border-rose-500/70 ring-4 ring-rose-500/10" : "border-white/10"}`}>
+        <div className={`relative overflow-hidden rounded-2xl border border-dashed bg-black/20 p-6 transition-all hover:border-gold-accent/40 backdrop-blur-md ${error ? "border-rose-500/70 ring-4 ring-rose-500/10" : "border-white/10"}`}>
             <input
                 className="absolute inset-0 z-10 cursor-pointer opacity-0"
                 onChange={(event) => {
@@ -45,7 +45,7 @@ const FileUploadCard = ({ label, fileName, onFileSelected, onClear, icon = "uplo
                 type="file"
             />
             <div className="flex items-center gap-5">
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-gold-accent">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-gold-accent backdrop-blur-md">
                     <span className="material-symbols-outlined text-3xl">{icon}</span>
                 </div>
                 <div className="min-w-0 flex-1">
@@ -85,14 +85,14 @@ const GlassCustomSelect = ({ label, value, onChange, options, icon }) => {
     }, []);
 
     return (
-        <div className="space-y-3" ref={containerRef}>
+        <div className={`space-y-3 relative ${isOpen ? "z-50" : "z-10"}`} ref={containerRef}>
             <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-gold-accent/60 ml-1">
                 {label}
             </label>
             <div className="relative">
                 <div
                     onClick={() => setIsOpen(!isOpen)}
-                    className={`w-full h-14 rounded-2xl bg-black/20 border flex items-center pl-14 pr-12 text-sm font-bold transition-all cursor-pointer shadow-inner-glass relative z-20 ${isOpen ? "border-gold-accent/60 bg-black/40 shadow-gold-glow" : "border-white/10 text-white/70 hover:border-white/30"}`}
+                    className={`w-full h-14 rounded-2xl bg-black/20 border flex items-center pl-14 pr-12 text-sm font-bold transition-all cursor-pointer shadow-inner-glass relative z-20 backdrop-blur-md ${isOpen ? "border-gold-accent/60 bg-black/40 shadow-gold-glow" : "border-white/10 text-white/70 hover:border-white/30"}`}
                 >
                     <span className="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 text-xl transition-all duration-300" style={{ color: isOpen ? "#d4a937" : "rgba(255,255,255,0.2)" }}>
                         {icon}
@@ -104,7 +104,7 @@ const GlassCustomSelect = ({ label, value, onChange, options, icon }) => {
                 </div>
 
                 {isOpen && (
-                    <div className="absolute top-full left-0 right-0 mt-2 p-2 rounded-2xl bg-black/60 backdrop-blur-3xl border border-white/10 shadow-glass-depth z-50 animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
+                    <div className="absolute top-full left-0 right-0 mt-2 p-2 rounded-2xl bg-black/80 backdrop-blur-3xl border border-white/10 shadow-glass-depth z-50 animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
                         {options.map((opt) => (
                             <div
                                 key={opt.value}
@@ -180,16 +180,6 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
             setFieldErrors({ name: "Field ini wajib diisi." });
             return;
         }
-        if (!isEditMode && !form.userEmail.trim()) {
-            setSubmitError("Email wajib diisi.");
-            setFieldErrors({ userEmail: "Field ini wajib diisi." });
-            return;
-        }
-        if (!isEditMode && !form.userPassword) {
-            setSubmitError("Password wajib diisi.");
-            setFieldErrors({ userPassword: "Field ini wajib diisi." });
-            return;
-        }
         if (form.contractPeriodStart && form.contractPeriodEnd && form.contractPeriodStart > form.contractPeriodEnd) {
             setSubmitError("Periode berjalan akhir tidak boleh lebih awal dari tanggal mulai.");
             setFieldErrors({ contractPeriodStart: "Periksa tanggal mulai.", contractPeriodEnd: "Periksa tanggal akhir." });
@@ -199,41 +189,23 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
         setIsSubmitting(true);
         setSubmitError("");
         try {
-            const payload = isEditMode
-                ? {
-                    name: form.name.trim(),
-                    status: form.status,
-                    contractReference: form.contractReference.trim() || undefined,
-                    contractStartDate: form.contractStartDate || null,
-                    contractPeriodStart: form.contractPeriodStart || null,
-                    contractPeriodEnd: form.contractPeriodEnd || null,
-                    bakFileDataUrl: form.bakFileDataUrl || undefined,
-                    bakFileName: form.bakFileName || undefined,
-                    contractFileDataUrl: form.contractFileDataUrl || undefined,
-                    contractFileName: form.contractFileName || undefined,
-                    logoUrl: form.logoFileDataUrl || form.logoUrl || undefined,
-                    userEmail: form.userEmail.trim() || null,
-                    packageName: form.packageName.trim(),
-                    packageQuantity: form.packageQuantity,
-                    ...(form.userPassword ? { userPassword: form.userPassword } : {}),
-                }
-                : {
-                    name: form.name.trim(),
-                    status: form.status,
-                    contractReference: form.contractReference.trim() || undefined,
-                    contractStartDate: form.contractStartDate || null,
-                    contractPeriodStart: form.contractPeriodStart || null,
-                    contractPeriodEnd: form.contractPeriodEnd || null,
-                    bakFileDataUrl: form.bakFileDataUrl || undefined,
-                    bakFileName: form.bakFileName || undefined,
-                    contractFileDataUrl: form.contractFileDataUrl || undefined,
-                    contractFileName: form.contractFileName || undefined,
-                    logoUrl: form.logoFileDataUrl || undefined,
-                    userEmail: form.userEmail.trim(),
-                    userPassword: form.userPassword,
-                    packageName: form.packageName.trim(),
-                    packageQuantity: form.packageQuantity,
-                };
+            const payload = {
+                name: form.name.trim(),
+                status: form.status,
+                contractReference: form.contractReference.trim() || undefined,
+                contractStartDate: form.contractStartDate || null,
+                contractPeriodStart: form.contractPeriodStart || null,
+                contractPeriodEnd: form.contractPeriodEnd || null,
+                bakFileDataUrl: form.bakFileDataUrl || undefined,
+                bakFileName: form.bakFileName || undefined,
+                contractFileDataUrl: form.contractFileDataUrl || undefined,
+                contractFileName: form.contractFileName || undefined,
+                logoUrl: form.logoFileDataUrl || (isEditMode ? form.logoUrl : undefined) || undefined,
+                packageName: form.packageName.trim(),
+                packageQuantity: form.packageQuantity,
+                userEmail: form.userEmail.trim() || undefined,
+                userPassword: form.userPassword.trim() || undefined,
+            };
 
             const result = isEditMode && initialData?.id
                 ? await api.isps.update(initialData.id, payload)
@@ -254,15 +226,14 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
         <AppShell activeSection="customers" onNavigate={onNavigate}>
             {/* Background Glows */}
             <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
-                <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[40%] rounded-full bg-gold-accent/5 blur-[120px]" />
-                <div className="absolute bottom-[-5%] left-[-5%] w-[30%] h-[30%] rounded-full bg-gold-accent/5 blur-[100px]" />
+                <div className="absolute bottom-[-5%] left-[-5%] w-[30%] h-[30%] rounded-full bg-gold-accent/5 blur-[100px] backdrop-blur-md" />
             </div>
 
             <form className="mx-auto max-w-7xl space-y-10 pb-20 pt-4 px-6" onSubmit={handleSubmit}>
                 {/* Header Section */}
                 <header className="flex flex-col justify-between gap-8 md:flex-row md:items-end mb-6 px-2">
                     <div className="space-y-4">
-                        <div className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-gold-accent/10 border border-gold-accent/20">
+                        <div className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-gold-accent/10 border border-gold-accent/20 backdrop-blur-md">
                             <span className="w-2 h-2 rounded-full bg-gold-accent animate-pulse shadow-gold-glow" />
                             <span className="text-[10px] font-black uppercase tracking-[0.4em] text-gold-accent">
                                 {isEditMode ? "Modul Pengeditan" : "Modul Pendaftaran"}
@@ -278,7 +249,7 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
                     
                     <div className="flex items-center gap-4">
                         <button 
-                            className="h-12 px-6 rounded-xl bg-white/5 border border-white/10 text-[11px] font-black uppercase tracking-[0.2em] text-white/60 hover:text-white hover:bg-white/10 transition-all active:scale-95 shadow-glass-depth"
+                            className="h-12 px-6 rounded-xl bg-white/5 border border-white/10 text-[11px] font-black uppercase tracking-[0.2em] text-white/60 hover:text-white hover:bg-white/10 transition-all active:scale-95 shadow-glass-depth backdrop-blur-md"
                             onClick={onCancel} 
                             type="button"
                         >
@@ -314,8 +285,7 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
                     {/* Left Column - Core Info */}
                     <div className="space-y-8">
                         {/* Section: Identitas ISP */}
-                        <div className="glass-card rounded-premium p-8 border-white/20 shadow-glass-depth relative overflow-hidden">
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-gold-accent/5 rounded-full -mr-16 -mt-16 blur-3xl pointer-events-none"></div>
+                        <div className="glass-card rounded-premium p-8 border-white/20 shadow-glass-depth relative z-20">
                             
                             <div className="flex items-center gap-3 mb-8">
                                 <span className="h-6 w-1.5 bg-gold-accent rounded-full shadow-gold-glow"></span>
@@ -325,8 +295,8 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
                             <div className="grid grid-cols-1 gap-8">
                                 <div className="space-y-4">
                                     <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-gold-accent/60 ml-1">Logo Perusahaan (Opsional)</label>
-                                    <div className="flex flex-col sm:flex-row items-center gap-6 p-6 rounded-2xl bg-black/20 border border-white/10 border-dashed hover:border-gold-accent/40 transition-all group cursor-pointer relative overflow-hidden">
-                                        <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
+                                    <div className="flex flex-col sm:flex-row items-center gap-6 p-6 rounded-2xl bg-black/20 border border-white/10 border-dashed hover:border-gold-accent/40 transition-all group cursor-pointer relative overflow-hidden backdrop-blur-md">
+                                        <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center backdrop-blur-md">
                                             {(form.logoFileDataUrl || form.logoUrl) ? (
                                                 <img 
                                                     src={form.logoFileDataUrl || form.logoUrl} 
@@ -388,7 +358,8 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
                                         onChange={(val) => setForm(p => ({ ...p, status: val }))} 
                                         options={[
                                             { value: "aktif", label: "BEROPERASI" }, 
-                                            ...(isEditMode ? [{ value: "expired", label: "MASA BERLAKU HABIS" }] : []),
+                                            { value: "belum_beroperasi", label: "BELUM BEROPERASI" },
+                                            ...(isEditMode ? [{ value: "expired", label: "BELUM DIPERPANJANG" }] : []),
                                             { value: "berhenti", label: "BERHENTI" }
                                         ]} 
                                     />
@@ -404,7 +375,7 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
                                                 hub
                                             </span>
                                             <input
-                                                className="w-full h-14 rounded-2xl bg-black/20 border border-white/10 pl-14 pr-20 text-sm font-bold text-white placeholder:text-white/10 outline-none transition-all focus:bg-black/40 focus:border-gold-accent/40 focus:ring-4 focus:ring-gold-accent/5 shadow-inner-glass"
+                                                className="w-full h-14 rounded-2xl bg-black/20 border border-white/10 pl-14 pr-20 text-sm font-bold text-white placeholder:text-white/10 outline-none transition-all focus:bg-black/40 focus:border-gold-accent/40 focus:ring-4 focus:ring-gold-accent/5 shadow-inner-glass backdrop-blur-md"
                                                 onChange={(e) => {
                                                     const val = e.target.value;
                                                     if (val === '' || Number(val) >= 0) {
@@ -420,7 +391,7 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
                                                 value={form.packageQuantity}
                                             />
                                             <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none">
-                                                <span className="text-[10px] font-black text-gold-accent uppercase tracking-widest bg-gold-accent/10 px-3 py-1 rounded-lg border border-gold-accent/20 shadow-gold-glow">
+                                                <span className="text-[10px] font-black text-gold-accent uppercase tracking-widest bg-gold-accent/10 px-3 py-1 rounded-lg border border-gold-accent/20 shadow-gold-glow backdrop-blur-md">
                                                     CORE
                                                 </span>
                                             </div>
@@ -432,8 +403,7 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
                         </div>
 
                         {/* Section: Kontrak ISP */}
-                        <div className="glass-card rounded-premium p-8 border-white/20 shadow-glass-depth relative overflow-hidden">
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-gold-accent/5 rounded-full -mr-16 -mt-16 blur-3xl pointer-events-none"></div>
+                        <div className="glass-card rounded-premium p-8 border-white/20 shadow-glass-depth relative z-10">
                             <div className="flex items-center gap-3 mb-8">
                                 <span className="h-6 w-1.5 bg-gold-accent rounded-full shadow-gold-glow"></span>
                                 <h3 className="text-xl font-black text-white uppercase tracking-widest">Kontrak ISP</h3>
@@ -506,42 +476,42 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
                             </div>
                         </div>
 
-                        {/* Section: Akun Akses */}
-                        <div className="glass-card rounded-premium p-8 border-white/20 shadow-glass-depth">
-                            <div className="flex items-center gap-3 mb-8">
-                                <span className="h-6 w-1.5 bg-gold-accent rounded-full shadow-gold-glow"></span>
-                                <h3 className="text-xl font-black text-white uppercase tracking-widest">Akun Akses</h3>
+                        {/* Section: Akun Akses ISP - Only in Add Mode */}
+                        {!isEditMode && (
+                            <div className="glass-card rounded-premium p-8 border-white/20 shadow-glass-depth relative z-10">
+                                
+                                <div className="flex items-center gap-3 mb-8">
+                                    <span className="h-6 w-1.5 bg-gold-accent rounded-full shadow-gold-glow"></span>
+                                    <h3 className="text-xl font-black text-white uppercase tracking-widest">Akun Akses ISP</h3>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    <GlassFieldInput
+                                        label="Alamat Email Akses"
+                                        icon="mail"
+                                        placeholder="Contoh: admin@ispmitra.com"
+                                        value={form.userEmail}
+                                        error={fieldErrors.userEmail}
+                                        onChange={(val) => {
+                                            setForm(p => ({ ...p, userEmail: val }));
+                                            setFieldErrors((errors) => ({ ...errors, userEmail: "" }));
+                                        }}
+                                    />
+                                    <GlassFieldInput
+                                        label="Password Akses"
+                                        icon="lock"
+                                        type="password"
+                                        placeholder="••••••••"
+                                        value={form.userPassword}
+                                        error={fieldErrors.userPassword}
+                                        onChange={(val) => {
+                                            setForm(p => ({ ...p, userPassword: val }));
+                                            setFieldErrors((errors) => ({ ...errors, userPassword: "" }));
+                                        }}
+                                    />
+                                </div>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <GlassFieldInput
-                                    label="Alamat Email Utama"
-                                    icon="mail"
-                                    placeholder="admin@isp.com"
-                                    type="email"
-                                    value={form.userEmail}
-                                    error={fieldErrors.userEmail}
-                                    onChange={(val) => {
-                                        setForm(p => ({ ...p, userEmail: val }));
-                                        setFieldErrors((errors) => ({ ...errors, userEmail: "" }));
-                                    }}
-                                />
-                                <GlassFieldInput
-                                    label={isEditMode ? "Kata Sandi Baru" : "Kata Sandi Akses"}
-                                    icon="lock"
-                                    placeholder={isEditMode ? "Kosongkan jika tidak diubah" : "Min. 8 Karakter"}
-                                    type="password"
-                                    value={form.userPassword}
-                                    error={fieldErrors.userPassword}
-                                    onChange={(val) => {
-                                        setForm(p => ({ ...p, userPassword: val }));
-                                        setFieldErrors((errors) => ({ ...errors, userPassword: "" }));
-                                    }}
-                                />
-                            </div>
-                            <p className="mt-5 text-[10px] font-bold uppercase tracking-widest text-white/25">
-                                Akun Supabase Auth akan dibuat secara otomatis berdasarkan email dan password ini.
-                            </p>
-                        </div>
+                        )}
                     </div>
 
                 </div>

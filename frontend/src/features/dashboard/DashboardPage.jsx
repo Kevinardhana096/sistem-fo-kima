@@ -45,6 +45,14 @@ export default function DashboardPage({
     const [dashboardMetrics, setDashboardMetrics] = useState(null);
     const [isLoadingOperational, setIsLoadingOperational] = useState(false);
     const [growthType, setGrowthType] = useState("tenant");
+    const [coreChartType, setCoreChartType] = useState("sharing");
+    const [coreTrendFilter, setCoreTrendFilter] = useState({
+        mode: "this_year",
+        year: String(new Date().getUTCFullYear()),
+        range: "5",
+        start: String(new Date().getUTCFullYear() - 2),
+        end: String(new Date().getUTCFullYear())
+    });
 
     const loadOperationalData = useCallback(async (year) => {
         setIsLoadingOperational(true);
@@ -102,6 +110,7 @@ export default function DashboardPage({
     ]), [dashboardMetrics]);
 
     const sharingTrendData = dashboardMetrics?.sharingTrend?.length ? dashboardMetrics.sharingTrend : [];
+    const coreTrendData = dashboardMetrics?.coreTrend?.length ? dashboardMetrics.coreTrend : [];
     const growthData = dashboardMetrics?.growth ?? { tenant: [], isp: [] };
     const capacityCore = dashboardMetrics?.capacityCore ?? { total: 0, available: 0, availablePercent: 0 };
     const coreRentals = dashboardMetrics?.coreRentals ?? { totalCoreUsed: 0, locationCount: 0 };
@@ -139,95 +148,90 @@ export default function DashboardPage({
                     </div>
                 </header>
 
-                {/* KPI Section */}
-                <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <StatCard label="Jaringan Mitra" value={stats.ispCount} icon="hub" accent="gold" sub="Mitra ISP Terintegrasi" />
-                    <StatCard label="Total Lokasi Aktif" value={stats.activeTenantCount} icon="groups" accent="gold" sub="Lokasi Beroperasi" />
+                {/* Row 1: KPI & Core Metrics Section */}
+                <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                    <StatCard label="Total ISP" value={stats.ispCount} icon="hub" accent="gold" sub="Mitra ISP Terintegrasi" />
+                    <StatCard label="Total Lokasi" value={stats.tenantCount} icon="groups" accent="gold" sub="Total Lokasi Terdata" />
+                    <StatCard label="Kapasitas Core" value={capacityCore.total} icon="storage" accent="teal" sub="Total Core" />
+                    <StatCard label="Core Tersewa" value={coreRentals.totalCoreUsed} icon="cable" accent="gold" sub={`${coreRentals.locationCount} Lokasi`} />
+                    <StatCard label="Core Tersedia" value={capacityCore.available} icon="check_circle" accent="teal" sub={`${capacityCore.availablePercent}% Tersedia`} />
                 </section>
 
-                {/* Core Infrastructure Section */}
-                <section className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
-                    {/* Capacity Core */}
-                    <div className={`${glassCardClass} lg:col-span-1 flex flex-col justify-between`}>
-                        <div className="flex items-center gap-3 mb-4">
-                            <span className="h-6 w-1.5 bg-gold-accent rounded-full"></span>
-                            <h2 className="text-xl font-black text-white tracking-tight leading-none">Capacity Core</h2>
-                        </div>
-                        <div className="mt-2 flex-1">
-                            <p className="text-4xl font-black text-white">{capacityCore.available}</p>
-                            <p className="text-[10px] font-medium text-white/70 mt-1 uppercase tracking-widest">Core Tersedia</p>
-                        </div>
-                        <div className="mt-4">
-                            <div className="flex justify-end mb-2">
-                                <span className="text-[10px] font-black text-white uppercase tracking-widest">{capacityCore.availablePercent}% Tersedia</span>
+                {/* Row 2: Core Trend & Sharing Details */}
+                <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Core Chart with Toggle */}
+                    <div className={`${glassCardClass} flex flex-col lg:col-span-2`}>
+                        <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4 relative z-50">
+                            <div className="flex items-center gap-3">
+                                <span className="h-6 w-1.5 bg-gold-accent rounded-full"></span>
+                                <h2 className="text-xl md:text-2xl font-black text-on-surface tracking-tight">Tren Penggunaan Core</h2>
                             </div>
-                            <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10 border border-white/5">
-                                <div className="h-full bg-gradient-to-r from-yellow-500 to-gold-accent rounded-full shadow-[0_0_10px_rgba(212,169,55,0.4)]" style={{ width: `${capacityCore.availablePercent}%` }}></div>
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                                <ChartFilterSelector filter={coreTrendFilter} setFilter={setCoreTrendFilter} availableYears={availableYears} />
+                                <div className="inline-flex rounded-xl bg-white/10 p-1 border border-white/15 backdrop-blur-md">
+                                    {["sharing", "core"].map(type => (
+                                        <button 
+                                            key={type}
+                                            onClick={() => setCoreChartType(type)}
+                                            className={`rounded-lg px-4 py-1.5 text-[9px] font-black uppercase tracking-widest transition-all ${
+                                                coreChartType === type 
+                                                    ? "bg-gold-accent text-white shadow-gold-glow" 
+                                                    : "text-white/70 hover:text-white"
+                                            }`}
+                                        >
+                                            {type === "sharing" ? "Sharing Core" : "Core"}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
                         </div>
-                    </div>
-
-                    {/* Sewa Core */}
-                    <div className={`${glassCardClass} lg:col-span-1 flex flex-col justify-between`}>
-                        <div className="flex items-center gap-3 mb-4">
-                            <span className="h-6 w-1.5 bg-gold-accent rounded-full"></span>
-                            <h2 className="text-xl font-black text-white tracking-tight leading-none">Sewa Core</h2>
+                        <div className="flex-1 w-full min-h-[160px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <LineChart data={coreChartType === "sharing" ? sharingTrendData : coreTrendData} margin={{ top: 5, right: 5, bottom: 5, left: -25 }}>
+                                    <CartesianGrid strokeDasharray="0" vertical={false} stroke="rgba(255,255,255,0.08)" />
+                                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 8, fontWeight: 900, fill: 'rgba(255,255,255,0.6)' }} dy={10} />
+                                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 8, fontWeight: 900, fill: 'rgba(255,255,255,0.6)' }} />
+                                    <Tooltip contentStyle={{ backgroundColor: 'rgba(15,20,30,0.88)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '12px', padding: '12px', backdropFilter: 'blur(20px)', color: '#fff' }} itemStyle={{ fontSize: '10px', fontWeight: 900 }} labelStyle={{ fontSize: '10px', fontWeight: 900, marginBottom: '8px' }} />
+                                    
+                                    {coreChartType === "sharing" ? (
+                                        <>
+                                            <Line type="monotone" dataKey="1:2" stroke="#d4a937" strokeWidth={3} dot={{ r: 3, fill: '#fff', strokeWidth: 2, stroke: "#d4a937" }} />
+                                            <Line type="monotone" dataKey="1:4" stroke="#00687b" strokeWidth={3} dot={{ r: 3, fill: '#fff', strokeWidth: 2, stroke: "#00687b" }} />
+                                            <Line type="monotone" dataKey="1:8" stroke="#10b981" strokeWidth={3} dot={{ r: 3, fill: '#fff', strokeWidth: 2, stroke: "#10b981" }} />
+                                            <Line type="monotone" dataKey="1:16" stroke="#8b5cf6" strokeWidth={3} dot={{ r: 3, fill: '#fff', strokeWidth: 2, stroke: "#8b5cf6" }} />
+                                            <Line type="monotone" dataKey="1:32" stroke="#f43f5e" strokeWidth={3} dot={{ r: 3, fill: '#fff', strokeWidth: 2, stroke: "#f43f5e" }} />
+                                        </>
+                                    ) : (
+                                        <Line type="monotone" dataKey="count" stroke="#00687b" strokeWidth={4} dot={{ r: 4, fill: '#fff', strokeWidth: 2, stroke: "#00687b" }} />
+                                    )}
+                                </LineChart>
+                            </ResponsiveContainer>
                         </div>
-                        <div className="mt-2 flex-1">
-                            <p className="text-4xl font-black text-white">{coreRentals.totalCoreUsed}</p>
-                            <p className="text-[10px] font-medium text-white/70 mt-1 uppercase tracking-widest">Core Disewa</p>
-                        </div>
-                        <div className="mt-4">
-                            <span className="text-[10px] font-black text-white/70 uppercase tracking-widest leading-relaxed block">
-                                <span className="text-white text-lg mr-1">{coreRentals.locationCount}</span> Lokasi Menggunakan
-                            </span>
-                        </div>
+                        {/* Legend */}
+                        {coreChartType === "sharing" && (
+                            <div className="flex flex-wrap items-center justify-start gap-x-3 gap-y-1 mt-3">
+                                <LegendItem dotColor="bg-[#d4a937]" label="1:2" small />
+                                <LegendItem dotColor="bg-[#00687b]" label="1:4" small />
+                                <LegendItem dotColor="bg-[#10b981]" label="1:8" small />
+                                <LegendItem dotColor="bg-[#8b5cf6]" label="1:16" small />
+                                <LegendItem dotColor="bg-[#f43f5e]" label="1:32" small />
+                            </div>
+                        )}
                     </div>
 
                     {/* Card 2: Sewa Sharing Core (Tabel) */}
                     <div className={`${glassCardClass} flex flex-col lg:col-span-1`}>
                         <div className="flex items-center gap-3 mb-4">
                             <span className="h-6 w-1.5 bg-gold-accent rounded-full"></span>
-                            <h2 className="text-xl font-black text-white tracking-tight leading-none">Sewa Sharing</h2>
+                            <h2 className="text-xl font-black text-white tracking-tight leading-none">Rincian Sharing Core</h2>
                         </div>
                         <div className="flex-1 mt-2 flex flex-col justify-between">
                             {sharingRows.map((item) => (
-                                <div key={item.ratio} className="flex justify-between items-center py-2 px-3 rounded-xl hover:bg-white/10 hover:shadow-[0_0_15px_rgba(255,255,255,0.08)] transition-all border-b border-white/10 last:border-0 group cursor-default">
-                                    <span className="text-[10px] font-black text-white transition-colors">Ratio {item.ratio}</span>
-                                    <span className="text-sm font-black text-white">{item.count}</span>
+                                <div key={item.ratio} className="flex justify-between items-center py-3 px-4 mb-2 rounded-xl hover:bg-white/10 hover:shadow-[0_0_15px_rgba(255,255,255,0.08)] transition-all border border-white/10 last:mb-0 group cursor-default backdrop-blur-md">
+                                    <span className="text-[11px] font-black text-white/80 uppercase tracking-widest transition-colors">Ratio {item.ratio}</span>
+                                    <span className="text-lg font-black text-white">{item.count}</span>
                                 </div>
                             ))}
-                        </div>
-                    </div>
-
-                    {/* Card 3: Sewa Sharing Trend Chart */}
-                    <div className={`${glassCardClass} flex flex-col lg:col-span-2`}>
-                        <div className="flex items-center gap-3 mb-4">
-                            <span className="h-6 w-1.5 bg-gold-accent rounded-full"></span>
-                            <h2 className="text-xl font-black text-white tracking-tight leading-none">Trend Grafik Sharing</h2>
-                        </div>
-                        <div className="flex-1 w-full min-h-[120px]">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={sharingTrendData} margin={{ top: 5, right: 5, bottom: 5, left: -25 }}>
-                                    <CartesianGrid strokeDasharray="0" vertical={false} stroke="rgba(255,255,255,0.08)" />
-                                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 8, fontWeight: 900, fill: 'rgba(255,255,255,0.6)' }} dy={10} />
-                                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 8, fontWeight: 900, fill: 'rgba(255,255,255,0.6)' }} />
-                                    <Tooltip contentStyle={{ backgroundColor: 'rgba(15,20,30,0.88)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '12px', padding: '12px', backdropFilter: 'blur(20px)', color: '#fff' }} itemStyle={{ fontSize: '10px', fontWeight: 900 }} labelStyle={{ fontSize: '10px', fontWeight: 900, marginBottom: '8px' }} />
-                                    <Line type="monotone" dataKey="1:2" stroke="#d4a937" strokeWidth={3} dot={{ r: 3, fill: '#fff', strokeWidth: 2, stroke: "#d4a937" }} />
-                                    <Line type="monotone" dataKey="1:4" stroke="#00687b" strokeWidth={3} dot={{ r: 3, fill: '#fff', strokeWidth: 2, stroke: "#00687b" }} />
-                                    <Line type="monotone" dataKey="1:8" stroke="#10b981" strokeWidth={3} dot={{ r: 3, fill: '#fff', strokeWidth: 2, stroke: "#10b981" }} />
-                                    <Line type="monotone" dataKey="1:16" stroke="#8b5cf6" strokeWidth={3} dot={{ r: 3, fill: '#fff', strokeWidth: 2, stroke: "#8b5cf6" }} />
-                                    <Line type="monotone" dataKey="1:32" stroke="#f43f5e" strokeWidth={3} dot={{ r: 3, fill: '#fff', strokeWidth: 2, stroke: "#f43f5e" }} />
-                                </LineChart>
-                            </ResponsiveContainer>
-                        </div>
-                        {/* Legend */}
-                        <div className="flex flex-wrap items-center justify-start gap-x-3 gap-y-1 mt-3">
-                            <LegendItem dotColor="bg-[#d4a937]" label="1:2" small />
-                            <LegendItem dotColor="bg-[#00687b]" label="1:4" small />
-                            <LegendItem dotColor="bg-[#10b981]" label="1:8" small />
-                            <LegendItem dotColor="bg-[#8b5cf6]" label="1:16" small />
-                            <LegendItem dotColor="bg-[#f43f5e]" label="1:32" small />
                         </div>
                     </div>
                 </section>
@@ -235,11 +239,11 @@ export default function DashboardPage({
                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-3">
                     {/* Growth Chart */}
                     <div className={`${glassCardClass} lg:col-span-2 xl:col-span-2`}>
-                        <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
-                            <h2 className="text-xl md:text-2xl font-black text-on-surface tracking-tight">Pertumbuhan</h2>
+                        <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4 relative z-50">
+                            <h2 className="text-xl md:text-2xl font-black text-on-surface tracking-tight">Grafik Pertumbuhan</h2>
                             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                                 <ChartFilterSelector filter={growthFilter} setFilter={setGrowthFilter} availableYears={availableYears} />
-                                <div className="inline-flex rounded-xl bg-white/10 p-1 border border-white/15">
+                                <div className="inline-flex rounded-xl bg-white/10 p-1 border border-white/15 backdrop-blur-md">
                                     {["tenant", "isp"].map(type => (
                                         <button 
                                             key={type}
@@ -262,7 +266,8 @@ export default function DashboardPage({
                                     <CartesianGrid strokeDasharray="0" vertical={false} stroke="rgba(255,255,255,0.08)" />
                                     <XAxis dataKey="year" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 900, fill: 'rgba(255,255,255,0.6)' }} dy={15} />
                                     <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 900, fill: 'rgba(255,255,255,0.6)' }} />
-                                    <Line type="monotone" dataKey="count" stroke={growthType === "tenant" ? "#d4a937" : "#00687b"} strokeWidth={5} dot={{ r: 6, fill: '#fff', strokeWidth: 4, stroke: growthType === "tenant" ? "#d4a937" : "#00687b"} } />
+                                    <Tooltip contentStyle={{ backgroundColor: 'rgba(15,20,30,0.88)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '12px', padding: '12px', backdropFilter: 'blur(20px)', color: '#fff' }} itemStyle={{ fontSize: '10px', fontWeight: 900 }} labelStyle={{ fontSize: '10px', fontWeight: 900, marginBottom: '8px' }} />
+                                    <Line type="monotone" dataKey="count" name={growthType === "tenant" ? "Lokasi" : "ISP"} stroke={growthType === "tenant" ? "#d4a937" : "#00687b"} strokeWidth={5} dot={{ r: 6, fill: '#fff', strokeWidth: 4, stroke: growthType === "tenant" ? "#d4a937" : "#00687b"} } activeDot={{ r: 8, fill: growthType === "tenant" ? "#d4a937" : "#00687b", stroke: '#fff', strokeWidth: 3 }} />
                                 </LineChart>
                             </ResponsiveContainer>
                         </div>
@@ -276,7 +281,7 @@ export default function DashboardPage({
                         </div>
                         <div className="flex-1 space-y-3 overflow-y-auto pr-2 custom-scrollbar">
                             {alerts.map((alert, i) => (
-                                <div key={i} className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/12 transition-all">
+                                <div key={i} className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/12 transition-all backdrop-blur-md">
                                     <div className="h-10 w-10 shrink-0 flex items-center justify-center rounded-xl bg-rose-500/15 text-rose-300">
                                         <span className="material-symbols-outlined text-xl">priority_high</span>
                                     </div>
@@ -288,24 +293,15 @@ export default function DashboardPage({
                 </div>
 
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-                    {/* Mitra Utama */}
+                    {/* Berita Terbaru */}
                     <div className={`${glassCardClass} h-full min-h-[400px] flex flex-col`}>
                         <div className="flex items-center gap-3 mb-5 shrink-0">
                             <span className="h-6 w-1.5 bg-gold-accent rounded-full"></span>
-                            <h2 className="text-xl font-black text-on-surface tracking-tight">Mitra Utama</h2>
+                            <h2 className="text-xl font-black text-on-surface tracking-tight">Berita Terbaru</h2>
                         </div>
-                        <div className="flex-1 space-y-3 overflow-y-auto pr-2 custom-scrollbar">
-                            {topIsps.map((isp, index) => (
-                                <div key={isp.id || index} className="flex items-center justify-between p-3.5 rounded-2xl bg-white/5 hover:bg-white/12 transition-all border border-white/10">
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gold-accent/10">
-                                            <span className="text-[10px] font-black text-gold-accent">{index + 1}</span>
-                                        </div>
-                                        <span className="text-sm font-bold text-on-surface line-clamp-1">{isp.name}</span>
-                                    </div>
-                                    <span className="text-[10px] font-black text-gold-accent bg-gold-accent/10 px-3 py-1 rounded-lg border border-gold-accent/20">{isp.tenantCount} Unit</span>
-                                </div>
-                            ))}
+                        <div className="flex-1 flex flex-col items-center justify-center text-center opacity-40">
+                            <span className="material-symbols-outlined text-4xl mb-2">news</span>
+                            <p className="text-xs font-bold uppercase tracking-widest">Belum Ada Berita</p>
                         </div>
                     </div>
 
@@ -321,12 +317,12 @@ export default function DashboardPage({
                                 <OperationalStatusRow label="Gangguan Jaringan" count={routeStatus.gangguan} percent={routePercent(routeStatus.gangguan)} color="bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.3)]" bg="bg-amber-500/5 border-amber-500/10" />
                                 <OperationalStatusRow label="Sedang Perbaikan" count={routeStatus.perbaikan} percent={routePercent(routeStatus.perbaikan)} color="bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.3)]" bg="bg-rose-500/5 border-rose-500/10" />
                             </div>
-                            <div className="mt-6 p-5 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between shrink-0">
+                            <div className="mt-6 p-5 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between shrink-0 backdrop-blur-md">
                                 <div>
                                     <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest">Total Jalur Terdata</p>
                                     <p className="text-3xl font-black text-on-surface mt-1">{routeStatus.total}</p>
                                 </div>
-                                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 text-on-surface-variant border border-white/5">
+                                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 text-on-surface-variant border border-white/5 backdrop-blur-md">
                                     <span className="material-symbols-outlined text-2xl">route</span>
                                 </div>
                             </div>
@@ -345,12 +341,12 @@ export default function DashboardPage({
                                 <ContractStatusRow label="Belum Diperpanjang" count={stats.contract.expired} color="text-amber-500" bg="bg-amber-500/10 border-amber-500/20" icon="warning" />
                                 <ContractStatusRow label="Berhenti" count={stats.contract.berhenti} color="text-rose-500" bg="bg-rose-500/10 border-rose-500/20" icon="cancel" />
                             </div>
-                            <div className="mt-6 p-5 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between shrink-0">
+                            <div className="mt-6 p-5 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between shrink-0 backdrop-blur-md">
                                 <div>
                                     <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest">Total Operasional</p>
                                     <p className="text-3xl font-black text-on-surface mt-1">{stats.contract.totalOperational}</p>
                                 </div>
-                                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 text-on-surface-variant border border-white/5">
+                                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 text-on-surface-variant border border-white/5 backdrop-blur-md">
                                     <span className="material-symbols-outlined text-2xl">domain</span>
                                 </div>
                             </div>
@@ -407,7 +403,7 @@ function OperationalStatusRow({ label, count, percent, color, bg }) {
                 <span className="text-[10px] font-black uppercase tracking-wider text-on-surface/80 transition-colors group-hover:text-on-surface">{label}</span>
                 <span className="text-xl font-black text-on-surface">{count}</span>
             </div>
-            <div className="h-2 w-full overflow-hidden rounded-full bg-white/10 border border-white/5">
+            <div className="h-2 w-full overflow-hidden rounded-full bg-white/10 border border-white/5 backdrop-blur-md">
                 <div className={`h-full ${color} rounded-full transition-all duration-1000 ease-out`} style={{ width: `${percent}%` }}></div>
             </div>
         </div>
@@ -418,7 +414,7 @@ function ContractStatusRow({ label, count, color, bg, icon }) {
     return (
         <div className={`flex items-center justify-between rounded-2xl border p-4 transition-transform hover:scale-[1.02] ${bg}`}>
             <div className="flex items-center gap-4">
-                <div className={`flex h-9 w-9 items-center justify-center rounded-full bg-white/10 ${color}`}>
+                <div className={`flex h-9 w-9 items-center justify-center rounded-full bg-white/10 ${color} backdrop-blur-md`}>
                     <span className="material-symbols-outlined text-[18px]">{icon}</span>
                 </div>
                 <span className={`text-[11px] font-black uppercase tracking-widest ${color}`}>{label}</span>
@@ -428,72 +424,109 @@ function ContractStatusRow({ label, count, color, bg, icon }) {
     );
 }
 
+function CustomDropdown({ value, options, onChange, align = "right", triggerClass = "text-gold-accent text-[10px]" }) {
+    const [isOpen, setIsOpen] = useState(false);
+    const selectedOption = options.find(opt => String(opt.value) === String(value)) || options[0] || { label: value };
+
+    return (
+        <div className="relative">
+            <button 
+                type="button"
+                onClick={() => setIsOpen(!isOpen)}
+                className={`flex items-center gap-1 appearance-none bg-transparent border-none font-black focus:outline-none ${triggerClass}`}
+            >
+                <span>{selectedOption.label}</span>
+                <span className={`material-symbols-outlined text-[12px] transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`}>expand_more</span>
+            </button>
+            
+            {isOpen && (
+                <>
+                    <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)}></div>
+                    <div className={`absolute top-full mt-3 ${align === "right" ? "right-0" : "left-0"} z-50 min-w-[140px] max-h-[250px] overflow-y-auto custom-scrollbar rounded-2xl bg-[#0f141e]/95 border border-white/10 backdrop-blur-xl shadow-2xl py-1.5 animate-in fade-in zoom-in-95 duration-200`}>
+                        {options.map((opt) => (
+                            <button
+                                key={opt.value}
+                                type="button"
+                                onClick={() => {
+                                    onChange(opt.value);
+                                    setIsOpen(false);
+                                }}
+                                className={`w-[calc(100%-12px)] mx-1.5 mt-1 mb-1 last:mb-1.5 first:mt-1.5 flex items-center justify-center px-3 py-2 text-[10px] font-bold uppercase tracking-widest transition-colors rounded-xl text-center ${String(value) === String(opt.value) ? "bg-white/10 text-gold-accent" : "text-white/70 hover:bg-white/10 hover:text-white"}`}
+                            >
+                                <span>{opt.label}</span>
+                            </button>
+                        ))}
+                    </div>
+                </>
+            )}
+        </div>
+    );
+}
+
 function ChartFilterSelector({ filter, setFilter, availableYears }) {
     const handleChange = (key, value) => {
         setFilter(prev => ({ ...prev, [key]: value }));
     };
 
+    const yearOptions = availableYears.map(y => ({ value: y, label: String(y) }));
+    const modeOptions = [
+        { value: "this_year", label: "Tahun Ini" },
+        { value: "range_years", label: "Rentang" },
+        { value: "specific_year", label: "Tahun Spesifik" },
+        { value: "custom", label: "Kustom Range" }
+    ];
+
     return (
-        <div className="flex items-center gap-2 bg-white/5 p-1.5 rounded-2xl border border-white/10 backdrop-blur-md">
+        <div className="flex items-center gap-3 bg-white/5 px-3 py-1.5 rounded-2xl border border-white/10 backdrop-blur-md">
             {filter.mode === "specific_year" && (
-                <div className="relative flex items-center border-r border-white/10 pr-2">
-                    <select 
-                        value={filter.year}
-                        onChange={(e) => handleChange('year', e.target.value)}
-                        className="appearance-none bg-transparent border-none text-[10px] font-black text-gold-accent focus:ring-0 cursor-pointer outline-none pr-6 py-1"
-                    >
-                        {availableYears.map(year => (
-                            <option key={year} value={year} className="bg-slate-900 text-white">{year}</option>
-                        ))}
-                    </select>
-                    <span className="material-symbols-outlined text-[10px] absolute right-1 pointer-events-none text-gold-accent/70">expand_more</span>
+                <div className="flex items-center border-r border-white/10 pr-3">
+                    <CustomDropdown 
+                        value={filter.year} 
+                        onChange={(val) => handleChange('year', val)} 
+                        options={yearOptions} 
+                        align="left"
+                    />
                 </div>
             )}
 
             {filter.mode === "range_years" && (
-                <div className="flex items-center gap-2 pr-2 border-r border-white/10">
+                <div className="flex items-center gap-2 pr-3 border-r border-white/10">
                     <input 
                         type="number" 
                         min="1" max="50"
                         value={filter.range}
                         onChange={(e) => handleChange('range', e.target.value)}
-                        className="bg-transparent border-b border-white/20 text-[10px] font-black text-gold-accent focus:ring-0 outline-none w-8 text-center py-0.5 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [appearance:textfield]"
+                        className="bg-transparent border-b border-white/20 text-[11px] font-black text-gold-accent focus:ring-0 outline-none w-8 text-center py-0.5 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [appearance:textfield]"
                     />
-                    <span className="text-[8px] font-black text-white/50 uppercase tracking-widest">Tahun Terakhir</span>
+                    <span className="text-[9px] font-black text-white/50 uppercase tracking-widest mt-0.5">Tahun Terakhir</span>
                 </div>
             )}
 
             {filter.mode === "custom" && (
-                <div className="flex items-center gap-1 pr-2 border-r border-white/10">
-                    <div className="relative flex items-center">
-                        <select value={filter.start} onChange={(e) => handleChange('start', e.target.value)} className="appearance-none bg-transparent border-none text-[9px] font-bold text-gold-accent focus:ring-0 pr-4 cursor-pointer outline-none">
-                            {availableYears.map(y => <option key={y} value={y} className="bg-slate-900 text-white">{y}</option>)}
-                        </select>
-                        <span className="material-symbols-outlined text-[10px] absolute right-0 pointer-events-none text-gold-accent/50">expand_more</span>
-                    </div>
-                    <span className="text-white/30 text-[9px] font-black">-</span>
-                    <div className="relative flex items-center">
-                        <select value={filter.end} onChange={(e) => handleChange('end', e.target.value)} className="appearance-none bg-transparent border-none text-[9px] font-bold text-gold-accent focus:ring-0 pr-4 cursor-pointer outline-none">
-                            {availableYears.map(y => <option key={y} value={y} className="bg-slate-900 text-white">{y}</option>)}
-                        </select>
-                        <span className="material-symbols-outlined text-[10px] absolute right-0 pointer-events-none text-gold-accent/50">expand_more</span>
-                    </div>
+                <div className="flex items-center gap-2 pr-3 border-r border-white/10">
+                    <CustomDropdown 
+                        value={filter.start} 
+                        onChange={(val) => handleChange('start', val)} 
+                        options={yearOptions} 
+                        align="left"
+                    />
+                    <span className="text-white/30 text-[10px] font-black">-</span>
+                    <CustomDropdown 
+                        value={filter.end} 
+                        onChange={(val) => handleChange('end', val)} 
+                        options={yearOptions} 
+                        align="left"
+                    />
                 </div>
             )}
 
-            <div className="relative flex items-center">
-                <select 
-                    value={filter.mode}
-                    onChange={(e) => handleChange('mode', e.target.value)}
-                    className="appearance-none bg-transparent border-none text-[10px] font-black text-on-surface uppercase tracking-widest focus:ring-0 cursor-pointer outline-none pl-2 pr-6 py-1"
-                >
-                    <option value="this_year" className="bg-slate-900 text-white font-semibold">Tahun Ini</option>
-                    <option value="range_years" className="bg-slate-900 text-white font-semibold">Rentang Waktu</option>
-                    <option value="specific_year" className="bg-slate-900 text-white font-semibold">Tahun Spesifik</option>
-                    <option value="custom" className="bg-slate-900 text-white font-semibold">Kustom Range</option>
-                </select>
-                <span className="material-symbols-outlined text-[12px] absolute right-1 pointer-events-none text-gold-accent">expand_more</span>
-            </div>
+            <CustomDropdown 
+                value={filter.mode} 
+                onChange={(val) => handleChange('mode', val)} 
+                options={modeOptions} 
+                align="right"
+                triggerClass="text-on-surface text-[10px] uppercase tracking-widest"
+            />
         </div>
     );
 }

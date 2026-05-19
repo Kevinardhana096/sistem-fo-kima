@@ -61,6 +61,45 @@ const getStatusKey = (notification) => {
 
 const getTypeLabel = (notification) => TYPE_LABELS[notification.type] || TYPE_LABELS[notification.code] || notification.type || "Umum";
 
+function CustomDropdown({ value, options, onChange, align = "left", triggerClass = "" }) {
+    const [isOpen, setIsOpen] = useState(false);
+    const selectedOption = options.find(opt => String(opt.value) === String(value)) || options[0] || { label: value };
+
+    return (
+        <div className="relative w-full h-full">
+            <button 
+                type="button"
+                onClick={() => setIsOpen(!isOpen)}
+                className={`flex w-full h-full items-center justify-between gap-1 appearance-none bg-transparent border-none font-black focus:outline-none ${triggerClass}`}
+            >
+                <span className="truncate">{selectedOption.label}</span>
+                <span className={`material-symbols-outlined text-[16px] shrink-0 transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`}>expand_more</span>
+            </button>
+            
+            {isOpen && (
+                <>
+                    <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)}></div>
+                    <div className={`absolute top-full mt-3 ${align === "right" ? "right-0" : "left-0"} z-50 w-full min-w-[160px] max-h-[250px] overflow-y-auto custom-scrollbar rounded-2xl bg-black/60 border border-white/10 backdrop-blur-xl shadow-2xl py-1.5 animate-in fade-in zoom-in-95 duration-200`}>
+                        {options.map((opt) => (
+                            <button
+                                key={opt.value}
+                                type="button"
+                                onClick={() => {
+                                    onChange(opt.value);
+                                    setIsOpen(false);
+                                }}
+                                className={`w-[calc(100%-12px)] mx-1.5 mt-1 mb-1 last:mb-1.5 first:mt-1.5 flex items-center justify-center px-3 py-2 text-[10px] font-bold uppercase tracking-widest transition-colors rounded-xl text-center ${String(value) === String(opt.value) ? "bg-white/10 text-gold-accent" : "text-white/70 hover:bg-white/10 hover:text-white"}`}
+                            >
+                                <span className="truncate">{opt.label}</span>
+                            </button>
+                        ))}
+                    </div>
+                </>
+            )}
+        </div>
+    );
+}
+
 export default function TodoListPage({ activeSection, onNavigate, onLogout, currentRole = "admin" }) {
     const [notifications, setNotifications] = useState([]);
     const [search, setSearch] = useState("");
@@ -164,7 +203,7 @@ export default function TodoListPage({ activeSection, onNavigate, onLogout, curr
                         </p>
                     </div>
                     <button
-                        className="h-12 rounded-xl border border-white/10 bg-white/5 px-6 text-[10px] font-black uppercase tracking-widest text-white/60 transition-all hover:bg-white/10 hover:text-white disabled:opacity-50"
+                        className="h-12 rounded-xl border border-white/10 bg-white/5 px-6 text-[10px] font-black uppercase tracking-widest text-white/60 transition-all hover:bg-white/10 hover:text-white disabled:opacity-50 backdrop-blur-md"
                         onClick={loadNotifications}
                         disabled={isLoading}
                         type="button"
@@ -191,53 +230,81 @@ export default function TodoListPage({ activeSection, onNavigate, onLogout, curr
                     ))}
                 </section>
 
-                <section className="rounded-premium border border-white/10 bg-white/10 p-5 shadow-glass-depth backdrop-blur-xl">
+                <section className="relative z-50 rounded-premium border border-white/10 bg-white/10 p-5 shadow-glass-depth backdrop-blur-xl">
                     <div className="grid gap-4 lg:grid-cols-[1.5fr_0.8fr_0.8fr_0.8fr]">
-                        <input
-                            type="text"
-                            placeholder="Cari pelanggan, pesan, atau kode..."
-                            className="h-12 rounded-xl border border-white/10 bg-black/20 px-4 text-xs font-bold text-white outline-none placeholder:text-white/20 focus:border-gold-accent/40"
-                            value={search}
-                            onChange={(event) => setSearch(event.target.value)}
-                        />
-                        <select
-                            className="h-12 rounded-xl border border-white/10 bg-black/20 px-4 text-xs font-bold text-white outline-none focus:border-gold-accent/40"
-                            value={type}
-                            onChange={(event) => setType(event.target.value)}
-                        >
-                            <option value="all" className="bg-[#0f141e]">Semua Tipe</option>
-                            {typeOptions.map(([value, label]) => (
-                                <option key={value} value={value} className="bg-[#0f141e]">{label}</option>
-                            ))}
-                        </select>
-                        <select
-                            className="h-12 rounded-xl border border-white/10 bg-black/20 px-4 text-xs font-bold text-white outline-none focus:border-gold-accent/40"
-                            value={severity}
-                            onChange={(event) => setSeverity(event.target.value)}
-                        >
-                            <option value="all" className="bg-[#0f141e]">Semua Severity</option>
-                            {Object.entries(SEVERITY_LABELS).map(([value, label]) => (
-                                <option key={value} value={value} className="bg-[#0f141e]">{label}</option>
-                            ))}
-                        </select>
-                        <select
-                            className="h-12 rounded-xl border border-white/10 bg-black/20 px-4 text-xs font-bold text-white outline-none focus:border-gold-accent/40"
-                            value={status}
-                            onChange={(event) => setStatus(event.target.value)}
-                        >
-                            <option value="active" className="bg-[#0f141e]">Aktif</option>
-                            <option value="unread" className="bg-[#0f141e]">Belum Dibaca</option>
-                            <option value="read" className="bg-[#0f141e]">Dibaca</option>
-                            <option value="resolved" className="bg-[#0f141e]">Selesai</option>
-                            <option value="all" className="bg-[#0f141e]">Semua Status</option>
-                        </select>
+                        <div className="relative w-full group">
+                            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-gold-accent transition-colors z-10 pointer-events-none">
+                                search
+                            </span>
+                            <input
+                                type="text"
+                                placeholder="Cari pelanggan, pesan, atau kode..."
+                                className="w-full h-12 rounded-xl border border-white/10 bg-white/5 pl-12 pr-4 text-[10px] font-black uppercase tracking-widest text-white placeholder:text-white/20 outline-none transition-all focus:bg-black/40 focus:border-gold-accent/40 shadow-inner-glass backdrop-blur-md"
+                                value={search}
+                                onChange={(event) => setSearch(event.target.value)}
+                            />
+                        </div>
+
+                        <div className="relative z-[60]">
+                            <div className="relative group h-12 rounded-xl bg-white/5 border border-white/10 focus-within:border-gold-accent/40 focus-within:bg-black/40 transition-all backdrop-blur-md">
+                                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold-accent transition-colors z-10 pointer-events-none">category</span>
+                                <CustomDropdown 
+                                    value={type}
+                                    onChange={setType}
+                                    options={[
+                                        { value: "all", label: "Semua Tipe" },
+                                        ...typeOptions.map(([val, lbl]) => ({ value: val, label: lbl }))
+                                    ]}
+                                    triggerClass="pl-12 pr-4 text-[10px] uppercase tracking-widest text-white/40 group-focus-within:text-gold-accent"
+                                    align="left"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="relative z-50">
+                            <div className="relative group h-12 rounded-xl bg-white/5 border border-white/10 focus-within:border-gold-accent/40 focus-within:bg-black/40 transition-all backdrop-blur-md">
+                                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold-accent transition-colors z-10 pointer-events-none">warning</span>
+                                <CustomDropdown 
+                                    value={severity}
+                                    onChange={setSeverity}
+                                    options={[
+                                        { value: "all", label: "Semua Severity" },
+                                        ...Object.entries(SEVERITY_LABELS).map(([val, lbl]) => ({ value: val, label: lbl }))
+                                    ]}
+                                    triggerClass="pl-12 pr-4 text-[10px] uppercase tracking-widest text-white/40 group-focus-within:text-gold-accent"
+                                    align="left"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="relative z-40">
+                            <div className="relative group h-12 rounded-xl bg-white/5 border border-white/10 focus-within:border-gold-accent/40 focus-within:bg-black/40 transition-all backdrop-blur-md">
+                                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold-accent transition-colors z-10 pointer-events-none">flag</span>
+                                <CustomDropdown 
+                                    value={status}
+                                    onChange={setStatus}
+                                    options={[
+                                        { value: "active", label: "Aktif" },
+                                        { value: "unread", label: "Belum Dibaca" },
+                                        { value: "read", label: "Dibaca" },
+                                        { value: "resolved", label: "Selesai" },
+                                        { value: "all", label: "Semua Status" }
+                                    ]}
+                                    triggerClass="pl-12 pr-4 text-[10px] uppercase tracking-widest text-white/40 group-focus-within:text-gold-accent"
+                                    align="right"
+                                />
+                            </div>
+                        </div>
                     </div>
                 </section>
 
-                <section className="rounded-premium border border-white/10 bg-white/10 p-6 md:p-8 shadow-glass-depth backdrop-blur-xl">
+                <section className="rounded-premium border border-white/10 bg-white/10 p-6 md:p-8 shadow-glass-depth backdrop-blur-xl relative z-40">
                     <div className="mb-6 flex items-center justify-between">
-                        <h2 className="text-xl font-black uppercase tracking-widest text-white">Daftar Tindakan</h2>
-                        <span className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-gold-accent">
+                        <div className="flex items-center gap-3">
+                            <span className="h-6 w-1.5 bg-gold-accent rounded-full shadow-gold-glow"></span>
+                            <h2 className="text-xl font-black uppercase tracking-widest text-white">Daftar Tindakan</h2>
+                        </div>
+                        <span className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-gold-accent backdrop-blur-md">
                             {filteredNotifications.length} Item
                         </span>
                     </div>
@@ -259,7 +326,7 @@ export default function TodoListPage({ activeSection, onNavigate, onLogout, curr
                                 const severityClass = SEVERITY_CLASS[notification.severity] || SEVERITY_CLASS.info;
                                 const statusKey = getStatusKey(notification);
                                 return (
-                                    <div key={notification.id} className={`rounded-2xl border border-white/10 bg-white/5 p-5 transition-all hover:bg-white/10 ${notification.resolvedAt ? "opacity-60" : ""}`}>
+                                    <div key={notification.id} className={`rounded-2xl border border-white/10 bg-white/5 p-5 transition-all hover:bg-white/10 backdrop-blur-md ${notification.resolvedAt ? "opacity-60" : ""}`}>
                                         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                                             <div className="flex items-start gap-5">
                                                 <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border ${severityClass}`}>
@@ -272,7 +339,7 @@ export default function TodoListPage({ activeSection, onNavigate, onLogout, curr
                                                         <span className={`rounded-lg border px-3 py-1 text-[9px] font-black uppercase tracking-[0.15em] ${severityClass}`}>
                                                             {SEVERITY_LABELS[notification.severity] || notification.severity}
                                                         </span>
-                                                        <span className="rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-[9px] font-black uppercase tracking-[0.15em] text-white/50">
+                                                        <span className="rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-[9px] font-black uppercase tracking-[0.15em] text-white/50 backdrop-blur-md">
                                                             {statusKey === "resolved" ? "Selesai" : statusKey === "read" ? "Dibaca" : "Belum Dibaca"}
                                                         </span>
                                                     </div>
@@ -288,7 +355,7 @@ export default function TodoListPage({ activeSection, onNavigate, onLogout, curr
                                             </div>
                                             <div className="flex flex-wrap items-center justify-end gap-2">
                                                 <button
-                                                    className="rounded-xl border border-gold-accent/20 bg-gold-accent/10 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-gold-accent transition-all hover:bg-gold-accent hover:text-black"
+                                                    className="rounded-xl border border-gold-accent/20 bg-gold-accent/10 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-gold-accent transition-all hover:bg-gold-accent hover:text-black backdrop-blur-md"
                                                     onClick={() => openNotification(notification)}
                                                     type="button"
                                                 >
@@ -296,7 +363,7 @@ export default function TodoListPage({ activeSection, onNavigate, onLogout, curr
                                                 </button>
                                                 {!notification.readAt && (
                                                     <button
-                                                        className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white/50 transition-all hover:bg-white/10 hover:text-white"
+                                                        className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white/50 transition-all hover:bg-white/10 hover:text-white backdrop-blur-md"
                                                         onClick={() => markRead(notification)}
                                                         type="button"
                                                     >
@@ -305,7 +372,7 @@ export default function TodoListPage({ activeSection, onNavigate, onLogout, curr
                                                 )}
                                                 {!notification.resolvedAt && (
                                                     <button
-                                                        className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-emerald-400 transition-all hover:bg-emerald-500 hover:text-white"
+                                                        className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-emerald-400 transition-all hover:bg-emerald-500 hover:text-white backdrop-blur-md"
                                                         onClick={() => markResolved(notification)}
                                                         type="button"
                                                     >
@@ -319,12 +386,15 @@ export default function TodoListPage({ activeSection, onNavigate, onLogout, curr
                             })}
                         </div>
                     ) : (
-                        <div className="flex flex-col items-center justify-center py-20">
-                            <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-3xl border border-white/10 bg-white/5 text-white/20">
-                                <span className="material-symbols-outlined text-6xl">task_alt</span>
+                        <div className="flex flex-col items-center justify-center py-20 animate-in fade-in zoom-in duration-500">
+                            <div className="relative mb-8 mt-4 group">
+                                <div className="absolute inset-0 scale-125 bg-gold-accent/5 blur-[50px] rounded-full transition-all duration-700 group-hover:bg-gold-accent/10" />
+                                <div className="relative flex h-24 w-24 items-center justify-center rounded-full bg-white/5 border border-white/10 backdrop-blur-xl shadow-inner-glass transition-all duration-500 group-hover:scale-105 group-hover:border-gold-accent/30 group-hover:bg-white/10">
+                                    <span className="material-symbols-outlined text-[72px] text-white/20 transition-colors duration-500 group-hover:text-gold-accent/80">task_alt</span>
+                                </div>
                             </div>
-                            <h3 className="mb-2 text-xl font-black uppercase tracking-widest text-white">Tidak Ada To Do</h3>
-                            <p className="text-sm font-bold text-white/30">Tidak ada tindakan yang cocok dengan filter saat ini.</p>
+                            <h3 className="text-xl font-black text-white uppercase tracking-widest mb-3">Tidak Ada To Do</h3>
+                            <p className="text-sm font-bold text-white/30 tracking-wide">Tidak ada tindakan yang cocok dengan filter saat ini.</p>
                         </div>
                     )}
                 </section>

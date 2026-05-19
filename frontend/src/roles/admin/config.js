@@ -2,9 +2,9 @@ export const adminMenuItems = [
     { key: "dashboard", label: "Dashboard", icon: "dashboard" },
     { key: "customers", label: "Pelanggan", icon: "groups" },
     { key: "monitoring", label: "Monitoring", icon: "monitor_heart" },
+    { key: "todos", label: "Tindak Lanjut", icon: "task_alt" },
+    { key: "activity", label: "Log Aktivitas", icon: "manage_history" },
     { key: "trash", label: "Tempat Sampah", icon: "delete", separated: true },
-    { key: "todos", label: "To Do List", icon: "task_alt" },
-    { key: "activity", label: "Activity Log", icon: "manage_history" },
 ];
 
 export const adminRoleConfig = {

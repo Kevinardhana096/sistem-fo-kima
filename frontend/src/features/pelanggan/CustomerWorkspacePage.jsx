@@ -401,7 +401,7 @@ function CustomerWorkspacePage({
                 {/* 1. HEADER SECTION */}
                 <header className="flex flex-col justify-between gap-10 lg:flex-row lg:items-end mb-4">
                     <div className="space-y-4">
-                        <div className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-gold-accent/10 border border-gold-accent/20">
+                        <div className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-gold-accent/10 border border-gold-accent/20 backdrop-blur-md">
                             <span className="w-2 h-2 rounded-full bg-gold-accent animate-pulse shadow-gold-glow" />
                             <span className="text-[10px] font-black uppercase tracking-[0.4em] text-gold-accent">Workspace Utama</span>
                         </div>
@@ -417,7 +417,7 @@ function CustomerWorkspacePage({
                         {canCreateIsp && (
                             <button
                                 onClick={onOpenCreateIsp}
-                                className="h-[64px] inline-flex items-center gap-3 rounded-2xl bg-white/5 border border-white/10 px-8 text-[11px] font-black uppercase tracking-[0.2em] text-white hover:bg-white/10 transition-all active:scale-95 shadow-glass-depth"
+                                className="h-[64px] inline-flex items-center gap-3 rounded-2xl bg-white/5 border border-white/10 px-8 text-[11px] font-black uppercase tracking-[0.2em] text-white hover:bg-white/10 transition-all active:scale-95 shadow-glass-depth backdrop-blur-md"
                             >
                                 <span className="material-symbols-outlined text-gold-accent">add_link</span>
                                 ISP Baru
@@ -426,15 +426,15 @@ function CustomerWorkspacePage({
                         {canCreateTenant && (
                             <button
                                 onClick={onOpenCreateTenant}
-                                className="h-[64px] inline-flex items-center gap-3 rounded-2xl bg-gold-gradient px-8 text-[11px] font-black uppercase tracking-[0.2em] text-white active:scale-95 shadow-gold-glow hover:opacity-90 transition-all"
+                                className="h-[64px] inline-flex items-center gap-3 rounded-2xl bg-gold-accent px-8 text-[11px] font-black uppercase tracking-[0.2em] text-slate-900 active:scale-95 shadow-gold-glow transition-all"
                             >
-                                <span className="material-symbols-outlined">person_add</span>
+                                <span className="material-symbols-outlined text-slate-900">person_add</span>
                                 Lokasi Baru
                             </button>
                         )}
                         <button
                             onClick={() => void onRefresh()}
-                            className="h-[64px] w-[64px] inline-flex items-center justify-center rounded-2xl bg-white/5 border border-white/10 text-white hover:text-gold-accent transition-all group active:rotate-180 shadow-glass-depth"
+                            className="h-[64px] w-[64px] inline-flex items-center justify-center rounded-2xl bg-white/5 border border-white/10 text-white hover:text-gold-accent transition-all group active:rotate-180 shadow-glass-depth backdrop-blur-md"
                         >
                             <span className="material-symbols-outlined group-hover:scale-110 transition-transform">sync</span>
                         </button>
@@ -443,8 +443,8 @@ function CustomerWorkspacePage({
 
                 {/* 2. ERROR STATE */}
                 {(error || secondaryError) && (
-                    <div className="rounded-premium bg-red-500/10 border border-red-500/20 p-8 flex items-center gap-6 animate-in fade-in slide-in-from-top-4">
-                        <div className="w-14 h-14 rounded-2xl bg-red-500/20 flex items-center justify-center text-red-500">
+                    <div className="rounded-premium bg-red-500/10 border border-red-500/20 p-8 flex items-center gap-6 animate-in fade-in slide-in-from-top-4 backdrop-blur-md">
+                        <div className="w-14 h-14 rounded-2xl bg-red-500/20 flex items-center justify-center text-red-500 backdrop-blur-md">
                             <span className="material-symbols-outlined text-3xl">report</span>
                         </div>
                         <div>
@@ -469,12 +469,11 @@ function CustomerWorkspacePage({
                 </section>
 
                 {/* 4. FILTER PANEL */}
-                {/* 4. FILTER PANEL */}
-                <section className="glass-card rounded-premium p-8 border-white/20 shadow-glass-depth relative group/filter z-[40]">
+                <section className="glass-card rounded-premium p-8 shadow-glass-depth relative group/filter z-[40]">
                     {/* Decorative Background Accents - Contained here to allow dropdowns to pop out */}
                     <div className="absolute inset-0 rounded-premium overflow-hidden pointer-events-none">
-                        <div className="absolute top-0 right-0 w-96 h-96 bg-gold-accent/10 rounded-full -mr-48 -mt-48 blur-[100px] transition-all duration-1000 group-hover/filter:bg-gold-accent/15"></div>
-                        <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-500/5 rounded-full -ml-32 -mb-32 blur-[80px]"></div>
+                        <div className="absolute top-0 right-0 w-96 h-96 bg-gold-accent/10 rounded-full -mr-48 -mt-48 blur-[100px] transition-all duration-1000 group-hover/filter:bg-gold-accent/15 backdrop-blur-md"></div>
+                        <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-500/5 rounded-full -ml-32 -mb-32 blur-[80px] backdrop-blur-md"></div>
                     </div>
 
                     <div className="relative space-y-8">
@@ -502,7 +501,7 @@ function CustomerWorkspacePage({
                             <div className="relative flex-1 h-14 group">
                                 <span className="material-symbols-outlined absolute left-6 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold-accent group-focus-within:scale-110 transition-all text-xl">search</span>
                                 <input
-                                    className="w-full h-full rounded-2xl pl-16 pr-8 text-sm font-bold bg-black/20 border border-white/10 text-white placeholder:text-white/20 outline-none transition-all focus:bg-black/40 focus:border-gold-accent/40 focus:ring-4 focus:ring-gold-accent/5 shadow-inner-glass"
+                                    className="w-full h-full rounded-2xl pl-16 pr-8 text-sm font-bold bg-black/20 border border-white/10 text-white placeholder:text-white/20 outline-none transition-all focus:bg-black/40 focus:border-gold-accent/40 focus:ring-4 focus:ring-gold-accent/5 shadow-inner-glass backdrop-blur-md"
                                     onChange={(e) => handleFilterChange(setSearchTerm, e.target.value)}
                                     placeholder="Cari ID, ISP, atau nama lokasi..."
                                     type="text"
@@ -515,7 +514,7 @@ function CustomerWorkspacePage({
                             <button
                                 disabled={!isAnyFilterActive}
                                 onClick={handleResetFilters}
-                                className="shrink-0 h-14 inline-flex items-center gap-4 px-10 rounded-2xl bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-[0.2em] text-white/60 transition-all hover:bg-red-500/10 hover:border-red-500/20 hover:text-red-500 disabled:opacity-20 disabled:cursor-not-allowed shadow-glass-depth group"
+                                className="shrink-0 h-14 inline-flex items-center gap-4 px-10 rounded-2xl bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-[0.2em] text-white/60 transition-all hover:bg-red-500/10 hover:border-red-500/20 hover:text-red-500 disabled:opacity-20 disabled:cursor-not-allowed shadow-glass-depth group backdrop-blur-md"
                             >
                                 <span className="material-symbols-outlined text-xl group-hover:rotate-180 transition-transform duration-500">restart_alt</span>
                                 Reset Filter
@@ -582,29 +581,29 @@ function CustomerWorkspacePage({
 
                         {/* Row 3: Result Indicators */}
                         <div className="flex flex-wrap items-center gap-4 pt-4 border-t border-white/5">
-                            <div className="inline-flex items-center gap-3 px-6 py-3 rounded-2xl bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white/60 shadow-sm">
+                            <div className="inline-flex items-center gap-3 px-6 py-3 rounded-2xl bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white/60 shadow-sm backdrop-blur-md">
                                 <span className="material-symbols-outlined text-lg text-gold-accent">location_on</span>
                                 <span><span className="text-white font-black">{filteredTenantCount}</span> Lokasi Terpilih</span>
                             </div>
-                            <div className="inline-flex items-center gap-3 px-6 py-3 rounded-2xl bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white/60 shadow-sm">
+                            <div className="inline-flex items-center gap-3 px-6 py-3 rounded-2xl bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white/60 shadow-sm backdrop-blur-md">
                                 <span className="material-symbols-outlined text-lg text-gold-accent">hub</span>
                                 <span><span className="text-white font-black">{allGroups.length}</span> ISP Terkait</span>
                             </div>
 
                             {!isTeknisi && (
-                                <div className={`inline-flex items-center gap-3 px-6 py-3 rounded-2xl border text-[10px] font-black uppercase tracking-widest shadow-sm transition-all duration-500 ${totalFilteredActionCount > 0 ? "bg-red-500/10 border-red-500/20 text-red-500 animate-pulse" : "bg-white/5 border-white/10 text-white/20"}`}>
+                                <div className={`inline-flex items-center gap-3 px-6 py-3 rounded-2xl border text-[10px] font-black uppercase tracking-widest shadow-sm transition-all duration-500 backdrop-blur-md ${totalFilteredActionCount > 0 ? "bg-red-500/10 border-red-500/20 text-red-500 animate-pulse" : "bg-white/5 border-white/10 text-white/20"}`}>
                                     <span className="material-symbols-outlined text-lg">warning</span>
                                     <span>({totalFilteredActionCount}) Butuh Perhatian</span>
                                 </div>
                             )}
                             {isAnyFilterActive && (
-                                <div className="inline-flex items-center gap-3 px-6 py-3 rounded-2xl bg-gold-accent/10 border border-gold-accent/20 text-[10px] font-black uppercase tracking-widest text-gold-accent shadow-lg shadow-gold-accent/5">
+                                <div className="inline-flex items-center gap-3 px-6 py-3 rounded-2xl bg-gold-accent/10 border border-gold-accent/20 text-[10px] font-black uppercase tracking-widest text-gold-accent shadow-lg shadow-gold-accent/5 backdrop-blur-md">
                                     <span className="material-symbols-outlined text-lg">filter_list</span>
                                     Filter Aktif
                                 </div>
                             )}
                             {hasMoreCustomers && (
-                                <div className="inline-flex items-center gap-3 px-6 py-3 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-[10px] font-black uppercase tracking-widest text-blue-200/80 shadow-sm">
+                                <div className="inline-flex items-center gap-3 px-6 py-3 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-[10px] font-black uppercase tracking-widest text-blue-200/80 shadow-sm backdrop-blur-md">
                                     <span className="material-symbols-outlined text-lg">database</span>
                                     Data dimuat {customers.length} dari {totalCustomerCount}
                                 </div>
@@ -638,7 +637,7 @@ function CustomerWorkspacePage({
                                     <div className="rounded-premium bg-white/5 border border-white/10 backdrop-blur-xl overflow-hidden transition-all duration-500 hover:border-gold-accent/40 shadow-glass-depth hover:shadow-gold-accent/5">
                                         {/* Group Header */}
                                         <div className="flex flex-col gap-10 p-10 lg:flex-row lg:items-center lg:justify-between bg-white/[0.03] relative overflow-hidden">
-                                            <div className="absolute top-0 right-0 w-64 h-64 bg-gold-accent/5 rounded-full -mr-32 -mt-32 blur-[80px] group-hover/group:bg-gold-accent/10 transition-all duration-700"></div>
+                                            <div className="absolute top-0 right-0 w-64 h-64 bg-gold-accent/5 rounded-full -mr-32 -mt-32 blur-[80px] group-hover/group:bg-gold-accent/10 transition-all duration-700 backdrop-blur-md"></div>
                                             <button
                                                 className="flex flex-1 items-center gap-8 relative z-10 text-left group/title-btn"
                                                 onClick={() => setCollapsedMap((prev) => ({ ...prev, [group.id]: !(prev[group.id] ?? true) }))}
@@ -665,25 +664,25 @@ function CustomerWorkspacePage({
                                                 <button
                                                     onClick={() => setCollapsedMap((prev) => ({ ...prev, [group.id]: !(prev[group.id] ?? true) }))}
                                                     type="button"
-                                                    className={`flex items-center justify-center w-8 h-8 rounded-full bg-white/5 border border-white/10 text-white/20 transition-all duration-500 hover:border-gold-accent/40 hover:text-gold-accent ${isExpanded ? "rotate-180 bg-gold-accent/10 text-gold-accent border-gold-accent/30" : ""}`}
+                                                    className={`flex items-center justify-center w-8 h-8 rounded-full bg-white/5 border border-white/10 text-white/20 transition-all duration-500 hover:border-gold-accent/40 hover:text-gold-accent backdrop-blur-md ${isExpanded ? "rotate-180 bg-gold-accent/10 text-gold-accent border-gold-accent/30" : ""}`}
                                                     title={isExpanded ? "Tutup" : "Buka"}
                                                 >
                                                     <span className="material-symbols-outlined text-lg">expand_more</span>
                                                 </button>
 
                                                 {/* 2. Jumlah Lokasi */}
-                                                <div className="px-4 py-1.5 rounded-full bg-gold-accent/10 border border-gold-accent/20 text-[10px] font-black text-gold-accent uppercase tracking-widest shadow-[0_0_15px_rgba(212,169,55,0.05)] transition-all duration-300">
+                                                <div className="px-4 py-1.5 rounded-full bg-gold-accent/10 border border-gold-accent/20 text-[10px] font-black text-gold-accent uppercase tracking-widest shadow-[0_0_15px_rgba(212,169,55,0.05)] transition-all duration-300 backdrop-blur-md">
                                                     {group.tenants.length} LOKASI
                                                 </div>
 
                                                 {/* 3. Jumlah Tindakan */}
-                                                <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${group.totalActionCount > 0 ? "bg-red-600/10 border border-red-600/20 text-red-500 shadow-[0_0_15px_rgba(220,38,38,0.05)] animate-pulse" : "bg-white/5 border border-white/10 text-white/20"}`}>
+                                                <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all duration-300 backdrop-blur-md ${group.totalActionCount > 0 ? "bg-red-600/10 border border-red-600/20 text-red-500 shadow-[0_0_15px_rgba(220,38,38,0.05)] animate-pulse" : "bg-white/5 border border-white/10 text-white/20"}`}>
                                                     {group.totalActionCount} TINDAKAN
                                                 </div>
 
                                                 {/* 4. Detail ISP */}
                                                 <button
-                                                    className="h-11 px-6 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-[0.2em] hover:bg-emerald-500 hover:text-white transition-all duration-300 active:scale-95 shadow-sm hover:shadow-[0_0_20px_rgba(16,185,129,0.2)] flex items-center gap-2 group/isp-btn"
+                                                    className="h-11 px-6 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-[0.2em] hover:bg-emerald-500 hover:text-white transition-all duration-300 active:scale-95 shadow-sm hover:shadow-[0_0_20px_rgba(16,185,129,0.2)] flex items-center gap-2 group/isp-btn backdrop-blur-md"
                                                     onClick={() => onOpenIsp(group)}
                                                 >
                                                     <span className="material-symbols-outlined text-lg group-hover/isp-btn:translate-x-0.5 transition-transform">visibility</span>
@@ -695,7 +694,7 @@ function CustomerWorkspacePage({
                                                     <button
                                                         type="button"
                                                         onClick={() => handleDeleteIsp(group)}
-                                                        className="h-11 w-11 rounded-xl border border-red-500/20 bg-red-500/5 text-red-500 hover:bg-red-500 hover:text-white transition-all duration-300 flex items-center justify-center active:scale-95 shadow-sm"
+                                                        className="h-11 w-11 rounded-xl border border-red-500/20 bg-red-500/5 text-red-500 hover:bg-red-500 hover:text-white transition-all duration-300 flex items-center justify-center active:scale-95 shadow-sm backdrop-blur-md"
                                                         title="Hapus ISP"
                                                     >
                                                         <span className="material-symbols-outlined text-lg">delete</span>
@@ -793,7 +792,7 @@ function CustomerWorkspacePage({
                                                                                         <span className={`text-sm font-black ${actionCounts.priority > 0 ? "text-red-600" : "text-white"}`}>{actionCounts.priority}</span>
                                                                                         <span className="text-[9px] font-black text-white/20 uppercase tracking-widest">Prioritas</span>
                                                                                     </div>
-                                                                                    <div className="w-px h-8 bg-white/5" />
+                                                                                    <div className="w-px h-8 bg-white/5 backdrop-blur-md" />
                                                                                     <div className="flex flex-col">
                                                                                         <span className="text-sm font-black text-white">{actionCounts.needAction}</span>
                                                                                         <span className="text-[9px] font-black text-white/20 uppercase tracking-widest">Tindakan</span>
@@ -805,7 +804,7 @@ function CustomerWorkspacePage({
                                                                             <div className="flex justify-end gap-3">
                                                                                 {!isTeknisi && (
                                                                                     <button
-                                                                                        className="inline-flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-emerald-400 transition-all hover:bg-emerald-500 hover:text-white active:scale-95 shadow-sm"
+                                                                                        className="inline-flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-emerald-400 transition-all hover:bg-emerald-500 hover:text-white active:scale-95 shadow-sm backdrop-blur-md"
                                                                                         onClick={() => onOpenTenant(tenant, "invoices", group)}
                                                                                         type="button"
                                                                                     >
@@ -814,7 +813,7 @@ function CustomerWorkspacePage({
                                                                                     </button>
                                                                                 )}
                                                                                 <button
-                                                                                    className="inline-flex items-center gap-2 rounded-xl bg-white/5 border border-white/10 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white shadow-sm hover:border-gold-accent hover:text-gold-accent transition-all active:scale-95"
+                                                                                    className="inline-flex items-center gap-2 rounded-xl bg-white/5 border border-white/10 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white shadow-sm hover:border-gold-accent hover:text-gold-accent transition-all active:scale-95 backdrop-blur-md"
                                                                                     onClick={() => handleOpenTenantDetail(tenant, group)}
                                                                                     type="button"
                                                                                 >
@@ -823,7 +822,7 @@ function CustomerWorkspacePage({
                                                                                 </button>
                                                                                 {!isTeknisi && (
                                                                                     <button
-                                                                                        className="inline-flex items-center justify-center rounded-xl bg-red-600/10 px-3 py-2 text-red-600 border border-red-600/20 shadow-sm hover:bg-red-600 hover:text-white transition-all active:scale-95"
+                                                                                        className="inline-flex items-center justify-center rounded-xl bg-red-600/10 px-3 py-2 text-red-600 border border-red-600/20 shadow-sm hover:bg-red-600 hover:text-white transition-all active:scale-95 backdrop-blur-md"
                                                                                         onClick={() => handleArchiveTenant(tenant)}
                                                                                         title="Hapus Lokasi"
                                                                                         type="button"
@@ -861,7 +860,7 @@ function CustomerWorkspacePage({
                                 <button
                                     disabled={currentPage === 1}
                                     onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                                    className="w-8 h-8 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/20 hover:text-gold-accent hover:border-gold-accent/40 disabled:opacity-10 disabled:cursor-not-allowed transition-all duration-300 active:scale-90"
+                                    className="w-8 h-8 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/20 hover:text-gold-accent hover:border-gold-accent/40 disabled:opacity-10 disabled:cursor-not-allowed transition-all duration-300 active:scale-90 backdrop-blur-md"
                                     title="Sebelumnya"
                                 >
                                     <span className="material-symbols-outlined text-lg">chevron_left</span>
@@ -882,7 +881,7 @@ function CustomerWorkspacePage({
                                 <button
                                     disabled={currentPage === totalPages}
                                     onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                                    className="w-8 h-8 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/20 hover:text-gold-accent hover:border-gold-accent/40 disabled:opacity-10 disabled:cursor-not-allowed transition-all duration-300 active:scale-90"
+                                    className="w-8 h-8 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/20 hover:text-gold-accent hover:border-gold-accent/40 disabled:opacity-10 disabled:cursor-not-allowed transition-all duration-300 active:scale-90 backdrop-blur-md"
                                     title="Selanjutnya"
                                 >
                                     <span className="material-symbols-outlined text-lg">chevron_right</span>
@@ -895,7 +894,7 @@ function CustomerWorkspacePage({
                         <div className="flex justify-center">
                             <button
                                 onClick={() => void onLoadMoreCustomers?.()}
-                                className="h-14 inline-flex items-center gap-3 rounded-2xl bg-white/5 border border-white/10 px-8 text-[10px] font-black uppercase tracking-[0.2em] text-white/70 hover:text-gold-accent hover:border-gold-accent/40 transition-all active:scale-95 shadow-glass-depth"
+                                className="h-14 inline-flex items-center gap-3 rounded-2xl bg-white/5 border border-white/10 px-8 text-[10px] font-black uppercase tracking-[0.2em] text-white/70 hover:text-gold-accent hover:border-gold-accent/40 transition-all active:scale-95 shadow-glass-depth backdrop-blur-md"
                                 type="button"
                             >
                                 <span className="material-symbols-outlined">expand_more</span>
@@ -908,7 +907,7 @@ function CustomerWorkspacePage({
                     {!isLoading && allGroups.length === 0 && (
                         <div className="rounded-premium bg-white/[0.03] border border-white/10 py-32 text-center backdrop-blur-xl shadow-glass-depth group">
                             <div className="flex flex-col items-center">
-                                <div className="w-24 h-24 rounded-full bg-white/5 border border-white/5 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-700">
+                                <div className="w-24 h-24 rounded-full bg-white/5 border border-white/5 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-700 backdrop-blur-md">
                                     <span className="material-symbols-outlined text-5xl text-white/20">search_off</span>
                                 </div>
                                 <h2 className="text-2xl font-black text-white tracking-tight">Data Tidak Ditemukan</h2>

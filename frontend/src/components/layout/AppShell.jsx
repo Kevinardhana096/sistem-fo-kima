@@ -47,7 +47,7 @@ export default function AppShell({
     }
 
     return (
-        <div className="relative min-h-screen font-inter antialiased selection:bg-gold-accent/20 selection:text-gold-accent">
+        <div className="relative min-h-screen font-inter antialiased selection:bg-gold-accent/20 selection:text-gold-accent backdrop-blur-md">
             {/* Background Layers */}
             <div id="bg-image-layer"></div>
             <div id="bg-glass-overlay"></div>
@@ -98,7 +98,7 @@ export default function AppShell({
                     <div className="relative w-full max-w-md rounded-3xl glass-premium p-8 shadow-2xl animate-in fade-in zoom-in duration-300 border border-white/20">
                         <div className="flex items-center justify-between mb-8">
                             <h2 className="text-xl font-black text-on-surface">Edit Profile</h2>
-                            <button onClick={() => setIsEditModalOpen(false)} className="h-8 w-8 flex items-center justify-center rounded-xl bg-black/5 hover:bg-black/10 transition-all">
+                            <button onClick={() => setIsEditModalOpen(false)} className="h-8 w-8 flex items-center justify-center rounded-xl bg-black/5 hover:bg-black/10 transition-all backdrop-blur-md">
                                 <span className="material-symbols-outlined text-sm">close</span>
                             </button>
                         </div>
@@ -122,7 +122,7 @@ export default function AppShell({
                         <div className="space-y-5">
                             <div>
                                 <label className="block text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-2">Username</label>
-                                <input type="text" defaultValue={roleConfig.profileTitle} className="w-full bg-black/5 border border-black/10 rounded-2xl px-4 py-3 text-sm font-medium text-on-surface focus:outline-none focus:ring-2 focus:ring-gold-accent/50 transition-all" />
+                                <input type="text" defaultValue={roleConfig.profileTitle} className="w-full bg-black/5 border border-black/10 rounded-2xl px-4 py-3 text-sm font-medium text-on-surface focus:outline-none focus:ring-2 focus:ring-gold-accent/50 transition-all backdrop-blur-md" />
                             </div>
                             
                             <div className="pt-2 border-t border-black/5">
@@ -130,22 +130,22 @@ export default function AppShell({
                                 <div className="space-y-3">
                                     <div>
                                         <label className="block text-[9px] font-bold text-on-surface-variant uppercase tracking-widest mb-1.5">Password Lama</label>
-                                        <input type="password" placeholder="Masukkan password saat ini" className="w-full bg-black/5 border border-black/10 rounded-2xl px-4 py-2.5 text-sm font-medium text-on-surface focus:outline-none focus:ring-2 focus:ring-gold-accent/50 transition-all placeholder:text-black/30" />
+                                        <input type="password" placeholder="Masukkan password saat ini" className="w-full bg-black/5 border border-black/10 rounded-2xl px-4 py-2.5 text-sm font-medium text-on-surface focus:outline-none focus:ring-2 focus:ring-gold-accent/50 transition-all placeholder:text-black/30 backdrop-blur-md" />
                                     </div>
                                     <div>
                                         <label className="block text-[9px] font-bold text-on-surface-variant uppercase tracking-widest mb-1.5">Password Baru</label>
-                                        <input type="password" placeholder="Masukkan password baru" className="w-full bg-black/5 border border-black/10 rounded-2xl px-4 py-2.5 text-sm font-medium text-on-surface focus:outline-none focus:ring-2 focus:ring-gold-accent/50 transition-all placeholder:text-black/30" />
+                                        <input type="password" placeholder="Masukkan password baru" className="w-full bg-black/5 border border-black/10 rounded-2xl px-4 py-2.5 text-sm font-medium text-on-surface focus:outline-none focus:ring-2 focus:ring-gold-accent/50 transition-all placeholder:text-black/30 backdrop-blur-md" />
                                     </div>
                                     <div>
                                         <label className="block text-[9px] font-bold text-on-surface-variant uppercase tracking-widest mb-1.5">Konfirmasi Password Baru</label>
-                                        <input type="password" placeholder="Ulangi password baru" className="w-full bg-black/5 border border-black/10 rounded-2xl px-4 py-2.5 text-sm font-medium text-on-surface focus:outline-none focus:ring-2 focus:ring-gold-accent/50 transition-all placeholder:text-black/30" />
+                                        <input type="password" placeholder="Ulangi password baru" className="w-full bg-black/5 border border-black/10 rounded-2xl px-4 py-2.5 text-sm font-medium text-on-surface focus:outline-none focus:ring-2 focus:ring-gold-accent/50 transition-all placeholder:text-black/30 backdrop-blur-md" />
                                     </div>
                                 </div>
                             </div>
                         </div>
 
                         <div className="mt-8 flex gap-3">
-                            <button onClick={() => setIsEditModalOpen(false)} className="flex-1 py-3 rounded-2xl font-bold text-xs bg-black/5 text-on-surface hover:bg-black/10 transition-all">
+                            <button onClick={() => setIsEditModalOpen(false)} className="flex-1 py-3 rounded-2xl font-bold text-xs bg-black/5 text-on-surface hover:bg-black/10 transition-all backdrop-blur-md">
                                 Batal
                             </button>
                             <button onClick={() => setIsEditModalOpen(false)} className="flex-1 py-3 rounded-2xl font-bold text-xs bg-gold-gradient text-white shadow-gold-glow hover:opacity-90 transition-all">
@@ -266,7 +266,7 @@ function TopNav({ isSidebarCollapsed, onToggleMenu, onLogout, roleConfig, onEdit
                                         </p>
                                     </div>
                                     <button
-                                        className="flex h-9 w-9 items-center justify-center rounded-xl bg-black/5 text-on-surface-variant transition-all hover:bg-black/10"
+                                        className="flex h-9 w-9 items-center justify-center rounded-xl bg-black/5 text-on-surface-variant transition-all hover:bg-black/10 backdrop-blur-md"
                                         onClick={loadNotifications}
                                         disabled={isLoadingNotifications}
                                         type="button"
@@ -286,7 +286,7 @@ function TopNav({ isSidebarCollapsed, onToggleMenu, onLogout, roleConfig, onEdit
                                             return (
                                                 <div
                                                     key={notification.id}
-                                                    className={`rounded-2xl px-3 py-3 transition-all hover:bg-black/5 ${notification.readAt ? "opacity-70" : "bg-gold-accent/5"}`}
+                                                    className={`rounded-2xl px-3 py-3 transition-all hover:bg-black/5 backdrop-blur-md ${notification.readAt ? "opacity-70" : "bg-gold-accent/5"}`}
                                                 >
                                                     <button
                                                         className="flex w-full items-start gap-3 text-left"
@@ -311,7 +311,7 @@ function TopNav({ isSidebarCollapsed, onToggleMenu, onLogout, roleConfig, onEdit
                                                     <div className="mt-3 flex items-center justify-end gap-2 pl-12">
                                                         {!notification.readAt && (
                                                             <button
-                                                                className="rounded-lg bg-black/5 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-on-surface-variant transition-all hover:bg-black/10 hover:text-on-surface"
+                                                                className="rounded-lg bg-black/5 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-on-surface-variant transition-all hover:bg-black/10 hover:text-on-surface backdrop-blur-md"
                                                                 onClick={(event) => handleMarkRead(event, notification)}
                                                                 type="button"
                                                             >
@@ -319,7 +319,7 @@ function TopNav({ isSidebarCollapsed, onToggleMenu, onLogout, roleConfig, onEdit
                                                             </button>
                                                         )}
                                                         <button
-                                                            className="rounded-lg bg-emerald-500/10 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-emerald-700 transition-all hover:bg-emerald-500 hover:text-white"
+                                                            className="rounded-lg bg-emerald-500/10 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-emerald-700 transition-all hover:bg-emerald-500 hover:text-white backdrop-blur-md"
                                                             onClick={(event) => handleMarkResolved(event, notification)}
                                                             type="button"
                                                         >
@@ -331,7 +331,7 @@ function TopNav({ isSidebarCollapsed, onToggleMenu, onLogout, roleConfig, onEdit
                                         })
                                     ) : (
                                         <div className="px-4 py-10 text-center">
-                                            <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-black/5 text-on-surface-variant/50">
+                                            <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-black/5 text-on-surface-variant/50 backdrop-blur-md">
                                                 <span className="material-symbols-outlined text-3xl">notifications_off</span>
                                             </div>
                                             <p className="text-xs font-black uppercase tracking-widest text-on-surface">Tidak ada notifikasi</p>
@@ -377,7 +377,7 @@ function TopNav({ isSidebarCollapsed, onToggleMenu, onLogout, roleConfig, onEdit
                                 <div className="px-2 mb-2 pb-2 border-b border-black/5">
                                     <button 
                                         onClick={() => { setIsProfileOpen(false); onEditProfile(); }}
-                                        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-bold text-on-surface hover:bg-black/5 transition-all"
+                                        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-bold text-on-surface hover:bg-black/5 transition-all backdrop-blur-md"
                                     >
                                         <span className="material-symbols-outlined text-lg opacity-80">manage_accounts</span>
                                         <span>Edit Profile</span>

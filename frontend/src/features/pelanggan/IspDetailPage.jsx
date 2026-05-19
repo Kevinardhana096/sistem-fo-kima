@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
+import { createPortal } from "react-dom";
 import AppShell from "../../components/layout/AppShell";
 import { StatCard } from "../../components/shared/AppShared";
 import {
@@ -163,6 +164,10 @@ function IspDetailPage({
     const [docSearch, setDocSearch] = useState("");
     const [docSortMethod, setDocSortMethod] = useState("newest");
 
+    // Filtering & Sorting State for Kontrak Table
+    const [contractSearch, setContractSearch] = useState("");
+    const [contractSortMethod, setContractSortMethod] = useState("newest");
+
     // Akun ISP popup state
     const [userPopupOpen, setUserPopupOpen] = useState(false);
     const [userPopupData, setUserPopupData] = useState(null);
@@ -314,6 +319,17 @@ function IspDetailPage({
         setActiveTab(initialTab);
     }, [initialTab]);
 
+    useEffect(() => {
+        if (risalahEditor || userPopupOpen) {
+            document.body.style.overflow = "hidden";
+        } else {
+            document.body.style.overflow = "";
+        }
+        return () => {
+            document.body.style.overflow = "";
+        };
+    }, [risalahEditor, userPopupOpen]);
+
     const handleTabChange = useCallback((nextTab) => {
         setActiveTab(nextTab);
         onTabChange?.(nextTab);
@@ -387,6 +403,29 @@ function IspDetailPage({
 
         return result;
     }, [risalahRows, docSearch, docSortMethod]);
+
+    // Filtered & Sorted Contracts
+    const filteredContracts = useMemo(() => {
+        let result = [...contractRows];
+
+        // 1. Search
+        if (contractSearch.trim()) {
+            const query = contractSearch.toLowerCase();
+            result = result.filter(c =>
+                (c.contractReference || "").toLowerCase().includes(query)
+            );
+        }
+
+        // 2. Sorting
+        result.sort((a, b) => {
+            const dateA = new Date(a.periodStart || a.contractStartDate || 0).getTime();
+            const dateB = new Date(b.periodStart || b.contractStartDate || 0).getTime();
+            if (contractSortMethod === "oldest") return dateA - dateB;
+            return dateB - dateA; // newest default
+        });
+
+        return result;
+    }, [contractRows, contractSearch, contractSortMethod]);
 
     const summary = detail?.summary ?? {};
     const centralizedIspActionItems = Array.isArray(notifications)
@@ -574,14 +613,14 @@ function IspDetailPage({
         const confirmMessage = `PERINGATAN: Menghapus ISP "${ispName}" akan menghapus SEMUA pelanggan yang terkait dengan ISP ini!\n\nApakah Anda yakin ingin melanjutkan?`;
         if (!window.confirm(confirmMessage)) return;
         setIsLoading(true);
-        try { 
+        try {
             const result = await api.isps.delete(isp.id);
             const deletedCount = result?.deletedCustomersCount || 0;
             if (deletedCount > 0) {
                 alert(`ISP berhasil dihapus bersama ${deletedCount} pelanggan terkait.`);
             }
-            onBack(); 
-            if (onRefreshAll) onRefreshAll(); 
+            onBack();
+            if (onRefreshAll) onRefreshAll();
         }
         catch (err) { setError(err instanceof Error ? err.message : "Gagal menghapus ISP."); setIsLoading(false); }
     };
@@ -603,57 +642,49 @@ function IspDetailPage({
     const pathAktifCount = allTenants.filter(t => (t.route?.activeFlowStatus ?? t.status_jalur) === "aktif").length;
     const pathGangguanCount = allTenants.filter(t => (t.route?.activeFlowStatus ?? t.status_jalur) === "gangguan").length;
     const pathPerbaikanCount = allTenants.filter(t => (t.route?.activeFlowStatus ?? t.status_jalur) === "perbaikan").length;
+    const pathNonaktifCount = allTenants.filter(t => (t.route?.activeFlowStatus ?? t.status_jalur) === "nonaktif" || (t.route?.activeFlowStatus ?? t.status_jalur) === "non-aktif").length;
+
+    const statusBeroperasiCount = allTenants.filter(t => t.status === "aktif").length;
+    const statusBelumBeroperasiCount = allTenants.filter(t => t.status === "nonaktif" || t.status === "belum_beroperasi" || t.status === "belum beroperasi").length;
+    const statusBelumDiperpanjangCount = allTenants.filter(t => t.status === "expired" || t.status === "expired_contract").length;
+    const statusBerhentiCount = allTenants.filter(t => t.status === "berhenti").length;
 
     return (
         <AppShell activeSection="customers" onNavigate={onNavigate} onLogout={onLogout} currentRole={currentRole}>
 
             {/* ── POPUP AKUN ISP ─────────────────────────────────────────── */}
-            {userPopupOpen && (
-                <div
-                    className="fixed inset-0 z-[200] flex items-center justify-center p-4"
-                    onClick={() => { setUserPopupOpen(false); setShowPassword(false); setUserPopupMode("view"); }}
-                >
-                    <div className="absolute inset-0 bg-[#0a0f18]/80 backdrop-blur-md" />
-
-                    <div
-                        className="relative z-10 w-full max-w-md animate-in fade-in zoom-in-95 duration-200 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] shadow-glass-depth backdrop-blur-3xl"
-                        onClick={e => e.stopPropagation()}
-                    >
-                        {/* Top accent */}
-                        <div className="h-px w-full bg-gradient-to-r from-transparent via-gold-accent/40 to-transparent" />
-
+            {userPopupOpen && createPortal(
+                <div className="fixed inset-0 z-[200] flex items-center justify-center px-4 backdrop-blur-md bg-black/60 animate-fade-in duration-300">
+                    <div className="w-full max-w-lg rounded-[2.5rem] glass-card p-10 border border-white/20 shadow-[0_0_100px_rgba(0,0,0,0.8)] animate-in zoom-in-95 duration-300 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-gold-accent/5 blur-3xl pointer-events-none" />
+                        
                         {/* Header */}
-                        <div className="flex items-center justify-between px-6 pt-5 pb-4">
-                            <div className="flex items-center gap-3">
-                                <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-gold-accent/20 bg-gold-accent/10 text-gold-accent">
-                                    <span className="material-symbols-outlined text-lg">manage_accounts</span>
-                                </div>
-                                <div>
-                                    <p className="text-[8px] font-black uppercase tracking-[0.4em] text-white/20">Akun Akses ISP</p>
-                                    <p className="text-sm font-black text-white uppercase tracking-tight">{ispName}</p>
-                                </div>
+                        <div className="mb-10 flex items-center justify-between relative z-10">
+                            <div className="space-y-1">
+                                <h3 className="text-2xl font-black text-white tracking-widest uppercase">
+                                    Akun Akses ISP
+                                </h3>
+                                <p className="text-[9px] font-bold text-gold-accent/40 tracking-[0.3em] uppercase">{ispName}</p>
                             </div>
-                            <button
-                                className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/40 transition-all hover:bg-white/10 hover:text-white"
-                                onClick={() => { setUserPopupOpen(false); setShowPassword(false); setUserPopupMode("view"); }}
+                            <button 
+                                className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white/30 hover:bg-[#ff2400]/10 hover:border-[#ff2400]/40 hover:text-[#ff2400] transition-all duration-300 shadow-sm" 
+                                onClick={() => { setUserPopupOpen(false); setShowPassword(false); setUserPopupMode("view"); }} 
                                 type="button"
                             >
-                                <span className="material-symbols-outlined text-base">close</span>
+                                <span className="material-symbols-outlined">close</span>
                             </button>
                         </div>
 
-                        <div className="h-px bg-white/[0.05]" />
-
                         {/* Body */}
-                        <div className="p-6">
+                        <div className="relative z-10">
                             {userPopupLoading ? (
-                                <div className="flex items-center justify-center py-12 gap-3 text-white/20">
+                                <div className="flex items-center justify-center py-16 gap-3 text-white/20">
                                     <span className="material-symbols-outlined animate-spin text-2xl">progress_activity</span>
-                                    <span className="text-[10px] font-black uppercase tracking-widest">Memuat...</span>
+                                    <span className="text-[10px] font-black uppercase tracking-widest">Memuat Data...</span>
                                 </div>
                             ) : userPopupMode === "view" ? (
                                 /* ── VIEW MODE ── */
-                                <div className="space-y-4">
+                                <div className="space-y-6">
                                     {userPopupData?.hasUser ? (
                                         <>
                                             {/* Status */}
@@ -669,63 +700,69 @@ function IspDetailPage({
                                                 { label: "Username", value: userPopupData.user.username, icon: "person" },
                                                 { label: "Email", value: userPopupData.user.email, icon: "alternate_email" },
                                             ].map(({ label, value, icon }) => (
-                                                <div key={label} className="flex items-center gap-4 rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
-                                                    <span className="material-symbols-outlined text-[16px] text-white/20 shrink-0">{icon}</span>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-[8px] font-black uppercase tracking-[0.35em] text-white/20 mb-0.5">{label}</p>
-                                                        <p className="text-[11px] font-black text-white truncate">{value}</p>
+                                                <div key={label} className="space-y-2">
+                                                    <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-white/40 ml-1">{label}</label>
+                                                    <div className="flex items-center gap-4 rounded-2xl border border-white/10 bg-black/40 px-5 py-4">
+                                                        <span className="material-symbols-outlined text-[16px] text-white/20 shrink-0">{icon}</span>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-sm font-bold text-white truncate">{value}</p>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             ))}
 
                                             {/* Password row */}
-                                            <div className="flex items-center gap-4 rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
-                                                <span className="material-symbols-outlined text-[16px] text-white/20 shrink-0">lock</span>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-[8px] font-black uppercase tracking-[0.35em] text-white/20 mb-0.5">Password</p>
-                                                    <p className="text-[11px] font-black text-white tracking-widest">
-                                                        {showPassword
-                                                            ? (userPopupData.user.passwordPlain ?? <span className="text-white/20 italic font-normal normal-case tracking-normal">Tidak tersimpan</span>)
-                                                            : "••••••••••"
-                                                        }
-                                                    </p>
+                                            <div className="space-y-2">
+                                                <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-white/40 ml-1">Password</label>
+                                                <div className="flex items-center gap-4 rounded-2xl border border-white/10 bg-black/40 px-5 py-4">
+                                                    <span className="material-symbols-outlined text-[16px] text-white/20 shrink-0">lock</span>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-sm font-bold text-white tracking-widest">
+                                                            {showPassword
+                                                                ? (userPopupData.user.passwordPlain ?? <span className="text-white/20 italic font-normal normal-case tracking-normal">Tidak tersimpan</span>)
+                                                                : "••••••••••"
+                                                            }
+                                                        </p>
+                                                    </div>
+                                                    <button
+                                                        className="shrink-0 text-white/25 hover:text-white/70 transition-colors"
+                                                        onClick={() => setShowPassword(s => !s)}
+                                                        type="button"
+                                                    >
+                                                        <span className="material-symbols-outlined text-[18px]">{showPassword ? "visibility_off" : "visibility"}</span>
+                                                    </button>
                                                 </div>
-                                                <button
-                                                    className="shrink-0 text-white/20 hover:text-white/60 transition-colors"
-                                                    onClick={() => setShowPassword(s => !s)}
-                                                    type="button"
-                                                >
-                                                    <span className="material-symbols-outlined text-[16px]">{showPassword ? "visibility_off" : "visibility"}</span>
-                                                </button>
                                             </div>
 
                                             {userPopupFeedback && (
-                                                <p className="text-[9px] font-black uppercase tracking-widest text-emerald-400 bg-emerald-500/5 border border-emerald-500/20 rounded-xl px-4 py-2.5">{userPopupFeedback}</p>
+                                                <p className="text-[9px] font-black uppercase tracking-widest text-emerald-400 bg-emerald-500/5 border border-emerald-500/20 rounded-2xl px-5 py-3.5 leading-relaxed">{userPopupFeedback}</p>
                                             )}
                                         </>
                                     ) : (
-                                        <div className="flex flex-col items-center gap-3 py-10 text-center">
-                                            <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/5">
+                                        <div className="flex flex-col items-center gap-4 py-12 text-center">
+                                            <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-white/5 shadow-inner-glass animate-pulse">
                                                 <span className="material-symbols-outlined text-3xl text-white/20">no_accounts</span>
                                             </div>
-                                            <p className="text-[10px] font-black uppercase tracking-widest text-white/20">Belum ada akun terdaftar</p>
-                                            <p className="text-[9px] text-white/10">Isi email dan password untuk menyiapkan credential ISP.</p>
+                                            <div>
+                                                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">BELUM ADA AKUN TERDAFTAR</h4>
+                                                <p className="text-[9px] text-white/20 max-w-xs leading-relaxed mt-2">Silakan siapkan kredensial akses untuk memberikan izin login pada portal ISP ini.</p>
+                                            </div>
                                         </div>
                                     )}
                                 </div>
                             ) : (
                                 /* ── EDIT MODE ── */
-                                <div className="space-y-4">
+                                <div className="space-y-6">
                                     {[
                                         { label: "Username", key: "username", icon: "person", type: "text", placeholder: "username_isp" },
                                         { label: "Email", key: "email", icon: "alternate_email", type: "email", placeholder: "email@isp.com" },
                                     ].map(({ label, key, icon, type, placeholder }) => (
-                                        <div key={key} className="space-y-1.5">
-                                            <label className="text-[8px] font-black uppercase tracking-[0.35em] text-white/20">{label}</label>
+                                        <div key={key} className="space-y-3">
+                                            <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-white/40 ml-1">{label}</label>
                                             <div className="relative group">
-                                                <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-[14px] text-white/20 group-focus-within:text-gold-accent transition-colors pointer-events-none">{icon}</span>
+                                                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-[16px] text-white/20 group-focus-within:text-gold-accent transition-colors pointer-events-none">{icon}</span>
                                                 <input
-                                                    className="w-full h-11 rounded-xl border border-white/[0.06] bg-white/[0.02] pl-10 pr-4 text-[11px] font-black text-white outline-none transition-all focus:border-gold-accent/40 focus:bg-white/[0.04] placeholder:text-white/10"
+                                                    className="w-full rounded-2xl bg-black/40 border border-white/10 pl-12 pr-4 py-4 text-sm font-bold text-white outline-none focus:border-gold-accent/50 transition-all placeholder:text-white/10"
                                                     onChange={e => setUserForm(f => ({ ...f, [key]: e.target.value }))}
                                                     placeholder={placeholder}
                                                     type={type}
@@ -736,19 +773,19 @@ function IspDetailPage({
                                     ))}
 
                                     {/* Password */}
-                                    <div className="space-y-1.5">
-                                        <label className="text-[8px] font-black uppercase tracking-[0.35em] text-white/20">Password Baru <span className="text-white/10 normal-case font-normal">(kosongkan jika tidak diubah)</span></label>
+                                    <div className="space-y-3">
+                                        <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-white/40 ml-1">Password Baru <span className="text-white/20 normal-case font-normal">(kosongkan jika tidak diubah)</span></label>
                                         <div className="relative group">
-                                            <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-[14px] text-white/20 group-focus-within:text-gold-accent transition-colors pointer-events-none">lock</span>
+                                            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-[16px] text-white/20 group-focus-within:text-gold-accent transition-colors pointer-events-none">lock</span>
                                             <input
-                                                className="w-full h-11 rounded-xl border border-white/[0.06] bg-white/[0.02] pl-10 pr-10 text-[11px] font-black text-white outline-none transition-all focus:border-gold-accent/40 focus:bg-white/[0.04] placeholder:text-white/10"
+                                                className="w-full rounded-2xl bg-black/40 border border-white/10 pl-12 pr-12 py-4 text-sm font-bold text-white outline-none transition-all focus:border-gold-accent/50 placeholder:text-white/10"
                                                 onChange={e => setUserForm(f => ({ ...f, password: e.target.value }))}
                                                 placeholder="••••••••"
                                                 type={showPassword ? "text" : "password"}
                                                 value={userForm.password}
                                             />
                                             <button
-                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/20 hover:text-white/60 transition-colors"
+                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-white/20 hover:text-white/60 transition-colors"
                                                 onClick={() => setShowPassword(s => !s)}
                                                 type="button"
                                             >
@@ -758,158 +795,223 @@ function IspDetailPage({
                                     </div>
 
                                     {userPopupError && (
-                                        <p className="text-[9px] font-black uppercase tracking-widest text-[#ff2400] bg-[#ff2400]/5 border border-[#ff2400]/20 rounded-xl px-4 py-2.5">{userPopupError}</p>
+                                        <p className="text-[9px] font-black uppercase tracking-widest text-[#ff2400] bg-[#ff2400]/5 border border-[#ff2400]/20 rounded-2xl px-5 py-3.5 leading-relaxed">{userPopupError}</p>
                                     )}
                                 </div>
                             )}
                         </div>
 
-                        {/* Footer */}
+                        {/* Footer Buttons */}
                         {!userPopupLoading && (
-                            <>
-                                <div className="h-px bg-white/[0.05]" />
-                                <div className="flex items-center justify-between gap-2 px-6 py-4">
-                                    {userPopupMode === "view" ? (
-                                        <>
-                                            <button
-                                                className="h-9 px-4 rounded-xl border border-white/10 bg-white/5 text-[9px] font-black uppercase tracking-widest text-white/40 hover:bg-white/10 hover:text-white transition-all"
-                                                onClick={() => { setUserPopupOpen(false); setShowPassword(false); }}
-                                                type="button"
-                                            >
-                                                Tutup
-                                            </button>
-                                            <button
-                                                className="inline-flex items-center gap-2 h-9 px-4 rounded-xl border border-gold-accent/20 bg-gold-accent/10 text-[9px] font-black uppercase tracking-widest text-gold-accent hover:bg-gold-accent hover:text-[#0f141e] transition-all"
-                                                onClick={() => { setUserPopupMode("edit"); setUserPopupFeedback(""); setUserPopupError(""); setShowPassword(false); }}
-                                                type="button"
-                                            >
-                                                <span className="material-symbols-outlined text-[13px]">edit_note</span>
-                                                {userPopupData?.hasUser ? "Edit Akun" : "Buat Akun"}
-                                            </button>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <button
-                                                className="h-9 px-4 rounded-xl border border-white/10 bg-white/5 text-[9px] font-black uppercase tracking-widest text-white/40 hover:bg-white/10 hover:text-white transition-all"
-                                                onClick={() => { setUserPopupMode("view"); setUserPopupError(""); setShowPassword(false); }}
-                                                type="button"
-                                            >
-                                                Batal
-                                            </button>
-                                            <button
-                                                className="h-9 px-5 rounded-xl bg-gold-accent text-[9px] font-black uppercase tracking-widest text-[#0f141e] hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-gold-glow"
-                                                disabled={userPopupSaving}
-                                                onClick={() => void handleSaveUserPopup()}
-                                                type="button"
-                                            >
-                                                {userPopupSaving ? "Menyimpan..." : "Simpan"}
-                                            </button>
-                                        </>
-                                    )}
-                                </div>
-                            </>
+                            <div className="mt-12 flex justify-end gap-4 relative z-10">
+                                {userPopupMode === "view" ? (
+                                    <>
+                                        <button
+                                            className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-white transition-all"
+                                            onClick={() => { setUserPopupOpen(false); setShowPassword(false); }}
+                                            type="button"
+                                        >
+                                            Tutup
+                                        </button>
+                                        <button
+                                            className="px-6 py-4 rounded-2xl bg-white/5 border border-white/10 hover:border-gold-accent/40 text-[10px] font-black uppercase tracking-widest text-white hover:text-gold-accent transition-all duration-300 flex items-center gap-2"
+                                            onClick={() => { setUserPopupMode("edit"); setUserPopupFeedback(""); setUserPopupError(""); setShowPassword(false); }}
+                                            type="button"
+                                        >
+                                            <span className="material-symbols-outlined text-[16px]">edit_note</span>
+                                            {userPopupData?.hasUser ? "Edit Akun" : "Buat Akun"}
+                                        </button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <button
+                                            className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-white transition-all"
+                                            onClick={() => { setUserPopupMode("view"); setUserPopupError(""); setShowPassword(false); }}
+                                            type="button"
+                                        >
+                                            Batal
+                                        </button>
+                                        <button
+                                            className="px-8 py-4 rounded-2xl bg-gold-accent text-[10px] font-black uppercase tracking-widest text-slate-900 hover:opacity-90 active:scale-95 transition-all shadow-gold-glow flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                                            disabled={userPopupSaving}
+                                            onClick={() => void handleSaveUserPopup()}
+                                            type="button"
+                                        >
+                                            <span className="material-symbols-outlined text-[16px]">save</span>
+                                            {userPopupSaving ? "Menyimpan..." : "Simpan"}
+                                        </button>
+                                    </>
+                                )}
+                            </div>
                         )}
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
+
             {/* Background Decorative Blobs */}
             <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
-                <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[40%] rounded-full bg-gold-accent/5 blur-[120px]" />
                 <div className="absolute bottom-[-5%] left-[-5%] w-[30%] h-[30%] rounded-full bg-[#ff2400]/5 blur-[100px]" />
             </div>
 
             <div className="space-y-8 pb-20 pt-2 md:pt-4">
-                {/* 1. HEADER SECTION (PROFILE) */}
-                <header className="px-4 lg:px-6">
-                    <div className="flex flex-col gap-10">
-                        {/* Top Bar: Back & Status */}
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4">
+                {/* 1. TOP BAR & PROFILE CARD SECTION */}
+                <div className="flex flex-col gap-10">
+                    {/* Top Bar: Back & Actions */}
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <button
+                                className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-white/40 hover:text-gold-accent transition-all group"
+                                onClick={onBack}
+                                type="button"
+                            >
+                                <span className="material-symbols-outlined text-base transition-transform group-hover:-translate-x-1">arrow_back</span>
+                                KEMBALI KE WORKSPACE
+                            </button>
+                        </div>
+
+                        {!isTeknisi && (
+                            <div className="flex items-center gap-2">
                                 <button
-                                    className="inline-flex items-center gap-2 text-[10px] font-bold text-white/40 hover:text-gold-accent transition-all group"
-                                    onClick={onBack}
-                                    type="button"
+                                    className="h-12 px-5 flex items-center gap-2 rounded-xl bg-white/5 border border-white/10 text-white/60 hover:bg-white/10 hover:text-white transition-all shadow-sm group text-[10px] font-black uppercase tracking-widest backdrop-blur-md"
+                                    onClick={() => void loadDetail()}
+                                    title="Refresh Data"
                                 >
-                                    <span className="material-symbols-outlined text-base transition-transform group-hover:-translate-x-1">arrow_back</span>
-                                    Kembali ke Workspace
+                                    <span className="material-symbols-outlined text-lg group-hover:rotate-180 transition-transform duration-500">sync</span>
+                                    Refresh
                                 </button>
-                                <div className="h-3 w-px bg-white/10" />
-                                <div className={`flex items-center gap-2 px-3 py-1 rounded-full border ${isOperationallyActive(detail?.status ?? isp.status) ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-white/5 border-white/10 text-white/30'}`}>
-                                    <span className={`w-1.5 h-1.5 rounded-full ${isOperationallyActive(detail?.status ?? isp.status) ? 'bg-emerald-400 shadow-emerald-glow animate-pulse' : 'bg-white/20'}`} />
-                                    <span className="text-[9px] font-bold tracking-widest">{getOperationalLabel(detail?.status ?? isp.status)}</span>
-                                </div>
-                            </div>
-
-                            {!isTeknisi && (
-                                <div className="flex items-center gap-2">
+                                {/* Tombol Akun ISP */}
+                                <button
+                                    className="inline-flex items-center gap-2 h-12 px-5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white transition-all shadow-sm text-[10px] font-black uppercase tracking-widest backdrop-blur-md"
+                                    onClick={() => void openUserPopup()}
+                                    title="Lihat / Edit Akun ISP"
+                                >
+                                    <span className="material-symbols-outlined text-base">manage_accounts</span>
+                                    Akun Akses
+                                </button>
+                                {canEditIsp && (
                                     <button
-                                        className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white/60 hover:bg-white/10 hover:text-white transition-all shadow-sm group"
-                                        onClick={() => void loadDetail()}
-                                        title="Refresh Data"
+                                        className="h-12 px-5 flex items-center gap-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500 hover:text-white transition-all shadow-sm text-[10px] font-black uppercase tracking-widest backdrop-blur-md"
+                                        onClick={() => onEditIsp?.(detail ?? isp)}
+                                        title="Edit ISP"
                                     >
-                                        <span className="material-symbols-outlined text-lg group-hover:rotate-180 transition-transform duration-500">sync</span>
+                                        <span className="material-symbols-outlined text-lg">edit_note</span>
+                                        Edit ISP
                                     </button>
-                                    {/* Tombol Akun ISP */}
+                                )}
+                                {canDeleteIsp && (
                                     <button
-                                        className="inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white transition-all shadow-sm text-[9px] font-black uppercase tracking-widest"
-                                        onClick={() => void openUserPopup()}
-                                        title="Lihat / Edit Akun ISP"
+                                        className="h-12 px-5 flex items-center gap-2 rounded-xl bg-[#ff2400]/10 border border-[#ff2400]/20 text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all shadow-sm text-[10px] font-black uppercase tracking-widest backdrop-blur-md"
+                                        onClick={handleDeleteIsp}
+                                        title="Hapus ISP"
                                     >
-                                        <span className="material-symbols-outlined text-base">manage_accounts</span>
-                                        Akun
+                                        <span className="material-symbols-outlined text-lg">delete_forever</span>
+                                        Hapus ISP
                                     </button>
-                                    {canEditIsp && (
-                                        <button
-                                            className="w-10 h-10 flex items-center justify-center rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500 hover:text-white transition-all shadow-sm"
-                                            onClick={() => onEditIsp?.(detail ?? isp)}
-                                            title="Edit ISP"
-                                        >
-                                            <span className="material-symbols-outlined text-lg">edit_note</span>
-                                        </button>
-                                    )}
-                                    {canDeleteIsp && (
-                                        <button
-                                            className="w-10 h-10 flex items-center justify-center rounded-xl bg-[#ff2400]/10 border border-[#ff2400]/20 text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all shadow-sm"
-                                            onClick={handleDeleteIsp}
-                                            title="Hapus ISP"
-                                        >
-                                            <span className="material-symbols-outlined text-lg">delete_forever</span>
-                                        </button>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Main Info */}
-                        <div className="space-y-6">
-                            <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-white">
-                                {ispName}
-                            </h1>
-
-                            {/* Integrated Metadata Strip (No Cards) */}
-                            <div className="flex flex-wrap items-center gap-x-12 gap-y-4">
-                                <div className="space-y-1">
-                                    <p className="text-[9px] font-bold text-white/20 uppercase tracking-[0.3em]">Periode Awal Kontrak</p>
-                                    <p className="text-sm font-bold text-white/80">{formatDate(detail?.contractStartDate ?? isp.contractStartDate)}</p>
-                                </div>
-                                <div className="w-px h-6 bg-white/5 hidden md:block" />
-                                <div className="space-y-1">
-                                    <p className="text-[9px] font-bold text-white/20 uppercase tracking-[0.3em]">Nomor Kontrak</p>
-                                    <p className="text-sm font-bold text-gold-accent italic tracking-tight">{contractRef}</p>
-                                </div>
-                                <div className="w-px h-6 bg-white/5 hidden md:block" />
-                                <div className="space-y-1">
-                                    <p className="text-[9px] font-bold text-white/20 uppercase tracking-[0.3em]">Periode Berjalan</p>
-                                    <p className="text-sm font-bold text-white/80 tracking-tight">
-                                        {formatDate(detail?.contractPeriodStart ?? isp.contractPeriodStart)}
-                                        <span className="mx-2 text-white/20 font-normal">sampai</span>
-                                        {formatDate(detail?.contractPeriodEnd ?? isp.contractPeriodEnd)}
-                                    </p>
-                                </div>
+                                )}
                             </div>
-                        </div>
+                        )}
                     </div>
-                </header>
+
+                    {/* Profile Card */}
+                    <div className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-xl shadow-glass-depth">
+                        {/* Ambient glow */}
+                        <div className="pointer-events-none absolute -right-32 -top-32 h-80 w-80 rounded-full bg-gold-accent/[0.04] blur-[100px]" />
+                        <div className="pointer-events-none absolute -bottom-20 -left-20 h-60 w-60 rounded-full bg-blue-500/[0.03] blur-[80px]" />
+
+                        {/* Top accent line */}
+                        <div className="h-px w-full bg-gradient-to-r from-transparent via-gold-accent/30 to-transparent" />
+
+                        <div className="relative p-6 md:p-8 space-y-6">
+                            {/* Row 1: Identity + Status */}
+                            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                                {/* Left: icon + label + name */}
+                                <div className="min-w-0 flex-1 space-y-3">
+                                    <div className="flex items-center gap-2.5">
+                                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-gold-accent/20 bg-gold-accent/10 text-gold-accent backdrop-blur-md">
+                                            <span className="material-symbols-outlined text-lg">corporate_fare</span>
+                                        </div>
+                                        <div>
+                                            <p className="text-[8px] font-black uppercase tracking-[0.4em] text-white/20">Internet Service Provider</p>
+                                        </div>
+                                    </div>
+                                    <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white uppercase leading-tight">
+                                        {ispName}
+                                    </h1>
+                                </div>
+
+                                {/* Right: status pill */}
+                                <div className="flex shrink-0 items-start">
+                                    <div className={`inline-flex items-center gap-2 rounded-xl border px-3.5 py-2 ${isOperationallyActive(detail?.status ?? isp.status) ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-white/5 border-white/10 text-white/30'}`}>
+                                        <span className={`material-symbols-outlined text-[14px] ${isOperationallyActive(detail?.status ?? isp.status) ? 'text-emerald-400' : 'text-white/30'}`}>{isOperationallyActive(detail?.status ?? isp.status) ? 'check_circle' : 'cancel'}</span>
+                                        <div>
+                                            <p className="text-[7px] font-black uppercase tracking-[0.3em] text-white/20">Status</p>
+                                            <p className={`text-[9px] font-black uppercase tracking-widest ${isOperationallyActive(detail?.status ?? isp.status) ? 'text-emerald-400' : 'text-white/30'}`}>{getOperationalLabel(detail?.status ?? isp.status)}</p>
+                                        </div>
+                                        <span className={`h-1.5 w-1.5 rounded-full ${isOperationallyActive(detail?.status ?? isp.status) ? 'bg-emerald-400 shadow-emerald-glow animate-pulse' : 'bg-white/20'}`} />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Divider */}
+                            <div className="h-px bg-white/[0.05]" />
+
+                            {/* Row 2: Metadata grid */}
+                            <div className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-4 lg:grid-cols-4">
+                                {/* Nomor Kontrak */}
+                                <div className="space-y-1.5">
+                                    <p className="text-[8px] font-black uppercase tracking-[0.35em] text-white/20">Nomor Kontrak</p>
+                                    <div className="flex items-center gap-2">
+                                        <span className="material-symbols-outlined text-[14px] text-gold-accent/60">description</span>
+                                        <p className="text-[11px] font-black text-gold-accent uppercase tracking-wide italic">{contractRef}</p>
+                                    </div>
+                                </div>
+
+                                {/* Periode Awal Kontrak */}
+                                <div className="space-y-1.5">
+                                    <p className="text-[8px] font-black uppercase tracking-[0.35em] text-white/20">Periode Awal Kontrak</p>
+                                    <div className="flex items-center gap-2">
+                                        <span className="material-symbols-outlined text-[14px] text-emerald-400/60">event_available</span>
+                                        <p className="text-[11px] font-black text-white tracking-wide font-mono">
+                                            {detail?.contractStartDate ?? isp.contractStartDate ? formatDate(detail?.contractStartDate ?? isp.contractStartDate) : "—"}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Periode Berjalan */}
+                                <div className="space-y-1.5">
+                                    <p className="text-[8px] font-black uppercase tracking-[0.35em] text-white/20">Periode Berjalan</p>
+                                    <div className="flex items-center gap-2">
+                                        <span className="material-symbols-outlined text-[14px] text-sky-400/60">date_range</span>
+                                        <p className="text-[11px] font-black text-white tracking-wide font-mono">
+                                            {detail?.contractPeriodStart ?? isp.contractPeriodStart ?? detail?.contractPeriodEnd ?? isp.contractPeriodEnd
+                                                ? <>{formatDate(detail?.contractPeriodStart ?? isp.contractPeriodStart)}<span className="mx-1.5 text-white/20 font-normal">—</span>{formatDate(detail?.contractPeriodEnd ?? isp.contractPeriodEnd)}</>
+                                                : "—"
+                                            }
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Paket */}
+                                <div className="space-y-1.5">
+                                    <p className="text-[8px] font-black uppercase tracking-[0.35em] text-white/20">Paket</p>
+                                    <div className="flex items-center gap-2">
+                                        <span className="material-symbols-outlined text-[14px] text-amber-400/60">hub</span>
+                                        <p className="text-[11px] font-black text-white tracking-wide uppercase">
+                                            {(() => {
+                                                const packageQty = detail?.packageQuantity ?? isp.packageQuantity ?? detail?.jumlah ?? isp.jumlah;
+                                                return packageQty ? `Core ${packageQty} Core` : "Core -";
+                                            })()}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Bottom accent line */}
+                        <div className="h-px w-full bg-gradient-to-r from-transparent via-white/[0.04] to-transparent" />
+                    </div>
+                </div>
 
                 {/* 2. TABS NAVIGATION */}
                 <section className="glass-card rounded-premium p-1.5 border-white/10 shadow-glass-depth relative overflow-hidden">
@@ -927,12 +1029,11 @@ function IspDetailPage({
                         ].map((tab) => (
                             <button
                                 key={tab.id}
-                                className={`flex items-center gap-3 px-8 py-4 rounded-2xl text-[10px] font-bold tracking-[0.1em] transition-all duration-500 relative overflow-hidden ${activeTab === tab.id ? "text-white shadow-gold-glow" : "text-white/40 hover:text-white/70 hover:bg-white/5"}`}
+                                className={`flex items-center gap-3 px-8 py-4 rounded-2xl text-[10px] font-black tracking-[0.1em] transition-all duration-500 relative overflow-hidden ${activeTab === tab.id ? "text-white bg-gold-accent shadow-gold-glow" : "text-white/60 hover:text-white hover:bg-white/5"}`}
                                 onClick={() => handleTabChange(tab.id)}
                                 type="button"
                             >
-                                {activeTab === tab.id && <div className="absolute inset-0 bg-gold-gradient animate-shimmer" />}
-                                <span className={`material-symbols-outlined text-xl relative z-10 ${activeTab === tab.id ? "scale-110" : ""}`}>{tab.icon}</span>
+                                <span className={`material-symbols-outlined text-xl relative z-10 ${activeTab === tab.id ? "scale-110 text-white" : ""}`}>{tab.icon}</span>
                                 <span className="relative z-10">{tab.label}</span>
                             </button>
                         ))}
@@ -958,40 +1059,92 @@ function IspDetailPage({
                         )}
 
                         {activeTab === "overview" && (
-                            <div className="space-y-10">
+                            <div className="space-y-6">
                                 {/* Stats Cards */}
-                                <section className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-                                    <StatCard label="Total Lokasi" value={summary.tenantCount ?? allTenants.length} icon="groups" accent="gold" />
-                                    <StatCard label="Lokasi Beroperasi" value={allTenants.filter(t => isOperationallyActive(t.status)).length} icon="check_circle" accent="gold" />
+                                <section className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-12">
+                                    {/* Card 1: Total Lokasi */}
+                                    <div className="md:col-span-2 lg:col-span-2 glass-card rounded-premium p-6 border-white/10 shadow-glass-depth bg-white/[0.02] flex flex-col justify-between relative overflow-hidden group hover:border-gold-accent/20 transition-all duration-500">
+                                        <div className="flex justify-between items-start mb-6">
+                                            <div>
+                                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">Total Lokasi</p>
+                                                <p className="mt-1 text-[8px] font-bold text-white/20 uppercase tracking-widest">Seluruh lokasi terdaftar</p>
+                                            </div>
+                                            <div className="h-10 w-10 flex items-center justify-center rounded-xl bg-gold-accent/10 border border-gold-accent/20 text-gold-accent shadow-sm">
+                                                <span className="material-symbols-outlined text-xl">groups</span>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-baseline gap-2">
+                                            <span className="text-4xl font-black text-white leading-none">{summary.tenantCount ?? allTenants.length}</span>
+                                            <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Titik Layanan</span>
+                                        </div>
+                                    </div>
 
-                                    {/* Custom Informai Jalur Card */}
-                                    <div className="glass-card rounded-premium p-6 border-white/20 group hover:border-gold-accent/40 transition-all duration-500">
+                                    {/* Card 2: Status Lokasi */}
+                                    <div className="md:col-span-1 lg:col-span-5 glass-card rounded-premium p-6 border-white/10 shadow-glass-depth bg-white/[0.02] flex flex-col justify-between relative overflow-hidden group hover:border-gold-accent/20 transition-all duration-500">
                                         <div className="flex justify-between items-start mb-4">
-                                            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-on-surface-variant group-hover:text-gold-accent transition-colors">Informasi Jalur</p>
-                                            <div className="h-10 w-10 flex items-center justify-center rounded-xl bg-blue-500/10 text-blue-400 shadow-sm group-hover:shadow-blue-glow transition-all">
+                                            <div>
+                                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">Status Lokasi</p>
+                                                <p className="mt-1 text-[8px] font-bold text-white/20 uppercase tracking-widest">Rincian status operasional</p>
+                                            </div>
+                                            <div className="h-10 w-10 flex items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shadow-sm">
+                                                <span className="material-symbols-outlined text-xl">check_circle</span>
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-4 gap-1.5 mt-2">
+                                            <div className="rounded-xl bg-emerald-500/5 border border-emerald-500/10 p-2 text-center">
+                                                <p className="text-[8px] font-bold text-emerald-400/60 uppercase tracking-wider">Beroperasi</p>
+                                                <p className="text-md font-black text-emerald-400 mt-1">{statusBeroperasiCount}</p>
+                                            </div>
+                                            <div className="rounded-xl bg-white/5 border border-white/10 p-2 text-center">
+                                                <p className="text-[8px] font-bold text-white/40 uppercase tracking-wider">Belum Beroperasi</p>
+                                                <p className="text-md font-black text-white/80 mt-1">{statusBelumBeroperasiCount}</p>
+                                            </div>
+                                            <div className="rounded-xl bg-[#ff2400]/5 border border-[#ff2400]/10 p-2 text-center">
+                                                <p className="text-[8px] font-bold text-[#ff2400]/60 uppercase tracking-wider">Belum Diperpanjang</p>
+                                                <p className="text-md font-black text-[#ff2400] mt-1">{statusBelumDiperpanjangCount}</p>
+                                            </div>
+                                            <div className="rounded-xl bg-white/5 border border-white/10 p-2 text-center">
+                                                <p className="text-[8px] font-bold text-white/30 uppercase tracking-wider">Berhenti</p>
+                                                <p className="text-md font-black text-white/60 mt-1">{statusBerhentiCount}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Card 3: Informasi Jalur */}
+                                    <div className="md:col-span-1 lg:col-span-5 glass-card rounded-premium p-6 border-white/10 shadow-glass-depth bg-white/[0.02] flex flex-col justify-between relative overflow-hidden group hover:border-gold-accent/20 transition-all duration-500">
+                                        <div className="flex justify-between items-start mb-4">
+                                            <div>
+                                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">Informasi Jalur</p>
+                                                <p className="mt-1 text-[8px] font-bold text-white/20 uppercase tracking-widest">Rincian status jalur FO</p>
+                                            </div>
+                                            <div className="h-10 w-10 flex items-center justify-center rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 shadow-sm">
                                                 <span className="material-symbols-outlined text-xl">lan</span>
                                             </div>
                                         </div>
-                                        <div className="space-y-3">
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-[11px] font-bold text-white/40">Aktif</span>
-                                                <span className="text-lg font-black text-emerald-400">{pathAktifCount}</span>
+                                        <div className="grid grid-cols-4 gap-1.5 mt-2">
+                                            <div className="rounded-xl bg-emerald-500/5 border border-emerald-500/10 p-2 text-center">
+                                                <p className="text-[8px] font-bold text-emerald-400/60 uppercase tracking-wider">Aktif</p>
+                                                <p className="text-md font-black text-emerald-400 mt-1">{pathAktifCount}</p>
                                             </div>
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-[11px] font-bold text-white/40">Gangguan</span>
-                                                <span className="text-lg font-black text-[#ff2400]">{pathGangguanCount}</span>
+                                            <div className="rounded-xl bg-[#ff2400]/5 border border-[#ff2400]/10 p-2 text-center">
+                                                <p className="text-[8px] font-bold text-[#ff2400]/60 uppercase tracking-wider">Gangguan</p>
+                                                <p className="text-md font-black text-[#ff2400] mt-1">{pathGangguanCount}</p>
                                             </div>
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-[11px] font-bold text-white/40">Perbaikan</span>
-                                                <span className="text-lg font-black text-amber-400">{pathPerbaikanCount}</span>
+                                            <div className="rounded-xl bg-amber-500/5 border border-amber-500/10 p-2 text-center">
+                                                <p className="text-[8px] font-bold text-amber-400/60 uppercase tracking-wider">Perbaikan</p>
+                                                <p className="text-md font-black text-amber-400 mt-1">{pathPerbaikanCount}</p>
+                                            </div>
+                                            <div className="rounded-xl bg-white/5 border border-white/10 p-2 text-center">
+                                                <p className="text-[8px] font-bold text-white/30 uppercase tracking-wider">Nonaktif</p>
+                                                <p className="text-md font-black text-white/70 mt-1">{pathNonaktifCount}</p>
                                             </div>
                                         </div>
                                     </div>
                                 </section>
 
-                                <section className="grid grid-cols-1 gap-10 lg:grid-cols-3">
+                                <section className="grid grid-cols-1 gap-6 lg:grid-cols-3">
                                     {/* Action Items List - Separated ISP & Lokasi */}
-                                    <div className="lg:col-span-2 space-y-10">
+                                    <div className="lg:col-span-2 space-y-6">
                                         {/* 1. Tindak Lanjut ISP */}
                                         <div className="glass-card rounded-premium p-8 border-white/10 shadow-glass-depth relative overflow-hidden group/isp-actions">
                                             <div className="absolute -right-24 -top-24 h-64 w-64 rounded-full bg-gold-accent/5 blur-3xl transition-all duration-700 group-hover/isp-actions:bg-gold-accent/10" />
@@ -1090,52 +1243,6 @@ function IspDetailPage({
 
                                     {/* Sidebar Stats - Updated */}
                                     <div className="space-y-8">
-                                        {!isTeknisi && (
-                                            <div className="glass-card rounded-premium p-8 border-white/10 shadow-glass-depth bg-white/[0.02]">
-                                                <div className="flex items-start justify-between gap-4 mb-6">
-                                                    <div>
-                                                        <h3 className="text-lg font-bold text-white tracking-widest">Akun Akses ISP</h3>
-                                                        <p className="mt-2 text-[10px] font-bold text-white/25 uppercase tracking-widest">Credential login dan mapping Auth</p>
-                                                    </div>
-                                                    <span className={`material-symbols-outlined text-3xl ${accountInfo.isMapped ? "text-emerald-400/70" : accountInfo.hasCredential ? "text-amber-400/70" : "text-white/20"}`}>
-                                                        {accountInfo.isMapped ? "verified_user" : "manage_accounts"}
-                                                    </span>
-                                                </div>
-
-                                                <div className="space-y-4">
-                                                    <div className="rounded-2xl bg-white/5 border border-white/10 p-5">
-                                                        <p className="text-[9px] font-black uppercase tracking-[0.3em] text-white/25 mb-2">Email Login</p>
-                                                        <p className="text-xs font-bold text-white truncate">{accountInfo.email || "Belum diisi"}</p>
-                                                    </div>
-
-                                                    <div className={`rounded-2xl border p-4 ${accountInfo.isMapped ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : accountInfo.hasCredential ? "bg-amber-500/10 border-amber-500/20 text-amber-400" : "bg-white/5 border-white/10 text-white/30"}`}>
-                                                        <div className="flex items-center gap-3">
-                                                            <span className="material-symbols-outlined text-lg">
-                                                                {accountInfo.isMapped ? "link" : accountInfo.hasCredential ? "sync_problem" : "no_accounts"}
-                                                            </span>
-                                                            <p className="text-[10px] font-black uppercase tracking-widest">
-                                                                {accountInfo.isMapped ? "Auth Terhubung" : accountInfo.hasCredential ? "Credential Tersimpan" : "Belum Ada Credential"}
-                                                            </p>
-                                                        </div>
-                                                        {accountInfo.hasCredential && !accountInfo.isMapped && (
-                                                            <p className="mt-2 text-[9px] font-bold leading-relaxed opacity-70">
-                                                                Silakan edit akun dan simpan kembali untuk menyinkronkan login Supabase Auth.
-                                                            </p>
-                                                        )}
-                                                    </div>
-
-                                                    <button
-                                                        className="w-full inline-flex items-center justify-center gap-2 h-11 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white transition-all text-[9px] font-black uppercase tracking-widest"
-                                                        onClick={() => void openUserPopup()}
-                                                        type="button"
-                                                    >
-                                                        <span className="material-symbols-outlined text-base">manage_accounts</span>
-                                                        Kelola Akun
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        )}
-
                                         <div className="glass-card rounded-premium p-8 border-white/10 shadow-glass-depth bg-white/[0.02]">
                                             <h3 className="text-lg font-bold text-white tracking-widest mb-8">Ringkasan Tindak Lanjut</h3>
                                             <div className="space-y-6">
@@ -1223,11 +1330,11 @@ function IspDetailPage({
                                             </button>
                                             {canCreateTenant && (
                                                 <button
-                                                    className="h-12 px-8 rounded-xl bg-gold-gradient text-white text-[10px] font-bold uppercase tracking-[0.1em] shadow-gold-glow active:scale-95 transition-all flex items-center gap-2"
+                                                    className="h-12 px-8 rounded-xl bg-gold-accent text-slate-900 text-[10px] font-black uppercase tracking-[0.1em] shadow-gold-glow active:scale-95 transition-all flex items-center gap-2"
                                                     onClick={() => onOpenCreateTenant?.(detail ?? isp)}
                                                     type="button"
                                                 >
-                                                    <span className="material-symbols-outlined text-lg">add_location</span>
+                                                    <span className="material-symbols-outlined text-lg text-slate-900">add_location</span>
                                                     Tambah Lokasi
                                                 </button>
                                             )}
@@ -1294,99 +1401,119 @@ function IspDetailPage({
                                     />
                                 </div>
 
-                                {filteredTenants.length === 0 ? renderEmptyState("Tidak ada lokasi yang cocok dengan filter.") : (
-                                    <div className="overflow-x-auto rounded-2xl border border-white/10 bg-black/20 custom-scrollbar">
-                                        <table className="min-w-full border-collapse whitespace-nowrap">
-                                            <thead>
-                                                <tr className="bg-white/5">
-                                                    <th className="px-6 py-6 text-center text-[10px] font-bold tracking-[0.3em] text-white/40">No</th>
-                                                    <th className="px-6 py-6 text-center text-[10px] font-bold tracking-[0.3em] text-gold-accent">Lokasi</th>
-                                                    <th className="px-6 py-6 text-center text-[10px] font-bold tracking-[0.3em] text-white/40">Status Kontrak</th>
-                                                    <th className="px-6 py-6 text-center text-[10px] font-bold tracking-[0.3em] text-white/40">Status Jalur</th>
-                                                    <th className="px-6 py-6 text-center text-[10px] font-bold tracking-[0.3em] text-white/40">Periode Awal</th>
-                                                    <th className="px-6 py-6 text-center text-[10px] font-bold tracking-[0.3em] text-white/40">Kontrak Berjalan</th>
-                                                    <th className="px-6 py-6 text-center text-[10px] font-bold tracking-[0.3em] text-white/40">Paket</th>
-                                                    <th className="px-6 py-6 text-center text-[10px] font-bold tracking-[0.3em] text-white/40">Jumlah</th>
-                                                    <th className="px-6 py-6 text-center text-[10px] font-bold tracking-[0.3em] text-white/40">Tindak Lanjut</th>
-                                                    <th className="px-6 py-6 text-center text-[10px] font-bold tracking-[0.3em] text-white/40">Aksi</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-white/5">
-                                                {filteredTenants.map((tenant, idx) => (
-                                                    <tr key={tenant.id} className="hover:bg-white/[0.04] transition-colors group/row">
-                                                        <td className="px-6 py-6 text-sm font-bold text-white/20">{String(idx + 1).padStart(2, '0')}</td>
-                                                        <td className="px-6 py-6">
-                                                            <p className="text-sm font-bold text-white group-hover/row:text-gold-accent transition-colors">{tenant.name}</p>
-                                                        </td>
-                                                        <td className="px-6 py-6">
-                                                            <span className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[9px] font-bold border transition-all ${['aktif'].includes(tenant.status) ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : tenant.status === 'expired' ? 'bg-[#ff2400]/10 text-[#ff2400] border-[#ff2400]/20' : 'bg-white/5 text-white/30 border-white/10'}`}>
-                                                                <span className={`w-1.5 h-1.5 rounded-full ${['aktif'].includes(tenant.status) ? 'bg-emerald-400 shadow-emerald-glow' : tenant.status === 'expired' ? 'bg-[#ff2400] shadow-red-glow' : 'bg-white/20'}`} />
-                                                                {getOperationalLabel(tenant.status)}
-                                                            </span>
-                                                        </td>
-                                                        <td className="px-6 py-6">
-                                                            {(() => {
-                                                                const routeStatus = resolveRouteStatus(tenant.status, tenant.route?.activeFlowStatus ?? tenant.status_jalur);
-                                                                const colors = {
-                                                                    aktif: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-                                                                    gangguan: "bg-[#ff2400]/10 text-[#ff2400] border-[#ff2400]/20",
-                                                                    nonaktif: "bg-white/5 text-white/30 border-white/10",
-                                                                };
-                                                                const color = colors[routeStatus] || colors.nonaktif;
-                                                                return (
-                                                                    <span className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[9px] font-bold border ${color}`}>
-                                                                        {routeStatus === 'aktif' ? "Aktif" : routeStatus === 'gangguan' ? "Gangguan" : "Nonaktif"}
-                                                                    </span>
-                                                                );
-                                                            })()}
-                                                        </td>
-                                                        <td className="px-6 py-6">
-                                                            <p className="text-[11px] font-bold text-white/60 uppercase">{formatDate(tenant.contractPeriodInfo?.contractStartDate ?? tenant.contractStartDate)}</p>
-                                                        </td>
-                                                        <td className="px-6 py-6">
-                                                            <p className="text-[11px] font-bold text-white/60 italic tracking-tighter">
-                                                                {formatDate(tenant.contractPeriodInfo?.contractPeriodStart ?? tenant.contractPeriodStart)} - {formatDate(tenant.contractPeriodInfo?.contractPeriodEnd ?? tenant.contractPeriodEnd)}
-                                                            </p>
-                                                        </td>
-                                                        <td className="px-6 py-6">
-                                                            <p className="text-xs font-bold text-white/70 tracking-widest">{getPackageDisplay(tenant.packageInfo?.paket ?? tenant.paket).label}</p>
-                                                        </td>
-                                                        <td className="px-6 py-6">
-                                                            <p className="text-xs font-bold text-white/70 tracking-widest">{tenant.packageInfo?.jumlah ?? tenant.contractSharingRatio ?? tenant.jumlah ?? '-'}</p>
-                                                        </td>
-                                                        <td className="px-6 py-6 text-sm font-bold text-[#ff2400]">
-                                                            {isTeknisi ? (
-                                                                (!tenant.route && tenant.status === "aktif") || (tenant.route?.activeFlowStatus ?? tenant.status_jalur) === "gangguan" ? "YA" : "-"
-                                                            ) : getTenantActionCount(tenant)}
-                                                        </td>
-                                                        <td className="px-6 py-6 text-right">
-                                                            <div className="flex justify-end gap-2">
-                                                                {!isTeknisi && (
-                                                                    <button className="w-9 h-9 flex items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all shadow-sm" onClick={() => onOpenTenant(tenant, "invoices")} title="Invoice">
-                                                                        <span className="material-symbols-outlined text-lg">receipt_long</span>
-                                                                    </button>
-                                                                )}
-                                                                <button className="w-9 h-9 flex items-center justify-center rounded-lg bg-white/5 text-white hover:bg-white/10 transition-all shadow-sm" onClick={() => onOpenTenant(tenant, isTeknisi ? "jalur" : "overview")} title="Detail">
-                                                                    <span className="material-symbols-outlined text-lg">visibility</span>
+                                <div className="overflow-x-auto rounded-3xl border border-white/10 bg-black/55 backdrop-blur-3xl shadow-2xl custom-scrollbar">
+                                    <table className="min-w-full border-collapse whitespace-nowrap">
+                                        <thead>
+                                            <tr className="bg-white/5 border-b border-white/10">
+                                                <th rowSpan="2" className="px-6 py-5 text-center text-[10px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">No</th>
+                                                <th rowSpan="2" className="px-6 py-5 text-center text-[10px] font-bold tracking-[0.3em] text-gold-accent border-r border-white/10">Lokasi</th>
+                                                <th rowSpan="2" className="px-6 py-5 text-center text-[10px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Status Kontrak</th>
+                                                <th rowSpan="2" className="px-6 py-5 text-center text-[10px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Status Jalur</th>
+                                                <th rowSpan="2" className="px-6 py-5 text-center text-[10px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Periode Awal</th>
+                                                <th colSpan="2" className="px-6 py-3 text-center text-[9px] font-black tracking-[0.4em] text-white/30 uppercase border-b border-white/10 border-r border-white/10">Kontrak Berjalan</th>
+                                                <th rowSpan="2" className="px-6 py-5 text-center text-[10px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Paket</th>
+                                                <th rowSpan="2" className="px-6 py-5 text-center text-[10px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Jumlah</th>
+                                                <th rowSpan="2" className="px-6 py-5 text-center text-[10px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Tindak Lanjut</th>
+                                                <th rowSpan="2" className="px-6 py-5 text-center text-[10px] font-bold tracking-[0.3em] text-white/40">Aksi</th>
+                                            </tr>
+                                            <tr className="bg-white/5">
+                                                <th className="px-6 py-3 text-center text-[8px] font-black tracking-[0.2em] text-white/20 uppercase border-r border-white/10">Awal</th>
+                                                <th className="px-6 py-3 text-center text-[8px] font-black tracking-[0.2em] text-white/20 uppercase border-r border-white/10">Akhir</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-white/10">
+                                            {filteredTenants.map((tenant, idx) => (
+                                                <tr key={tenant.id} className="hover:bg-white/[0.04] transition-colors group/row">
+                                                    <td className="px-6 py-6 text-sm font-bold text-white/20 border-r border-white/10">{String(idx + 1).padStart(2, '0')}</td>
+                                                    <td className="px-6 py-6 border-r border-white/10">
+                                                        <p className="text-sm font-bold text-white group-hover/row:text-gold-accent transition-colors">{tenant.name}</p>
+                                                    </td>
+                                                    <td className="px-6 py-6 border-r border-white/10">
+                                                        <span className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[9px] font-bold border transition-all ${['aktif'].includes(tenant.status) ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : tenant.status === 'expired' ? 'bg-[#ff2400]/10 text-[#ff2400] border-[#ff2400]/20' : 'bg-white/5 text-white/30 border-white/10'}`}>
+                                                            <span className={`w-1.5 h-1.5 rounded-full ${['aktif'].includes(tenant.status) ? 'bg-emerald-400 shadow-emerald-glow' : tenant.status === 'expired' ? 'bg-[#ff2400] shadow-red-glow' : 'bg-white/20'}`} />
+                                                            {getOperationalLabel(tenant.status)}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-6 py-6 border-r border-white/10">
+                                                        {(() => {
+                                                            const routeStatus = resolveRouteStatus(tenant.status, tenant.route?.activeFlowStatus ?? tenant.status_jalur);
+                                                            const colors = {
+                                                                aktif: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+                                                                gangguan: "bg-[#ff2400]/10 text-[#ff2400] border-[#ff2400]/20",
+                                                                nonaktif: "bg-white/5 text-white/30 border-white/10",
+                                                            };
+                                                            const color = colors[routeStatus] || colors.nonaktif;
+                                                            return (
+                                                                <span className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[9px] font-bold border ${color}`}>
+                                                                    {routeStatus === 'aktif' ? "Aktif" : routeStatus === 'gangguan' ? "Gangguan" : "Nonaktif"}
+                                                                </span>
+                                                            );
+                                                        })()}
+                                                    </td>
+                                                    <td className="px-6 py-6 border-r border-white/10">
+                                                        <p className="text-[11px] font-bold text-white/60 uppercase">{formatDate(tenant.contractPeriodInfo?.contractStartDate ?? tenant.contractStartDate)}</p>
+                                                    </td>
+                                                    <td className="px-6 py-6 border-r border-white/10">
+                                                        <p className="text-[11px] font-bold text-white/60 uppercase">{formatDate(tenant.contractPeriodInfo?.contractPeriodStart ?? tenant.contractPeriodStart)}</p>
+                                                    </td>
+                                                    <td className="px-6 py-6 border-r border-white/10">
+                                                        <p className="text-[11px] font-bold text-white/60 uppercase">{formatDate(tenant.contractPeriodInfo?.contractPeriodEnd ?? tenant.contractPeriodEnd)}</p>
+                                                    </td>
+                                                    <td className="px-6 py-6 border-r border-white/10">
+                                                        <p className="text-xs font-bold text-white/70 tracking-widest">{getPackageDisplay(tenant.packageInfo?.paket ?? tenant.paket).label}</p>
+                                                    </td>
+                                                    <td className="px-6 py-6 border-r border-white/10">
+                                                        <p className="text-xs font-bold text-white/70 tracking-widest">{tenant.packageInfo?.jumlah ?? tenant.contractSharingRatio ?? tenant.jumlah ?? '-'}</p>
+                                                    </td>
+                                                    <td className="px-6 py-6 text-sm font-bold text-[#ff2400] border-r border-white/10">
+                                                        {isTeknisi ? (
+                                                            (!tenant.route && tenant.status === "aktif") || (tenant.route?.activeFlowStatus ?? tenant.status_jalur) === "gangguan" ? "YA" : "-"
+                                                        ) : getTenantActionCount(tenant)}
+                                                    </td>
+                                                    <td className="px-6 py-6 text-right">
+                                                        <div className="flex justify-end gap-2">
+                                                            {!isTeknisi && (
+                                                                <button className="w-9 h-9 flex items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all shadow-sm" onClick={() => onOpenTenant(tenant, "invoices")} title="Invoice">
+                                                                    <span className="material-symbols-outlined text-lg">receipt_long</span>
                                                                 </button>
-                                                                {!isTeknisi && canEditTenant && (
-                                                                    <button className="w-9 h-9 flex items-center justify-center rounded-lg bg-amber-500/10 text-amber-400 hover:bg-amber-500 hover:text-white transition-all shadow-sm" onClick={() => onEditTenant?.(tenant)} title="Edit">
-                                                                        <span className="material-symbols-outlined text-lg">edit</span>
-                                                                    </button>
-                                                                )}
-                                                                {!isTeknisi && canDeleteTenant && (
-                                                                    <button className="w-9 h-9 flex items-center justify-center rounded-lg bg-[#ff2400]/10 text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all shadow-sm" onClick={() => onDeleteTenant?.(tenant)} title="Hapus">
-                                                                        <span className="material-symbols-outlined text-lg">delete</span>
-                                                                    </button>
-                                                                )}
+                                                            )}
+                                                            <button className="w-9 h-9 flex items-center justify-center rounded-lg bg-white/5 text-white hover:bg-white/10 transition-all shadow-sm" onClick={() => onOpenTenant(tenant, isTeknisi ? "jalur" : "overview")} title="Detail">
+                                                                    <span className="material-symbols-outlined text-lg">visibility</span>
+                                                            </button>
+                                                            {!isTeknisi && canEditTenant && (
+                                                                <button className="w-9 h-9 flex items-center justify-center rounded-lg bg-amber-500/10 text-amber-400 hover:bg-amber-500 hover:text-white transition-all shadow-sm" onClick={() => onEditTenant?.(tenant)} title="Edit">
+                                                                    <span className="material-symbols-outlined text-lg">edit</span>
+                                                                </button>
+                                                            )}
+                                                            {!isTeknisi && canDeleteTenant && (
+                                                                <button className="w-9 h-9 flex items-center justify-center rounded-lg bg-[#ff2400]/10 text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all shadow-sm" onClick={() => onDeleteTenant?.(tenant)} title="Hapus">
+                                                                    <span className="material-symbols-outlined text-lg">delete</span>
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                            {filteredTenants.length === 0 && (
+                                                <tr>
+                                                    <td colSpan="11" className="py-10 text-center">
+                                                        <div className="flex flex-col items-center justify-center">
+                                                            <div className="h-12 w-12 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 shadow-inner-glass mb-3 animate-pulse">
+                                                                <span className="material-symbols-outlined text-2xl text-gold-accent/40">location_off</span>
                                                             </div>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                )}
+                                                            <h4 className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em]">BELUM ADA RINCIAN LOKASI</h4>
+                                                            <p className="text-[8px] font-bold text-white/20 uppercase tracking-widest mt-1">
+                                                                {tenantSearch || tenantStatusFilter !== "all" || tenantPaketFilter !== "all" 
+                                                                    ? "Tidak ada lokasi yang cocok dengan filter pencarian" 
+                                                                    : "Belum ada titik lokasi yang terdaftar untuk ISP ini"}
+                                                            </p>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </section>
                         )}
 
@@ -1402,65 +1529,108 @@ function IspDetailPage({
 
                         {activeTab === "contracts" && (
                             <section className="glass-card rounded-premium p-10 border-white/10 shadow-glass-depth">
-                                {/* Enhanced Header - Matching Dokumen Style */}
-                                <div className="mb-12 flex flex-col lg:flex-row lg:items-end justify-between gap-8">
+                                {/* Enhanced Header with Search & Sort - Matching Dokumen Style */}
+                                <div className="mb-10 flex flex-col lg:flex-row lg:items-end justify-between gap-8">
                                     <div className="space-y-2">
                                         <h2 className="text-2xl font-black text-white tracking-widest uppercase">Rincian Kontrak & Adendum</h2>
                                         <p className="text-[10px] font-bold text-white/20 tracking-[0.2em] uppercase">Manajemen berkas legal dan amandemen layanan</p>
                                     </div>
+
+                                    <div className="flex flex-wrap items-center gap-4">
+                                        {/* Search Bar */}
+                                        <div className="relative group min-w-[280px]">
+                                            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold-accent transition-colors">search</span>
+                                            <input
+                                                type="text"
+                                                placeholder="Cari nomor kontrak..."
+                                                value={contractSearch}
+                                                onChange={(e) => setContractSearch(e.target.value)}
+                                                className="w-full h-12 pl-12 pr-4 rounded-xl bg-black/20 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white outline-none focus:border-gold-accent/50 focus:bg-black/40 transition-all placeholder:text-white/10 shadow-inner-glass"
+                                            />
+                                        </div>
+
+                                        {/* Sort Dropdown */}
+                                        <div className="w-48">
+                                            <GlassCustomSelect
+                                                value={contractSortMethod}
+                                                onChange={setContractSortMethod}
+                                                icon="sort"
+                                                options={[
+                                                    { value: "newest", label: "Terbaru" },
+                                                    { value: "oldest", label: "Terlama" }
+                                                ]}
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="overflow-x-auto rounded-2xl border border-white/10 bg-black/20 custom-scrollbar">
+                                <div className="overflow-x-auto rounded-3xl border border-white/10 bg-black/55 backdrop-blur-3xl shadow-2xl custom-scrollbar">
                                     <table className="min-w-full border-collapse whitespace-nowrap">
                                         <thead>
-                                            <tr className="bg-white/5 border-b border-white/5">
-                                                <th rowSpan="2" className="px-6 py-5 text-center text-[10px] font-bold tracking-[0.3em] text-white/40 border-r border-white/5">No</th>
-                                                <th rowSpan="2" className="px-6 py-5 text-center text-[10px] font-bold tracking-[0.3em] text-gold-accent border-r border-white/5">Nomor Kontrak</th>
-                                                <th rowSpan="2" className="px-6 py-5 text-center text-[10px] font-bold tracking-[0.3em] text-white/40 border-r border-white/5">Berkas Kontrak</th>
-                                                <th rowSpan="2" className="px-6 py-5 text-center text-[10px] font-bold tracking-[0.3em] text-white/40 border-r border-white/5">Periode Awal Kontrak</th>
-                                                <th colSpan="2" className="px-6 py-3 text-center text-[9px] font-black tracking-[0.4em] text-white/30 uppercase border-b border-white/5">Periode Berjalan</th>
-                                                <th rowSpan="2" className="px-6 py-5 text-center text-[10px] font-bold tracking-[0.3em] text-white/40 border-l border-white/5">BAK</th>
-                                                <th rowSpan="2" className="px-6 py-5 text-center text-[10px] font-bold tracking-[0.3em] text-white/40 border-l border-white/5">Perpanjangan</th>
-                                                <th rowSpan="2" className="px-6 py-5 text-center text-[10px] font-bold tracking-[0.3em] text-white/40 border-l border-white/5">Tanggapan</th>
-                                                <th rowSpan="2" className="px-6 py-5 text-center text-[10px] font-bold tracking-[0.3em] text-white/40 border-l border-white/5">Aksi</th>
+                                            <tr className="bg-white/5 border-b border-white/10">
+                                                <th rowSpan="2" className="px-6 py-5 text-center text-[10px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">No</th>
+                                                <th rowSpan="2" className="px-6 py-5 text-center text-[10px] font-bold tracking-[0.3em] text-gold-accent border-r border-white/10">Nomor Kontrak</th>
+                                                <th rowSpan="2" className="px-6 py-5 text-center text-[10px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Berkas Kontrak</th>
+                                                <th rowSpan="2" className="px-6 py-5 text-center text-[10px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Periode Awal Kontrak</th>
+                                                <th colSpan="2" className="px-6 py-3 text-center text-[9px] font-black tracking-[0.4em] text-white/30 uppercase border-b border-white/10">Periode Berjalan</th>
+                                                <th rowSpan="2" className="px-6 py-5 text-center text-[10px] font-bold tracking-[0.3em] text-white/40 border-l border-white/10">BAK</th>
+                                                <th rowSpan="2" className="px-6 py-5 text-center text-[10px] font-bold tracking-[0.3em] text-white/40 border-l border-white/10">Perpanjangan</th>
+                                                <th rowSpan="2" className="px-6 py-5 text-center text-[10px] font-bold tracking-[0.3em] text-white/40 border-l border-white/10">Tanggapan</th>
+                                                <th rowSpan="2" className="px-6 py-5 text-center text-[10px] font-bold tracking-[0.3em] text-white/40 border-l border-white/10">Aksi</th>
                                             </tr>
                                             <tr className="bg-white/5">
-                                                <th className="px-6 py-3 text-center text-[8px] font-black tracking-[0.2em] text-white/20 uppercase border-r border-white/5">Awal</th>
+                                                <th className="px-6 py-3 text-center text-[8px] font-black tracking-[0.2em] text-white/20 uppercase border-r border-white/10">Awal</th>
                                                 <th className="px-6 py-3 text-center text-[8px] font-black tracking-[0.2em] text-white/20 uppercase">Akhir</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-white/5">
-                                            {contractRows.map((row, idx) => (
+                                        <tbody className="divide-y divide-white/10">
+                                            {filteredContracts.map((row, idx) => (
                                                 <tr key={row.id} className={`${editingRow?.id === row.id ? 'bg-gold-accent/5' : 'hover:bg-white/[0.02] transition-colors'}`}>
-                                                    <td className="px-6 py-6 text-sm font-bold text-white/20 border-r border-white/5">{String(idx + 1).padStart(2, '0')}</td>
-                                                    <td className="px-6 py-6 border-r border-white/5">
+                                                    <td className="px-6 py-6 text-sm font-bold text-white/20 border-r border-white/10">{String(idx + 1).padStart(2, '0')}</td>
+                                                    <td className="px-6 py-6 border-r border-white/10">
                                                         {editingRow?.id === row.id ? (
                                                             <input type="text" className="w-full rounded-xl bg-white/10 border border-white/20 px-4 py-2 text-sm font-bold text-white outline-none focus:border-gold-accent transition-all" value={editingRow.contractReference || ""} onChange={(e) => setEditingRow({ ...editingRow, contractReference: e.target.value })} />
                                                         ) : <span className="text-sm font-bold text-white">{row.contractReference || "-"}</span>}
                                                     </td>
-                                                    <td className="px-6 py-6 border-r border-white/5">
+                                                    <td className="px-6 py-6 border-r border-white/10">
                                                         {isOpenableFileUrl(row.contractFileUrl) ? (
                                                             <button onClick={() => openSafeFile(row.contractFileUrl, row.contractFileName)} className="inline-flex items-center gap-2 text-gold-accent hover:text-white font-bold text-[10px] bg-gold-accent/10 border border-gold-accent/20 px-3 py-1.5 rounded-lg transition-all"><span className="material-symbols-outlined text-sm">description</span>Buka</button>
                                                         ) : <label className="inline-flex items-center gap-2 cursor-pointer font-bold text-[10px] text-white/30 bg-white/5 border border-white/10 border-dashed px-3 py-1.5 rounded-lg hover:bg-white/10 transition-all"><span className="material-symbols-outlined text-sm">upload</span>Upload<input type="file" className="hidden" onChange={(e) => handleFileUpload(row.id, 'contract', e.target.files[0])} /></label>}
                                                     </td>
-                                                    <td className="px-6 py-6 border-r border-white/5 text-center">
+                                                    <td className="px-6 py-6 border-r border-white/10 text-center">
                                                         <span className="text-sm font-bold text-white/60">{formatDate(row.contractStartDate ?? detail?.contractStartDate ?? detail?.contract_start_date ?? isp.contractStartDate ?? isp.contract_start_date)}</span>
                                                     </td>
-                                                    <td className="px-6 py-6 text-center border-r border-white/5">
+                                                    <td className="px-6 py-6 text-center border-r border-white/10">
                                                         {editingRow?.id === row.id ? (
-                                                            <input type="date" className="rounded-lg bg-white/10 border border-white/20 px-3 py-2 text-xs text-white outline-none w-32" value={editingRow.periodStart || ""} onChange={(e) => setEditingRow({ ...editingRow, periodStart: e.target.value })} />
+                                                            <input
+                                                                type="date"
+                                                                className="rounded-lg bg-white/10 border border-white/20 px-3 py-2 text-xs text-white outline-none w-32 custom-date-input cursor-pointer"
+                                                                value={editingRow.periodStart || ""}
+                                                                onChange={(e) => setEditingRow({ ...editingRow, periodStart: e.target.value })}
+                                                                onClick={(e) => {
+                                                                    try { e.currentTarget.showPicker(); } catch (err) {}
+                                                                }}
+                                                            />
                                                         ) : <span className="text-sm font-bold text-white">{formatDate(row.periodStart)}</span>}
                                                     </td>
-                                                    <td className="px-6 py-6 text-center border-r border-white/5">
+                                                    <td className="px-6 py-6 text-center border-r border-white/10">
                                                         {editingRow?.id === row.id ? (
-                                                            <input type="date" className="rounded-lg bg-white/10 border border-white/20 px-3 py-2 text-xs text-white outline-none w-32" value={editingRow.periodEnd || ""} onChange={(e) => setEditingRow({ ...editingRow, periodEnd: e.target.value })} />
+                                                            <input
+                                                                type="date"
+                                                                className="rounded-lg bg-white/10 border border-white/20 px-3 py-2 text-xs text-white outline-none w-32 custom-date-input cursor-pointer"
+                                                                value={editingRow.periodEnd || ""}
+                                                                onChange={(e) => setEditingRow({ ...editingRow, periodEnd: e.target.value })}
+                                                                onClick={(e) => {
+                                                                    try { e.currentTarget.showPicker(); } catch (err) {}
+                                                                }}
+                                                            />
                                                         ) : <span className="text-sm font-bold text-gold-accent italic">{formatDate(row.periodEnd)}</span>}
                                                     </td>
-                                                    <td className="px-6 py-6 border-r border-white/5">
+                                                    <td className="px-6 py-6 border-r border-white/10">
                                                         {isOpenableFileUrl(row.bakFileUrl) ? (
                                                             <button onClick={() => openSafeFile(row.bakFileUrl, row.bakFileName)} className="inline-flex items-center gap-2 text-emerald-400 hover:text-white font-bold text-[10px] bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg transition-all"><span className="material-symbols-outlined text-sm">task_alt</span>Buka BAK</button>
                                                         ) : <label className="inline-flex items-center gap-2 cursor-pointer font-bold text-[10px] text-white/20 border border-white/10 border-dashed px-3 py-1.5 rounded-lg hover:bg-white/5 transition-all">Upload BAK<input type="file" className="hidden" onChange={(e) => handleFileUpload(row.id, 'bak', e.target.files[0])} /></label>}
                                                     </td>
-                                                    <td className="px-6 py-6 min-w-[280px] border-r border-white/5">
+                                                    <td className="px-6 py-6 min-w-[280px] border-r border-white/10">
                                                         <div className="flex items-center gap-3">
                                                             {renderRenewalFollowUps(row, "renewal")}
                                                             <button className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 border border-white/10 text-white/40 transition-all hover:bg-white/10 disabled:opacity-30" disabled={!hasInitialRenewalUpload(row)} onClick={() => handleAddRenewalSplit(row.id)} type="button">
@@ -1468,7 +1638,7 @@ function IspDetailPage({
                                                             </button>
                                                         </div>
                                                     </td>
-                                                    <td className="px-6 py-6 min-w-[240px] border-r border-white/5">{renderRenewalFollowUps(row, "response")}</td>
+                                                    <td className="px-6 py-6 min-w-[240px] border-r border-white/10">{renderRenewalFollowUps(row, "response")}</td>
                                                     <td className="px-6 py-6 text-right">
                                                         {editingRow?.id === row.id ? (
                                                             <div className="flex justify-end gap-2">
@@ -1500,7 +1670,19 @@ function IspDetailPage({
                                                     </td>
                                                 </tr>
                                             ))}
-                                            {contractRows.length === 0 && (<tr><td colSpan="8" className="py-20 text-center text-white/20 font-bold italic">Belum ada rincian kontrak.</td></tr>)}
+                                            {filteredContracts.length === 0 && (
+                                                <tr>
+                                                    <td colSpan="10" className="py-10 text-center">
+                                                        <div className="flex flex-col items-center justify-center">
+                                                            <div className="h-12 w-12 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 shadow-inner-glass mb-3 animate-pulse">
+                                                                <span className="material-symbols-outlined text-2xl text-gold-accent/40">history_edu</span>
+                                                            </div>
+                                                            <h4 className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em]">BELUM ADA RINCIAN KONTRAK</h4>
+                                                            <p className="text-[8px] font-bold text-white/20 uppercase tracking-widest mt-1">Rincian kontrak atau adendum belum tersedia</p>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            )}
                                         </tbody>
                                     </table>
                                 </div>
@@ -1545,44 +1727,44 @@ function IspDetailPage({
                                         <div className="w-px h-10 bg-white/5 mx-2 hidden lg:block" />
 
                                         <button
-                                            className="rounded-xl bg-gold-gradient px-8 h-12 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-white shadow-gold-glow active:scale-95 transition-all"
+                                            className="rounded-xl bg-gold-accent px-8 h-12 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-900 shadow-gold-glow active:scale-95 transition-all"
                                             onClick={handleAddRisalah}
                                             type="button"
                                         >
-                                            <span className="material-symbols-outlined text-lg">add_circle</span>
+                                            <span className="material-symbols-outlined text-lg text-slate-900">add_circle</span>
                                             Tambah Dokumen
                                         </button>
                                     </div>
                                 </div>
 
-                                <div className="overflow-x-auto rounded-3xl border border-white/5 bg-black/20 backdrop-blur-3xl shadow-2xl custom-scrollbar">
+                                <div className="overflow-x-auto rounded-3xl border border-white/10 bg-black/55 backdrop-blur-3xl shadow-2xl custom-scrollbar">
                                     <table className="min-w-full border-collapse">
                                         <thead>
-                                            <tr className="border-b border-white/5 bg-white/[0.02]">
-                                                <th className="px-8 py-6 text-center text-[10px] font-bold tracking-[0.3em] text-white/40">No</th>
-                                                <th className="px-8 py-6 text-center text-[10px] font-bold tracking-[0.3em] text-white/40">Tanggal</th>
-                                                <th className="px-8 py-6 text-center text-[10px] font-bold tracking-[0.3em] text-white/40">Nama Dokumen</th>
-                                                <th className="px-8 py-6 text-center text-[10px] font-bold tracking-[0.3em] text-white/40">Berkas</th>
-                                                <th className="px-8 py-6 text-center text-[10px] font-bold tracking-[0.3em] text-white/40">Aksi</th>
+                                            <tr className="border-b border-white/10 bg-white/[0.02]">
+                                                <th className="w-16 px-4 py-6 text-center text-[10px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">No</th>
+                                                <th className="w-36 px-4 py-6 text-center text-[10px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Tanggal</th>
+                                                <th className="px-6 py-6 text-left text-[10px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Nama Dokumen</th>
+                                                <th className="w-44 px-4 py-6 text-center text-[10px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Berkas</th>
+                                                <th className="w-32 px-4 py-6 text-center text-[10px] font-bold tracking-[0.3em] text-white/40">Aksi</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-white/5">
+                                        <tbody className="divide-y divide-white/10">
                                             {filteredDocs.map((row, idx) => (
                                                 <tr key={row.id} className="hover:bg-white/[0.02] transition-colors group/row">
-                                                    <td className="px-8 py-6 text-sm font-bold text-white/20">{String(idx + 1).padStart(2, '0')}</td>
-                                                    <td className="px-8 py-6">
+                                                    <td className="px-4 py-6 text-center text-sm font-bold text-white/20 border-r border-white/10">{String(idx + 1).padStart(2, '0')}</td>
+                                                    <td className="px-4 py-6 text-center border-r border-white/10">
                                                         <span className="text-sm font-bold text-white">{formatDate(row.tanggal)}</span>
                                                     </td>
-                                                    <td className="px-8 py-6">
+                                                    <td className="px-6 py-6 border-r border-white/10">
                                                         <p className="text-sm font-bold text-white/70 tracking-wide">{row.fileName || "N/A"}</p>
                                                     </td>
-                                                    <td className="px-8 py-6">
+                                                    <td className="px-4 py-6 text-center border-r border-white/10">
                                                         {isOpenableFileUrl(row.fileUrl) ? (
-                                                            <button onClick={() => openSafeFile(row.fileUrl, row.fileName)} className="inline-flex items-center gap-2 text-emerald-400 hover:text-white font-bold text-[10px] bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg transition-all"><span className="material-symbols-outlined text-sm">description</span>Buka Berkas</button>
+                                                            <button onClick={() => openSafeFile(row.fileUrl, row.fileName)} className="inline-flex items-center gap-2 text-emerald-400 hover:text-white font-bold text-[10px] bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg transition-all mx-auto"><span className="material-symbols-outlined text-sm">description</span>Buka Berkas</button>
                                                         ) : <span className="text-[10px] font-bold text-white/20">Kosong</span>}
                                                     </td>
-                                                    <td className="px-8 py-6 text-right">
-                                                        <div className="flex justify-end gap-3 transition-opacity duration-300">
+                                                    <td className="px-4 py-6 text-center">
+                                                        <div className="flex justify-center gap-3">
                                                             <button
                                                                 className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 border border-white/10 text-gold-accent hover:bg-gold-accent hover:text-white transition-all shadow-sm"
                                                                 onClick={() => handleEditRisalah(row)}
@@ -1601,15 +1783,27 @@ function IspDetailPage({
                                                     </td>
                                                 </tr>
                                             ))}
-                                            {filteredDocs.length === 0 && (<tr><td colSpan="5" className="py-20 text-center text-white/20 font-bold italic">Tidak ada dokumen ditemukan.</td></tr>)}
+                                            {filteredDocs.length === 0 && (
+                                                <tr>
+                                                    <td colSpan="5" className="py-10 text-center">
+                                                        <div className="flex flex-col items-center justify-center">
+                                                            <div className="h-12 w-12 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 shadow-inner-glass mb-3 animate-pulse">
+                                                                <span className="material-symbols-outlined text-2xl text-gold-accent/40">folder_off</span>
+                                                            </div>
+                                                            <h4 className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em]">BELUM ADA DOKUMEN</h4>
+                                                            <p className="text-[8px] font-bold text-white/20 uppercase tracking-widest mt-1">Silakan tambahkan dokumen administratif baru</p>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            )}
                                         </tbody>
                                     </table>
                                 </div>
                             </section>
                         )}
 
-                        {risalahEditor && (
-                            <div className="fixed inset-0 z-50 flex items-center justify-center px-4 backdrop-blur-md bg-black/60">
+                        {risalahEditor && createPortal(
+                            <div className="fixed inset-0 z-[200] flex items-center justify-center px-4 backdrop-blur-md bg-black/60">
                                 <div className="w-full max-w-lg rounded-[2.5rem] glass-card p-10 border border-white/20 shadow-[0_0_100px_rgba(0,0,0,0.8)] animate-in zoom-in-95 duration-300 relative overflow-hidden">
                                     <div className="absolute top-0 right-0 w-32 h-32 bg-gold-accent/5 blur-3xl" />
 
@@ -1644,13 +1838,27 @@ function IspDetailPage({
                                         {/* Unggah Berkas */}
                                         <div className="space-y-3">
                                             <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-white/40 ml-1">Unggah Berkas</label>
-                                            <div className="relative group">
-                                                <div className="absolute inset-0 rounded-2xl bg-white/5 border border-white/10 border-dashed pointer-events-none group-hover:bg-white/10 group-hover:border-gold-accent/40 transition-all" />
+                                            <div className="relative">
                                                 <input
-                                                    className="w-full text-[10px] text-white/40 file:mr-4 file:py-4 file:px-6 file:rounded-l-2xl file:border-0 file:text-[10px] file:font-black file:uppercase file:tracking-widest file:bg-gold-accent/10 file:text-gold-accent hover:file:bg-gold-accent/20 transition-all cursor-pointer relative z-10"
-                                                    onChange={(e) => handleRisalahEditorFileChange(e.target.files?.[0] ?? null)}
+                                                    id="risalah-file-upload"
                                                     type="file"
+                                                    className="hidden"
+                                                    onChange={(e) => handleRisalahEditorFileChange(e.target.files?.[0] ?? null)}
                                                 />
+                                                <label
+                                                    htmlFor="risalah-file-upload"
+                                                    className="flex items-center justify-between w-full rounded-2xl bg-black/40 border border-white/10 hover:border-gold-accent/40 px-5 py-4 cursor-pointer group transition-all"
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="material-symbols-outlined text-white/30 group-hover:text-gold-accent transition-colors">cloud_upload</span>
+                                                        <span className="text-xs font-bold text-white/60 group-hover:text-white transition-colors truncate max-w-[220px]">
+                                                            {risalahEditor.file ? risalahEditor.file.name : (risalahEditor.fileName || "Pilih berkas...")}
+                                                        </span>
+                                                    </div>
+                                                    <span className="text-[9px] font-black uppercase tracking-widest bg-gold-accent/10 text-gold-accent group-hover:bg-gold-accent group-hover:text-slate-900 px-4 py-2 rounded-xl transition-all border border-gold-accent/20">
+                                                        Cari File
+                                                    </span>
+                                                </label>
                                             </div>
                                         </div>
 
@@ -1660,8 +1868,11 @@ function IspDetailPage({
                                             <div className="relative group">
                                                 <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gold-accent shadow-gold-glow-sm z-10">calendar_month</span>
                                                 <input
-                                                    className="w-full rounded-2xl bg-black/40 border border-white/10 pl-12 pr-4 py-4 text-sm font-bold text-white outline-none focus:border-gold-accent transition-all appearance-none"
+                                                    className="w-full rounded-2xl bg-black/40 border border-white/10 pl-12 pr-4 py-4 text-sm font-bold text-white outline-none focus:border-gold-accent transition-all appearance-none custom-date-input cursor-pointer"
                                                     onChange={(e) => setRisalahEditor(p => p ? { ...p, tanggal: e.target.value } : p)}
+                                                    onClick={(e) => {
+                                                        try { e.currentTarget.showPicker(); } catch (err) {}
+                                                    }}
                                                     type="date"
                                                     value={risalahEditor.tanggal}
                                                 />
@@ -1671,61 +1882,62 @@ function IspDetailPage({
 
                                     <div className="mt-12 flex justify-end gap-4 relative z-10">
                                         <button className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-white transition-all" onClick={() => setRisalahEditor(null)} type="button">Batal</button>
-                                        <button className="rounded-2xl bg-gold-gradient px-12 py-4 text-[10px] font-black uppercase tracking-widest text-white shadow-gold-glow active:scale-95 transition-all" onClick={handleSaveRisalah} type="button">Simpan Dokumen</button>
+                                        <button className="rounded-2xl bg-gold-accent px-12 py-4 text-[10px] font-black uppercase tracking-widest text-slate-900 shadow-gold-glow active:scale-95 transition-all" onClick={handleSaveRisalah} type="button">Simpan Dokumen</button>
                                     </div>
                                 </div>
-                            </div>
+                            </div>,
+                            document.body
                         )}
 
                         {activeTab === "timeline" && (
-                            <section className="glass-card rounded-premium p-10 border-white/10 shadow-glass-depth">
-                                {/* Enhanced Header - Matching Dokumen Style */}
-                                <div className="mb-12 flex flex-col lg:flex-row lg:items-end justify-between gap-8">
+                            <section className="glass-card rounded-premium p-10 border-white/10 shadow-glass-depth relative overflow-hidden space-y-10">
+
+                                {/* Header - Sleek Audit Trail Header */}
+                                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
                                     <div className="space-y-2">
-                                        <h2 className="text-2xl font-black text-white tracking-widest uppercase">Timeline Aktivitas</h2>
-                                        <p className="text-[10px] font-bold text-white/20 tracking-[0.2em] uppercase">Jejak audit dan riwayat perubahan sistem</p>
+                                        <div className="inline-flex items-center gap-2.5 px-3 py-1 rounded-full bg-gold-accent/10 border border-gold-accent/20">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-gold-accent animate-pulse shadow-gold-glow" />
+                                            <span className="text-[8px] font-black uppercase tracking-[0.3em] text-gold-accent">Log Keamanan & Sistem</span>
+                                        </div>
+                                        <h2 className="text-3xl font-black text-white tracking-widest uppercase">Timeline Aktivitas</h2>
+                                        <p className="text-[10px] font-bold text-white/30 tracking-[0.2em] uppercase">Jejak audit digital dan riwayat perubahan repositori ISP</p>
                                     </div>
                                 </div>
 
                                 {timeline.length === 0 ? renderEmptyState("Belum ada aktivitas terekam.") : (
-                                    <div className="relative">
-                                        {/* Vertical line - Balanced Gradient */}
-                                        <div className="absolute left-[21px] top-4 bottom-4 w-0.5 bg-gradient-to-b from-gold-accent/40 via-white/5 to-transparent rounded-full" />
+                                    <div className="relative pt-2">
+                                        {/* Vertical line - High Glow Gradient */}
+                                        <div className="absolute left-[27px] top-6 bottom-6 w-[2px] bg-gradient-to-b from-gold-accent/40 via-white/10 to-transparent rounded-full shadow-gold-glow" />
 
                                         <div className="space-y-8 relative z-10">
-                                            {timeline.map((e, idx) => (
+                                            {timeline.map((e) => (
                                                 <div key={e.id} className="flex gap-6 group/t-item">
-                                                    {/* Proportional Marker */}
-                                                    <div className="relative shrink-0 mt-0.5">
-                                                        <div className={`w-10 h-10 rounded-xl ${e.bg} border border-white/10 flex items-center justify-center ${e.color} shadow-lg group-hover/t-item:scale-110 group-hover/t-item:shadow-gold-glow transition-all duration-500`}>
-                                                            <span className="material-symbols-outlined text-lg">{e.icon}</span>
+                                                    {/* Glowing Marker */}
+                                                    <div className="relative shrink-0 mt-1">
+                                                        <div className={`w-14 h-14 rounded-2xl ${e.bg} border border-white/10 flex items-center justify-center ${e.color} shadow-lg group-hover/t-item:scale-110 group-hover/t-item:shadow-gold-glow transition-all duration-500`}>
+                                                            <span className="material-symbols-outlined text-2xl">{e.icon}</span>
                                                         </div>
-                                                        {idx !== timeline.length - 1 && (
-                                                            <div className="absolute top-full left-1/2 -translate-x-1/2 w-px h-8 bg-white/5" />
-                                                        )}
                                                     </div>
 
                                                     {/* Compact Content */}
-                                                    <div className="flex-1 space-y-1">
-                                                        <div className="flex items-center justify-between gap-6 mb-1 pr-1">
-                                                            <div className="space-y-0.5">
-                                                                <h4 className="text-sm font-black text-white group-hover/t-item:text-gold-accent transition-colors duration-500 tracking-tight uppercase">{e.title}</h4>
-                                                                <span className={`inline-block text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md bg-white/5 border border-white/10 ${e.color}`}>{e.type}</span>
+                                                    <div className="flex-1 space-y-2">
+                                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pr-1">
+                                                            <div className="space-y-1">
+                                                                <h4 className="text-md font-black text-white group-hover/t-item:text-gold-accent transition-colors duration-500 tracking-tight uppercase">{e.title}</h4>
+                                                                <span className={`inline-block text-[8px] font-black uppercase tracking-[0.2em] px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 ${e.color}`}>{e.type}</span>
                                                             </div>
 
                                                             {/* Compact Right Aligned Date/Time */}
-                                                            <div className="flex items-center gap-2 text-[9px] font-black tracking-widest">
-                                                                <span className="text-white/30 uppercase">{new Date(e.date).toLocaleDateString("id-ID", { day: 'numeric', month: 'short' })}</span>
-                                                                <div className="w-1 h-1 rounded-full bg-white/10" />
-                                                                <span className="text-gold-accent/60">{new Date(e.date).toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' })}</span>
+                                                            <div className="flex items-center gap-2 text-[9px] font-black tracking-widest bg-white/5 border border-white/10 px-3 py-1.5 rounded-xl">
+                                                                <span className="text-white/40 uppercase">{new Date(e.date).toLocaleDateString("id-ID", { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                                                                <div className="w-1.5 h-1.5 rounded-full bg-white/10 animate-pulse" />
+                                                                <span className="text-gold-accent">{new Date(e.date).toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' })} WITA</span>
                                                             </div>
                                                         </div>
 
                                                         {/* ULTRA DARK GLASS - Monitoring Table Style Depth */}
-                                                        <div className="p-5 border border-white/5 bg-black/60 backdrop-blur-3xl rounded-2xl transition-all duration-500 shadow-glass-depth relative overflow-hidden group-hover/t-item:bg-black/70 group-hover/t-item:border-white/10">
-                                                            {/* Indicator Bar */}
+                                                        <div className="p-6 border border-white/5 bg-black/40 backdrop-blur-3xl rounded-2xl transition-all duration-500 shadow-glass-depth relative overflow-hidden group-hover/t-item:bg-black/60 group-hover/t-item:border-white/10 hover:shadow-2xl">
                                                             <div className={`absolute left-0 top-0 bottom-0 w-1 ${e.bg.replace('bg-', 'bg-').replace('/10', '/80')}`} />
-
                                                             <p className="text-[12px] font-bold text-white/50 leading-relaxed tracking-wide group-hover/t-item:text-white/90 transition-colors">
                                                                 {e.description}
                                                             </p>

@@ -174,7 +174,7 @@ function MonitoringSpreadsheetPage({
     const invoiceDetailModal = selectedInvoiceCell && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4 animate-in fade-in duration-300">
             <div className="relative w-full max-w-xl rounded-3xl bg-slate-900/80 backdrop-blur-2xl p-8 shadow-2xl animate-in fade-in zoom-in duration-300 border border-white/10 overflow-hidden group">
-                <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-gold-accent/5 blur-3xl transition-all duration-700 group-hover:bg-gold-accent/10" />
+                <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-gold-accent/5 blur-3xl transition-all duration-700 group-hover:bg-gold-accent/10 backdrop-blur-md" />
 
                 <div className="relative mb-8 flex items-start justify-between gap-6">
                     <div>
@@ -190,7 +190,7 @@ function MonitoringSpreadsheetPage({
                         </p>
                     </div>
                     <button
-                        className="rounded-xl bg-white/5 p-3 text-white/40 transition-all hover:bg-white/10 hover:text-white border border-white/5"
+                        className="rounded-xl bg-white/5 p-3 text-white/40 transition-all hover:bg-white/10 hover:text-white border border-white/5 backdrop-blur-md"
                         onClick={() => setSelectedInvoiceCell(null)}
                         type="button"
                     >
@@ -199,14 +199,14 @@ function MonitoringSpreadsheetPage({
                 </div>
 
                 <div className="relative grid grid-cols-1 gap-4 md:grid-cols-2 mb-8">
-                    <div className="rounded-xl bg-white/5 border border-white/5 p-4 transition-colors hover:bg-white/[0.07]">
+                    <div className="rounded-xl bg-white/5 border border-white/5 p-4 transition-colors hover:bg-white/[0.07] backdrop-blur-md">
                         <dt className="text-[10px] font-black uppercase tracking-[0.15em] text-white/30 mb-2">Periode Tagihan</dt>
                         <dd className="text-sm font-black text-white flex items-center gap-2">
                             <span className="material-symbols-outlined text-gold-accent text-sm">calendar_today</span>
                             {selectedInvoiceCell.month} {selectedInvoiceCell.year}
                         </dd>
                     </div>
-                    <div className="rounded-xl bg-white/5 border border-white/5 p-4 transition-colors hover:bg-white/[0.07]">
+                    <div className="rounded-xl bg-white/5 border border-white/5 p-4 transition-colors hover:bg-white/[0.07] backdrop-blur-md">
                         <dt className="text-[10px] font-black uppercase tracking-[0.15em] text-white/30 mb-2">Status Pembayaran</dt>
                         <dd className="flex items-center">
                             <span className={`rounded-lg px-3 py-1.5 text-[9px] font-black tracking-widest border transition-all ${getMonthStatusClass(selectedInvoiceCell.status)} border-opacity-30`}>
@@ -214,19 +214,19 @@ function MonitoringSpreadsheetPage({
                             </span>
                         </dd>
                     </div>
-                    <div className="rounded-xl bg-white/5 border border-white/5 p-4 transition-colors hover:bg-white/[0.07]">
+                    <div className="rounded-xl bg-white/5 border border-white/5 p-4 transition-colors hover:bg-white/[0.07] backdrop-blur-md">
                         <dt className="text-[10px] font-black uppercase tracking-[0.15em] text-white/30 mb-2">Kontrak Awal</dt>
                         <dd className="text-xs font-bold text-white/70">
                             {formatDate(selectedInvoiceCell.contractStart)}
                         </dd>
                     </div>
-                    <div className="rounded-xl bg-white/5 border border-white/5 p-4 transition-colors hover:bg-white/[0.07]">
+                    <div className="rounded-xl bg-white/5 border border-white/5 p-4 transition-colors hover:bg-white/[0.07] backdrop-blur-md">
                         <dt className="text-[10px] font-black uppercase tracking-[0.15em] text-white/30 mb-2">Kontrak Akhir</dt>
                         <dd className="text-xs font-bold text-white/70">
                             {formatDate(selectedInvoiceCell.contractEnd)}
                         </dd>
                     </div>
-                    <div className="rounded-xl bg-white/5 border border-white/5 p-4 transition-colors hover:bg-white/[0.07]">
+                    <div className="rounded-xl bg-white/5 border border-white/5 p-4 transition-colors hover:bg-white/[0.07] backdrop-blur-md">
                         <dt className="text-[10px] font-black uppercase tracking-[0.15em] text-white/30 mb-2">Paket</dt>
                         <dd className="text-xs font-bold text-white/70">
                             {toTitleCase(selectedInvoiceCell.coreType)}
@@ -238,7 +238,7 @@ function MonitoringSpreadsheetPage({
                             })}
                         </dd>
                     </div>
-                    <div className="rounded-xl bg-white/5 border border-white/5 p-4 transition-colors hover:bg-white/[0.07]">
+                    <div className="rounded-xl bg-white/5 border border-white/5 p-4 transition-colors hover:bg-white/[0.07] backdrop-blur-md">
                         <dt className="text-[10px] font-black uppercase tracking-[0.15em] text-white/30 mb-2">Sisa Masa Sewa</dt>
                         <dd className="text-xs font-bold text-white/70 flex items-center gap-2">
                             <span className="material-symbols-outlined text-gold-accent text-sm">timer</span>
@@ -256,7 +256,7 @@ function MonitoringSpreadsheetPage({
 
                 <div className="flex flex-wrap justify-end gap-3">
                     <button
-                        className="rounded-xl px-6 py-3 text-xs font-black uppercase tracking-widest text-white/40 transition-all hover:text-white hover:bg-white/5"
+                        className="rounded-xl px-6 py-3 text-xs font-black uppercase tracking-widest text-white/40 transition-all hover:text-white hover:bg-white/5 backdrop-blur-md"
                         onClick={() => setSelectedInvoiceCell(null)}
                         type="button"
                     >
@@ -655,7 +655,7 @@ function MonitoringSpreadsheetPage({
                             </th>
                             <th rowSpan="2" className="sticky left-[224px] top-0 z-[100] -ml-px w-[240px] pl-0 pr-2 py-5 text-center font-black uppercase tracking-widest text-white bg-[#1e293b]/95 border-b border-white/10 shadow-lg backdrop-blur-3xl">
                                 UNIT LOKASI
-                                <span className="absolute right-0 top-0 h-full w-px bg-white/5" />
+                                <span className="absolute right-0 top-0 h-full w-px bg-white/5 backdrop-blur-md" />
                             </th>
                             <th rowSpan="2" className="sticky top-0 z-[90] w-[200px] px-4 py-5 text-center font-black uppercase tracking-widest text-white bg-[#1e293b]/95 border-b border-r border-white/10 backdrop-blur-3xl">
                                 PERIODE AWAL
@@ -742,7 +742,7 @@ function MonitoringSpreadsheetPage({
                                     <div className="flex flex-col items-center justify-center animate-in fade-in zoom-in duration-500">
                                         {/* Icon Container with Glow */}
                                         <div className="relative mb-8">
-                                            <div className="absolute inset-0 scale-150 bg-gold-accent/10 blur-[50px] rounded-full" />
+                                            <div className="absolute inset-0 scale-150 bg-gold-accent/10 blur-[50px] rounded-full backdrop-blur-md" />
                                             <div className="relative flex h-24 w-24 items-center justify-center rounded-3xl bg-white/5 border border-white/10 shadow-2xl backdrop-blur-xl">
                                                 <span className="material-symbols-outlined text-6xl text-gold-accent/40">data_alert</span>
                                             </div>
@@ -754,7 +754,7 @@ function MonitoringSpreadsheetPage({
 
                                             {/* Action Button */}
                                             <button
-                                                className="inline-flex items-center gap-3 rounded-2xl bg-white/5 border border-white/10 px-8 py-3 text-[11px] font-black uppercase tracking-[0.2em] text-white transition-all hover:bg-white/10 hover:border-gold-accent/30 hover:text-gold-accent shadow-xl group"
+                                                className="inline-flex items-center gap-3 rounded-2xl bg-white/5 border border-white/10 px-8 py-3 text-[11px] font-black uppercase tracking-[0.2em] text-white transition-all hover:bg-white/10 hover:border-gold-accent/30 hover:text-gold-accent shadow-xl group backdrop-blur-md"
                                                 onClick={() => {
                                                     setFilters({ search: "", year: currentYear, contractStatus: "all", routeStatus: "all", todoStatus: "all", package: "all" });
                                                     setAppliedFilters({ year: currentYear, contractStatus: "all", routeStatus: "all", todoStatus: "all", package: "all" });
@@ -789,34 +789,34 @@ function MonitoringSpreadsheetPage({
                                         <span className="material-symbols-outlined text-[14px]">open_in_new</span>
                                         Detail Unit
                                     </button>
-                                    <span className="absolute right-0 top-0 h-full w-px bg-white/10" />
+                                    <span className="absolute right-0 top-0 h-full w-px bg-white/10 backdrop-blur-md" />
                                 </td>
-                                <td className="px-4 py-5 text-on-surface-variant font-bold text-center group-hover:bg-white/5 transition-colors border-r border-white/5">
+                                <td className="px-4 py-5 text-on-surface-variant font-bold text-center group-hover:bg-white/5 transition-colors border-r border-white/5 backdrop-blur-md">
                                     {formatDate(row.ispContractStart)}
                                 </td>
-                                <td className="px-4 py-5 text-on-surface-variant font-bold group-hover:bg-white/5 transition-colors border-r border-white/5">
+                                <td className="px-4 py-5 text-on-surface-variant font-bold group-hover:bg-white/5 transition-colors border-r border-white/5 backdrop-blur-md">
                                     {formatDate(row.contractStart)}
                                 </td>
-                                <td className="px-4 py-5 text-on-surface-variant font-bold group-hover:bg-white/5 transition-colors border-r border-white/5">
+                                <td className="px-4 py-5 text-on-surface-variant font-bold group-hover:bg-white/5 transition-colors border-r border-white/5 backdrop-blur-md">
                                     {formatDate(row.contractEnd)}
                                 </td>
-                                <td className="px-4 py-5 text-on-surface-variant font-black tracking-tight transition-colors group-hover:bg-white/5 border-r border-white/5 text-center">
+                                <td className="px-4 py-5 text-on-surface-variant font-black tracking-tight transition-colors group-hover:bg-white/5 border-r border-white/5 text-center backdrop-blur-md">
                                     {toTitleCase(row.coreType)}
                                 </td>
-                                <td className="px-4 py-5 text-on-surface-variant font-black text-center transition-colors group-hover:bg-white/5 border-r border-white/5">
+                                <td className="px-4 py-5 text-on-surface-variant font-black text-center transition-colors group-hover:bg-white/5 border-r border-white/5 backdrop-blur-md">
                                     {formatMonitoringCoreAmount(row)}
                                 </td>
                                 {!isTeknisi && (
                                     <>
-                                        <td className="px-4 py-5 text-on-surface-variant font-mono text-[11px] font-bold transition-colors group-hover:bg-white/5 border-r border-white/5">
+                                        <td className="px-4 py-5 text-on-surface-variant font-mono text-[11px] font-bold transition-colors group-hover:bg-white/5 border-r border-white/5 backdrop-blur-md">
                                             {row.contractNumber ?? "-"}
                                         </td>
-                                        <td className="px-4 py-5 text-on-surface-variant font-mono text-[11px] font-bold transition-colors group-hover:bg-white/5 border-r border-white/5">
+                                        <td className="px-4 py-5 text-on-surface-variant font-mono text-[11px] font-bold transition-colors group-hover:bg-white/5 border-r border-white/5 backdrop-blur-md">
                                             {row.currentInvoiceNumber ?? "-"}
                                         </td>
                                     </>
                                 )}
-                                <td className="px-6 py-5 whitespace-nowrap transition-colors group-hover:bg-white/5 border-r border-white/5 text-center">
+                                <td className="px-6 py-5 whitespace-nowrap transition-colors group-hover:bg-white/5 border-r border-white/5 text-center backdrop-blur-md">
                                     {(() => {
                                         const remainingDays = getRemainingRentalDays(row.contractEnd);
 
@@ -836,7 +836,7 @@ function MonitoringSpreadsheetPage({
                                         return <span className={`font-black ${colorClass} uppercase text-[10px] tracking-widest flex items-center gap-1 justify-center`}><span className="material-symbols-outlined text-sm">schedule</span> {remainingDays} hari</span>;
                                     })()}
                                 </td>
-                                <td className="px-6 py-5 text-center transition-colors group-hover:bg-white/5 border-r border-white/5">
+                                <td className="px-6 py-5 text-center transition-colors group-hover:bg-white/5 border-r border-white/5 backdrop-blur-md">
                                     {(() => {
                                         const remainingDays = getRemainingRentalDays(row.contractEnd);
                                         let label = "BEROPERASI";
@@ -857,7 +857,7 @@ function MonitoringSpreadsheetPage({
                                         );
                                     })()}
                                 </td>
-                                <td className="px-6 py-5 text-center transition-colors group-hover:bg-white/5 border-r border-white/5">
+                                <td className="px-6 py-5 text-center transition-colors group-hover:bg-white/5 border-r border-white/5 backdrop-blur-md">
                                     {(() => {
                                         const statusValue = resolveRouteStatus(row.customerStatus, row.routeStatus);
                                         const label = statusValue === "perbaikan" || statusValue === "sedang perbaikan" ? "PERBAIKAN" : statusValue.toUpperCase();
@@ -878,10 +878,10 @@ function MonitoringSpreadsheetPage({
                                 </td>
                                 {!isTeknisi && (
                                     <>
-                                        <td className="px-6 py-5 transition-colors group-hover:bg-white/5 border-r border-white/5 text-center">
+                                        <td className="px-6 py-5 transition-colors group-hover:bg-white/5 border-r border-white/5 text-center backdrop-blur-md">
                                             {row.activationFeePaidAt ? (
                                                 <div className="flex flex-col items-center gap-1.5">
-                                                    <span className="inline-flex rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 text-[9px] font-black text-emerald-500 tracking-widest uppercase">
+                                                    <span className="inline-flex rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 text-[9px] font-black text-emerald-500 tracking-widest uppercase backdrop-blur-md">
                                                         SELESAI
                                                     </span>
                                                     <p className="text-[10px] font-black text-white/20 uppercase tracking-tighter text-center">{formatDate(row.activationFeePaidAt)}</p>
@@ -901,7 +901,7 @@ function MonitoringSpreadsheetPage({
                                             return (
                                                 <td
                                                     key={`${row.customerId}-${month}-cell`}
-                                                    className="p-0 transition-colors group-hover:bg-white/5 border-r border-white/5"
+                                                    className="p-0 transition-colors group-hover:bg-white/5 border-r border-white/5 backdrop-blur-md"
                                                 >
                                                     <button
                                                         className={`h-10 w-full transition-all hover:scale-110 hover:z-10 relative hover:shadow-lg ${getMonthStatusClass(status)}`}
@@ -982,7 +982,7 @@ function MonitoringSpreadsheetPage({
                         Menampilkan kontrak yang sudah selesai tetapi masih beririsan dengan tahun filter, agar relasi lama seperti Medialink dan Merapi tetap bisa dilacak.
                     </p>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-white/50">
+                <div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-white/50 backdrop-blur-md">
                     {filteredHistoryRows.length} Riwayat
                 </div>
             </div>
@@ -1051,7 +1051,7 @@ function MonitoringSpreadsheetPage({
                                     {row.lastInvoiceNumber ?? "-"}
                                 </td>
                                 <td className="px-5 py-5 text-center">
-                                    <span className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-white/45">
+                                    <span className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-white/45 backdrop-blur-md">
                                         Selesai
                                     </span>
                                 </td>
@@ -1070,14 +1070,14 @@ function MonitoringSpreadsheetPage({
                     <div className="shrink-0 flex items-center justify-between gap-6 px-2">
                         <div className="flex items-center gap-4">
                             <button
-                                className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-5 py-2.5 text-[11px] font-black uppercase tracking-[0.2em] text-white shadow-lg transition-all hover:bg-white/20 hover:scale-105 active:scale-95"
+                                className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-5 py-2.5 text-[11px] font-black uppercase tracking-[0.2em] text-white shadow-lg transition-all hover:bg-white/20 hover:scale-105 active:scale-95 backdrop-blur-md"
                                 onClick={onCloseTableOnly}
                                 type="button"
                             >
                                 <span className="material-symbols-outlined text-sm text-gold-accent">arrow_back</span>
                                 Kembali
                             </button>
-                            <div className="h-8 w-px bg-white/10 mx-2" />
+                            <div className="h-8 w-px bg-white/10 mx-2 backdrop-blur-md" />
                             <h2 className="text-xl font-black text-white uppercase tracking-widest flex items-center gap-3">
                                 <span className="material-symbols-outlined text-gold-accent">fullscreen</span>
                                 Monitoring <span className="text-gold-accent italic">Fokus</span>
@@ -1090,7 +1090,7 @@ function MonitoringSpreadsheetPage({
                             <div className="relative flex-1 min-w-[180px] group">
                                 <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-base text-white/30 group-focus-within:text-gold-accent transition-colors">search</span>
                                 <input
-                                    className="w-full rounded-xl bg-white/5 border border-white/10 py-2.5 pl-10 pr-3 text-[11px] font-bold text-white placeholder:text-white/20 outline-none transition-all focus:bg-white/10 focus:border-gold-accent/40 focus:ring-4 focus:ring-gold-accent/5"
+                                    className="w-full rounded-xl bg-white/5 border border-white/10 py-2.5 pl-10 pr-3 text-[11px] font-bold text-white placeholder:text-white/20 outline-none transition-all focus:bg-white/10 focus:border-gold-accent/40 focus:ring-4 focus:ring-gold-accent/5 backdrop-blur-md"
                                     onChange={(e) => setFilters(p => ({ ...p, search: e.target.value }))}
                                     placeholder="Cari ISP atau Lokasi..."
                                     type="text"
@@ -1178,7 +1178,7 @@ function MonitoringSpreadsheetPage({
                             </button>
 
                             <button
-                                className="h-[44px] px-4 rounded-xl bg-white/5 border border-white/10 flex items-center gap-2 active:scale-95 transition-transform shrink-0 hover:bg-white/10 group"
+                                className="h-[44px] px-4 rounded-xl bg-white/5 border border-white/10 flex items-center gap-2 active:scale-95 transition-transform shrink-0 hover:bg-white/10 group backdrop-blur-md"
                                 onClick={() => {
                                     const reset = {
                                         search: "",
@@ -1281,7 +1281,7 @@ function MonitoringSpreadsheetPage({
                             </button>
                         )}
                         <button
-                            className="bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-600 px-5 py-3 rounded-xl transition-all flex items-center gap-2"
+                            className="bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-600 px-5 py-3 rounded-xl transition-all flex items-center gap-2 backdrop-blur-md"
                             onClick={exportToExcel}
                         >
                             <span className="material-symbols-outlined text-xl text-emerald-500">download_for_offline</span>
@@ -1320,7 +1320,7 @@ function MonitoringSpreadsheetPage({
                             <div className="relative group flex-grow">
                                 <span className="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 text-xl text-white/30 group-focus-within:text-gold-accent transition-all duration-300">search</span>
                                 <input
-                                    className="w-full h-14 rounded-2xl bg-black/20 border border-white/10 pl-14 pr-6 text-sm font-bold text-white placeholder:text-white/20 outline-none transition-all focus:bg-black/40 focus:border-gold-accent/40 focus:ring-4 focus:ring-gold-accent/5 shadow-inner-glass"
+                                    className="w-full h-14 rounded-2xl bg-black/20 border border-white/10 pl-14 pr-6 text-sm font-bold text-white placeholder:text-white/20 outline-none transition-all focus:bg-black/40 focus:border-gold-accent/40 focus:ring-4 focus:ring-gold-accent/5 shadow-inner-glass backdrop-blur-md"
                                     onChange={(e) => setFilters(p => ({ ...p, search: e.target.value }))}
                                     placeholder="Cari ISP atau Lokasi..."
                                     type="text"
@@ -1329,7 +1329,7 @@ function MonitoringSpreadsheetPage({
                             </div>
 
                             <button
-                                className="h-14 bg-white/5 hover:bg-white/10 text-on-surface-variant px-6 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all border border-white/10 hover:border-white/20 active:scale-95 flex items-center gap-2"
+                                className="h-14 bg-white/5 hover:bg-white/10 text-on-surface-variant px-6 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all border border-white/10 hover:border-white/20 active:scale-95 flex items-center gap-2 backdrop-blur-md"
                                 onClick={() => {
                                     setFilters({
                                         search: "",
@@ -1432,11 +1432,11 @@ function MonitoringSpreadsheetPage({
 
                     {/* Result Indicators - Matched with Pelanggan */}
                     <div className="mt-6 flex flex-wrap items-center gap-4 pt-6 border-t border-white/5">
-                        <div className="inline-flex items-center gap-3 px-6 py-3 rounded-2xl bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white/60 shadow-sm">
+                        <div className="inline-flex items-center gap-3 px-6 py-3 rounded-2xl bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white/60 shadow-sm backdrop-blur-md">
                             <span className="material-symbols-outlined text-lg text-gold-accent">location_on</span>
                             <span><span className="text-white font-black">{filteredRows.length}</span> Lokasi Terpilih</span>
                         </div>
-                        <div className="inline-flex items-center gap-3 px-6 py-3 rounded-2xl bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white/60 shadow-sm">
+                        <div className="inline-flex items-center gap-3 px-6 py-3 rounded-2xl bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white/60 shadow-sm backdrop-blur-md">
                             <span className="material-symbols-outlined text-lg text-gold-accent">hub</span>
                             <span><span className="text-white font-black">{new Set(filteredRows.map(r => r.ispName)).size}</span> ISP Terkait</span>
                         </div>
@@ -1457,7 +1457,7 @@ function MonitoringSpreadsheetPage({
                         <span className="text-[10px] font-black uppercase tracking-widest text-on-surface/60">Terlambat</span>
                     </div>
                     <div className="flex items-center gap-2">
-                        <span className="h-2 w-2 rounded-full bg-white/10 border border-white/10"></span>
+                        <span className="h-2 w-2 rounded-full bg-white/10 border border-white/10 backdrop-blur-md"></span>
                         <span className="text-[10px] font-black uppercase tracking-widest text-on-surface/60">Belum Ditagih</span>
                     </div>
                     <div className="flex-1 flex justify-end">
@@ -1517,7 +1517,7 @@ function MonitoringSpreadsheetPage({
                                             <span className="text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em]">Indeks Keamanan Jalur</span>
                                             <span className="text-xs font-black text-emerald-500">{Math.round((routeSummary.aktif / (billingRows.length || 1)) * 100)}%</span>
                                         </div>
-                                        <div className="h-2.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/10 p-[1px]">
+                                        <div className="h-2.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/10 p-[1px] backdrop-blur-md">
                                             <div
                                                 className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 rounded-full shadow-emerald-glow"
                                                 style={{ width: `${(routeSummary.aktif / (billingRows.length || 1)) * 100}%` }}
@@ -1526,15 +1526,15 @@ function MonitoringSpreadsheetPage({
                                     </div>
 
                                     <div className="grid grid-cols-3 gap-4">
-                                        <div className="p-4 rounded-2xl bg-white/5 border border-white/10 group/substat hover:border-emerald-500/30 transition-colors">
+                                        <div className="p-4 rounded-2xl bg-white/5 border border-white/10 group/substat hover:border-emerald-500/30 transition-colors backdrop-blur-md">
                                             <p className="text-[9px] font-black text-on-surface-variant uppercase tracking-widest mb-1 opacity-60">Aktif / Aman</p>
                                             <p className="text-2xl font-black text-emerald-500">{routeSummary.aktif}</p>
                                         </div>
-                                        <div className="p-4 rounded-2xl bg-white/5 border border-white/10 group/substat hover:border-rose-500/30 transition-colors">
+                                        <div className="p-4 rounded-2xl bg-white/5 border border-white/10 group/substat hover:border-rose-500/30 transition-colors backdrop-blur-md">
                                             <p className="text-[9px] font-black text-on-surface-variant uppercase tracking-widest mb-1 opacity-60">Gangguan</p>
                                             <p className="text-2xl font-black text-rose-500">{routeSummary.gangguan}</p>
                                         </div>
-                                        <div className="p-4 rounded-2xl bg-white/5 border border-white/10 group/substat hover:border-amber-500/30 transition-colors">
+                                        <div className="p-4 rounded-2xl bg-white/5 border border-white/10 group/substat hover:border-amber-500/30 transition-colors backdrop-blur-md">
                                             <p className="text-[9px] font-black text-on-surface-variant uppercase tracking-widest mb-1 opacity-60">Perbaikan</p>
                                             <p className="text-2xl font-black text-amber-500">{routeSummary.perbaikan}</p>
                                         </div>
@@ -1552,7 +1552,7 @@ function MonitoringSpreadsheetPage({
                             <span className="h-6 w-1.5 bg-gold-accent rounded-full shadow-gold-glow"></span>
                             <h2 className="text-xl font-black text-on-surface tracking-tight uppercase tracking-widest">Aktivitas Lintas Unit</h2>
                         </div>
-                        <span className="px-4 py-1 rounded-full bg-white/5 text-on-surface-variant text-[10px] font-black uppercase tracking-widest border border-white/10">REAL-TIME FEED</span>
+                        <span className="px-4 py-1 rounded-full bg-white/5 text-on-surface-variant text-[10px] font-black uppercase tracking-widest border border-white/10 backdrop-blur-md">REAL-TIME FEED</span>
                     </div>
 
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -1565,7 +1565,7 @@ function MonitoringSpreadsheetPage({
                         {recentActivities.map((activity) => (
                             <div
                                 key={activity.id}
-                                className="p-5 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/12 transition-all group/activity cursor-default"
+                                className="p-5 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/12 transition-all group/activity cursor-default backdrop-blur-md"
                             >
                                 <div className="mb-3 flex items-center justify-between gap-4">
                                     <div className="flex items-center gap-2 overflow-hidden">
@@ -1649,7 +1649,7 @@ function PaginationControls({ currentPage, totalPages, onPageChange, itemsPerPag
                     <select
                         value={itemsPerPage}
                         onChange={(e) => onItemsPerPageChange(Number(e.target.value))}
-                        className="rounded-lg bg-white/5 border border-white/10 px-3 py-1.5 text-[11px] font-bold text-white outline-none transition-all hover:bg-white/10 focus:border-gold-accent/40 focus:ring-2 focus:ring-gold-accent/10"
+                        className="rounded-lg bg-white/5 border border-white/10 px-3 py-1.5 text-[11px] font-bold text-white outline-none transition-all hover:bg-white/10 focus:border-gold-accent/40 focus:ring-2 focus:ring-gold-accent/10 backdrop-blur-md"
                     >
                         <option value={25}>25</option>
                         <option value={50}>50</option>
@@ -1665,7 +1665,7 @@ function PaginationControls({ currentPage, totalPages, onPageChange, itemsPerPag
                     <button
                         onClick={() => onPageChange(currentPage - 1)}
                         disabled={currentPage === 1}
-                        className="h-9 w-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center transition-all hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-white/5"
+                        className="h-9 w-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center transition-all hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-white/5 backdrop-blur-md"
                     >
                         <span className="material-symbols-outlined text-sm text-white">chevron_left</span>
                     </button>
@@ -1691,7 +1691,7 @@ function PaginationControls({ currentPage, totalPages, onPageChange, itemsPerPag
                     <button
                         onClick={() => onPageChange(currentPage + 1)}
                         disabled={currentPage === totalPages}
-                        className="h-9 w-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center transition-all hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-white/5"
+                        className="h-9 w-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center transition-all hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-white/5 backdrop-blur-md"
                     >
                         <span className="material-symbols-outlined text-sm text-white">chevron_right</span>
                     </button>

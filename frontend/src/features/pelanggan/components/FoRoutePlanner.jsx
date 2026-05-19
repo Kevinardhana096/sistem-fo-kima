@@ -1384,7 +1384,7 @@ export default function FoRoutePlanner({
             <div className="relative flex-1">
               <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
               <input
-                className="w-full rounded-xl border border-white/10 bg-white/5 pl-9 pr-3 py-1.5 text-[11px] text-white outline-none focus:border-primary/50 transition"
+                className="w-full rounded-xl border border-white/10 bg-white/5 pl-9 pr-3 py-1.5 text-[11px] text-white outline-none focus:border-primary/50 transition backdrop-blur-md"
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Cari lokasi penarikan..."
                 type="text"
@@ -1401,12 +1401,12 @@ export default function FoRoutePlanner({
           {searchResults.length > 0 && (
             <div className="mt-2.5 max-h-[145px] overflow-auto space-y-1.5 pr-1 custom-scrollbar">
               {searchResults.map((result) => (
-                <div key={result.place_id} className="rounded-lg bg-white/5 p-2 border border-white/5 hover:bg-white/10 transition">
+                <div key={result.place_id} className="rounded-lg bg-white/5 p-2 border border-white/5 hover:bg-white/10 transition backdrop-blur-md">
                   <p className="text-[10px] text-white/90 font-medium leading-tight mb-2">{result.display_name}</p>
                   <div className="flex gap-1.5">
-                    <button className="flex-1 bg-white/10 py-1 rounded text-[9px] font-bold uppercase text-white/70 hover:text-white" onClick={() => handlePickSearchResult(result, "a")}>Set A</button>
-                    <button className="flex-1 bg-white/10 py-1 rounded text-[9px] font-bold uppercase text-white/70 hover:text-white" onClick={() => handlePickSearchResult(result, "b")}>Set B</button>
-                    {customRouteMode && <button className="flex-1 bg-white/10 py-1 rounded text-[9px] font-bold uppercase text-white/70 hover:text-white" onClick={() => handlePickSearchResult(result, "waypoint")}>+W</button>}
+                    <button className="flex-1 bg-white/10 py-1 rounded text-[9px] font-bold uppercase text-white/70 hover:text-white backdrop-blur-md" onClick={() => handlePickSearchResult(result, "a")}>Set A</button>
+                    <button className="flex-1 bg-white/10 py-1 rounded text-[9px] font-bold uppercase text-white/70 hover:text-white backdrop-blur-md" onClick={() => handlePickSearchResult(result, "b")}>Set B</button>
+                    {customRouteMode && <button className="flex-1 bg-white/10 py-1 rounded text-[9px] font-bold uppercase text-white/70 hover:text-white backdrop-blur-md" onClick={() => handlePickSearchResult(result, "waypoint")}>+W</button>}
                   </div>
                 </div>
               ))}
@@ -1422,7 +1422,7 @@ export default function FoRoutePlanner({
       >
         <div className="flex flex-col h-full pointer-events-auto bg-slate-900/95 sm:bg-transparent backdrop-blur-xl sm:backdrop-blur-none sm:space-y-2.5 p-4 sm:p-0 overflow-auto sm:overflow-visible rounded-t-3xl sm:rounded-none shadow-[0_-10px_40px_rgba(0,0,0,0.3)] sm:shadow-none border-t border-white/10 sm:border-t-0">
           {/* Mobile Handle (Visual only) */}
-          <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-white/20 sm:hidden" />
+          <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-white/20 sm:hidden backdrop-blur-md" />
 
           {/* Header Panel */}
           <header className="rounded-2xl sm:border border-white/10 sm:bg-slate-900/80 sm:p-4 sm:backdrop-blur-md sm:shadow-2xl relative shrink-0">
@@ -1459,7 +1459,7 @@ export default function FoRoutePlanner({
                 Set W
               </button>
               <button
-                className="col-span-2 flex items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-[9px] font-bold uppercase text-white/80 transition hover:bg-white/10"
+                className="col-span-2 flex items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-[9px] font-bold uppercase text-white/80 transition hover:bg-white/10 backdrop-blur-md"
                 onClick={handleRecenterToKima}
                 type="button"
               >
@@ -1496,7 +1496,7 @@ export default function FoRoutePlanner({
                           {namedPlannerRoads.length} ruas
                         </span>
                         <button
-                          className="flex h-6 w-6 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/70 transition hover:text-white"
+                          className="flex h-6 w-6 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/70 transition hover:text-white backdrop-blur-md"
                           onClick={() => setIsRoadPanelOpen(false)}
                           title="Tutup panel ruas jalan"
                           type="button"
@@ -1509,7 +1509,7 @@ export default function FoRoutePlanner({
                       {namedPlannerRoads.map((road, index) => (
                         <div
                           key={road.id ?? `named-road-${index}`}
-                          className="flex items-center justify-between gap-2 rounded-lg bg-white/5 px-2.5 py-1.5"
+                          className="flex items-center justify-between gap-2 rounded-lg bg-white/5 px-2.5 py-1.5 backdrop-blur-md"
                         >
                           <div className="min-w-0 flex items-center gap-2">
                             <span className="material-symbols-outlined shrink-0 text-[13px] text-sky-400">route</span>
@@ -1554,7 +1554,7 @@ export default function FoRoutePlanner({
 
             <div className="flex-1 overflow-auto space-y-1.5 pr-1 custom-scrollbar">
               {/* Point A */}
-              <div className="flex flex-col gap-1.5 rounded-xl bg-blue-500/10 border border-blue-500/20 p-2.5">
+              <div className="flex flex-col gap-1.5 rounded-xl bg-blue-500/10 border border-blue-500/20 p-2.5 backdrop-blur-md">
                 <div className="flex items-center gap-3">
                   <div className="h-7 w-7 rounded-lg bg-blue-500 flex items-center justify-center font-black text-white text-[11px] shadow-lg shadow-blue-500/20">A</div>
                   <div className="flex-1 min-w-0">
@@ -1565,7 +1565,7 @@ export default function FoRoutePlanner({
 
                 <div className="flex gap-2 items-center mt-1">
                   <input
-                    className="flex-1 bg-white/5 border border-white/10 rounded px-2 py-1 text-[9px] font-mono text-white outline-none focus:border-blue-500/50"
+                    className="flex-1 bg-white/5 border border-white/10 rounded px-2 py-1 text-[9px] font-mono text-white outline-none focus:border-blue-500/50 backdrop-blur-md"
                     onBlur={() => commitManualCoordinate("a")}
                     onChange={(e) => handleManualCoordinateChange("a", null, "lat", e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && commitManualCoordinate("a")}
@@ -1573,7 +1573,7 @@ export default function FoRoutePlanner({
                     value={manualInput["a-static-lat"] ?? (pointA?.lat ?? "")}
                   />
                   <input
-                    className="flex-1 bg-white/5 border border-white/10 rounded px-2 py-1 text-[9px] font-mono text-white outline-none focus:border-blue-500/50"
+                    className="flex-1 bg-white/5 border border-white/10 rounded px-2 py-1 text-[9px] font-mono text-white outline-none focus:border-blue-500/50 backdrop-blur-md"
                     onBlur={() => commitManualCoordinate("a")}
                     onChange={(e) => handleManualCoordinateChange("a", null, "lng", e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && commitManualCoordinate("a")}
@@ -1601,7 +1601,7 @@ export default function FoRoutePlanner({
                       </div>
                     )}
                     
-                    <div className="group flex flex-col gap-1.5 rounded-xl bg-white/5 border border-white/10 p-2.5 hover:border-primary/30 transition">
+                    <div className="group flex flex-col gap-1.5 rounded-xl bg-white/5 border border-white/10 p-2.5 hover:border-primary/30 transition backdrop-blur-md">
                       <div className="flex items-center gap-3">
                         <div className="h-7 w-7 rounded-lg bg-emerald-500 flex items-center justify-center font-black text-white text-[11px] shadow-lg shadow-emerald-500/20">{index + 1}</div>
                         <div className="flex-1 min-w-0">
@@ -1615,7 +1615,7 @@ export default function FoRoutePlanner({
                         </div>
                         <div className="flex flex-col gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition">
                           <button
-                            className="p-1 text-white/40 hover:text-white hover:bg-white/10 rounded transition"
+                            className="p-1 text-white/40 hover:text-white hover:bg-white/10 rounded transition backdrop-blur-md"
                             onClick={() => handleWaypointMove(point.id, "up")}
                             title="Pindahkan ke atas"
                             type="button"
@@ -1623,7 +1623,7 @@ export default function FoRoutePlanner({
                             <span className="material-symbols-outlined text-[14px]">keyboard_arrow_up</span>
                           </button>
                           <button
-                            className="p-1 text-white/40 hover:text-white hover:bg-white/10 rounded transition"
+                            className="p-1 text-white/40 hover:text-white hover:bg-white/10 rounded transition backdrop-blur-md"
                             onClick={() => handleWaypointMove(point.id, "down")}
                             title="Pindahkan ke bawah"
                             type="button"
@@ -1638,7 +1638,7 @@ export default function FoRoutePlanner({
 
                       <div className="flex gap-2 items-center mt-1">
                         <input
-                          className="flex-1 bg-white/5 border border-white/10 rounded px-2 py-1 text-[9px] font-mono text-white outline-none focus:border-emerald-500/50"
+                          className="flex-1 bg-white/5 border border-white/10 rounded px-2 py-1 text-[9px] font-mono text-white outline-none focus:border-emerald-500/50 backdrop-blur-md"
                           onBlur={() => commitManualCoordinate("waypoint", point.id)}
                           onChange={(e) => handleManualCoordinateChange("waypoint", point.id, "lat", e.target.value)}
                           onKeyDown={(e) => e.key === "Enter" && commitManualCoordinate("waypoint", point.id)}
@@ -1646,7 +1646,7 @@ export default function FoRoutePlanner({
                           value={manualInput[`waypoint-${point.id}-lat`] ?? point.lat}
                         />
                         <input
-                          className="flex-1 bg-white/5 border border-white/10 rounded px-2 py-1 text-[9px] font-mono text-white outline-none focus:border-emerald-500/50"
+                          className="flex-1 bg-white/5 border border-white/10 rounded px-2 py-1 text-[9px] font-mono text-white outline-none focus:border-emerald-500/50 backdrop-blur-md"
                           onBlur={() => commitManualCoordinate("waypoint", point.id)}
                           onChange={(e) => handleManualCoordinateChange("waypoint", point.id, "lng", e.target.value)}
                           onKeyDown={(e) => e.key === "Enter" && commitManualCoordinate("waypoint", point.id)}
@@ -1691,7 +1691,7 @@ export default function FoRoutePlanner({
 
                     <div className="flex gap-2 items-center">
                       <input
-                        className="flex-1 bg-white/5 border border-white/10 rounded px-2 py-1 text-[9px] font-mono text-white outline-none focus:border-pink-500/50"
+                        className="flex-1 bg-white/5 border border-white/10 rounded px-2 py-1 text-[9px] font-mono text-white outline-none focus:border-pink-500/50 backdrop-blur-md"
                         onBlur={() => commitManualCoordinate("b")}
                         onChange={(e) => handleManualCoordinateChange("b", null, "lat", e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && commitManualCoordinate("b")}
@@ -1699,7 +1699,7 @@ export default function FoRoutePlanner({
                         value={manualInput["b-static-lat"] ?? (pointB?.lat ?? "")}
                       />
                       <input
-                        className="flex-1 bg-white/5 border border-white/10 rounded px-2 py-1 text-[9px] font-mono text-white outline-none focus:border-pink-500/50"
+                        className="flex-1 bg-white/5 border border-white/10 rounded px-2 py-1 text-[9px] font-mono text-white outline-none focus:border-pink-500/50 backdrop-blur-md"
                         onBlur={() => commitManualCoordinate("b")}
                         onChange={(e) => handleManualCoordinateChange("b", null, "lng", e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && commitManualCoordinate("b")}
@@ -1744,7 +1744,7 @@ export default function FoRoutePlanner({
                   Custom Jalur
                 </button>
                 <button
-                  className="p-2.5 bg-white/5 border border-white/10 text-white/70 hover:text-white rounded-xl transition"
+                  className="p-2.5 bg-white/5 border border-white/10 text-white/70 hover:text-white rounded-xl transition backdrop-blur-md"
                   onClick={handleUndoToInitial}
                   title="Undo ke setelan awal"
                   type="button"
@@ -1752,7 +1752,7 @@ export default function FoRoutePlanner({
                   <span className="material-symbols-outlined text-sm">undo</span>
                 </button>
                 <button
-                  className="p-2.5 bg-white/5 border border-white/10 text-white/70 hover:text-white rounded-xl transition"
+                  className="p-2.5 bg-white/5 border border-white/10 text-white/70 hover:text-white rounded-xl transition backdrop-blur-md"
                   onClick={handleResetPlanner}
                   title="Reset"
                   type="button"

@@ -21,6 +21,45 @@ const TABLE_MAP = {
     Jalur: 'customer_route_versions',
 };
 
+function CustomDropdown({ value, options, onChange, align = "right", triggerClass = "" }) {
+    const [isOpen, setIsOpen] = useState(false);
+    const selectedOption = options.find(opt => String(opt.value) === String(value)) || options[0] || { label: value };
+
+    return (
+        <div className="relative w-full h-full">
+            <button 
+                type="button"
+                onClick={() => setIsOpen(!isOpen)}
+                className={`flex w-full h-full items-center justify-between gap-1 appearance-none bg-transparent border-none font-black focus:outline-none ${triggerClass}`}
+            >
+                <span>{selectedOption.label}</span>
+                <span className={`material-symbols-outlined text-[16px] transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`}>expand_more</span>
+            </button>
+            
+            {isOpen && (
+                <>
+                    <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)}></div>
+                    <div className={`absolute top-full mt-3 ${align === "right" ? "right-0" : "left-0"} z-50 w-full min-w-[160px] max-h-[250px] overflow-y-auto custom-scrollbar rounded-2xl bg-black/60 border border-white/10 backdrop-blur-xl shadow-2xl py-1.5 animate-in fade-in zoom-in-95 duration-200`}>
+                        {options.map((opt) => (
+                            <button
+                                key={opt.value}
+                                type="button"
+                                onClick={() => {
+                                    onChange(opt.value);
+                                    setIsOpen(false);
+                                }}
+                                className={`w-[calc(100%-12px)] mx-1.5 mt-1 mb-1 last:mb-1.5 first:mt-1.5 flex items-center justify-center px-3 py-2 text-[10px] font-bold uppercase tracking-widest transition-colors rounded-xl text-center ${String(value) === String(opt.value) ? "bg-white/10 text-gold-accent" : "text-white/70 hover:bg-white/10 hover:text-white"}`}
+                            >
+                                <span>{opt.label}</span>
+                            </button>
+                        ))}
+                    </div>
+                </>
+            )}
+        </div>
+    );
+}
+
 export default function TrashPage({ activeSection, onNavigate, onLogout: _onLogout, currentRole = "admin" }) {
     const isTeknisi = currentRole === "teknisi";
     const [searchQuery, setSearchQuery] = useState("");
@@ -178,39 +217,40 @@ export default function TrashPage({ activeSection, onNavigate, onLogout: _onLogo
 
                     <div className="flex flex-wrap items-center gap-4 w-full lg:w-auto">
                         <div className="relative w-full md:w-80 group">
-                            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-gold-accent transition-colors">
+                            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-gold-accent transition-colors z-10 pointer-events-none">
                                 search
                             </span>
                             <input
                                 type="text"
                                 placeholder="Cari data yang dihapus..."
-                                className="w-full h-12 rounded-xl border border-white/10 bg-white/5 pl-12 pr-4 text-[10px] font-black uppercase tracking-widest text-white placeholder:text-white/20 outline-none transition-all focus:bg-black/40 focus:border-gold-accent/40 shadow-inner-glass"
+                                className="w-full h-12 rounded-xl border border-white/10 bg-white/5 pl-12 pr-4 text-[10px] font-black uppercase tracking-widest text-white placeholder:text-white/20 outline-none transition-all focus:bg-black/40 focus:border-gold-accent/40 shadow-inner-glass backdrop-blur-md"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
                         </div>
 
-                        <div className="w-48">
-                            <div className="relative group">
-                                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold-accent transition-colors z-10">filter_list</span>
-                                <select
+                        <div className="w-48 relative z-50">
+                            <div className="relative group h-12 rounded-xl bg-white/5 border border-white/10 focus-within:border-gold-accent/40 focus-within:bg-black/40 transition-all backdrop-blur-md">
+                                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold-accent transition-colors z-10 pointer-events-none">filter_list</span>
+                                <CustomDropdown 
                                     value={sortOrder}
-                                    onChange={(e) => setSortOrder(e.target.value)}
-                                    className="w-full h-12 pl-12 pr-4 rounded-xl bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white/40 outline-none focus:border-gold-accent/40 focus:bg-black/40 transition-all appearance-none cursor-pointer"
-                                >
-                                    <option value="newest" className="bg-[#0f141e]">Terbaru</option>
-                                    <option value="oldest" className="bg-[#0f141e]">Terlama</option>
-                                </select>
-                                <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-white/10 pointer-events-none">expand_more</span>
+                                    onChange={setSortOrder}
+                                    options={[
+                                        { value: "newest", label: "Terbaru" },
+                                        { value: "oldest", label: "Terlama" }
+                                    ]}
+                                    triggerClass="pl-12 pr-4 text-[10px] uppercase tracking-widest text-white/40 group-focus-within:text-gold-accent"
+                                    align="right"
+                                />
                             </div>
                         </div>
 
-                        <div className="w-px h-10 bg-white/5 mx-2 hidden lg:block" />
+                        <div className="w-px h-10 bg-white/5 mx-2 hidden lg:block backdrop-blur-md" />
 
                         <div className="flex items-center gap-3 w-full lg:w-auto justify-end">
                             {!isTeknisi && (
                                 <button
-                                    className="inline-flex h-12 items-center gap-3 rounded-xl bg-[#ff2400]/10 border border-[#ff2400]/20 px-8 text-[#ff2400] transition-all hover:bg-[#ff2400] hover:text-white active:scale-95 group shadow-sm text-[10px] font-black uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="inline-flex h-12 items-center gap-3 rounded-xl bg-[#ff2400]/10 border border-[#ff2400]/20 px-8 text-[#ff2400] transition-all hover:bg-[#ff2400] hover:text-white active:scale-95 group shadow-sm text-[10px] font-black uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed backdrop-blur-md"
                                     onClick={handleEmptyTrash}
                                     disabled={isLoading || trashItems.length === 0}
                                 >
@@ -220,7 +260,7 @@ export default function TrashPage({ activeSection, onNavigate, onLogout: _onLogo
                             )}
 
                             <button
-                                className="h-12 w-12 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white/40 hover:bg-white/10 hover:text-white transition-all active:scale-95 group disabled:opacity-50"
+                                className="h-12 w-12 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white/40 hover:bg-white/10 hover:text-white transition-all active:scale-95 group disabled:opacity-50 backdrop-blur-md"
                                 onClick={loadTrashData}
                                 disabled={isLoading}
                                 title="Refresh Data"
@@ -233,11 +273,11 @@ export default function TrashPage({ activeSection, onNavigate, onLogout: _onLogo
 
                 {/* Stats Section */}
                 <div className="relative overflow-hidden rounded-premium border border-white/10 bg-white/10 backdrop-blur-xl p-8 shadow-glass-depth group">
-                    <div className="absolute -right-24 -top-24 h-64 w-64 rounded-full bg-gold-accent/5 blur-3xl transition-all duration-700 group-hover:bg-gold-accent/10" />
+                    <div className="absolute -right-24 -top-24 h-64 w-64 rounded-full bg-gold-accent/5 blur-3xl transition-all duration-700 group-hover:bg-gold-accent/10 backdrop-blur-md" />
 
                     <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-10">
                         <div className="flex items-center gap-6">
-                            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gold-accent/10 border border-gold-accent/20">
+                            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gold-accent/10 border border-gold-accent/20 backdrop-blur-md">
                                 <span className="material-symbols-outlined text-3xl text-gold-accent animate-pulse">auto_delete</span>
                             </div>
                             <div>
@@ -263,7 +303,7 @@ export default function TrashPage({ activeSection, onNavigate, onLogout: _onLogo
                                 return (
                                     <div
                                         key={type}
-                                        className={`rounded-2xl bg-white/5 border border-white/10 p-4 transition-all hover:bg-white/10 ${hoverBorderClass} hover:scale-105 hover:shadow-lg active:scale-95 cursor-default group/stat`}
+                                        className={`rounded-2xl bg-white/5 border border-white/10 p-4 transition-all hover:bg-white/10 ${hoverBorderClass} hover:scale-105 hover:shadow-lg active:scale-95 cursor-default group/stat backdrop-blur-md`}
                                     >
                                         <p className={`text-[10px] font-black uppercase tracking-widest mb-1 transition-colors ${config.color} opacity-70 group-hover/stat:opacity-100`}>{type}</p>
                                         <p className="text-xl font-black text-white">{count}</p>
@@ -274,13 +314,14 @@ export default function TrashPage({ activeSection, onNavigate, onLogout: _onLogo
                     </div>
                 </div>
 
-                {/* List Section in Card Container */}
-                <div className="rounded-premium p-6 md:p-8 border border-white/10 bg-white/10 backdrop-blur-xl shadow-glass-depth cursor-default">
+                {/* List Section */}
+                <div className="rounded-premium p-6 md:p-8 border border-white/10 bg-white/10 backdrop-blur-xl shadow-glass-depth cursor-default transition-all">
                     <div className="flex items-center justify-between mb-8">
                         <div className="flex items-center gap-3">
+                            <span className="h-6 w-1.5 bg-gold-accent rounded-full shadow-gold-glow"></span>
                             <h2 className="text-xl font-black text-white uppercase tracking-widest">Daftar Item Terhapus</h2>
                         </div>
-                        <div className="flex items-center gap-3 px-6 py-2 rounded-xl bg-white/5 border border-white/10">
+                        <div className="flex items-center gap-3 px-6 py-2 rounded-xl bg-white/5 border border-white/10 backdrop-blur-md">
                             <span className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em]">Total Sampah:</span>
                             <span className="text-lg font-black text-gold-accent">{trashItems.length}</span>
                         </div>
@@ -337,7 +378,7 @@ export default function TrashPage({ activeSection, onNavigate, onLogout: _onLogo
                                                                 ))}
                                                             </div>
                                                         </div>
-                                                        <div className="h-1 w-1 rounded-full bg-white/20 hidden sm:block" />
+                                                        <div className="h-1 w-1 rounded-full bg-white/20 hidden sm:block backdrop-blur-md" />
                                                         <p className="text-[10px] font-bold text-white/70 uppercase tracking-widest flex items-center gap-1.5">
                                                             <span className="text-[#ff2400] font-black">{new Date(item.deletedAt).toLocaleString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                                                         </p>
@@ -348,7 +389,7 @@ export default function TrashPage({ activeSection, onNavigate, onLogout: _onLogo
                                             <div className="flex items-center gap-3 self-end lg:self-center">
                                                 <button
                                                     onClick={() => handleRestore(item)}
-                                                    className="flex h-11 items-center gap-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 px-5 text-[10px] font-black uppercase tracking-widest text-emerald-400 transition-all hover:bg-emerald-500 hover:text-white hover:shadow-lg hover:shadow-emerald-500/20 active:scale-95"
+                                                    className="flex h-11 items-center gap-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 px-5 text-[10px] font-black uppercase tracking-widest text-emerald-400 transition-all hover:bg-emerald-500 hover:text-white hover:shadow-lg hover:shadow-emerald-500/20 active:scale-95 backdrop-blur-md"
                                                     disabled={isLoading}
                                                 >
                                                     <span className="material-symbols-outlined text-lg">restore_from_trash</span>
@@ -356,7 +397,7 @@ export default function TrashPage({ activeSection, onNavigate, onLogout: _onLogo
                                                 </button>
                                                 <button
                                                     onClick={() => handleDeletePermanently(item)}
-                                                    className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#ff2400]/10 border border-[#ff2400]/20 text-[#ff2400] transition-all hover:bg-[#ff2400] hover:text-white hover:scale-[1.02] active:scale-95"
+                                                    className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#ff2400]/10 border border-[#ff2400]/20 text-[#ff2400] transition-all hover:bg-[#ff2400] hover:text-white hover:scale-[1.02] active:scale-95 backdrop-blur-md"
                                                     title="Hapus Permanen"
                                                     disabled={isLoading}
                                                 >
@@ -369,10 +410,10 @@ export default function TrashPage({ activeSection, onNavigate, onLogout: _onLogo
                             </div>
                         ) : (
                             <div className="flex flex-col items-center justify-center py-20 animate-in fade-in zoom-in duration-500">
-                                <div className="relative mb-8">
-                                    <div className="absolute inset-0 scale-150 bg-white/5 blur-[50px] rounded-full" />
-                                    <div className="relative flex h-24 w-24 items-center justify-center rounded-3xl bg-white/5 border border-white/10 shadow-2xl backdrop-blur-xl text-white/20">
-                                        <span className="material-symbols-outlined text-6xl">delete_outline</span>
+                                <div className="relative mb-8 mt-4 group">
+                                    <div className="absolute inset-0 scale-125 bg-gold-accent/5 blur-[50px] rounded-full transition-all duration-700 group-hover:bg-gold-accent/10" />
+                                    <div className="relative flex h-24 w-24 items-center justify-center rounded-full bg-white/5 border border-white/10 backdrop-blur-xl shadow-inner-glass transition-all duration-500 group-hover:scale-105 group-hover:border-gold-accent/30 group-hover:bg-white/10">
+                                        <span className="material-symbols-outlined text-[72px] text-white/20 transition-colors duration-500 group-hover:text-gold-accent/80">delete_outline</span>
                                     </div>
                                 </div>
                                 <h3 className="text-xl font-black text-white uppercase tracking-widest mb-3">Tempat Sampah Kosong</h3>

@@ -2333,6 +2333,11 @@ export const monitoringApi = {
       '1:16': 0,
       '1:32': 0,
     }));
+    const coreTrend = Array.from({ length: 12 }, (_, index) => ({
+      month: index + 1,
+      name: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'][index],
+      count: 0,
+    }));
     const routeStatus = { aktif: 0, gangguan: 0, perbaikan: 0, nonaktif: 0, total: 0 };
     let totalCoreUsed = 0;
     let coreLocationCount = 0;
@@ -2359,14 +2364,20 @@ export const monitoringApi = {
         const version = getLatestVersion(contract);
         const ratio = version?.shared_core_ratio || contract.sharing_ratio;
         const type = version?.core_type || contract.core_type;
-        if (type !== 'sharing_core' || !ratio) return;
+        const total = Number(version?.core_total ?? contract.core_total ?? 0);
+        
         sharingTrend.forEach((monthData, index) => {
           const month = index + 1;
           const monthStart = `${selectedYear}-${String(month).padStart(2, '0')}-01`;
           const monthEnd = new Date(Date.UTC(selectedYear, month, 0)).toISOString().slice(0, 10);
           if (!isContractInPeriod(contract, monthStart, monthEnd)) return;
-          const chartKey = ratio.replace('/', ':');
-          if (Object.prototype.hasOwnProperty.call(monthData, chartKey)) monthData[chartKey] += 1;
+          
+          if (type === 'sharing_core' && ratio) {
+            const chartKey = ratio.replace('/', ':');
+            if (Object.prototype.hasOwnProperty.call(monthData, chartKey)) monthData[chartKey] += 1;
+          } else if (type === 'core') {
+            coreTrend[index].count += total;
+          }
         });
       });
 
@@ -2410,6 +2421,7 @@ export const monitoringApi = {
       },
       sharingCounts,
       sharingTrend,
+      coreTrend,
       routeStatus,
       growth: {
         tenant: tenantGrowth,

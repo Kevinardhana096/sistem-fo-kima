@@ -2129,7 +2129,7 @@ function TenantDetailPage({
     if (followUps.length === 0) {
       if (columnType === "renewal") {
         return (
-          <label className="relative inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-white/10 bg-white/5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all cursor-pointer">
+          <label className="relative inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-white/10 bg-white/5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all cursor-pointer backdrop-blur-md">
             <span className="material-symbols-outlined text-[13px]">upload_file</span>
             Upload
             <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => void handleUploadTenantRenewal(row, e.target.files?.[0] ?? null)} />
@@ -2156,7 +2156,7 @@ function TenantDetailPage({
                     <span className="material-symbols-outlined text-[11px]">open_in_new</span>Lihat
                   </a>
                 ) : (
-                  <label className="relative inline-flex items-center gap-1 h-7 px-2.5 rounded-lg border border-white/10 bg-white/5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all cursor-pointer">
+                  <label className="relative inline-flex items-center gap-1 h-7 px-2.5 rounded-lg border border-white/10 bg-white/5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all cursor-pointer backdrop-blur-md">
                     <span className="material-symbols-outlined text-[11px]">upload_file</span>Upload
                     <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => void handleUploadTenantRenewal(row, e.target.files?.[0] ?? null, followUp.id)} />
                   </label>
@@ -2168,10 +2168,10 @@ function TenantDetailPage({
                   </a>
                 ) : hasRenewalFile ? (
                   <div className="flex items-center gap-1.5">
-                    <label className="relative inline-flex items-center gap-1 h-7 px-2.5 rounded-lg border border-emerald-500/20 bg-emerald-500/10 text-[8px] font-black uppercase tracking-widest text-emerald-400 hover:bg-emerald-500 hover:text-[#0f141e] transition-all cursor-pointer">
+                    <label className="relative inline-flex items-center gap-1 h-7 px-2.5 rounded-lg border border-emerald-500/20 bg-emerald-500/10 text-[8px] font-black uppercase tracking-widest text-emerald-400 hover:bg-emerald-500 hover:text-[#0f141e] transition-all cursor-pointer backdrop-blur-md">
                       Lanjut<input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => void handleRespondTenantRenewal(row, "lanjut", e.target.files?.[0] ?? null, followUp.id)} />
                     </label>
-                    <label className="relative inline-flex items-center gap-1 h-7 px-2.5 rounded-lg border border-white/10 bg-white/5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:bg-white/10 hover:text-white transition-all cursor-pointer">
+                    <label className="relative inline-flex items-center gap-1 h-7 px-2.5 rounded-lg border border-white/10 bg-white/5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:bg-white/10 hover:text-white transition-all cursor-pointer backdrop-blur-md">
                       Tidak<input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => void handleRespondTenantRenewal(row, "tidak", e.target.files?.[0] ?? null, followUp.id)} />
                     </label>
                   </div>
@@ -2221,7 +2221,7 @@ function TenantDetailPage({
                 <span className="rounded bg-primary/20 px-1.5 py-0.5 text-primary border border-primary/30 uppercase tracking-tighter">
                   {(detail?.paket || customer?.paket || "CORE")}
                 </span>
-                <span className="hidden md:block w-1 h-1 rounded-full bg-white/20"></span>
+                <span className="hidden md:block w-1 h-1 rounded-full bg-white/20 backdrop-blur-md"></span>
                 <span className="uppercase tracking-widest hidden md:block">
                   ISP: {isps.length > 0 ? isps.map((item) => item.name).join(", ") : "-"}
                 </span>
@@ -2284,7 +2284,7 @@ function TenantDetailPage({
                 {!isTeknisi && (
                     <div className="flex items-center gap-2">
                         <button
-                            className="h-12 px-5 flex items-center gap-2 rounded-xl bg-white/5 border border-white/10 text-white/60 hover:bg-white/10 hover:text-white transition-all shadow-sm group text-[10px] font-black uppercase tracking-widest"
+                            className="h-12 px-5 flex items-center gap-2 rounded-xl bg-white/5 border border-white/10 text-white/60 hover:bg-white/10 hover:text-white transition-all shadow-sm group text-[10px] font-black uppercase tracking-widest backdrop-blur-md"
                             onClick={() => void Promise.all([loadDetail(), onRefreshAll?.()])}
                             title="Refresh Data"
                         >
@@ -2335,7 +2335,7 @@ function TenantDetailPage({
                         {/* Header */}
                         <div className="flex items-center justify-between px-6 pt-6 pb-4">
                             <div className="flex items-center gap-3">
-                                <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-gold-accent/20 bg-gold-accent/10 text-gold-accent">
+                                <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-gold-accent/20 bg-gold-accent/10 text-gold-accent backdrop-blur-md">
                                     <span className="material-symbols-outlined text-lg">corporate_fare</span>
                                 </div>
                                 <div>
@@ -2344,7 +2344,7 @@ function TenantDetailPage({
                                 </div>
                             </div>
                             <button
-                                className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/40 transition-all hover:bg-white/10 hover:text-white"
+                                className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/40 transition-all hover:bg-white/10 hover:text-white backdrop-blur-md"
                                 onClick={() => setIspPopupOpen(false)}
                                 type="button"
                             >
@@ -2368,10 +2368,10 @@ function TenantDetailPage({
                                                 <img
                                                     src={ispItem.logoUrl}
                                                     alt={ispItem.name}
-                                                    className="h-10 w-10 rounded-xl object-cover border border-white/10 bg-white/5 shrink-0"
+                                                    className="h-10 w-10 rounded-xl object-cover border border-white/10 bg-white/5 shrink-0 backdrop-blur-md"
                                                 />
                                             ) : (
-                                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/30">
+                                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/30 backdrop-blur-md">
                                                     <span className="material-symbols-outlined text-xl">business</span>
                                                 </div>
                                             )}
@@ -2385,7 +2385,7 @@ function TenantDetailPage({
                                             </div>
                                         </div>
                                         <button
-                                            className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-gold-accent/20 bg-gold-accent/10 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-gold-accent transition-all hover:bg-gold-accent hover:text-[#0f141e]"
+                                            className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-gold-accent/20 bg-gold-accent/10 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-gold-accent transition-all hover:bg-gold-accent hover:text-[#0f141e] backdrop-blur-md"
                                             onClick={() => { setIspPopupOpen(false); onNavigate?.("isp-detail", ispItem); }}
                                             type="button"
                                         >
@@ -2411,7 +2411,7 @@ function TenantDetailPage({
                                 </div>
                             )) : (
                                 <div className="flex flex-col items-center gap-3 py-10 text-center">
-                                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/5">
+                                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md">
                                         <span className="material-symbols-outlined text-3xl text-white/20">corporate_fare</span>
                                     </div>
                                     <p className="text-[10px] font-black uppercase tracking-widest text-white/20">Belum ada ISP terhubung</p>
@@ -2514,7 +2514,7 @@ function TenantDetailPage({
                                 {/* Left: icon + label + name + ISP info */}
                                 <div className="min-w-0 flex-1 space-y-3">
                                     <div className="flex items-center gap-2.5">
-                                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-gold-accent/20 bg-gold-accent/10 text-gold-accent">
+                                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-gold-accent/20 bg-gold-accent/10 text-gold-accent backdrop-blur-md">
                                             <span className="material-symbols-outlined text-lg">location_on</span>
                                         </div>
                                         <div>
@@ -2634,7 +2634,7 @@ function TenantDetailPage({
             )}
 
             {/* Tab Navigation */}
-            <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-white/5 border border-white/10 w-fit">
+            <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-white/5 border border-white/10 w-fit backdrop-blur-md">
                 {tabs.map((tab) => (
                     <button
                         key={tab.key}
@@ -2652,7 +2652,7 @@ function TenantDetailPage({
                 <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
                     {/* Invoice Bulanan */}
                     <div className="glass-card rounded-2xl p-5 border-white/10 shadow-glass-depth group relative overflow-hidden">
-                        <div className="pointer-events-none absolute -right-6 -top-6 h-20 w-20 rounded-full bg-gold-accent/5 blur-2xl group-hover:bg-gold-accent/10 transition-all duration-700" />
+                        <div className="pointer-events-none absolute -right-6 -top-6 h-20 w-20 rounded-full bg-gold-accent/5 blur-2xl group-hover:bg-gold-accent/10 transition-all duration-700 backdrop-blur-md" />
                         <p className="mb-3 text-[8px] font-black uppercase tracking-[0.3em] text-white/30">Invoice Bulanan</p>
                         <div className="flex items-baseline gap-2">
                             <span className="text-3xl font-black text-white tracking-tighter">{invoiceRows.length}</span>
@@ -2663,7 +2663,7 @@ function TenantDetailPage({
                                 <span className="text-emerald-400">Selesai</span>
                                 <span className="text-white">{paidInvoiceCount}</span>
                             </div>
-                            <div className="h-1 w-full rounded-full bg-white/5 overflow-hidden">
+                            <div className="h-1 w-full rounded-full bg-white/5 overflow-hidden backdrop-blur-md">
                                 <div
                                     className="h-full bg-emerald-400 shadow-emerald-glow transition-all duration-1000"
                                     style={{ width: `${(paidInvoiceCount / (invoiceRows.length || 1)) * 100}%` }}
@@ -2707,7 +2707,7 @@ function TenantDetailPage({
                     <div className="glass-card rounded-2xl p-5 border-white/10 shadow-glass-depth">
                         <p className="mb-3 text-[8px] font-black uppercase tracking-[0.3em] text-white/30">Periode Tagihan</p>
                         <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0 text-blue-400">
+                            <div className="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0 text-blue-400 backdrop-blur-md">
                                 <span className="material-symbols-outlined text-xl">calendar_today</span>
                             </div>
                             <div>
@@ -2722,7 +2722,7 @@ function TenantDetailPage({
                     {/* Status Kelengkapan Berkas */}
                     <div className="glass-card rounded-premium p-8 border-white/10 shadow-glass-depth relative overflow-hidden">
                         <div className="flex items-center gap-4 mb-8">
-                            <div className="h-10 w-10 rounded-xl bg-gold-accent/10 border border-gold-accent/20 flex items-center justify-center text-gold-accent">
+                            <div className="h-10 w-10 rounded-xl bg-gold-accent/10 border border-gold-accent/20 flex items-center justify-center text-gold-accent backdrop-blur-md">
                                 <span className="material-symbols-outlined text-xl">fact_check</span>
                             </div>
                             <div>
@@ -2741,7 +2741,7 @@ function TenantDetailPage({
                                                 <span className="text-[9px] font-black text-red-400 uppercase tracking-widest">Prioritas Tinggi</span>
                                             </div>
                                             {displayPriorityTodos.map((item) => (
-                                                <div key={item.id} className="p-5 rounded-2xl bg-red-500/5 border border-red-500/10 group/item hover:bg-red-500/10 transition-all">
+                                                <div key={item.id} className="p-5 rounded-2xl bg-red-500/5 border border-red-500/10 group/item hover:bg-red-500/10 transition-all backdrop-blur-md">
                                                     <div className="flex gap-4">
                                                         <span className="material-symbols-outlined text-red-400 mt-0.5">error</span>
                                                         <div className="flex-1">
@@ -2792,7 +2792,7 @@ function TenantDetailPage({
                                                                         {isSavingContractNumber ? "Saving..." : "Simpan"}
                                                                     </button>
                                                                     <button
-                                                                        className="h-10 px-4 rounded-xl border border-white/10 bg-white/5 text-white/40 text-[9px] font-black uppercase tracking-widest hover:bg-white/10 transition-all"
+                                                                        className="h-10 px-4 rounded-xl border border-white/10 bg-white/5 text-white/40 text-[9px] font-black uppercase tracking-widest hover:bg-white/10 transition-all backdrop-blur-md"
                                                                         disabled={!primaryContractRowMarkerId || isSavingContractNumber}
                                                                         onClick={() => primaryContractRowMarkerId && toggleContractNumberEmptyMark(primaryContractRowMarkerId)}
                                                                     >
@@ -2808,8 +2808,8 @@ function TenantDetailPage({
                                     )}
                                 </>
                             ) : (
-                                <div className="p-6 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 flex items-center gap-4">
-                                    <div className="h-10 w-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400">
+                                <div className="p-6 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 flex items-center gap-4 backdrop-blur-md">
+                                    <div className="h-10 w-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 backdrop-blur-md">
                                         <span className="material-symbols-outlined">verified</span>
                                     </div>
                                     <p className="text-sm font-black text-emerald-400 uppercase tracking-tight leading-tight">Seluruh berkas lengkap & terverifikasi</p>
@@ -2823,7 +2823,7 @@ function TenantDetailPage({
                         {/* Biaya Aktivasi */}
                         <div className="glass-card rounded-2xl p-6 border-white/10 shadow-glass-depth">
                             <div className="flex items-center gap-3 mb-5">
-                                <div className="h-9 w-9 rounded-xl bg-gold-accent/10 border border-gold-accent/20 flex items-center justify-center text-gold-accent shrink-0">
+                                <div className="h-9 w-9 rounded-xl bg-gold-accent/10 border border-gold-accent/20 flex items-center justify-center text-gold-accent shrink-0 backdrop-blur-md">
                                     <span className="material-symbols-outlined text-lg">payments</span>
                                 </div>
                                 <div>
@@ -2832,7 +2832,7 @@ function TenantDetailPage({
                                 </div>
                             </div>
                             {detail?.activationFeePaidAt ? (
-                                <div className="flex items-center gap-4 p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
+                                <div className="flex items-center gap-4 p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/10 backdrop-blur-md">
                                     <span className="material-symbols-outlined text-emerald-400 text-2xl shrink-0">verified_user</span>
                                     <div>
                                         <p className="text-[9px] font-black text-emerald-400 uppercase tracking-[0.2em]">Status: Selesai</p>
@@ -2855,7 +2855,7 @@ function TenantDetailPage({
                         {/* Jejak Aktivitas */}
                         <div className="glass-card rounded-2xl p-6 border-white/10 shadow-glass-depth">
                             <div className="flex items-center gap-3 mb-5">
-                                <div className="h-9 w-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
+                                <div className="h-9 w-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0 backdrop-blur-md">
                                     <span className="material-symbols-outlined text-lg">history</span>
                                 </div>
                                 <div>
@@ -2865,7 +2865,7 @@ function TenantDetailPage({
                             </div>
                             {displayTimeline.length > 0 ? (
                                 <div className="relative pl-4 space-y-0">
-                                    <div className="absolute left-[7px] top-1 bottom-4 w-px bg-white/5" />
+                                    <div className="absolute left-[7px] top-1 bottom-4 w-px bg-white/5 backdrop-blur-md" />
                                     {displayTimeline.slice(0, 6).map((event, idx) => (
                                         <div key={event.id} className="flex gap-4 group/item relative pb-5 last:pb-0">
                                             <div className="shrink-0 pt-1">
@@ -2913,7 +2913,7 @@ function TenantDetailPage({
                                         <>
                                             {!isPlannerJalurView && (
                                                 <button
-                                                    className="h-12 px-6 flex items-center gap-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white transition-all shadow-sm text-[10px] font-black uppercase tracking-widest group"
+                                                    className="h-12 px-6 flex items-center gap-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white transition-all shadow-sm text-[10px] font-black uppercase tracking-widest group backdrop-blur-md"
                                                     onClick={() => onOpenRoutePlanner?.(detail ?? customer)}
                                                     type="button"
                                                 >
@@ -2923,7 +2923,7 @@ function TenantDetailPage({
                                             )}
 
                                             <button
-                                                className="h-12 px-6 flex items-center gap-3 rounded-xl bg-gold-accent/10 border border-gold-accent/20 text-gold-accent hover:bg-gold-accent hover:text-[#0f141e] transition-all shadow-sm text-[10px] font-black uppercase tracking-widest"
+                                                className="h-12 px-6 flex items-center gap-3 rounded-xl bg-gold-accent/10 border border-gold-accent/20 text-gold-accent hover:bg-gold-accent hover:text-[#0f141e] transition-all shadow-sm text-[10px] font-black uppercase tracking-widest backdrop-blur-md"
                                                 onClick={startDraftingSession}
                                                 type="button"
                                             >
@@ -2938,7 +2938,7 @@ function TenantDetailPage({
                                                 <span className="text-[8px] font-bold text-white/20 uppercase">Jalur lama tetap aktif hingga disimpan</span>
                                             </div>
                                             <button
-                                                className="h-12 px-6 rounded-xl border border-white/10 bg-white/5 text-white/40 text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all"
+                                                className="h-12 px-6 rounded-xl border border-white/10 bg-white/5 text-white/40 text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all backdrop-blur-md"
                                                 onClick={cancelDraftingSession}
                                                 type="button"
                                             >
@@ -3019,7 +3019,7 @@ function TenantDetailPage({
                                                 <span className="material-symbols-outlined text-gold-accent">list_alt</span>
                                                 <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-white">Lineage Titik Jalur</h3>
                                             </div>
-                                            <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[9px] font-black text-white/40 uppercase tracking-widest">
+                                            <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[9px] font-black text-white/40 uppercase tracking-widest backdrop-blur-md">
                                                 { (isRouteDrafting ? draftRoutePoints : routePoints).length } Titik
                                             </span>
                                         </div>
@@ -3060,14 +3060,14 @@ function TenantDetailPage({
                                                             <td className="px-8 py-5 text-right">
                                                                 <div className="flex items-center justify-end gap-2">
                                                                     <button
-                                                                        className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white/20 hover:text-white hover:bg-white/10 transition-all disabled:opacity-20"
+                                                                        className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white/20 hover:text-white hover:bg-white/10 transition-all disabled:opacity-20 backdrop-blur-md"
                                                                         disabled={routeBusy || point.pointType !== "transit"}
                                                                         onClick={() => handleMoveRoutePoint(point.id, "up")}
                                                                     >
                                                                         <span className="material-symbols-outlined text-base">expand_less</span>
                                                                     </button>
                                                                     <button
-                                                                        className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white/20 hover:text-white hover:bg-white/10 transition-all disabled:opacity-20"
+                                                                        className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white/20 hover:text-white hover:bg-white/10 transition-all disabled:opacity-20 backdrop-blur-md"
                                                                         disabled={routeBusy || point.pointType !== "transit"}
                                                                         onClick={() => handleMoveRoutePoint(point.id, "down")}
                                                                     >
@@ -3098,7 +3098,7 @@ function TenantDetailPage({
                                         <span className="material-symbols-outlined text-blue-400">alt_route</span>
                                         <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-white">Topologi Ruas Jalan {isRouteDrafting ? "(DRAFT)" : "Aktif"}</h3>
                                     </div>
-                                    <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[9px] font-black text-white/40 uppercase tracking-widest">
+                                    <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[9px] font-black text-white/40 uppercase tracking-widest backdrop-blur-md">
                                         {displayNamedRoads.length} Ruas Terdeteksi
                                     </span>
                                 </div>
@@ -3153,7 +3153,7 @@ function TenantDetailPage({
                       </div>
                       <div className="flex items-center gap-3">
                           <div className="flex -space-x-2">
-                              <div className="h-8 px-3 rounded-l-xl bg-white/5 border border-white/10 flex items-center text-[9px] font-black text-white/40 uppercase tracking-widest">{routeHistoryRows.length} Log</div>
+                              <div className="h-8 px-3 rounded-l-xl bg-white/5 border border-white/10 flex items-center text-[9px] font-black text-white/40 uppercase tracking-widest backdrop-blur-md">{routeHistoryRows.length} Log</div>
                               <div className="h-8 px-3 rounded-r-xl bg-amber-500/20 border border-amber-500/20 flex items-center text-[9px] font-black text-amber-400 uppercase tracking-widest">{routeVersions.length} Versi</div>
                           </div>
                           <button
@@ -3206,7 +3206,7 @@ function TenantDetailPage({
 
                                       {isExpanded && (
                                           <div className="px-6 pb-8 animate-in slide-in-from-top-4 duration-500">
-                                              <div className="h-px bg-white/5 mb-8" />
+                                              <div className="h-px bg-white/5 mb-8 backdrop-blur-md" />
                                               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                                   <div className="space-y-4">
                                                       <p className="text-[9px] font-black text-gold-accent uppercase tracking-widest mb-4">Topologi Lintasan</p>
@@ -3266,7 +3266,7 @@ function TenantDetailPage({
                     </div>
 
                     {documentFeedback && (
-                        <div className="mb-8 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-widest flex items-center gap-3 animate-in fade-in zoom-in-95">
+                        <div className="mb-8 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-widest flex items-center gap-3 animate-in fade-in zoom-in-95 backdrop-blur-md">
                             <span className="material-symbols-outlined text-lg">verified</span>
                             {documentFeedback}
                         </div>
@@ -3328,14 +3328,14 @@ function TenantDetailPage({
                                                         {!isContractNumberMarkedEmpty && (
                                                             <div className="flex items-center gap-1.5">
                                                                 <input
-                                                                    className="h-8 w-36 rounded-lg border border-white/10 bg-white/5 px-3 text-[10px] font-bold text-white outline-none focus:border-gold-accent/50 transition-all placeholder:text-white/10"
+                                                                    className="h-8 w-36 rounded-lg border border-white/10 bg-white/5 px-3 text-[10px] font-bold text-white outline-none focus:border-gold-accent/50 transition-all placeholder:text-white/10 backdrop-blur-md"
                                                                     onChange={(e) => setContractNumberInput(e.target.value)}
                                                                     placeholder="No. kontrak..."
                                                                     type="text"
                                                                     value={contractNumberInput}
                                                                 />
                                                                 <button
-                                                                    className="h-8 px-3 rounded-lg border border-gold-accent/20 bg-gold-accent/10 text-gold-accent text-[8px] font-black uppercase tracking-widest hover:bg-gold-accent hover:text-[#0f141e] transition-all disabled:opacity-40"
+                                                                    className="h-8 px-3 rounded-lg border border-gold-accent/20 bg-gold-accent/10 text-gold-accent text-[8px] font-black uppercase tracking-widest hover:bg-gold-accent hover:text-[#0f141e] transition-all disabled:opacity-40 backdrop-blur-md"
                                                                     disabled={isSavingContractNumber}
                                                                     onClick={() => void handleSaveContractNumber()}
                                                                 >
@@ -3423,7 +3423,7 @@ function TenantDetailPage({
                                             {/* BAK */}
                                             <td className="px-5 py-4">
                                                 {row.hasBak ? (
-                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 text-[8px] font-black uppercase tracking-widest">
+                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 text-[8px] font-black uppercase tracking-widest backdrop-blur-md">
                                                         <span className="material-symbols-outlined text-[12px]">verified</span>
                                                         Ada
                                                     </span>
@@ -3448,7 +3448,7 @@ function TenantDetailPage({
                                                     {renderTenantRenewalFollowUps(row, "renewal")}
                                                     {hasInitialTenantRenewalUpload(row) && (
                                                         <button
-                                                            className="inline-flex items-center gap-1 h-7 px-2.5 rounded-lg border border-blue-500/20 bg-blue-500/10 text-blue-400 text-[8px] font-black uppercase tracking-widest hover:bg-blue-500 hover:text-white transition-all"
+                                                            className="inline-flex items-center gap-1 h-7 px-2.5 rounded-lg border border-blue-500/20 bg-blue-500/10 text-blue-400 text-[8px] font-black uppercase tracking-widest hover:bg-blue-500 hover:text-white transition-all backdrop-blur-md"
                                                             onClick={() => void handleAddTenantRenewalSplit(row)}
                                                         >
                                                             <span className="material-symbols-outlined text-[11px]">add</span>
@@ -3466,7 +3466,7 @@ function TenantDetailPage({
                                             {/* Aksi */}
                                             <td className="px-5 py-4 text-right">
                                                 <button
-                                                    className="h-8 w-8 rounded-lg border border-white/10 bg-white/5 flex items-center justify-center text-white/20 hover:text-gold-accent hover:border-gold-accent/30 hover:bg-gold-accent/10 transition-all"
+                                                    className="h-8 w-8 rounded-lg border border-white/10 bg-white/5 flex items-center justify-center text-white/20 hover:text-gold-accent hover:border-gold-accent/30 hover:bg-gold-accent/10 transition-all backdrop-blur-md"
                                                     title="Edit"
                                                 >
                                                     <span className="material-symbols-outlined text-base">edit_note</span>
@@ -3486,7 +3486,7 @@ function TenantDetailPage({
             <div className="space-y-10">
                 {/* Billing Header & Controls */}
                 <section className="glass-card rounded-premium p-8 border-white/10 shadow-glass-depth relative overflow-hidden">
-                    <div className="absolute -right-24 -top-24 h-64 w-64 rounded-full bg-blue-500/5 blur-3xl" />
+                    <div className="absolute -right-24 -top-24 h-64 w-64 rounded-full bg-blue-500/5 blur-3xl backdrop-blur-md" />
                     
                     <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-8">
                         <div className="space-y-2">
@@ -3552,7 +3552,7 @@ function TenantDetailPage({
                                         />
                                     </div>
                                     <button
-                                        className="h-10 px-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[8px] font-black uppercase tracking-widest hover:bg-emerald-500 hover:text-[#0f141e] transition-all disabled:opacity-40"
+                                        className="h-10 px-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[8px] font-black uppercase tracking-widest hover:bg-emerald-500 hover:text-[#0f141e] transition-all disabled:opacity-40 backdrop-blur-md"
                                         disabled={isSavingInvoice}
                                         onClick={() => void handleApplyGlobalSetDate()}
                                         type="button"
@@ -3565,7 +3565,7 @@ function TenantDetailPage({
 
                             {/* Rekonfigurasi Periode */}
                             <button
-                                className="h-10 px-4 inline-flex items-center gap-2 rounded-xl bg-white/5 border border-white/10 text-white/40 hover:bg-gold-accent/10 hover:border-gold-accent/20 hover:text-gold-accent transition-all text-[8px] font-black uppercase tracking-widest"
+                                className="h-10 px-4 inline-flex items-center gap-2 rounded-xl bg-white/5 border border-white/10 text-white/40 hover:bg-gold-accent/10 hover:border-gold-accent/20 hover:text-gold-accent transition-all text-[8px] font-black uppercase tracking-widest backdrop-blur-md"
                                 onClick={openBillingEditor}
                                 type="button"
                             >
@@ -3591,7 +3591,7 @@ function TenantDetailPage({
                 </section>
 
                 {invoiceFeedback && (
-                    <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-widest flex items-center gap-3 animate-in fade-in zoom-in-95">
+                    <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-widest flex items-center gap-3 animate-in fade-in zoom-in-95 backdrop-blur-md">
                         <span className="material-symbols-outlined text-lg">verified</span>
                         {invoiceFeedback}
                     </div>
@@ -3604,7 +3604,7 @@ function TenantDetailPage({
                             <span className="material-symbols-outlined text-gold-accent">payments</span>
                             <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-white">Siklus Pembayaran Aktif</h3>
                         </div>
-                        <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[9px] font-black text-white/40 uppercase tracking-widest">
+                        <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[9px] font-black text-white/40 uppercase tracking-widest backdrop-blur-md">
                             {invoiceRows.length} Sequence
                         </span>
                     </div>
@@ -3663,7 +3663,7 @@ function TenantDetailPage({
                                             <td className="px-5 py-4">
                                                 {isEditingRow ? (
                                                     <input
-                                                        className="h-9 w-40 rounded-lg border border-white/20 bg-white/5 px-3 text-[10px] font-bold text-white outline-none focus:border-gold-accent/50 transition-all placeholder:text-white/10"
+                                                        className="h-9 w-40 rounded-lg border border-white/20 bg-white/5 px-3 text-[10px] font-bold text-white outline-none focus:border-gold-accent/50 transition-all placeholder:text-white/10 backdrop-blur-md"
                                                         disabled={isSavingInvoice}
                                                         onChange={(e) => updateInvoiceDraftField(invoice.id, "invoiceNumber", e.target.value)}
                                                         placeholder="No. Invoice..."
@@ -3682,7 +3682,7 @@ function TenantDetailPage({
                                                 {isEditingRow ? (
                                                     <div className="space-y-1">
                                                         <input
-                                                            className="h-9 w-36 rounded-lg border border-white/20 bg-white/5 px-3 text-[10px] font-bold text-white outline-none focus:border-gold-accent/50 transition-all [color-scheme:dark]"
+                                                            className="h-9 w-36 rounded-lg border border-white/20 bg-white/5 px-3 text-[10px] font-bold text-white outline-none focus:border-gold-accent/50 transition-all [color-scheme:dark] backdrop-blur-md"
                                                             disabled={isSetDateLockedByGlobal || isSavingInvoice}
                                                             onChange={(e) => updateInvoiceDraftField(invoice.id, "dueDate", e.target.value)}
                                                             type="date"
@@ -3702,7 +3702,7 @@ function TenantDetailPage({
                                             {/* Jumlah Dibayar */}
                                             <td className="px-5 py-4">
                                                 {isEditingRow ? (
-                                                    <div className="flex items-center gap-1.5 h-9 px-3 rounded-lg border border-white/20 bg-white/5 w-36">
+                                                    <div className="flex items-center gap-1.5 h-9 px-3 rounded-lg border border-white/20 bg-white/5 w-36 backdrop-blur-md">
                                                         <span className="text-[9px] font-black text-white/30 shrink-0">Rp</span>
                                                         <input
                                                             className="bg-transparent text-[10px] font-black text-white outline-none w-full"
@@ -3793,7 +3793,7 @@ function TenantDetailPage({
                                                 {isEditingRow ? (
                                                     <div className="flex justify-end gap-2">
                                                         <button
-                                                            className="h-8 px-3 rounded-lg border border-white/10 bg-white/5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:text-white transition-all"
+                                                            className="h-8 px-3 rounded-lg border border-white/10 bg-white/5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:text-white transition-all backdrop-blur-md"
                                                             onClick={() => { setInvoiceEditingId(null); resetInvoiceDraftFromSource(invoice); }}
                                                         >
                                                             Batal
@@ -3808,7 +3808,7 @@ function TenantDetailPage({
                                                     </div>
                                                 ) : (
                                                     <button
-                                                        className="h-8 w-8 rounded-lg border border-white/10 bg-white/5 flex items-center justify-center text-white/20 hover:text-gold-accent hover:border-gold-accent/30 hover:bg-gold-accent/10 transition-all"
+                                                        className="h-8 w-8 rounded-lg border border-white/10 bg-white/5 flex items-center justify-center text-white/20 hover:text-gold-accent hover:border-gold-accent/30 hover:bg-gold-accent/10 transition-all backdrop-blur-md"
                                                         onClick={() => setInvoiceEditingId(invoice.id)}
                                                         title="Edit"
                                                     >
@@ -3831,7 +3831,7 @@ function TenantDetailPage({
                             <span className="material-symbols-outlined text-white/20">history</span>
                             <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-white/60">Arsip & Riwayat Settlement</h3>
                         </div>
-                        <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[9px] font-black text-white/20 uppercase tracking-widest">
+                        <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[9px] font-black text-white/20 uppercase tracking-widest backdrop-blur-md">
                             {historyInvoiceRows.length} Logged
                         </span>
                     </div>
@@ -3874,7 +3874,7 @@ function TenantDetailPage({
                                             </td>
                                             <td className="px-8 py-4 text-[10px] font-bold text-white/30">{formatDate(invoice.paidAt)}</td>
                                             <td className="px-8 py-4 text-right">
-                                                <span className="px-2 py-0.5 rounded bg-white/5 text-[8px] font-black text-white/20 uppercase tracking-widest">
+                                                <span className="px-2 py-0.5 rounded bg-white/5 text-[8px] font-black text-white/20 uppercase tracking-widest backdrop-blur-md">
                                                     v{invoice.scheduleVersion ?? 1} Archive
                                                 </span>
                                             </td>
@@ -3908,7 +3908,7 @@ function TenantDetailPage({
                         <div key={doc?.id} className="group/doc glass-card rounded-2xl p-5 border-white/5 hover:border-white/10 transition-all">
                              <div className="flex items-center justify-between gap-6">
                                  <div className="flex items-center gap-4">
-                                     <div className="h-12 w-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/20 group-hover/doc:bg-gold-accent group-hover/doc:text-[#0f141e] transition-all">
+                                     <div className="h-12 w-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/20 group-hover/doc:bg-gold-accent group-hover/doc:text-[#0f141e] transition-all backdrop-blur-md">
                                          <span className="material-symbols-outlined text-2xl">description</span>
                                      </div>
                                      <div className="space-y-1">
@@ -3924,12 +3924,12 @@ function TenantDetailPage({
                                      {isOpenableFileUrl(doc?.fileUrl) && (
                                          <button 
                                              onClick={() => window.open(doc.fileUrl, '_blank')}
-                                             className="h-10 px-4 rounded-xl bg-white/5 border border-white/10 text-[9px] font-black text-white/40 uppercase tracking-widest hover:text-white hover:bg-white/10 transition-all"
+                                             className="h-10 px-4 rounded-xl bg-white/5 border border-white/10 text-[9px] font-black text-white/40 uppercase tracking-widest hover:text-white hover:bg-white/10 transition-all backdrop-blur-md"
                                          >
                                              Buka File
                                          </button>
                                      )}
-                                     <button className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/20 hover:text-amber-400 transition-all">
+                                     <button className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/20 hover:text-amber-400 transition-all backdrop-blur-md">
                                          <span className="material-symbols-outlined text-lg">edit</span>
                                      </button>
                                  </div>
@@ -3942,9 +3942,9 @@ function TenantDetailPage({
             {/* Upload Section */}
             <section className="lg:col-span-5 space-y-6">
                 <div className="glass-card rounded-premium p-8 border-white/10 shadow-glass-depth relative overflow-hidden">
-                    <div className="absolute -right-12 -top-12 h-32 w-32 rounded-full bg-gold-accent/5 blur-2xl" />
+                    <div className="absolute -right-12 -top-12 h-32 w-32 rounded-full bg-gold-accent/5 blur-2xl backdrop-blur-md" />
                     <div className="flex items-center gap-4 mb-8">
-                        <div className="h-10 w-10 rounded-xl bg-gold-accent/10 border border-gold-accent/20 flex items-center justify-center text-gold-accent">
+                        <div className="h-10 w-10 rounded-xl bg-gold-accent/10 border border-gold-accent/20 flex items-center justify-center text-gold-accent backdrop-blur-md">
                             <span className="material-symbols-outlined text-xl">upload</span>
                         </div>
                         <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-white/60">Registrasi Dokumen Baru</h3>
@@ -3989,7 +3989,7 @@ function TenantDetailPage({
                             onChange={(e) => setDocumentDraft(p => ({ ...p, tanggalDokumen: e.target.value }))}
                         />
 
-                        <div className="p-6 rounded-2xl bg-white/5 border border-dashed border-white/10 relative group/file">
+                        <div className="p-6 rounded-2xl bg-white/5 border border-dashed border-white/10 relative group/file backdrop-blur-md">
                             <input 
                                 type="file" 
                                 className="absolute inset-0 opacity-0 cursor-pointer z-10"
@@ -4017,7 +4017,7 @@ function TenantDetailPage({
                             </div>
                         )}
                         {documentFeedback && (
-                            <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase tracking-widest">
+                            <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase tracking-widest backdrop-blur-md">
                                 {documentFeedback}
                             </div>
                         )}
@@ -4039,9 +4039,9 @@ function TenantDetailPage({
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
             {/* Timeline Header */}
             <section className="glass-card rounded-premium p-8 border-white/10 shadow-glass-depth relative overflow-hidden">
-                <div className="absolute -right-24 -top-24 h-64 w-64 rounded-full bg-emerald-500/5 blur-3xl" />
+                <div className="absolute -right-24 -top-24 h-64 w-64 rounded-full bg-emerald-500/5 blur-3xl backdrop-blur-md" />
                 <div className="flex items-center gap-6">
-                    <div className="h-14 w-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                    <div className="h-14 w-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 backdrop-blur-md">
                         <span className="material-symbols-outlined text-3xl">history</span>
                     </div>
                     <div className="space-y-1">
@@ -4053,7 +4053,7 @@ function TenantDetailPage({
 
             {/* Timeline Lineage */}
             <section className="relative px-4">
-                <div className="absolute left-[39px] top-4 bottom-4 w-px bg-white/5" />
+                <div className="absolute left-[39px] top-4 bottom-4 w-px bg-white/5 backdrop-blur-md" />
                 
                 <div className="space-y-6">
                     {displayTimeline.length === 0 && (
@@ -4099,7 +4099,7 @@ function TenantDetailPage({
                                     
                                     <div className="flex items-center gap-6 pt-4 border-t border-white/5">
                                         <div className="flex items-center gap-2">
-                                            <div className="h-6 w-6 rounded-full bg-white/5 flex items-center justify-center text-white/20">
+                                            <div className="h-6 w-6 rounded-full bg-white/5 flex items-center justify-center text-white/20 backdrop-blur-md">
                                                 <span className="material-symbols-outlined text-[14px]">person</span>
                                             </div>
                                             <span className="text-[9px] font-black text-white/20 uppercase tracking-widest">

@@ -29,7 +29,7 @@ export function SummaryCard({ label, value, icon }) {
                     </p>
                     <p className="mt-3 text-3xl font-black text-on-surface tracking-tighter">{value}</p>
                 </div>
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gold-accent/10 text-gold-accent shadow-sm group-hover:shadow-gold-glow transition-all">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gold-accent/10 text-gold-accent shadow-sm group-hover:shadow-gold-glow transition-all backdrop-blur-md">
                     <span className="material-symbols-outlined text-2xl">{icon}</span>
                 </div>
             </div>
@@ -39,7 +39,7 @@ export function SummaryCard({ label, value, icon }) {
 
 export function TodoColumn({ title, items }) {
     return (
-        <div className="rounded-3xl bg-black/5 p-6 border border-black/5">
+        <div className="rounded-3xl bg-black/5 p-6 border border-black/5 backdrop-blur-md">
             <p className="text-[10px] font-black uppercase tracking-[0.4em] text-on-surface-variant mb-6">{title}</p>
             <div className="space-y-4">
                 {items.length > 0 ? items.map((item) => (
@@ -65,7 +65,7 @@ export function FieldInput({ label, type = "text", value, onChange, placeholder 
                 {label}
             </label>
             <input
-                className="w-full rounded-2xl bg-black/5 border border-black/5 p-4 text-sm font-bold text-on-surface placeholder:text-on-surface-variant/40 outline-none transition-all focus:bg-white focus:shadow-lg focus:ring-4 focus:ring-gold-accent/5 focus:border-gold-accent/20"
+                className="w-full rounded-2xl bg-black/5 border border-black/5 p-4 text-sm font-bold text-on-surface placeholder:text-on-surface-variant/40 outline-none transition-all focus:bg-white focus:shadow-lg focus:ring-4 focus:ring-gold-accent/5 focus:border-gold-accent/20 backdrop-blur-md"
                 onChange={(event) => onChange(event.target.value)}
                 placeholder={placeholder}
                 type={type}
@@ -82,7 +82,7 @@ export function FieldSelect({ label, value, onChange, options }) {
                 {label}
             </label>
             <select
-                className="w-full rounded-2xl bg-black/5 border border-black/5 p-4 text-sm font-bold text-on-surface outline-none transition-all focus:bg-white focus:shadow-lg focus:ring-4 focus:ring-gold-accent/5 focus:border-gold-accent/20 appearance-none cursor-pointer"
+                className="w-full rounded-2xl bg-black/5 border border-black/5 p-4 text-sm font-bold text-on-surface outline-none transition-all focus:bg-white focus:shadow-lg focus:ring-4 focus:ring-gold-accent/5 focus:border-gold-accent/20 appearance-none cursor-pointer backdrop-blur-md"
                 onChange={(event) => onChange(event.target.value)}
                 value={value}
             >
@@ -122,7 +122,7 @@ export function StatCard({ label, value, icon, accent, sub }) {
     };
     
     return (
-        <div className="glass-card rounded-premium p-6 border-white/20 group hover:border-gold-accent/40 transition-all duration-500">
+        <div className="glass-card rounded-premium p-6 group hover:border-gold-accent/40 transition-all duration-500">
             <div className="flex justify-between items-start mb-6">
                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-on-surface-variant group-hover:text-gold-accent transition-colors">{label}</p>
                 <div className={`h-12 w-12 flex items-center justify-center rounded-2xl ${accents[accent] || accents.white} shadow-sm group-hover:shadow-gold-glow transition-all`}>
