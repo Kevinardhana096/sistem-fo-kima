@@ -172,6 +172,7 @@ function MonitoringSpreadsheetPage({
     const [isLoading, setIsLoading] = useState(false);
     const [isLoadingSupplementary, setIsLoadingSupplementary] = useState(false);
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+    const [isExporting, setIsExporting] = useState(false);
     const [error, setError] = useState("");
 
     const invoiceDetailModal = selectedInvoiceCell && (
@@ -564,8 +565,17 @@ function MonitoringSpreadsheetPage({
         return [...new Set(pkts)].sort();
     }, [billingRows]);
 
-    const exportToExcel = () => {
+    const exportToExcel = async () => {
         if (filteredRows.length === 0) return;
+        setIsExporting(true);
+
+        const yieldToBrowser = () => new Promise((resolve) => {
+            if (typeof requestAnimationFrame === "function") {
+                requestAnimationFrame(() => resolve());
+                return;
+            }
+            setTimeout(resolve, 0);
+        });
 
         const headers = [
             "No", "Nama ISP", "Nama Pelanggan", "Periode Awal", "Berjalan Awal", "Berjalan Akhir",
@@ -575,41 +585,63 @@ function MonitoringSpreadsheetPage({
             ...(isTeknisi ? [] : ["Aktivasi", ...monitoringMonths])
         ];
 
-        const csvRows = filteredRows.map((row, index) => {
-            const monthsData = isTeknisi ? [] : monitoringMonths.map((_, i) => {
-                const status = Array.isArray(row.months) ? row.months[i] : "belum_ditagih";
-                return invoiceStatusLabelMap[status] || status;
-            });
+        try {
+            const csvRows = [];
+            const chunkSize = 150;
+            for (let index = 0; index < filteredRows.length; index += chunkSize) {
+                const rowChunk = filteredRows.slice(index, index + chunkSize);
+                rowChunk.forEach((row, chunkIndex) => {
+                    const absoluteIndex = index + chunkIndex;
+                    const monthsData = isTeknisi ? [] : monitoringMonths.map((_, i) => {
+                        const status = Array.isArray(row.months) ? row.months[i] : "belum_ditagih";
+                        return invoiceStatusLabelMap[status] || status;
+                    });
 
-            const data = [
-                index + 1,
-                row.ispName,
-                row.customerName,
-                formatDate(row.ispContractStart),
-                formatDate(row.contractStart),
-                formatDate(row.contractEnd),
-                toTitleCase(row.coreType),
-                formatMonitoringCoreAmount(row),
-                ...(isTeknisi ? [] : [row.contractNumber ?? "-", row.currentInvoiceNumber ?? "-"]),
-                getRemainingRentalDays(row.contractEnd) ?? "-",
-                isStoppedStatus(row.customerStatus) ? "Berhenti" : "Beroperasi",
-                resolveRouteStatus(row.customerStatus, row.routeStatus),
-                ...(isTeknisi ? [] : [row.activationFeePaidAt ? "Selesai" : formatCurrency(row.activationFeeAmount), ...monthsData])
-            ];
-            return data.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",");
-        });
+                    const data = [
+                        absoluteIndex + 1,
+                        row.ispName,
+                        row.customerName,
+                        formatDate(row.ispContractStart),
+                        formatDate(row.contractStart),
+                        formatDate(row.contractEnd),
+                        toTitleCase(row.coreType),
+                        formatMonitoringCoreAmount(row),
+                        ...(isTeknisi ? [] : [row.contractNumber ?? "-", row.currentInvoiceNumber ?? "-"]),
+                        getRemainingRentalDays(row.contractEnd) ?? "-",
+                        isStoppedStatus(row.customerStatus) ? "Berhenti" : "Beroperasi",
+                        resolveRouteStatus(row.customerStatus, row.routeStatus),
+                        ...(isTeknisi ? [] : [row.activationFeePaidAt ? "Selesai" : formatCurrency(row.activationFeeAmount), ...monthsData])
+                    ];
+                    csvRows.push(data.map(v => `"${String(v).replace(/"/g, '""')}"`).join(","));
+                });
 
-        const csvContent = [headers.join(","), ...csvRows].join("\n");
-        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.setAttribute("href", url);
-        link.setAttribute("download", `monitoring_billing_${appliedFilters.year}.csv`);
-        link.style.visibility = "hidden";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+                // Yield to browser so click interaction can paint and INP stays low.
+                await yieldToBrowser();
+            }
+
+            const csvContent = [headers.join(","), ...csvRows].join("\n");
+            const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", `monitoring_billing_${appliedFilters.year}.csv`);
+            link.style.visibility = "hidden";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        } finally {
+            setIsExporting(false);
+        }
     };
+
+    const handleRefreshMonitoring = useCallback(() => {
+        void loadCoreData();
+        void loadSupplementaryData();
+        if (activeDataTab === "history") {
+            void loadHistoryData();
+        }
+    }, [activeDataTab, loadCoreData, loadSupplementaryData, loadHistoryData]);
 
     const uniqueAlertCustomers = useMemo(() => {
         return new Set(alerts.map(a => a.customerId)).size;
@@ -1310,15 +1342,16 @@ function MonitoringSpreadsheetPage({
                             </button>
                         )}
                         <button
-                            className="bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-600 px-5 py-3 rounded-xl transition-all flex items-center gap-2 backdrop-blur-md"
+                            className="bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-600 px-5 py-3 rounded-xl transition-all flex items-center gap-2 backdrop-blur-md disabled:opacity-60"
                             onClick={exportToExcel}
+                            disabled={isExporting}
                         >
-                            <span className="material-symbols-outlined text-xl text-emerald-500">download_for_offline</span>
-                            <span className="text-[11px] font-black uppercase tracking-widest">Ekspor Excel</span>
+                            <span className="material-symbols-outlined text-xl text-emerald-500">{isExporting ? "progress_activity" : "download_for_offline"}</span>
+                            <span className="text-[11px] font-black uppercase tracking-widest">{isExporting ? "Menyiapkan..." : "Ekspor Excel"}</span>
                         </button>
                         <div className="flex items-center gap-2 bg-white/10 p-1.5 rounded-2xl border border-white/15 backdrop-blur-md">
                             <button
-                                onClick={() => loadMonitoring()}
+                                onClick={handleRefreshMonitoring}
                                 className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-all ${isLoading ? "bg-white/10 text-gold-accent" : "btn-premium"}`}
                                 disabled={isLoading}
                             >
