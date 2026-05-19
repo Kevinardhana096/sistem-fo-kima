@@ -8,6 +8,15 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  css: {
+    // Keep production CSS output predictable for backdrop blur rules.
+    // This avoids optimizer transformations that can drop unprefixed
+    // `backdrop-filter` in some generated selectors.
+    transformer: 'postcss',
+  },
+  build: {
+    cssMinify: false,
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
