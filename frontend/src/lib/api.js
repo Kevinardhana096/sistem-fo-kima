@@ -7,6 +7,7 @@ import { supabase } from './supabase';
 
 const LIST_PAGE_SIZE = 500;
 const QUERY_CHUNK_SIZE = 100;
+const QUERY_CHUNK_CONCURRENCY = 4;
 
 const chunkArray = (items, size = QUERY_CHUNK_SIZE) => {
   const chunks = [];
@@ -16,14 +17,18 @@ const chunkArray = (items, size = QUERY_CHUNK_SIZE) => {
   return chunks;
 };
 
-const fetchInChunks = async (items, fetchChunk, size = QUERY_CHUNK_SIZE) => {
-  const chunkResults = await Promise.all(
-    chunkArray(items, size)
-      .filter((chunk) => chunk.length > 0)
-      .map((chunk) => fetchChunk(chunk))
-  );
+const fetchInChunks = async (items, fetchChunk, size = QUERY_CHUNK_SIZE, concurrency = QUERY_CHUNK_CONCURRENCY) => {
+  const chunks = chunkArray(items, size).filter((chunk) => chunk.length > 0);
+  if (chunks.length === 0) return [];
 
-  return chunkResults.flatMap((data) => Array.isArray(data) ? data : []);
+  const results = [];
+  for (let index = 0; index < chunks.length; index += concurrency) {
+    const batch = chunks.slice(index, index + concurrency);
+    const batchResults = await Promise.all(batch.map((chunk) => fetchChunk(chunk)));
+    results.push(...batchResults);
+  }
+
+  return results.flatMap((data) => Array.isArray(data) ? data : []);
 };
 
 const getErrorText = (error) => [
@@ -2084,6 +2089,17 @@ export const monitoringApi = {
       invoicesByCustomerId.set(invoice.customer_id, list);
     });
 
+    const getInvoiceKey = (contractId, periodMonth) => `${contractId ?? 'none'}:${Number(periodMonth)}`;
+
+    const invoiceLookupByCustomerId = new Map();
+    invoicesByCustomerId.forEach((customerInvoices, customerId) => {
+      const lookup = new Map();
+      customerInvoices.forEach((invoice) => {
+        lookup.set(getInvoiceKey(invoice.contract_id ?? null, invoice.period_month), invoice);
+      });
+      invoiceLookupByCustomerId.set(customerId, lookup);
+    });
+
     const routeVersionsByCustomerId = new Map();
     routeVersions.forEach((routeVersion) => {
       const list = routeVersionsByCustomerId.get(routeVersion.customer_id) || [];
@@ -2146,15 +2162,11 @@ export const monitoringApi = {
       const ispNames = customerIsps.map(isp => isp.name).filter(Boolean);
       const customerContracts = contractsByCustomerId.get(customer.id) || [];
       const customerInvoices = invoicesByCustomerId.get(customer.id) || [];
+      const invoiceLookup = invoiceLookupByCustomerId.get(customer.id) || new Map();
       const latestRouteVersion = getLatestRouteVersion(routeVersionsByCustomerId.get(customer.id) || []);
       const currentContract = getCurrentContract(customerContracts);
       const latestVersion = getLatestVersion(currentContract);
-      const currentMonthInvoice = customerInvoices.find(
-        inv => inv.period_year === selectedYear
-          && inv.period_month === currentMonth
-          && inv.schedule_status === 'active'
-          && (!currentContract?.id || inv.contract_id === currentContract.id)
-      );
+      const currentMonthInvoice = invoiceLookup.get(getInvoiceKey(currentContract?.id ?? null, currentMonth)) || null;
 
       // Build months array (12 months)
       const months = Array.from({ length: 12 }, (_, monthIndex) => {
@@ -2162,12 +2174,7 @@ export const monitoringApi = {
         if (currentContract && !isMonthInsideContract(currentContract, month)) {
           return 'di_luar_periode';
         }
-        const invoice = customerInvoices.find(
-          inv => inv.period_year === selectedYear
-            && inv.period_month === month
-            && inv.schedule_status === 'active'
-            && (!currentContract?.id || inv.contract_id === currentContract.id)
-        );
+        const invoice = invoiceLookup.get(getInvoiceKey(currentContract?.id ?? null, month));
         return invoice ? invoice.status : 'belum_ditagih';
       });
 
@@ -2249,59 +2256,100 @@ export const monitoringApi = {
 
     const { data: customers, error } = await supabase
       .from('customers')
-      .select(`
-        id,
-        customer_code,
-        isp_name,
-        name,
-        status,
-        contract_start_date,
-        ispMemberships:customer_isp_memberships(
-          isp:isps(*)
-        ),
-        contracts(
-          id,
-          contract_number,
-          start_date,
-          end_date,
-          core_type,
-          core_total,
-          sharing_ratio,
-          status,
-          versions:contract_versions(
-            id,
-            version_number,
-            start_date,
-            end_date,
-            core_type,
-            core_total,
-            shared_core_ratio,
-            monthly_amount,
-            yearly_amount,
-            remarks
-          )
-        ),
-        invoices(
-          id,
-          invoice_number,
-          contract_id,
-          period_year,
-          period_month,
-          period_start_date,
-          period_end_date,
-          amount,
-          status,
-          schedule_status
-        ),
-        routeVersions:customer_route_versions(
-          version_number,
-          flow_status,
-          created_at
-        )
-      `)
-      .eq('status', 'berhenti');
+      .select('id, customer_code, isp_name, name, status, contract_start_date')
+      .eq('status', 'berhenti')
+      .is('deleted_at', null);
 
     if (error) throw error;
+
+    if (!Array.isArray(customers) || customers.length === 0) {
+      return { year, rows: [] };
+    }
+
+    const customerIds = customers.map((customer) => customer.id).filter(Boolean);
+
+    const [memberships, contracts, versions, invoices, routeVersions] = await Promise.all([
+      fetchInChunks(customerIds, async (ids) => {
+        const { data, error: membershipsError } = await supabase
+          .from('customer_isp_memberships')
+          .select('customer_id, isp:isps(id,name,status,logo_url)')
+          .in('customer_id', ids);
+        if (membershipsError) throw membershipsError;
+        return data || [];
+      }),
+      fetchInChunks(customerIds, async (ids) => {
+        const { data, error: contractsError } = await supabase
+          .from('contracts')
+          .select('id, customer_id, contract_number, start_date, end_date, core_type, core_total, sharing_ratio, status')
+          .in('customer_id', ids);
+        if (contractsError) throw contractsError;
+        return data || [];
+      }),
+      fetchInChunks(customerIds, async (ids) => {
+        const { data, error: versionsError } = await supabase
+          .from('contract_versions')
+          .select('id, contract_id, version_number, start_date, end_date, core_type, core_total, shared_core_ratio, monthly_amount, yearly_amount, remarks')
+          .in('customer_id', ids);
+        if (versionsError) throw versionsError;
+        return data || [];
+      }),
+      fetchInChunks(customerIds, async (ids) => {
+        const { data, error: invoicesError } = await supabase
+          .from('invoices')
+          .select('id, customer_id, invoice_number, contract_id, period_year, period_month, period_start_date, period_end_date, amount, status, schedule_status')
+          .in('customer_id', ids)
+          .eq('schedule_status', 'active');
+        if (invoicesError) throw invoicesError;
+        return data || [];
+      }),
+      fetchInChunks(customerIds, async (ids) => {
+        const { data, error: routesError } = await supabase
+          .from('customer_route_versions')
+          .select('customer_id, version_number, flow_status, created_at')
+          .in('customer_id', ids);
+        if (routesError) throw routesError;
+        return data || [];
+      }),
+    ]);
+
+    const membershipsByCustomerId = new Map();
+    memberships.forEach((membership) => {
+      const list = membershipsByCustomerId.get(membership.customer_id) || [];
+      list.push(membership);
+      membershipsByCustomerId.set(membership.customer_id, list);
+    });
+
+    const contractsByCustomerId = new Map();
+    contracts.forEach((contract) => {
+      const list = contractsByCustomerId.get(contract.customer_id) || [];
+      list.push({ ...contract, versions: [] });
+      contractsByCustomerId.set(contract.customer_id, list);
+    });
+
+    const contractsById = new Map();
+    contractsByCustomerId.forEach((contractList) => {
+      contractList.forEach((contract) => contractsById.set(contract.id, contract));
+    });
+
+    versions.forEach((version) => {
+      const contract = contractsById.get(version.contract_id);
+      if (!contract) return;
+      contract.versions.push(version);
+    });
+
+    const invoicesByCustomerId = new Map();
+    invoices.forEach((invoice) => {
+      const list = invoicesByCustomerId.get(invoice.customer_id) || [];
+      list.push(invoice);
+      invoicesByCustomerId.set(invoice.customer_id, list);
+    });
+
+    const routeVersionsByCustomerId = new Map();
+    routeVersions.forEach((routeVersion) => {
+      const list = routeVersionsByCustomerId.get(routeVersion.customer_id) || [];
+      list.push(routeVersion);
+      routeVersionsByCustomerId.set(routeVersion.customer_id, list);
+    });
 
     const getDateValue = (value) => {
       const timestamp = value ? new Date(`${String(value).slice(0, 10)}T00:00:00.000Z`).getTime() : 0;
@@ -2318,9 +2366,9 @@ export const monitoringApi = {
         : null
     );
 
-    const getLatestRouteVersion = (customer) => (
-      Array.isArray(customer?.routeVersions)
-        ? [...customer.routeVersions].sort((left, right) => {
+    const getLatestRouteVersion = (customerRouteVersions = []) => (
+      Array.isArray(customerRouteVersions)
+        ? [...customerRouteVersions].sort((left, right) => {
           const versionDiff = Number(right.version_number ?? 0) - Number(left.version_number ?? 0);
           if (versionDiff !== 0) return versionDiff;
           return getDateValue(right.created_at) - getDateValue(left.created_at);
@@ -2329,10 +2377,12 @@ export const monitoringApi = {
     );
 
     const rows = (customers || []).flatMap(customer => {
-      const customerIsps = customer.ispMemberships?.map(m => m.isp).filter(Boolean) || [];
+      const customerIsps = (membershipsByCustomerId.get(customer.id) || []).map((membership) => membership.isp).filter(Boolean);
       const ispNames = customerIsps.map(item => item.name).filter(Boolean);
       const ispName = ispNames.length > 0 ? ispNames.join(', ') : customer.isp_name || '-';
-      const latestRouteVersion = getLatestRouteVersion(customer);
+      const latestRouteVersion = getLatestRouteVersion(routeVersionsByCustomerId.get(customer.id) || []);
+      const customerContracts = contractsByCustomerId.get(customer.id) || [];
+      const customerInvoices = invoicesByCustomerId.get(customer.id) || [];
       const baseRow = {
         customerId: customer.id,
         customerCode: customer.customer_code,
@@ -2343,19 +2393,17 @@ export const monitoringApi = {
         ispNames,
         ispContractStart: customer.contract_start_date || null,
       };
-      const contractsInHistory = (customer.contracts || [])
+      const contractsInHistory = customerContracts
         .filter(contract => contract.start_date <= yearEnd && contract.end_date >= yearStart && contract.end_date < today);
 
       if (contractsInHistory.length === 0) {
-        const customerInvoices = (customer.invoices || [])
-          .filter(invoice => invoice.schedule_status === 'active')
-          .sort((left, right) => {
+        const sortedInvoices = [...customerInvoices].sort((left, right) => {
             const yearDiff = Number(right.period_year ?? 0) - Number(left.period_year ?? 0);
             if (yearDiff !== 0) return yearDiff;
             return Number(right.period_month ?? 0) - Number(left.period_month ?? 0);
           });
-        const lastInvoice = customerInvoices[0];
-        const selectedYearInvoices = customerInvoices.filter(invoice => Number(invoice.period_year) === selectedYear);
+        const lastInvoice = sortedInvoices[0];
+        const selectedYearInvoices = sortedInvoices.filter(invoice => Number(invoice.period_year) === selectedYear);
 
         return [{
           ...baseRow,
@@ -2369,7 +2417,7 @@ export const monitoringApi = {
           sharingRatio: null,
           monthlyAmount: 0,
           yearlyAmount: 0,
-          invoiceCount: customerInvoices.length,
+          invoiceCount: sortedInvoices.length,
           selectedYearInvoiceCount: selectedYearInvoices.length,
           lastInvoiceStatus: lastInvoice?.status || null,
         }];

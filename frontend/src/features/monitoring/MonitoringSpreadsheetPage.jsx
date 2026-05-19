@@ -162,6 +162,7 @@ function MonitoringSpreadsheetPage({
 
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(50);
+    const [activeDataTab, setActiveDataTab] = useState("table");
 
     const [billingRows, setBillingRows] = useState([]);
     const [historyRows, setHistoryRows] = useState([]);
@@ -169,6 +170,8 @@ function MonitoringSpreadsheetPage({
     const [recentActivities, setRecentActivities] = useState([]);
     const [selectedInvoiceCell, setSelectedInvoiceCell] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [isLoadingSupplementary, setIsLoadingSupplementary] = useState(false);
+    const [isLoadingHistory, setIsLoadingHistory] = useState(false);
     const [error, setError] = useState("");
 
     const invoiceDetailModal = selectedInvoiceCell && (
@@ -310,40 +313,35 @@ function MonitoringSpreadsheetPage({
         };
     }, [tableOnly]);
 
-    const loadMonitoring = useCallback(async () => {
+    const loadCoreData = useCallback(async () => {
         setIsLoading(true);
         setError("");
 
         try {
-            const params = new URLSearchParams();
-            params.set("year", appliedFilters.year);
-
-            if (appliedFilters.isp) {
-                params.set("isp", appliedFilters.isp);
-            }
-
-            if (appliedFilters.status) {
-                params.set("status", appliedFilters.status);
-            }
-
-            const [billingResult, historyResult, alertsResult] = await Promise.all([
-                api.monitoring.getBilling({
-                    year: appliedFilters.year,
-                    isp: appliedFilters.isp || undefined,
-                    status: appliedFilters.status || undefined,
-                }),
-                api.monitoring.getHistory({
-                    year: appliedFilters.year,
-                    isp: appliedFilters.isp || undefined,
-                }),
-                api.notifications.list({ year: appliedFilters.year, limit: 200 }),
-            ]);
+            const billingResult = await api.monitoring.getBilling({
+                year: appliedFilters.year,
+                isp: appliedFilters.isp || undefined,
+                status: appliedFilters.status || undefined,
+            });
 
             const nextBillingRows = Array.isArray(billingResult?.rows) ? billingResult.rows : [];
-            const nextHistoryRows = Array.isArray(historyResult?.rows) ? historyResult.rows : [];
-
             setBillingRows(nextBillingRows);
-            setHistoryRows(nextHistoryRows);
+        } catch (requestError) {
+            setError(
+                requestError instanceof Error
+                    ? requestError.message
+                    : "Terjadi kesalahan saat memuat monitoring.",
+            );
+        } finally {
+            setIsLoading(false);
+        }
+    }, [appliedFilters]);
+
+    const loadSupplementaryData = useCallback(async () => {
+        setIsLoadingSupplementary(true);
+
+        try {
+            const alertsResult = await api.notifications.list({ year: appliedFilters.year, limit: 200 });
 
             const nextAlerts = Array.isArray(alertsResult) ? alertsResult : [];
 
@@ -414,20 +412,43 @@ function MonitoringSpreadsheetPage({
                 .slice(0, 10);
 
             setRecentActivities(flattenedActivities);
-        } catch (requestError) {
-            setError(
-                requestError instanceof Error
-                    ? requestError.message
-                    : "Terjadi kesalahan saat memuat monitoring.",
-            );
+        } catch {
+            // Supplementary data should not block core table render.
         } finally {
-            setIsLoading(false);
+            setIsLoadingSupplementary(false);
+        }
+    }, [appliedFilters.year, billingRows]);
+
+    const loadHistoryData = useCallback(async () => {
+        setIsLoadingHistory(true);
+
+        try {
+            const historyResult = await api.monitoring.getHistory({
+                year: appliedFilters.year,
+                isp: appliedFilters.isp || undefined,
+            });
+            const nextHistoryRows = Array.isArray(historyResult?.rows) ? historyResult.rows : [];
+            setHistoryRows(nextHistoryRows);
+        } catch {
+            // Keep non-blocking; table remains usable.
+        } finally {
+            setIsLoadingHistory(false);
         }
     }, [appliedFilters]);
 
     useEffect(() => {
-        void loadMonitoring();
-    }, [loadMonitoring]);
+        void loadCoreData();
+    }, [loadCoreData]);
+
+    useEffect(() => {
+        void loadSupplementaryData();
+    }, [loadSupplementaryData]);
+
+    useEffect(() => {
+        if (activeDataTab === "history") {
+            void loadHistoryData();
+        }
+    }, [activeDataTab, loadHistoryData]);
 
     // Reset pagination when filters change
     useEffect(() => {
@@ -1008,7 +1029,15 @@ function MonitoringSpreadsheetPage({
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
-                        {filteredHistoryRows.length === 0 && (
+                        {isLoadingHistory && (
+                            <tr>
+                                <td className="px-6 py-16 text-center text-sm font-bold italic text-white/35" colSpan="9">
+                                    Sinkronisasi riwayat kontrak...
+                                </td>
+                            </tr>
+                        )}
+
+                        {!isLoadingHistory && filteredHistoryRows.length === 0 && (
                             <tr>
                                 <td className="px-6 py-16 text-center text-sm font-bold italic text-white/35" colSpan="9">
                                     Riwayat kontrak tidak ditemukan untuk filter saat ini.
@@ -1016,7 +1045,7 @@ function MonitoringSpreadsheetPage({
                             </tr>
                         )}
 
-                        {filteredHistoryRows.map((row, rowIndex) => (
+                        {!isLoadingHistory && filteredHistoryRows.map((row, rowIndex) => (
                             <tr key={`${row.customerId}-${row.contractId}-${rowIndex}`} className="bg-[#0f172a]/40 transition-all group hover:bg-[#1e293b]/60">
                                 <td className="border-r border-white/5 px-5 py-5 text-center font-black text-white/30 group-hover:text-gold-accent">
                                     {String(rowIndex + 1).padStart(2, "0")}
@@ -1468,9 +1497,27 @@ function MonitoringSpreadsheetPage({
                     </div>
                 </section>
 
-                {tableSection}
+                <section className="flex items-center gap-3 rounded-2xl bg-white/5 border border-white/10 p-2.5 backdrop-blur-md w-fit">
+                    <button
+                        type="button"
+                        onClick={() => setActiveDataTab("table")}
+                        className={`rounded-xl px-5 py-2 text-[10px] font-black uppercase tracking-widest transition-all ${activeDataTab === "table" ? "bg-gold-accent text-white shadow-gold-glow" : "text-white/60 hover:text-white hover:bg-white/10"}`}
+                    >
+                        Tabel Aktif
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setActiveDataTab("history")}
+                        className={`rounded-xl px-5 py-2 text-[10px] font-black uppercase tracking-widest transition-all ${activeDataTab === "history" ? "bg-gold-accent text-white shadow-gold-glow" : "text-white/60 hover:text-white hover:bg-white/10"}`}
+                    >
+                        Riwayat
+                    </button>
+                    {isLoadingSupplementary && (
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-white/40 px-2">Sync notifikasi...</span>
+                    )}
+                </section>
 
-                {historyTableSection}
+                {activeDataTab === "table" ? tableSection : historyTableSection}
 
                 {/* KPI Section moved to bottom */}
                 <section className="grid grid-cols-1 gap-6 sm:grid-cols-3">
