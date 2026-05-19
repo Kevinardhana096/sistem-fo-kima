@@ -107,7 +107,7 @@ export default function DashboardPage({
     const routeTotal = Math.max(Number(routeStatus.total || 0), 1);
     const routePercent = (count) => Math.round((Number(count || 0) / routeTotal) * 100);
 
-    const glassCardClass = "glass-card rounded-premium p-6 md:p-8 relative overflow-hidden group";
+    const glassCardClass = "glass-card backdrop-blur-xl rounded-premium p-6 md:p-8 relative overflow-hidden group";
 
     return (
         <AppShell activeSection={activeSection} onNavigate={onNavigate} onLogout={onLogout} currentRole={currentRole}>
@@ -363,7 +363,7 @@ function StatCard({ label, value, icon, accent, sub }) {
         white: "text-on-surface-variant bg-white/10"
     };
     return (
-        <div className="glass-card rounded-2xl p-6 border-white/40">
+        <div className="glass-card backdrop-blur-xl rounded-2xl p-6 border-white/40">
             <div className="flex justify-between items-start mb-6">
                 <p className="text-[9px] font-black uppercase tracking-widest text-on-surface-variant">{label}</p>
                 <div className={`h-10 w-10 flex items-center justify-center rounded-xl ${accents[accent]}`}>

@@ -469,7 +469,7 @@ function CustomerWorkspacePage({
                 </section>
 
                 {/* 4. FILTER PANEL */}
-                <section className="glass-card rounded-premium p-8 shadow-glass-depth relative group/filter z-[40]">
+                <section className="glass-card backdrop-blur-xl rounded-premium p-8 shadow-glass-depth relative group/filter z-[40]">
                     {/* Decorative Background Accents - Contained here to allow dropdowns to pop out */}
                     <div className="absolute inset-0 rounded-premium overflow-hidden pointer-events-none">
                         <div className="absolute top-0 right-0 w-96 h-96 bg-gold-accent/10 rounded-full -mr-48 -mt-48 blur-[100px] transition-all duration-1000 group-hover/filter:bg-gold-accent/15 backdrop-blur-md"></div>
