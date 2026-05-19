@@ -596,6 +596,7 @@ const upsertNotificationState = async (notificationKey, values) => {
 
 const notificationsApi = {
   async list({ year = new Date().getUTCFullYear(), limit = 30, includeResolved = false } = {}) {
+    const cappedLimit = Math.max(1, Math.min(Number(limit) || 30, 100));
     const { user } = await getCurrentActor();
     const [result, customerDerivedNotifications, ispDerivedNotifications] = await Promise.all([
       monitoringApi.getAlerts({ year }),
@@ -639,7 +640,7 @@ const notificationsApi = {
         if (severityDiff !== 0) return severityDiff;
         return String(left.customerName || '').localeCompare(String(right.customerName || ''));
       })
-      .slice(0, limit);
+      .slice(0, cappedLimit);
   },
 
   async markRead(notificationKey) {
