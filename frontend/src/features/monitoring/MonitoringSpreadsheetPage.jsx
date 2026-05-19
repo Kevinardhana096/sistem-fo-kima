@@ -603,7 +603,7 @@ function MonitoringSpreadsheetPage({
 
     const tableSection = (
         <section
-            className={`glass-card rounded-premium border-white/40 overflow-hidden shadow-glass-depth max-w-full ${tableOnly ? "flex h-full flex-col" : ""}`}
+            className={`glass-card backdrop-blur-xl rounded-premium border-white/40 overflow-hidden shadow-glass-depth max-w-full ${tableOnly ? "flex h-full flex-col" : ""}`}
             id="monitoring-table"
         >
             {/* Pagination Top */}
@@ -973,7 +973,7 @@ function MonitoringSpreadsheetPage({
     );
 
     const historyTableSection = (
-        <section className="glass-card rounded-premium border-white/40 overflow-hidden shadow-glass-depth max-w-full">
+        <section className="glass-card backdrop-blur-xl rounded-premium border-white/40 overflow-hidden shadow-glass-depth max-w-full">
             <div className="flex flex-col gap-3 border-b border-white/10 bg-[#0f141e]/60 px-8 py-6 backdrop-blur-md md:flex-row md:items-center md:justify-between">
                 <div>
                     <p className="text-[10px] font-black uppercase tracking-[0.35em] text-gold-accent/70">Arsip Kontrak</p>
@@ -1308,7 +1308,7 @@ function MonitoringSpreadsheetPage({
 
 
                 {/* Premium Filter Section */}
-                <section className="glass-card rounded-premium p-8 border-white/40 shadow-glass-depth relative z-[40] !overflow-visible">
+                <section className="glass-card backdrop-blur-xl rounded-premium p-8 border-white/40 shadow-glass-depth relative z-[40] !overflow-visible">
                     <div className="flex flex-col gap-6 mb-6">
                         <div className="flex items-center gap-3 shrink-0">
                             <span className="h-6 w-1.5 bg-gold-accent rounded-full shadow-gold-glow"></span>
@@ -1443,7 +1443,7 @@ function MonitoringSpreadsheetPage({
                     </div>
                 </section>
 
-                <section className="flex flex-wrap items-center gap-x-10 gap-y-4 rounded-premium glass-premium p-6 border-white/30">
+                <section className="flex flex-wrap items-center gap-x-10 gap-y-4 rounded-premium glass-premium backdrop-blur-xl p-6 border-white/30">
                     <div className="flex items-center gap-2">
                         <span className="h-2 w-2 rounded-full bg-[#00c853] shadow-[0_0_12px_rgba(0,200,83,0.4)]"></span>
                         <span className="text-[10px] font-black uppercase tracking-widest text-on-surface/60">Lunas</span>
@@ -1502,7 +1502,7 @@ function MonitoringSpreadsheetPage({
 
                 {/* Consolidated Detailed Overview moved to bottom */}
                 <section className="grid grid-cols-1">
-                    <div className="glass-card rounded-premium p-8 border-white/40 shadow-glass-depth">
+                    <div className="glass-card backdrop-blur-xl rounded-premium p-8 border-white/40 shadow-glass-depth">
                         <div className="flex flex-col lg:flex-row gap-10">
                             {/* Left: Billing Overview */}
                             <div className="flex-1">
@@ -1546,7 +1546,7 @@ function MonitoringSpreadsheetPage({
                     </div>
                 </section>
 
-                <section className="glass-card rounded-premium p-8 border-white/40">
+                <section className="glass-card backdrop-blur-xl rounded-premium p-8 border-white/40">
                     <div className="mb-8 flex items-center justify-between shrink-0">
                         <div className="flex items-center gap-3">
                             <span className="h-6 w-1.5 bg-gold-accent rounded-full shadow-gold-glow"></span>
@@ -1712,7 +1712,7 @@ function StatCard({ label, value, icon, accent, sub }) {
         white: "text-on-surface-variant bg-white/10 border-white/20"
     };
     return (
-        <div className="glass-card rounded-2xl p-6 border-white/40 group hover:border-gold-accent/30 transition-all hover:scale-[1.02]">
+        <div className="glass-card backdrop-blur-xl rounded-2xl p-6 border-white/40 group hover:border-gold-accent/30 transition-all hover:scale-[1.02]">
             <div className="flex justify-between items-start mb-6">
                 <p className="text-[9px] font-black uppercase tracking-[0.2em] text-on-surface-variant group-hover:text-gold-accent transition-colors">{label}</p>
                 <div className={`h-11 w-11 flex items-center justify-center rounded-xl border transition-all group-hover:shadow-lg ${accents[accent]}`}>

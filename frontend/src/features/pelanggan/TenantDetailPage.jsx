@@ -2651,7 +2651,7 @@ function TenantDetailPage({
                 {/* ── Row 1: Stats strip ─────────────────────────────────── */}
                 <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
                     {/* Invoice Bulanan */}
-                    <div className="glass-card rounded-2xl p-5 border-white/10 shadow-glass-depth group relative overflow-hidden">
+                    <div className="glass-card backdrop-blur-xl rounded-2xl p-5 border-white/10 shadow-glass-depth group relative overflow-hidden">
                         <div className="pointer-events-none absolute -right-6 -top-6 h-20 w-20 rounded-full bg-gold-accent/5 blur-2xl group-hover:bg-gold-accent/10 transition-all duration-700 backdrop-blur-md" />
                         <p className="mb-3 text-[8px] font-black uppercase tracking-[0.3em] text-white/30">Invoice Bulanan</p>
                         <div className="flex items-baseline gap-2">
@@ -2673,7 +2673,7 @@ function TenantDetailPage({
                     </div>
 
                     {/* Butuh Perhatian */}
-                    <div className="glass-card rounded-2xl p-5 border-white/10 shadow-glass-depth relative overflow-hidden">
+                    <div className="glass-card backdrop-blur-xl rounded-2xl p-5 border-white/10 shadow-glass-depth relative overflow-hidden">
                         <p className="mb-3 text-[8px] font-black uppercase tracking-[0.3em] text-white/30">Butuh Perhatian</p>
                         <div className="flex items-center gap-3">
                             <div className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 ${totalActionItems > 0 ? 'bg-amber-500/20 text-amber-400 animate-pulse' : 'bg-white/5 text-white/20'}`}>
@@ -2687,7 +2687,7 @@ function TenantDetailPage({
                     </div>
 
                     {/* Fee Aktivasi */}
-                    <div className="glass-card rounded-2xl p-5 border-white/10 shadow-glass-depth">
+                    <div className="glass-card backdrop-blur-xl rounded-2xl p-5 border-white/10 shadow-glass-depth">
                         <p className="mb-3 text-[8px] font-black uppercase tracking-[0.3em] text-white/30">Fee Aktivasi</p>
                         <div className="flex items-center gap-3">
                             <div className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 ${detail?.activationFeePaidAt ? 'bg-emerald-500/20 text-emerald-400' : 'bg-[#ff2400]/20 text-[#ff2400]'}`}>
@@ -2704,7 +2704,7 @@ function TenantDetailPage({
                     </div>
 
                     {/* Periode Tagihan */}
-                    <div className="glass-card rounded-2xl p-5 border-white/10 shadow-glass-depth">
+                    <div className="glass-card backdrop-blur-xl rounded-2xl p-5 border-white/10 shadow-glass-depth">
                         <p className="mb-3 text-[8px] font-black uppercase tracking-[0.3em] text-white/30">Periode Tagihan</p>
                         <div className="flex items-center gap-3">
                             <div className="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0 text-blue-400 backdrop-blur-md">
@@ -2720,7 +2720,7 @@ function TenantDetailPage({
 
                 <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_380px]">
                     {/* Status Kelengkapan Berkas */}
-                    <div className="glass-card rounded-premium p-8 border-white/10 shadow-glass-depth relative overflow-hidden">
+                    <div className="glass-card backdrop-blur-xl rounded-premium p-8 border-white/10 shadow-glass-depth relative overflow-hidden">
                         <div className="flex items-center gap-4 mb-8">
                             <div className="h-10 w-10 rounded-xl bg-gold-accent/10 border border-gold-accent/20 flex items-center justify-center text-gold-accent backdrop-blur-md">
                                 <span className="material-symbols-outlined text-xl">fact_check</span>
@@ -2821,7 +2821,7 @@ function TenantDetailPage({
                     {/* Kanan: Biaya Aktivasi + Jejak Aktivitas */}
                     <div className="space-y-6">
                         {/* Biaya Aktivasi */}
-                        <div className="glass-card rounded-2xl p-6 border-white/10 shadow-glass-depth">
+                        <div className="glass-card backdrop-blur-xl rounded-2xl p-6 border-white/10 shadow-glass-depth">
                             <div className="flex items-center gap-3 mb-5">
                                 <div className="h-9 w-9 rounded-xl bg-gold-accent/10 border border-gold-accent/20 flex items-center justify-center text-gold-accent shrink-0 backdrop-blur-md">
                                     <span className="material-symbols-outlined text-lg">payments</span>
@@ -2853,7 +2853,7 @@ function TenantDetailPage({
                         </div>
 
                         {/* Jejak Aktivitas */}
-                        <div className="glass-card rounded-2xl p-6 border-white/10 shadow-glass-depth">
+                        <div className="glass-card backdrop-blur-xl rounded-2xl p-6 border-white/10 shadow-glass-depth">
                             <div className="flex items-center gap-3 mb-5">
                                 <div className="h-9 w-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0 backdrop-blur-md">
                                     <span className="material-symbols-outlined text-lg">history</span>
@@ -2902,7 +2902,7 @@ function TenantDetailPage({
                 />
 
                 {/* Header & Mode Selector */}
-                <section className="glass-card rounded-premium p-8 border-white/10 shadow-glass-depth">
+                <section className="glass-card backdrop-blur-xl rounded-premium p-8 border-white/10 shadow-glass-depth">
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
                         <div className="space-y-2">
                             <h2 className="text-xl font-black text-white tracking-tight uppercase">Manajemen Jalur Lintasan</h2>
@@ -3013,7 +3013,7 @@ function TenantDetailPage({
 
 
                                 <div className="mt-8 space-y-8">
-                                    <div className="glass-card rounded-[2rem] border border-white/10 overflow-hidden shadow-glass-depth">
+                                    <div className="glass-card backdrop-blur-xl rounded-[2rem] border border-white/10 overflow-hidden shadow-glass-depth">
                                         <div className="px-8 py-6 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
                                             <div className="flex items-center gap-3">
                                                 <span className="material-symbols-outlined text-gold-accent">list_alt</span>
@@ -3092,7 +3092,7 @@ function TenantDetailPage({
 
                         {/* Daftar Ruas Jalan */}
                         {displayNamedRoads.length > 0 && (
-                            <section className="glass-card rounded-[2rem] border border-white/10 overflow-hidden shadow-glass-depth mt-8">
+                            <section className="glass-card backdrop-blur-xl rounded-[2rem] border border-white/10 overflow-hidden shadow-glass-depth mt-8">
                                 <div className="px-8 py-6 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
                                     <div className="flex items-center gap-3">
                                         <span className="material-symbols-outlined text-blue-400">alt_route</span>
@@ -3138,7 +3138,7 @@ function TenantDetailPage({
               </div>
 
               {/* Riwayat Jalur Section */}
-              <section className="glass-card rounded-premium p-8 border-white/10 shadow-glass-depth mt-12 overflow-hidden relative">
+              <section className="glass-card backdrop-blur-xl rounded-premium p-8 border-white/10 shadow-glass-depth mt-12 overflow-hidden relative">
                   <div className="absolute -right-24 -top-24 h-64 w-64 rounded-full bg-amber-500/5 blur-3xl" />
                   
                   <div className="flex flex-wrap items-center justify-between gap-6 mb-10">
@@ -3249,7 +3249,7 @@ function TenantDetailPage({
         )}
              {activeTab === "contracts" && (
             <div className="space-y-8">
-                <section className="glass-card rounded-premium p-8 border-white/10 shadow-glass-depth">
+                <section className="glass-card backdrop-blur-xl rounded-premium p-8 border-white/10 shadow-glass-depth">
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 mb-10">
                         <div className="space-y-2">
                             <h2 className="text-xl font-black text-white tracking-tight uppercase">Manajemen Kontrak Tenant</h2>
@@ -3485,7 +3485,7 @@ function TenantDetailPage({
         {activeTab === "invoices" && (
             <div className="space-y-10">
                 {/* Billing Header & Controls */}
-                <section className="glass-card rounded-premium p-8 border-white/10 shadow-glass-depth relative overflow-hidden">
+                <section className="glass-card backdrop-blur-xl rounded-premium p-8 border-white/10 shadow-glass-depth relative overflow-hidden">
                     <div className="absolute -right-24 -top-24 h-64 w-64 rounded-full bg-blue-500/5 blur-3xl backdrop-blur-md" />
                     
                     <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-8">
@@ -3598,7 +3598,7 @@ function TenantDetailPage({
                 )}
 
                 {/* Active Invoice Table */}
-                <section className="glass-card rounded-premium border-white/10 shadow-glass-depth overflow-hidden">
+                <section className="glass-card backdrop-blur-xl rounded-premium border-white/10 shadow-glass-depth overflow-hidden">
                     <div className="px-8 py-6 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
                         <div className="flex items-center gap-3">
                             <span className="material-symbols-outlined text-gold-accent">payments</span>
@@ -3825,7 +3825,7 @@ function TenantDetailPage({
                 </section>
 
                 {/* History Invoice Table */}
-                <section className="glass-card rounded-premium border-white/10 shadow-glass-depth overflow-hidden">
+                <section className="glass-card backdrop-blur-xl rounded-premium border-white/10 shadow-glass-depth overflow-hidden">
                     <div className="px-8 py-6 border-b border-white/5 bg-white/[0.01] flex items-center justify-between">
                         <div className="flex items-center gap-3">
                             <span className="material-symbols-outlined text-white/20">history</span>
@@ -3891,7 +3891,7 @@ function TenantDetailPage({
         {activeTab === "documents" && (
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
             {/* Document List */}
-            <section className="lg:col-span-7 glass-card rounded-premium border-white/10 shadow-glass-depth overflow-hidden">
+            <section className="lg:col-span-7 glass-card backdrop-blur-xl rounded-premium border-white/10 shadow-glass-depth overflow-hidden">
                 <div className="px-8 py-6 border-b border-white/5 bg-white/[0.01] flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <span className="material-symbols-outlined text-gold-accent">folder_open</span>
@@ -3905,7 +3905,7 @@ function TenantDetailPage({
                         </div>
                     )}
                     {allDocuments.map((doc) => (
-                        <div key={doc?.id} className="group/doc glass-card rounded-2xl p-5 border-white/5 hover:border-white/10 transition-all">
+                        <div key={doc?.id} className="group/doc glass-card backdrop-blur-xl rounded-2xl p-5 border-white/5 hover:border-white/10 transition-all">
                              <div className="flex items-center justify-between gap-6">
                                  <div className="flex items-center gap-4">
                                      <div className="h-12 w-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/20 group-hover/doc:bg-gold-accent group-hover/doc:text-[#0f141e] transition-all backdrop-blur-md">
@@ -3941,7 +3941,7 @@ function TenantDetailPage({
 
             {/* Upload Section */}
             <section className="lg:col-span-5 space-y-6">
-                <div className="glass-card rounded-premium p-8 border-white/10 shadow-glass-depth relative overflow-hidden">
+                <div className="glass-card backdrop-blur-xl rounded-premium p-8 border-white/10 shadow-glass-depth relative overflow-hidden">
                     <div className="absolute -right-12 -top-12 h-32 w-32 rounded-full bg-gold-accent/5 blur-2xl backdrop-blur-md" />
                     <div className="flex items-center gap-4 mb-8">
                         <div className="h-10 w-10 rounded-xl bg-gold-accent/10 border border-gold-accent/20 flex items-center justify-center text-gold-accent backdrop-blur-md">
@@ -4038,7 +4038,7 @@ function TenantDetailPage({
         {activeTab === "timeline" && (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
             {/* Timeline Header */}
-            <section className="glass-card rounded-premium p-8 border-white/10 shadow-glass-depth relative overflow-hidden">
+            <section className="glass-card backdrop-blur-xl rounded-premium p-8 border-white/10 shadow-glass-depth relative overflow-hidden">
                 <div className="absolute -right-24 -top-24 h-64 w-64 rounded-full bg-emerald-500/5 blur-3xl backdrop-blur-md" />
                 <div className="flex items-center gap-6">
                     <div className="h-14 w-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 backdrop-blur-md">
@@ -4057,7 +4057,7 @@ function TenantDetailPage({
                 
                 <div className="space-y-6">
                     {displayTimeline.length === 0 && (
-                        <div className="glass-card rounded-2xl p-10 border-white/5 text-center">
+                        <div className="glass-card backdrop-blur-xl rounded-2xl p-10 border-white/5 text-center">
                             <p className="text-[10px] font-bold text-white/10 uppercase tracking-widest">Belum ada aktifitas yang tercatat di sistem ini.</p>
                         </div>
                     )}
@@ -4077,7 +4077,7 @@ function TenantDetailPage({
                                 </div>
 
                                 {/* Content Card */}
-                                <div className="flex-1 glass-card rounded-2xl p-6 border-white/5 group-hover/item:border-white/10 transition-all duration-300 group-hover/item:translate-x-1">
+                                <div className="flex-1 glass-card backdrop-blur-xl rounded-2xl p-6 border-white/5 group-hover/item:border-white/10 transition-all duration-300 group-hover/item:translate-x-1">
                                     <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-4">
                                         <div className="space-y-1">
                                             <div className="flex items-center gap-3">

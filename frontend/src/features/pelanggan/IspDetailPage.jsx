@@ -716,7 +716,7 @@ function IspDetailPage({
             {/* ── POPUP AKUN ISP ─────────────────────────────────────────── */}
             {userPopupOpen && createPortal(
                 <div className="fixed inset-0 z-[200] flex items-center justify-center px-4 backdrop-blur-md bg-black/60 animate-fade-in duration-300">
-                    <div className="w-full max-w-lg rounded-[2.5rem] glass-card p-10 border border-white/20 shadow-[0_0_100px_rgba(0,0,0,0.8)] animate-in zoom-in-95 duration-300 relative overflow-hidden">
+                    <div className="w-full max-w-lg rounded-[2.5rem] glass-card backdrop-blur-xl p-10 border border-white/20 shadow-[0_0_100px_rgba(0,0,0,0.8)] animate-in zoom-in-95 duration-300 relative overflow-hidden">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-gold-accent/5 blur-3xl pointer-events-none" />
                         
                         {/* Header */}
@@ -1075,7 +1075,7 @@ function IspDetailPage({
                 </div>
 
                 {/* 2. TABS NAVIGATION */}
-                <section className="glass-card rounded-premium p-1.5 border-white/10 shadow-glass-depth relative overflow-hidden">
+                <section className="glass-card backdrop-blur-xl rounded-premium p-1.5 border-white/10 shadow-glass-depth relative overflow-hidden">
                     <div className="absolute inset-0 bg-white/[0.02] pointer-events-none" />
                     <nav className="relative flex flex-wrap gap-2">
                         {[
@@ -1124,7 +1124,7 @@ function IspDetailPage({
                                 {/* Stats Cards */}
                                 <section className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-12">
                                     {/* Card 1: Total Lokasi */}
-                                    <div className="md:col-span-2 lg:col-span-2 glass-card rounded-premium p-6 border-white/10 shadow-glass-depth bg-white/[0.02] flex flex-col justify-between relative overflow-hidden group hover:border-gold-accent/20 transition-all duration-500">
+                                    <div className="md:col-span-2 lg:col-span-2 glass-card backdrop-blur-xl rounded-premium p-6 border-white/10 shadow-glass-depth bg-white/[0.02] flex flex-col justify-between relative overflow-hidden group hover:border-gold-accent/20 transition-all duration-500">
                                         <div className="flex justify-between items-start mb-6">
                                             <div>
                                                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">Total Lokasi</p>
@@ -1141,7 +1141,7 @@ function IspDetailPage({
                                     </div>
 
                                     {/* Card 2: Status Lokasi */}
-                                    <div className="md:col-span-1 lg:col-span-5 glass-card rounded-premium p-6 border-white/10 shadow-glass-depth bg-white/[0.02] flex flex-col justify-between relative overflow-hidden group hover:border-gold-accent/20 transition-all duration-500">
+                                    <div className="md:col-span-1 lg:col-span-5 glass-card backdrop-blur-xl rounded-premium p-6 border-white/10 shadow-glass-depth bg-white/[0.02] flex flex-col justify-between relative overflow-hidden group hover:border-gold-accent/20 transition-all duration-500">
                                         <div className="flex justify-between items-start mb-4">
                                             <div>
                                                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">Status Lokasi</p>
@@ -1172,7 +1172,7 @@ function IspDetailPage({
                                     </div>
 
                                     {/* Card 3: Informasi Jalur */}
-                                    <div className="md:col-span-1 lg:col-span-5 glass-card rounded-premium p-6 border-white/10 shadow-glass-depth bg-white/[0.02] flex flex-col justify-between relative overflow-hidden group hover:border-gold-accent/20 transition-all duration-500">
+                                    <div className="md:col-span-1 lg:col-span-5 glass-card backdrop-blur-xl rounded-premium p-6 border-white/10 shadow-glass-depth bg-white/[0.02] flex flex-col justify-between relative overflow-hidden group hover:border-gold-accent/20 transition-all duration-500">
                                         <div className="flex justify-between items-start mb-4">
                                             <div>
                                                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">Informasi Jalur</p>
@@ -1207,7 +1207,7 @@ function IspDetailPage({
                                     {/* Action Items List - Separated ISP & Lokasi */}
                                     <div className="lg:col-span-2 space-y-6">
                                         {/* 1. Tindak Lanjut ISP */}
-                                        <div className="glass-card rounded-premium p-8 border-white/10 shadow-glass-depth relative overflow-hidden group/isp-actions">
+                                        <div className="glass-card backdrop-blur-xl rounded-premium p-8 border-white/10 shadow-glass-depth relative overflow-hidden group/isp-actions">
                                             <div className="absolute -right-24 -top-24 h-64 w-64 rounded-full bg-gold-accent/5 blur-3xl transition-all duration-700 group-hover/isp-actions:bg-gold-accent/10" />
 
                                             <h3 className="text-xl font-bold text-white tracking-widest mb-8 flex items-center gap-4">
@@ -1257,7 +1257,7 @@ function IspDetailPage({
                                         </div>
 
                                         {/* 2. Tindak Lanjut Lokasi */}
-                                        <div className="glass-card rounded-premium p-8 border-white/10 shadow-glass-depth relative overflow-hidden group/lokasi-actions">
+                                        <div className="glass-card backdrop-blur-xl rounded-premium p-8 border-white/10 shadow-glass-depth relative overflow-hidden group/lokasi-actions">
                                             <div className="absolute -right-24 -top-24 h-64 w-64 rounded-full bg-[#ff2400]/5 blur-3xl transition-all duration-700 group-hover/lokasi-actions:bg-[#ff2400]/10" />
 
                                             <h3 className="text-xl font-bold text-white tracking-widest mb-8 flex items-center gap-4">
@@ -1304,7 +1304,7 @@ function IspDetailPage({
 
                                     {/* Sidebar Stats - Updated */}
                                     <div className="space-y-8">
-                                        <div className="glass-card rounded-premium p-8 border-white/10 shadow-glass-depth bg-white/[0.02]">
+                                        <div className="glass-card backdrop-blur-xl rounded-premium p-8 border-white/10 shadow-glass-depth bg-white/[0.02]">
                                             <h3 className="text-lg font-bold text-white tracking-widest mb-8">Ringkasan Tindak Lanjut</h3>
                                             <div className="space-y-6">
                                                 <div className="flex items-center justify-between p-5 rounded-2xl bg-white/5 border border-white/10">
@@ -1326,7 +1326,7 @@ function IspDetailPage({
                                             </div>
                                         </div>
 
-                                        <div className="glass-card rounded-premium p-8 border-white/10 shadow-glass-depth">
+                                        <div className="glass-card backdrop-blur-xl rounded-premium p-8 border-white/10 shadow-glass-depth">
                                             <h3 className="text-lg font-bold text-white tracking-widest mb-8 flex items-center gap-3">
                                                 <span className="material-symbols-outlined text-blue-400">history</span>
                                                 Aktivitas Terkini
@@ -1351,7 +1351,7 @@ function IspDetailPage({
                         )}
 
                         {activeTab === "customers" && (
-                            <section className="glass-card rounded-premium p-10 border-white/10 shadow-glass-depth">
+                            <section className="glass-card backdrop-blur-xl rounded-premium p-10 border-white/10 shadow-glass-depth">
                                 <div className="mb-6 flex flex-col justify-between gap-8 lg:flex-row lg:items-end">
                                     <div className="space-y-4 flex-1">
                                         <div className="space-y-2">
@@ -1579,7 +1579,7 @@ function IspDetailPage({
                         )}
 
                         {activeTab === "jalur" && (
-                            <section className="glass-card rounded-premium p-20 flex flex-col items-center justify-center border-white/10 shadow-glass-depth">
+                            <section className="glass-card backdrop-blur-xl rounded-premium p-20 flex flex-col items-center justify-center border-white/10 shadow-glass-depth">
                                 <div className="w-24 h-24 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center text-white/20 mb-8">
                                     <span className="material-symbols-outlined text-5xl">map</span>
                                 </div>
@@ -1589,7 +1589,7 @@ function IspDetailPage({
                         )}
 
                         {activeTab === "contracts" && (
-                            <section className="glass-card rounded-premium p-10 border-white/10 shadow-glass-depth">
+                            <section className="glass-card backdrop-blur-xl rounded-premium p-10 border-white/10 shadow-glass-depth">
                                 {/* Enhanced Header with Search & Sort - Matching Dokumen Style */}
                                 <div className="mb-10 flex flex-col lg:flex-row lg:items-end justify-between gap-8">
                                     <div className="space-y-2">
@@ -1751,7 +1751,7 @@ function IspDetailPage({
                         )}
 
                         {activeTab === "risalah" && (
-                            <section className="glass-card rounded-premium p-10 border-white/10 shadow-glass-depth">
+                            <section className="glass-card backdrop-blur-xl rounded-premium p-10 border-white/10 shadow-glass-depth">
                                 {/* Enhanced Header with Search & Sort */}
                                 <div className="mb-10 flex flex-col lg:flex-row lg:items-end justify-between gap-8">
                                     <div className="space-y-2">
@@ -1865,7 +1865,7 @@ function IspDetailPage({
 
                         {risalahEditor && createPortal(
                             <div className="fixed inset-0 z-[200] flex items-center justify-center px-4 backdrop-blur-md bg-black/60">
-                                <div className="w-full max-w-lg rounded-[2.5rem] glass-card p-10 border border-white/20 shadow-[0_0_100px_rgba(0,0,0,0.8)] animate-in zoom-in-95 duration-300 relative overflow-hidden">
+                                <div className="w-full max-w-lg rounded-[2.5rem] glass-card backdrop-blur-xl p-10 border border-white/20 shadow-[0_0_100px_rgba(0,0,0,0.8)] animate-in zoom-in-95 duration-300 relative overflow-hidden">
                                     <div className="absolute top-0 right-0 w-32 h-32 bg-gold-accent/5 blur-3xl" />
 
                                     <div className="mb-10 flex items-center justify-between relative z-10">
@@ -1951,7 +1951,7 @@ function IspDetailPage({
                         )}
 
                         {activeTab === "timeline" && (
-                            <section className="glass-card rounded-premium p-10 border-white/10 shadow-glass-depth relative overflow-hidden space-y-10">
+                            <section className="glass-card backdrop-blur-xl rounded-premium p-10 border-white/10 shadow-glass-depth relative overflow-hidden space-y-10">
 
                                 {/* Header - Sleek Audit Trail Header */}
                                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">

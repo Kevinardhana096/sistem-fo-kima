@@ -284,7 +284,7 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                     {/* Left Column - Core Info */}
                     <div className="lg:col-span-8 space-y-8">
                         {/* Section: Identitas Lokasi */}
-                        <div className="glass-card rounded-premium p-8 border-white/20 shadow-glass-depth relative z-40">
+                        <div className="glass-card backdrop-blur-xl rounded-premium p-8 border-white/20 shadow-glass-depth relative z-40">
                             <div className="flex items-center gap-3 mb-8">
                                 <span className="h-6 w-1.5 bg-gold-accent rounded-full shadow-gold-glow"></span>
                                 <h3 className="text-xl font-black text-white uppercase tracking-widest">Identitas Lokasi</h3>
@@ -317,7 +317,7 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                         </div>
 
                         {!isEditMode && (
-                            <div className="glass-card rounded-premium p-8 border-white/20 shadow-glass-depth relative z-30">
+                            <div className="glass-card backdrop-blur-xl rounded-premium p-8 border-white/20 shadow-glass-depth relative z-30">
                                 <div className="flex items-center gap-3 mb-8">
                                     <span className="h-6 w-1.5 bg-gold-accent rounded-full shadow-gold-glow"></span>
                                     <h3 className="text-xl font-black text-white uppercase tracking-widest">Layanan & Kontrak</h3>
@@ -374,7 +374,7 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
 
                         {/* ISP Selection Section */}
                         {!isEditMode && (
-                            <div className={`glass-card rounded-premium p-8 shadow-glass-depth relative z-20 ${fieldErrors.selectedIspId ? "border-rose-500/70 ring-4 ring-rose-500/10" : "border-white/20"}`}>
+                            <div className={`glass-card backdrop-blur-xl rounded-premium p-8 shadow-glass-depth relative z-20 ${fieldErrors.selectedIspId ? "border-rose-500/70 ring-4 ring-rose-500/10" : "border-white/20"}`}>
                                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
                                     <div className="flex items-center gap-3">
                                         <span className="h-6 w-1.5 bg-gold-accent rounded-full shadow-gold-glow"></span>
@@ -468,7 +468,7 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                     {/* Right Column - Billing */}
                     {!isEditMode && (
                         <div className="lg:col-span-4 space-y-8">
-                            <div className="glass-card rounded-premium p-8 border-white/20 shadow-glass-depth relative z-10">
+                            <div className="glass-card backdrop-blur-xl rounded-premium p-8 border-white/20 shadow-glass-depth relative z-10">
                                 <div className="flex items-center gap-3 mb-8">
                                     <span className="h-6 w-1.5 bg-gold-accent rounded-full shadow-gold-glow"></span>
                                     <h3 className="text-xl font-black text-white uppercase tracking-widest">Billing & Biaya</h3>

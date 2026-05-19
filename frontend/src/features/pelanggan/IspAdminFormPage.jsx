@@ -285,7 +285,7 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
                     {/* Left Column - Core Info */}
                     <div className="space-y-8">
                         {/* Section: Identitas ISP */}
-                        <div className="glass-card rounded-premium p-8 border-white/20 shadow-glass-depth relative z-20">
+                        <div className="glass-card backdrop-blur-xl rounded-premium p-8 border-white/20 shadow-glass-depth relative z-20">
                             
                             <div className="flex items-center gap-3 mb-8">
                                 <span className="h-6 w-1.5 bg-gold-accent rounded-full shadow-gold-glow"></span>
@@ -403,7 +403,7 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
                         </div>
 
                         {/* Section: Kontrak ISP */}
-                        <div className="glass-card rounded-premium p-8 border-white/20 shadow-glass-depth relative z-10">
+                        <div className="glass-card backdrop-blur-xl rounded-premium p-8 border-white/20 shadow-glass-depth relative z-10">
                             <div className="flex items-center gap-3 mb-8">
                                 <span className="h-6 w-1.5 bg-gold-accent rounded-full shadow-gold-glow"></span>
                                 <h3 className="text-xl font-black text-white uppercase tracking-widest">Kontrak ISP</h3>
@@ -480,7 +480,7 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
 
                         {/* Section: Akun Akses ISP - Only in Add Mode */}
                         {!isEditMode && (
-                            <div className="glass-card rounded-premium p-8 border-white/20 shadow-glass-depth relative z-10">
+                            <div className="glass-card backdrop-blur-xl rounded-premium p-8 border-white/20 shadow-glass-depth relative z-10">
                                 
                                 <div className="flex items-center gap-3 mb-8">
                                     <span className="h-6 w-1.5 bg-gold-accent rounded-full shadow-gold-glow"></span>
