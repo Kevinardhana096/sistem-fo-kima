@@ -474,12 +474,14 @@ const getDerivedNotifications = async (latestRouteByCustomerId = null) => {
       .select(baseInvoiceColumns)
       .in('status', ['belum_bayar', 'terlambat', 'belum_ditagih'])
       .eq('schedule_status', 'active')
+      .is('deleted_at', null)
       .or('due_date.is.null,amount.lte.0'),
     supabase
       .from('invoices')
       .select(baseInvoiceColumns)
       .in('status', ['belum_bayar', 'terlambat', 'belum_ditagih'])
       .eq('schedule_status', 'active')
+      .is('deleted_at', null)
       .or('due_date.not.is.null,period_end_date.not.is.null')
       .or('invoice_file_url.is.null,invoice_file_url.eq.')
       .or('payment_proof_file_url.is.null,payment_proof_file_url.eq.'),
@@ -561,7 +563,7 @@ const getDerivedNotifications = async (latestRouteByCustomerId = null) => {
       }));
     }
 
-    const invoices = invoicesByCustomerId.get(customer.id) || [];
+    const invoices = customerStatus === 'aktif' ? invoicesByCustomerId.get(customer.id) || [] : [];
     invoices.forEach((invoice) => {
         const dueDate = invoice.due_date || invoice.period_end_date || null;
         const amount = Number(invoice.amount || 0);
@@ -623,7 +625,7 @@ const upsertNotificationState = async (notificationKey, values) => {
 
 const notificationsApi = {
   async list({ year = new Date().getUTCFullYear(), limit = 30, includeResolved = false } = {}) {
-    const cappedLimit = Math.max(1, Math.min(Number(limit) || 30, 100));
+    const cappedLimit = Math.max(1, Math.min(Number(limit) || 30, 500));
     const { user } = await getCurrentActor();
     const latestRouteByCustomerId = await getLatestRouteVersionByCustomerId();
     const [result, customerDerivedNotifications, ispDerivedNotifications] = await Promise.all([

@@ -106,6 +106,8 @@ export default function TodoListPage({ activeSection, onNavigate, onLogout, curr
     const [severity, setSeverity] = useState("all");
     const [type, setType] = useState("all");
     const [status, setStatus] = useState("active");
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState(20);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
 
@@ -164,6 +166,14 @@ export default function TodoListPage({ activeSection, onNavigate, onLogout, curr
             return matchesSearch && matchesSeverity && matchesType && matchesStatus;
         });
     }, [notifications, search, severity, status, type]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [search, severity, status, type, itemsPerPage]);
+
+    const totalPages = Math.max(1, Math.ceil(filteredNotifications.length / itemsPerPage));
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const paginatedNotifications = filteredNotifications.slice(startIndex, startIndex + itemsPerPage);
 
     const openNotification = async (notification) => {
         if (!notification.readAt) {
@@ -322,7 +332,7 @@ export default function TodoListPage({ activeSection, onNavigate, onLogout, curr
                         </div>
                     ) : filteredNotifications.length > 0 ? (
                         <div className="space-y-4">
-                            {filteredNotifications.map((notification) => {
+                            {paginatedNotifications.map((notification) => {
                                 const severityClass = SEVERITY_CLASS[notification.severity] || SEVERITY_CLASS.info;
                                 const statusKey = getStatusKey(notification);
                                 return (
@@ -384,6 +394,42 @@ export default function TodoListPage({ activeSection, onNavigate, onLogout, curr
                                     </div>
                                 );
                             })}
+                            <div className="flex flex-col gap-4 border-t border-white/10 pt-5 md:flex-row md:items-center md:justify-between">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-white/35">
+                                    Menampilkan {filteredNotifications.length === 0 ? 0 : startIndex + 1}-{Math.min(startIndex + itemsPerPage, filteredNotifications.length)} dari {filteredNotifications.length} item
+                                </p>
+                                <div className="flex flex-wrap items-center gap-3">
+                                    <select
+                                        className="h-10 rounded-xl border border-white/10 bg-white/5 px-3 text-[10px] font-black uppercase tracking-widest text-white/60 outline-none transition-all hover:bg-white/10 focus:border-gold-accent/40 backdrop-blur-md"
+                                        value={itemsPerPage}
+                                        onChange={(event) => setItemsPerPage(Number(event.target.value))}
+                                    >
+                                        <option value={10}>10</option>
+                                        <option value={20}>20</option>
+                                        <option value={50}>50</option>
+                                        <option value={100}>100</option>
+                                    </select>
+                                    <button
+                                        className="h-10 rounded-xl border border-white/10 bg-white/5 px-4 text-[10px] font-black uppercase tracking-widest text-white/60 transition-all hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40 backdrop-blur-md"
+                                        type="button"
+                                        disabled={currentPage <= 1}
+                                        onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                                    >
+                                        Prev
+                                    </button>
+                                    <span className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-gold-accent backdrop-blur-md">
+                                        {currentPage} / {totalPages}
+                                    </span>
+                                    <button
+                                        className="h-10 rounded-xl border border-white/10 bg-white/5 px-4 text-[10px] font-black uppercase tracking-widest text-white/60 transition-all hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40 backdrop-blur-md"
+                                        type="button"
+                                        disabled={currentPage >= totalPages}
+                                        onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                                    >
+                                        Next
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     ) : (
                         <div className="flex flex-col items-center justify-center py-20 animate-in fade-in zoom-in duration-500">
