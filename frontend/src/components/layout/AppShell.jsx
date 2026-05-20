@@ -84,7 +84,7 @@ export default function AppShell({
             )}
 
             <main
-                className={`relative z-10 min-h-screen transition-all duration-700 ease-in-out px-4 sm:px-6 md:px-8 lg:px-12 pb-12 pt-20 lg:pt-24 ${hideSidebar ? "" : (isSidebarCollapsed ? "lg:ml-32" : "lg:ml-80")
+                className={`relative z-10 min-h-screen transition-all duration-700 ease-in-out px-4 sm:px-6 md:px-8 lg:px-10 pb-10 pt-20 lg:pt-24 ${hideSidebar ? "" : (isSidebarCollapsed ? "lg:ml-28" : "lg:ml-72")
                     }`}
             >
                 <div className="mx-auto max-w-[1600px]">
@@ -221,9 +221,9 @@ function TopNav({ isSidebarCollapsed, onToggleMenu, onLogout, roleConfig, onEdit
 
     return (
         <nav
-            className={`fixed top-4 md:top-6 right-4 md:right-6 z-40 flex items-center justify-between transition-all duration-700 ease-in-out pointer-events-none ${isSidebarCollapsed
-                    ? "left-4 lg:left-32"
-                    : "left-4 lg:left-80"
+            className={`fixed top-4 md:top-5 right-4 md:right-6 z-40 flex items-center justify-between transition-all duration-700 ease-in-out pointer-events-none ${isSidebarCollapsed
+                    ? "left-4 lg:left-28"
+                    : "left-4 lg:left-72"
                 }`}
         >
             <div className="pointer-events-auto">
@@ -413,27 +413,27 @@ function Sidebar({ isCollapsed, onToggle, activeSection, onNavigate, roleConfig 
 
     return (
         <aside
-            className={`fixed left-4 lg:left-6 top-4 md:top-6 bottom-4 md:bottom-6 z-50 hidden lg:flex flex-col rounded-3xl glass-sidebar shadow-glass-depth transition-all duration-700 ease-in-out ${isCollapsed ? "w-24" : "w-72"
+            className={`fixed left-4 lg:left-6 top-4 md:top-5 bottom-4 md:bottom-5 z-50 hidden lg:flex flex-col rounded-[20px] glass-sidebar shadow-glass-depth transition-all duration-700 ease-in-out ${isCollapsed ? "w-20" : "w-64"
                 }`}
         >
             <button
                 onClick={onToggle}
-                className={`w-full py-8 transition-all duration-500 hover:scale-[1.02] active:scale-[0.98] group focus:outline-none flex items-center ${isCollapsed ? "justify-center px-0" : "px-8 lg:px-10"}`}
+                className={`w-full py-6 transition-all duration-500 hover:scale-[1.02] active:scale-[0.98] group focus:outline-none flex items-center ${isCollapsed ? "justify-center px-0" : "px-6 lg:px-8"}`}
             >
-                <div className="flex items-center gap-4">
-                    <div className="h-10 w-10 flex items-center justify-center rounded-2xl bg-gold-gradient shadow-gold-glow shrink-0">
-                        <img alt="" className="h-7 w-7 object-contain" src="/logo-kima.png" />
+                <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 flex items-center justify-center rounded-xl bg-gold-gradient shadow-gold-glow shrink-0">
+                        <img alt="" className="h-5 w-5 object-contain" src="/logo-kima.png" />
                     </div>
                     {!isCollapsed && (
                         <div className="overflow-hidden whitespace-nowrap text-left animate-in fade-in slide-in-from-left-4 duration-500">
-                            <p className="text-xl font-black text-on-surface tracking-tighter leading-none">KIMA</p>
-                            <p className="text-[9px] font-bold text-gold-accent uppercase tracking-[0.2em] mt-1">ARCHIVE</p>
+                            <p className="text-lg font-black text-on-surface tracking-tighter leading-none">KIMA</p>
+                            <p className="text-[8px] font-bold text-gold-accent uppercase tracking-[0.2em] mt-1">ARCHIVE</p>
                         </div>
                     )}
                 </div>
             </button>
 
-            <nav className="flex-grow px-4 lg:px-6 space-y-2 mt-2 overflow-y-auto no-scrollbar">
+            <nav className="flex-grow px-3 lg:px-4 space-y-1 mt-1 overflow-y-auto no-scrollbar">
                 {roleConfig.menuItems.map((item) => {
                     const isActive = activeSection === item.key;
                     const href = getSectionPath(item.key, roleConfig.key);
@@ -442,15 +442,15 @@ function Sidebar({ isCollapsed, onToggle, activeSection, onNavigate, roleConfig 
                             key={item.key}
                             href={href}
                             title={isCollapsed ? item.label : ""}
-                            className={`flex items-center rounded-2xl transition-all duration-300 group ${isCollapsed ? "justify-center h-12 w-12 mx-auto" : "gap-4 px-5 py-3.5"
+                            className={`flex items-center rounded-xl transition-all duration-300 group ${isCollapsed ? "justify-center h-10 w-10 mx-auto" : "gap-3 px-4 py-2.5"
                                 } ${isActive
                                     ? "active-glow-gold text-on-surface font-black"
                                     : "text-on-surface-variant hover:text-on-surface hover:bg-black/5"
                                 }`}
                             onClick={(event) => handleSectionClick(event, item.key)}
                         >
-                            <span className={`material-symbols-outlined text-xl transition-transform duration-300 ${isActive ? "text-gold-accent" : "group-hover:scale-110"}`}>{item.icon}</span>
-                            {!isCollapsed && <span className="text-[11px] font-bold uppercase tracking-widest whitespace-nowrap animate-in fade-in duration-500">{item.label}</span>}
+                            <span className={`material-symbols-outlined text-lg transition-transform duration-300 ${isActive ? "text-gold-accent" : "group-hover:scale-110"}`}>{item.icon}</span>
+                            {!isCollapsed && <span className="text-[10px] font-bold uppercase tracking-widest whitespace-nowrap animate-in fade-in duration-500">{item.label}</span>}
                         </a>
                     );
                 })}
