@@ -161,7 +161,7 @@ function MonitoringSpreadsheetPage({
     }));
 
     const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage, setItemsPerPage] = useState(50);
+    const [itemsPerPage, setItemsPerPage] = useState(20);
     const [activeDataTab, setActiveDataTab] = useState("table");
 
     const [billingRows, setBillingRows] = useState([]);
@@ -520,6 +520,7 @@ function MonitoringSpreadsheetPage({
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
     const paginatedRows = filteredRows.slice(startIndex, endIndex);
+    const visibleRows = tableOnly ? filteredRows : paginatedRows;
 
     const handlePageChange = (newPage) => {
         if (newPage >= 1 && newPage <= totalPages) {
@@ -822,8 +823,8 @@ function MonitoringSpreadsheetPage({
                             </tr>
                         )}
 
-                        {!isLoading && paginatedRows.map((row, rowIndex) => {
-                            const actualRowNumber = startIndex + rowIndex + 1;
+                        {!isLoading && visibleRows.map((row, rowIndex) => {
+                            const actualRowNumber = tableOnly ? rowIndex + 1 : startIndex + rowIndex + 1;
                             return (
                             <tr key={`${row.customerId}-${rowIndex}`} className="bg-[#0f172a]/40 transition-all group hover:bg-[#1e293b]/60">
                                 <td className="relative sticky left-0 z-20 w-[64px] pl-2 pr-0 py-5 font-black text-white/30 text-center bg-[#0f172a]/65 backdrop-blur-sm group-hover:!bg-[#0f1117] group-hover:!backdrop-blur-none group-hover:text-gold-accent transition-colors shadow-[2px_0_10px_rgba(0,0,0,0.3)] group-hover:border-l-4 group-hover:border-l-gold-accent">
@@ -1731,7 +1732,7 @@ function PaginationControls({ currentPage, totalPages, onPageChange, itemsPerPag
                         onChange={(e) => onItemsPerPageChange(Number(e.target.value))}
                         className="rounded-lg bg-white/5 border border-white/10 px-3 py-1.5 text-[11px] font-bold text-white outline-none transition-all hover:bg-white/10 focus:border-gold-accent/40 focus:ring-2 focus:ring-gold-accent/10 backdrop-blur-md"
                     >
-                        <option value={25}>25</option>
+                        <option value={20}>20</option>
                         <option value={50}>50</option>
                         <option value={100}>100</option>
                         <option value={200}>200</option>
