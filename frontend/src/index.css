@@ -78,7 +78,7 @@
 @layer utilities {
 
   .glass-premium {
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(15, 20, 30, 0.78);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
     border: 1px solid rgba(255, 255, 255, 0.15);
@@ -86,7 +86,7 @@
   }
 
   .glass-card {
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(15, 20, 30, 0.42);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -117,10 +117,46 @@
     border: 1px solid rgba(255, 255, 255, 0.15);
   }
 
+  .backdrop-blur-sm {
+    -webkit-backdrop-filter: blur(4px);
+  }
+
+  .backdrop-blur-md {
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .backdrop-blur-xl {
+    -webkit-backdrop-filter: blur(24px);
+  }
+
+  .backdrop-blur-2xl {
+    -webkit-backdrop-filter: blur(40px);
+  }
+
+  .backdrop-blur-3xl {
+    -webkit-backdrop-filter: blur(64px);
+  }
+
   @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .glass-card {
+      background: rgba(15, 20, 30, 0.82);
+    }
+
+    .glass-premium,
     .glass-sidebar,
     .glass-navbar {
-      background: rgba(15, 20, 30, 0.88);
+      background: rgba(15, 20, 30, 0.9);
+    }
+
+    .bg-white\/5.backdrop-blur-sm,
+    .bg-white\/5.backdrop-blur-md,
+    .bg-white\/5.backdrop-blur-xl,
+    .bg-white\/10.backdrop-blur-sm,
+    .bg-white\/10.backdrop-blur-md,
+    .bg-white\/10.backdrop-blur-xl,
+    .bg-black\/20.backdrop-blur-md,
+    .bg-black\/40.backdrop-blur-md {
+      background-color: rgba(15, 20, 30, 0.78) !important;
     }
   }
 
