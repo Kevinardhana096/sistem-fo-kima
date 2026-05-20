@@ -294,7 +294,7 @@ export default function DashboardPage({
         }
     };
 
-    const glassCardClass = "glass-card backdrop-blur-xl rounded-xl p-3 relative overflow-hidden group";
+    const glassCardClass = "glass-card backdrop-blur-xl rounded-2xl p-3 relative overflow-hidden group";
 
     return (
         <AppShell activeSection={activeSection} onNavigate={onNavigate} onLogout={onLogout} currentRole={currentRole}>
@@ -323,9 +323,9 @@ export default function DashboardPage({
                 </section>
 
                 {/* Row 2: Core Trend & Sharing Details */}
-                <section className="relative z-30 grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <section className="relative z-30 grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-[360px]">
                     {/* Core Chart with Toggle */}
-                    <div className={`${glassCardClass} z-[60] flex flex-col overflow-visible lg:col-span-2`}>
+                    <div className={`${glassCardClass} z-[60] flex flex-col overflow-visible lg:col-span-2 h-full`}>
                         <div className="flex flex-col md:flex-row md:items-center justify-between mb-3 gap-2 relative z-50">
                             <div className="flex items-center gap-2">
                                 <span className="h-4 w-1 bg-gold-accent rounded-full"></span>
@@ -381,27 +381,27 @@ export default function DashboardPage({
                                 <LegendItem dotColor="bg-[#f43f5e]" label="1:32" small />
                             </div>
                         )}
-                        <div className="relative z-50 mt-5 flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/5 p-3 backdrop-blur-md sm:flex-row sm:items-center sm:justify-between">
+                        <div className="relative z-50 mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                                 <ChartFilterSelector filter={coreTrendExportFilter} setFilter={setCoreTrendExportFilter} availableYears={availableYears} showCurrentMonthOption />
                             </div>
-                            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                            <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center">
                                 <button
                                     type="button"
                                     onClick={handleExportCoreTrend}
                                     disabled={isExportingCoreTrend}
-                                    className={`flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-[9px] font-black uppercase tracking-widest transition-all ${isExportingCoreTrend ? "bg-white/10 text-gold-accent" : "btn-premium"}`}
+                                    className={`flex items-center justify-center gap-1 rounded-lg px-2 py-0.5 text-[7px] font-black uppercase tracking-widest transition-all ${isExportingCoreTrend ? "bg-white/10 text-gold-accent" : "btn-premium"}`}
                                 >
-                                    <span className={`material-symbols-outlined text-base ${isExportingCoreTrend ? "animate-spin" : ""}`}>{isExportingCoreTrend ? "sync" : "download"}</span>
+                                    <span className={`material-symbols-outlined text-[10px] ${isExportingCoreTrend ? "animate-spin" : ""}`}>{isExportingCoreTrend ? "sync" : "download"}</span>
                                     {isExportingCoreTrend ? "Menyiapkan" : "CSV"}
                                 </button>
                                 <button
                                     type="button"
                                     onClick={handleExportCoreTrendXlsx}
                                     disabled={isExportingCoreTrendXlsx}
-                                    className={`flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-[9px] font-black uppercase tracking-widest transition-all ${isExportingCoreTrendXlsx ? "bg-white/10 text-gold-accent" : "btn-premium"}`}
+                                    className={`flex items-center justify-center gap-1 rounded-lg px-2 py-0.5 text-[7px] font-black uppercase tracking-widest transition-all ${isExportingCoreTrendXlsx ? "bg-white/10 text-gold-accent" : "btn-premium"}`}
                                 >
-                                    <span className={`material-symbols-outlined text-base ${isExportingCoreTrendXlsx ? "animate-spin" : ""}`}>{isExportingCoreTrendXlsx ? "sync" : "insert_chart"}</span>
+                                    <span className={`material-symbols-outlined text-[10px] ${isExportingCoreTrendXlsx ? "animate-spin" : ""}`}>{isExportingCoreTrendXlsx ? "sync" : "insert_chart"}</span>
                                     {isExportingCoreTrendXlsx ? "Menyiapkan" : "XLSX Grafik"}
                                 </button>
                             </div>
@@ -409,7 +409,7 @@ export default function DashboardPage({
                     </div>
 
                     {/* Card 2: Sewa Sharing Core (Tabel) */}
-                    <div className={`${glassCardClass} flex flex-col lg:col-span-1`}>
+                    <div className={`${glassCardClass} flex flex-col lg:col-span-1 h-full`}>
                         <div className="flex items-center gap-2 mb-3">
                             <span className="h-4 w-1 bg-gold-accent rounded-full"></span>
                             <h2 className="text-base font-black text-white tracking-tight leading-none">Rincian Sharing Core</h2>
@@ -425,9 +425,9 @@ export default function DashboardPage({
                     </div>
                 </section>
 
-                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3 h-auto lg:h-[360px] items-stretch">
                     {/* Growth Chart */}
-                    <div className={`${glassCardClass} lg:col-span-2 xl:col-span-2`}>
+                    <div className={`${glassCardClass} lg:col-span-2 xl:col-span-2 h-full flex flex-col`}>
                         <div className="flex flex-col md:flex-row md:items-center justify-between mb-3 gap-2 relative z-50">
                             <div className="flex items-center gap-2">
                                 <span className="h-4 w-1 bg-gold-accent rounded-full"></span>
@@ -451,7 +451,7 @@ export default function DashboardPage({
                                 </div>
                             </div>
                         </div>
-                        <div className="h-[120px] md:h-[150px] w-full">
+                        <div className="flex-1 min-h-[160px] md:min-h-[200px] w-full">
                             <ResponsiveContainer width="100%" height="100%">
                                 <LineChart data={growthData[growthType]}>
                                     <CartesianGrid strokeDasharray="0" vertical={false} stroke="rgba(255,255,255,0.08)" />
@@ -465,7 +465,7 @@ export default function DashboardPage({
                     </div>
 
                     {/* Alerts */}
-                    <div className={`${glassCardClass} flex flex-col h-[180px] md:h-[220px]`}>
+                    <div className={`${glassCardClass} flex flex-col h-full`}>
                         <div className="mb-3 flex items-center justify-between">
                             <div className="flex items-center gap-2">
                                 <span className="h-4 w-1 bg-gold-accent rounded-full"></span>

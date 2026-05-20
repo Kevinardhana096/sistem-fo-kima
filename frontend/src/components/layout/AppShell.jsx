@@ -148,7 +148,7 @@ export default function AppShell({
                             <button onClick={() => setIsEditModalOpen(false)} className="flex-1 py-2.5 rounded-xl font-bold text-[11px] bg-white/5 text-on-surface hover:bg-white/10 transition-all">
                                 Batal
                             </button>
-                            <button onClick={() => setIsEditModalOpen(false)} className="flex-1 py-2.5 rounded-xl font-bold text-[11px] bg-gold-gradient text-white shadow-gold-glow hover:opacity-90 transition-all">
+                            <button onClick={() => setIsEditModalOpen(false)} className="flex-1 py-2.5 rounded-xl font-black text-[11px] bg-gold-accent text-white shadow-gold-glow hover:opacity-90 transition-all">
                                 Simpan Perubahan
                             </button>
                         </div>

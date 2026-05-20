@@ -78,11 +78,11 @@
 @layer utilities {
 
   .glass-premium {
-    background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
   }
 
   .glass-card {
@@ -122,9 +122,9 @@
   }
 
   .btn-premium {
-    background: linear-gradient(135deg, #d4a937, #f1d279);
+    background: #d4a937;
     color: #ffffff;
-    font-weight: 800;
+    font-weight: 900;
     transition: all 0.4s ease;
     box-shadow: 0 10px 20px rgba(212, 169, 55, 0.3);
   }
