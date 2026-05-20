@@ -135,19 +135,6 @@ const getYesterdayDate = () => {
     return getLocalDateString(d);
 };
 
-const getStartOfWeekDate = () => {
-    const d = new Date();
-    const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-    d.setDate(diff);
-    return getLocalDateString(d);
-};
-
-const getStartOfMonthDate = () => {
-    const d = new Date();
-    return getLocalDateString(new Date(d.getFullYear(), d.getMonth(), 1));
-};
-
 export default function ActivityLogPage({ activeSection, onNavigate, onLogout, currentRole = "admin" }) {
     const [logs, setLogs] = useState([]);
     const [searchQuery, setSearchQuery] = useState("");

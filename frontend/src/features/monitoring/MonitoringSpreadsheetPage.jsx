@@ -350,7 +350,7 @@ function MonitoringSpreadsheetPage({
 
             const candidateCustomerIds = [
                 ...new Set([
-                    ...nextBillingRows.map((row) => row.customerId).filter((id) => Number.isFinite(id)),
+                    ...billingRows.map((row) => row.customerId).filter((id) => Number.isFinite(id)),
                     ...nextAlerts.map((alert) => alert.customerId).filter((id) => Number.isFinite(id)),
                 ]),
             ].slice(0, 8);
@@ -361,7 +361,7 @@ function MonitoringSpreadsheetPage({
             }
 
             const nameMap = new Map();
-            nextBillingRows.forEach((row) => {
+            billingRows.forEach((row) => {
                 nameMap.set(row.customerId, row.customerName);
             });
             nextAlerts.forEach((alert) => {

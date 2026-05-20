@@ -499,6 +499,7 @@ function App() {
                 <DashboardPage
                     activeSection={activeSection}
                     customers={customers}
+                    isps={isps}
                     notifications={notifications}
                     isLoadingCustomers={isLoadingCustomers}
                     currentRole={currentRole}

@@ -400,19 +400,28 @@ const getDateValue = (value) => {
 };
 
 const getContractVersionNumber = (version) => Number(version?.versionNumber ?? version?.version_number ?? 0);
+const getTodayIso = () => new Date().toISOString().slice(0, 10);
+const getStartDate = (item) => item?.startDate ?? item?.start_date ?? null;
+const getEndDate = (item) => item?.endDate ?? item?.end_date ?? null;
+const isDateInPeriod = (item, date) => getStartDate(item) <= date && getEndDate(item) >= date;
 
-export const getLatestContractVersion = (contract) => (
-    Array.isArray(contract?.versions)
-        ? [...contract.versions].sort((left, right) => {
-            const versionDiff = getContractVersionNumber(right) - getContractVersionNumber(left);
-            if (versionDiff !== 0) {
-                return versionDiff;
-            }
+const sortContractVersions = (versions = []) => [...versions]
+    .filter(version => !(version?.deletedAt ?? version?.deleted_at))
+    .sort((left, right) => {
+        const versionDiff = getContractVersionNumber(right) - getContractVersionNumber(left);
+        if (versionDiff !== 0) {
+            return versionDiff;
+        }
 
-            return getDateValue(right.endDate ?? right.end_date ?? right.startDate ?? right.start_date)
-                - getDateValue(left.endDate ?? left.end_date ?? left.startDate ?? left.start_date);
-        })[0]
-        : null
+        return getDateValue(right.endDate ?? right.end_date ?? right.startDate ?? right.start_date)
+            - getDateValue(left.endDate ?? left.end_date ?? left.startDate ?? left.start_date);
+    });
+
+export const getLatestContractVersion = (contract) => sortContractVersions(contract?.versions)[0] ?? null;
+
+export const getEffectiveContractVersion = (contract, date = getTodayIso()) => (
+    sortContractVersions(contract?.versions).find(version => isDateInPeriod(version, date))
+    ?? getLatestContractVersion(contract)
 );
 
 const getContractLatestPeriodTimestamp = (contract) => {
@@ -429,11 +438,15 @@ const getContractLatestPeriodTimestamp = (contract) => {
     );
 };
 
-export const getCustomerPrimaryContract = (customer) => (
-    Array.isArray(customer.contracts)
-        ? [...customer.contracts].sort((left, right) => getContractLatestPeriodTimestamp(right) - getContractLatestPeriodTimestamp(left))[0]
-        : null
-);
+export const getCustomerPrimaryContract = (customer, date = getTodayIso()) => {
+    if (!Array.isArray(customer.contracts)) return null;
+
+    const contracts = [...customer.contracts].filter(contract => !(contract?.deletedAt ?? contract?.deleted_at));
+    return contracts.find(contract => isDateInPeriod(contract, date))
+        ?? contracts.find(contract => getStartDate(contract) > date)
+        ?? contracts.sort((left, right) => getContractLatestPeriodTimestamp(right) - getContractLatestPeriodTimestamp(left))[0]
+        ?? null;
+};
 
 export const getCustomerInitialContract = (customer) => (
     Array.isArray(customer.contracts)
@@ -443,10 +456,10 @@ export const getCustomerInitialContract = (customer) => (
 
 export const getCustomerSharedCoreRatio = (customer) => {
     const contract = getCustomerPrimaryContract(customer);
-    const latestVersion = getLatestContractVersion(contract);
+    const effectiveVersion = getEffectiveContractVersion(contract);
 
-    return latestVersion?.sharedCoreRatio
-        ?? latestVersion?.shared_core_ratio
+    return effectiveVersion?.sharedCoreRatio
+        ?? effectiveVersion?.shared_core_ratio
         ?? contract?.sharingRatio
         ?? contract?.sharing_ratio
         ?? customer.contractSharingRatio
@@ -456,11 +469,11 @@ export const getCustomerSharedCoreRatio = (customer) => {
 
 export const resolveCustomerPackageInfo = (customer) => {
     const contract = getCustomerPrimaryContract(customer);
-    const latestVersion = getLatestContractVersion(contract);
+    const effectiveVersion = getEffectiveContractVersion(contract);
     const sharedCoreRatio = getCustomerSharedCoreRatio(customer);
     const rawPackage = String(
-        latestVersion?.core_type
-            ?? latestVersion?.coreType
+        effectiveVersion?.core_type
+            ?? effectiveVersion?.coreType
             ?? contract?.core_type
             ?? contract?.coreType
             ?? customer.paket
@@ -474,8 +487,8 @@ export const resolveCustomerPackageInfo = (customer) => {
             paket: "sharing_core",
             jumlah: formatPackageRatio(
                 sharedCoreRatio
-                    ?? latestVersion?.shared_core_ratio
-                    ?? latestVersion?.sharedCoreRatio
+                    ?? effectiveVersion?.shared_core_ratio
+                    ?? effectiveVersion?.sharedCoreRatio
                     ?? contract?.sharing_ratio
                     ?? contract?.sharingRatio
                     ?? customer.jumlah,
@@ -486,8 +499,8 @@ export const resolveCustomerPackageInfo = (customer) => {
     if (isCorePackage) {
         return {
             paket: "core",
-            jumlah: latestVersion?.core_total
-                ?? latestVersion?.coreTotal
+            jumlah: effectiveVersion?.core_total
+                ?? effectiveVersion?.coreTotal
                 ?? contract?.core_total
                 ?? contract?.coreTotal
                 ?? customer.jumlah
@@ -504,7 +517,7 @@ export const resolveCustomerPackageInfo = (customer) => {
 export const resolveCustomerContractPeriodInfo = (customer) => {
     const contract = getCustomerPrimaryContract(customer);
     const initialContract = getCustomerInitialContract(customer);
-    const latestVersion = getLatestContractVersion(contract);
+    const effectiveVersion = getEffectiveContractVersion(contract);
 
     return {
         contractStartDate: customer.contractStartDate
@@ -517,18 +530,18 @@ export const resolveCustomerContractPeriodInfo = (customer) => {
             ?? contract?.contractStartDate
             ?? contract?.start_date
             ?? contract?.startDate
-            ?? latestVersion?.start_date
-            ?? latestVersion?.startDate
+            ?? effectiveVersion?.start_date
+            ?? effectiveVersion?.startDate
             ?? null,
-        contractPeriodStart: latestVersion?.start_date
-            ?? latestVersion?.startDate
+        contractPeriodStart: effectiveVersion?.start_date
+            ?? effectiveVersion?.startDate
             ?? contract?.start_date
             ?? contract?.startDate
             ?? customer.contractPeriodStart
             ?? customer.contract_period_start
             ?? null,
-        contractPeriodEnd: latestVersion?.end_date
-            ?? latestVersion?.endDate
+        contractPeriodEnd: effectiveVersion?.end_date
+            ?? effectiveVersion?.endDate
             ?? contract?.end_date
             ?? contract?.endDate
             ?? customer.contractPeriodEnd

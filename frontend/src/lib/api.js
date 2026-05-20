@@ -797,19 +797,28 @@ const getDateValue = (value) => {
   const timestamp = value ? new Date(`${String(value).slice(0, 10)}T00:00:00.000Z`).getTime() : 0;
   return Number.isFinite(timestamp) ? timestamp : 0;
 };
+const getTodayIso = () => new Date().toISOString().slice(0, 10);
+const getPeriodStart = (item) => item?.startDate ?? item?.start_date ?? null;
+const getPeriodEnd = (item) => item?.endDate ?? item?.end_date ?? null;
+const isInPeriod = (item, date) => getPeriodStart(item) <= date && getPeriodEnd(item) >= date;
 
-const getLatestContractVersion = (contract) => (
-  Array.isArray(contract?.versions)
-    ? [...contract.versions].sort((left, right) => {
-      const versionDiff = Number(right.versionNumber ?? right.version_number ?? 0) - Number(left.versionNumber ?? left.version_number ?? 0);
-      if (versionDiff !== 0) {
-        return versionDiff;
-      }
+const sortContractVersions = (versions = []) => [...versions]
+  .filter(version => !(version?.deletedAt ?? version?.deleted_at))
+  .sort((left, right) => {
+    const versionDiff = Number(right.versionNumber ?? right.version_number ?? 0) - Number(left.versionNumber ?? left.version_number ?? 0);
+    if (versionDiff !== 0) {
+      return versionDiff;
+    }
 
-      return getDateValue(right.endDate ?? right.end_date ?? right.startDate ?? right.start_date)
-        - getDateValue(left.endDate ?? left.end_date ?? left.startDate ?? left.start_date);
-    })[0]
-    : null
+    return getDateValue(right.endDate ?? right.end_date ?? right.startDate ?? right.start_date)
+      - getDateValue(left.endDate ?? left.end_date ?? left.startDate ?? left.start_date);
+  });
+
+const getLatestContractVersion = (contract) => sortContractVersions(contract?.versions)[0] ?? null;
+
+const getEffectiveContractVersion = (contract, date = getTodayIso()) => (
+  sortContractVersions(contract?.versions).find(version => isInPeriod(version, date))
+  ?? getLatestContractVersion(contract)
 );
 
 const getContractLatestPeriodTimestamp = (contract) => {
@@ -985,11 +994,18 @@ const mapRouteHistoryPayload = (customerId, historyData = {}) => ({
 
 const mapCustomerDetail = (customer) => {
   const contracts = Array.isArray(customer.contracts)
-    ? customer.contracts.map(mapCustomerContract).sort((left, right) => getContractLatestPeriodTimestamp(right) - getContractLatestPeriodTimestamp(left))
+    ? customer.contracts
+      .map(mapCustomerContract)
+      .filter(contract => !(contract?.deletedAt ?? contract?.deleted_at))
+      .sort((left, right) => getContractLatestPeriodTimestamp(right) - getContractLatestPeriodTimestamp(left))
     : [];
-  const activeContract = contracts[0] ?? null;
+  const today = getTodayIso();
+  const activeContract = contracts.find(contract => isInPeriod(contract, today))
+    ?? contracts.find(contract => getPeriodStart(contract) > today)
+    ?? contracts[0]
+    ?? null;
   const initialContract = [...contracts].sort((left, right) => getDateValue(left.startDate ?? left.start_date) - getDateValue(right.startDate ?? right.start_date))[0] ?? null;
-  const latestContractVersion = getLatestContractVersion(activeContract);
+  const effectiveContractVersion = getEffectiveContractVersion(activeContract, today);
   const routeVersions = Array.isArray(customer.routeVersions)
     ? customer.routeVersions.map(mapRouteVersion).sort((left, right) => Number(right.versionNumber ?? 0) - Number(left.versionNumber ?? 0))
     : [];
@@ -1001,8 +1017,8 @@ const mapCustomerDetail = (customer) => {
     activationFeeAmount: customer.activationFeeAmount ?? customer.activation_fee_amount ?? 0,
     activationFeePaidAt: customer.activationFeePaidAt ?? customer.activation_fee_paid_at ?? null,
     contractStartDate: customer.contractStartDate ?? customer.contract_start_date ?? initialContract?.startDate ?? null,
-    contractPeriodStart: customer.contractPeriodStart ?? customer.contract_period_start ?? latestContractVersion?.startDate ?? activeContract?.startDate ?? null,
-    contractPeriodEnd: customer.contractPeriodEnd ?? customer.contract_period_end ?? latestContractVersion?.endDate ?? activeContract?.endDate ?? null,
+    contractPeriodStart: customer.contractPeriodStart ?? customer.contract_period_start ?? effectiveContractVersion?.startDate ?? activeContract?.startDate ?? null,
+    contractPeriodEnd: customer.contractPeriodEnd ?? customer.contract_period_end ?? effectiveContractVersion?.endDate ?? activeContract?.endDate ?? null,
     isps: Array.isArray(customer.ispMemberships)
       ? customer.ispMemberships.map(membership => mapIsp(membership.isp)).filter(Boolean)
       : [],
@@ -1276,6 +1292,7 @@ export const customersApi = {
             billing_unit,
             created_at,
             updated_at,
+            deleted_at,
             versions:contract_versions(
               id,
               contract_id,
@@ -1287,7 +1304,8 @@ export const customersApi = {
               shared_core_ratio,
               monthly_amount,
               yearly_amount,
-              remarks
+              remarks,
+              deleted_at
             )
           `)
           .in('customer_id', ids);
@@ -2046,7 +2064,8 @@ export const monitoringApi = {
               shared_core_ratio,
               monthly_amount,
               yearly_amount,
-              remarks
+              remarks,
+              deleted_at
             )
           `)
           .in('customer_id', ids);
@@ -2117,14 +2136,16 @@ export const monitoringApi = {
       return Number.isFinite(timestamp) ? timestamp : 0;
     };
 
-    const getLatestVersion = (contract) => (
-      Array.isArray(contract?.versions)
-        ? [...contract.versions].sort((left, right) => {
-          const versionDiff = Number(right.version_number ?? 0) - Number(left.version_number ?? 0);
-          if (versionDiff !== 0) return versionDiff;
-          return getDateValue(right.end_date ?? right.start_date) - getDateValue(left.end_date ?? left.start_date);
-        })[0]
-        : null
+    const sortVersions = (versions = []) => [...versions].sort((left, right) => {
+      const versionDiff = Number(right.version_number ?? 0) - Number(left.version_number ?? 0);
+      if (versionDiff !== 0) return versionDiff;
+      return getDateValue(right.end_date ?? right.start_date) - getDateValue(left.end_date ?? left.start_date);
+    });
+    const isInPeriod = (item, date) => item?.start_date <= date && item?.end_date >= date;
+    const getLatestVersion = (contract) => sortVersions(contract?.versions)[0] ?? null;
+    const getEffectiveVersion = (contract, date = today) => (
+      sortVersions(contract?.versions).find(version => isInPeriod(version, date))
+      ?? getLatestVersion(contract)
     );
 
     const getCurrentContract = (contracts = []) => {
@@ -2162,11 +2183,10 @@ export const monitoringApi = {
       const customerIsps = customer.ispMemberships?.map(m => m.isp).filter(Boolean) || [];
       const ispNames = customerIsps.map(isp => isp.name).filter(Boolean);
       const customerContracts = contractsByCustomerId.get(customer.id) || [];
-      const customerInvoices = invoicesByCustomerId.get(customer.id) || [];
       const invoiceLookup = invoiceLookupByCustomerId.get(customer.id) || new Map();
       const latestRouteVersion = getLatestRouteVersion(routeVersionsByCustomerId.get(customer.id) || []);
       const currentContract = getCurrentContract(customerContracts);
-      const latestVersion = getLatestVersion(currentContract);
+      const effectiveVersion = getEffectiveVersion(currentContract);
       const currentMonthInvoice = invoiceLookup.get(getInvoiceKey(currentContract?.id ?? null, currentMonth)) || null;
 
       // Build months array (12 months)
@@ -2192,15 +2212,15 @@ export const monitoringApi = {
         routeStatus: latestRouteVersion?.flow_status || null,
         activationFeeAmount: Number(customer.activation_fee_amount || 0),
         activationFeePaidAt: customer.activation_fee_paid_at,
-        contractStart: latestVersion?.start_date || currentContract?.start_date || null,
-        contractEnd: latestVersion?.end_date || currentContract?.end_date || null,
-        coreType: latestVersion?.core_type || currentContract?.core_type || null,
-        coreTotal: latestVersion?.core_total ?? currentContract?.core_total ?? null,
-        sharingRatio: latestVersion?.shared_core_ratio || currentContract?.sharing_ratio || null,
-        monthlyAmount: Number(latestVersion?.monthly_amount || 0),
-        yearlyAmount: Number(latestVersion?.yearly_amount || 0),
+        contractStart: effectiveVersion?.start_date || currentContract?.start_date || null,
+        contractEnd: effectiveVersion?.end_date || currentContract?.end_date || null,
+        coreType: effectiveVersion?.core_type || currentContract?.core_type || null,
+        coreTotal: effectiveVersion?.core_total ?? currentContract?.core_total ?? null,
+        sharingRatio: effectiveVersion?.shared_core_ratio || currentContract?.sharing_ratio || null,
+        monthlyAmount: Number(effectiveVersion?.monthly_amount || 0),
+        yearlyAmount: Number(effectiveVersion?.yearly_amount || 0),
         notes: customer.notes || null,
-        contractRemarks: latestVersion?.remarks || null,
+        contractRemarks: effectiveVersion?.remarks || null,
         months,
       };
     });
@@ -2654,7 +2674,8 @@ export const monitoringApi = {
             core_total,
             sharing_ratio,
             status,
-            versions:contract_versions(version_number, start_date, end_date, core_type, core_total, shared_core_ratio)
+            deleted_at,
+            versions:contract_versions(version_number, start_date, end_date, core_type, core_total, shared_core_ratio, deleted_at)
           ),
           routeVersions:customer_route_versions(version_number, flow_status, created_at)
         `)
@@ -2677,14 +2698,17 @@ export const monitoringApi = {
     const normalizeStatus = (status) => String(status ?? '').trim().toLowerCase();
     const isStoppedStatus = (status) => ['berhenti', 'nonaktif'].includes(normalizeStatus(status));
     const isContractInPeriod = (contract, start, end) => contract?.start_date <= end && contract?.end_date >= start;
-    const getLatestVersion = (contract) => (
-      Array.isArray(contract?.versions)
-        ? [...contract.versions].sort((left, right) => {
-          const versionDiff = Number(right.version_number ?? 0) - Number(left.version_number ?? 0);
-          if (versionDiff !== 0) return versionDiff;
-          return getDateValue(right.end_date ?? right.start_date) - getDateValue(left.end_date ?? left.start_date);
-        })[0]
-        : null
+    const sortContractVersions = (versions = []) => [...versions]
+      .filter(version => !version.deleted_at)
+      .sort((left, right) => {
+        const versionDiff = Number(right.version_number ?? 0) - Number(left.version_number ?? 0);
+        if (versionDiff !== 0) return versionDiff;
+        return getDateValue(right.end_date ?? right.start_date) - getDateValue(left.end_date ?? left.start_date);
+      });
+    const getLatestVersion = (contract) => sortContractVersions(contract?.versions)[0] ?? null;
+    const getEffectiveVersion = (contract, start, end) => (
+      sortContractVersions(contract?.versions).find(version => isContractInPeriod(version, start, end))
+      ?? null
     );
     const getRelevantContract = (contracts = []) => {
       const sortedContracts = [...contracts].sort((left, right) => {
@@ -2747,26 +2771,29 @@ export const monitoringApi = {
         }
       }
 
-      (customer.contracts || []).forEach(contract => {
-        const version = getLatestVersion(contract);
-        const ratio = version?.shared_core_ratio || contract.sharing_ratio;
-        const type = version?.core_type || contract.core_type;
-        const total = Number(version?.core_total ?? contract.core_total ?? 0);
-        
+      if (!isStoppedStatus(customerStatus)) {
         sharingTrend.forEach((monthData, index) => {
           const month = index + 1;
           const monthStart = `${selectedYear}-${String(month).padStart(2, '0')}-01`;
           const monthEnd = new Date(Date.UTC(selectedYear, month, 0)).toISOString().slice(0, 10);
-          if (!isContractInPeriod(contract, monthStart, monthEnd)) return;
-          
-          if (type === 'sharing_core' && ratio) {
-            const chartKey = ratio.replace('/', ':');
-            if (Object.prototype.hasOwnProperty.call(monthData, chartKey)) monthData[chartKey] += 1;
-          } else if (type === 'core') {
-            coreTrend[index].count += total;
-          }
+
+          (customer.contracts || [])
+            .filter(contract => !contract.deleted_at && isContractInPeriod(contract, monthStart, monthEnd))
+            .forEach(contract => {
+              const effectiveVersion = getEffectiveVersion(contract, monthStart, monthEnd);
+              const effectiveCoreType = effectiveVersion?.core_type || contract.core_type || null;
+              const effectiveCoreTotal = Number(effectiveVersion?.core_total ?? contract.core_total ?? 0);
+              const effectiveSharingRatio = effectiveVersion?.shared_core_ratio || contract.sharing_ratio || null;
+
+              if (effectiveCoreType === 'sharing_core' && effectiveSharingRatio) {
+                const chartKey = effectiveSharingRatio.replace('/', ':');
+                if (Object.prototype.hasOwnProperty.call(monthData, chartKey)) monthData[chartKey] += 1;
+              } else if (effectiveCoreType === 'core') {
+                coreTrend[index].count += effectiveCoreTotal;
+              }
+            });
         });
-      });
+      }
 
       const latestRoute = getLatestRouteVersion(customer);
       const effectiveRouteStatus = isStoppedStatus(customerStatus)

@@ -380,28 +380,29 @@ Alur utama sistem saat ini:
 Frontend React/Vite
         |
         v
-Supabase Auth + Supabase Database/REST + Supabase Storage
+Supabase client / REST / RPC / Storage API
         |
         v
-PostgreSQL + Row Level Security
+Supabase Auth + PostgreSQL + Row Level Security + Storage
 ```
 
 Komponen pendukung:
 
 - **Frontend**: React + Vite.
-- **Backend utama**: Supabase direct access dari frontend.
-- **Database**: Supabase PostgreSQL.
+- **Backend utama**: Supabase penuh; aplikasi tidak memiliki backend Node/NestJS terpisah untuk alur utama.
+- **Database**: Supabase PostgreSQL yang diakses melalui Supabase client, REST, RPC, dan script operasional yang dijalankan manual di Supabase SQL Editor.
 - **Auth**: Supabase Auth.
 - **Storage/File URL**: Supabase Storage atau URL file eksternal sesuai data.
 - **Route planner**: Valhalla untuk kebutuhan peta/jalur FO.
 - **API access layer**: `frontend/src/lib/api.js`, berfungsi sebagai mapper antara payload UI camelCase dan kolom Supabase snake_case.
 
-Tidak ada service NestJS yang menjadi alur utama aplikasi saat ini.
+Tidak ada service NestJS yang menjadi alur utama aplikasi saat ini. Direct PostgreSQL tidak menjadi pola akses aplikasi; direct database hanya boleh dipakai untuk kebutuhan administrasi/schema yang eksplisit dan tetap harus mengikuti review operasional.
 
-### 7.2 Pola Akses Data Frontend
+### 7.2 Pola Akses Data Frontend dan Supabase
 
 - Frontend tidak boleh mengirim payload form mentah langsung ke Supabase.
 - Semua create/update harus melewati mapper di `frontend/src/lib/api.js` agar field UI seperti `contractNumber`, `billingEvery`, `responseStatus`, atau `activationFeeAmount` dikonversi ke kolom database yang benar.
+- Untuk kebutuhan baca/tulis aplikasi, gunakan Supabase client/REST/RPC sesuai pola yang sudah ada, bukan koneksi PostgreSQL langsung.
 - Field `updated_at` wajib dikirim pada tabel yang memiliki constraint `NOT NULL` dan tidak memiliki default database.
 - List pelanggan memakai pagination server-side bertahap:
   - batch awal default 500 pelanggan;
@@ -453,6 +454,8 @@ frontend/src/
 
 - Sistem digunakan internal oleh KIMA.
 - Data production berada di Supabase.
+- Backend aplikasi adalah Supabase penuh; perubahan fitur harus mengikuti pola Supabase client/REST/RPC/Storage yang sudah ada.
+- Direct PostgreSQL bukan jalur aplikasi dan tidak digunakan untuk investigasi/operasi rutin kecuali diminta eksplisit untuk administrasi database.
 - Dokumen/file dapat berupa URL eksternal atau storage yang dapat dibuka dari aplikasi.
 - Tidak semua ISP harus memiliki data kontrak detail jika data belum tersedia.
 - Perubahan data production harus melalui script/audit yang jelas.

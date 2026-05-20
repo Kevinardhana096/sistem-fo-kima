@@ -301,7 +301,9 @@ function CustomerWorkspacePage({
 
     // --- LOGIC: Stats ---
     const totalActiveTenants = customers.filter((tenant) => isTenantActive(tenant, todayIso)).length;
+    const totalExpiredTenants = customers.filter((tenant) => getTenantOperationalStatus(tenant, todayIso) === "expired").length;
     const totalStoppedTenants = customers.filter((tenant) => getTenantOperationalStatus(tenant, todayIso) === "berhenti").length;
+    const totalOperationalTenants = totalActiveTenants + totalExpiredTenants;
     const filteredTenantCount = allGroups.reduce((total, group) => total + group.tenants.length, 0);
     const totalFilteredActionCount = allGroups.reduce((total, group) => total + (group.totalActionCount || 0), 0);
     const totalGlobalActionCount = customers.reduce((total, tenant) => total + getTenantActionCounts(tenant, notificationCountsByCustomerId).total, 0)
@@ -459,11 +461,12 @@ function CustomerWorkspacePage({
                     <StatCard label="Total ISP" value={isps.length} icon="hub" accent="gold" />
                     <StatCard
                         label="Total Lokasi"
-                        value={totalCustomerCount > customers.length ? `${customers.length}/${totalCustomerCount}` : customers.length}
+                        value={totalOperationalTenants}
                         icon="groups"
                         accent="gold"
                     />
                     <StatCard label="Lokasi Beroperasi" value={totalActiveTenants} icon="check_circle" accent="gold" />
+                    <StatCard label="Belum Diperpanjang" value={totalExpiredTenants} icon="event_busy" accent="gold" />
                     <StatCard label="Lokasi Berhenti" value={totalStoppedTenants} icon="cancel" accent="gold" />
                     {!isTeknisi && <StatCard label="Butuh Perhatian" value={totalGlobalActionCount} icon="warning" accent="gold" color="text-red-500" />}
                 </section>
