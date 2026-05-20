@@ -84,7 +84,7 @@ export default function AppShell({
             )}
 
             <main
-                className={`relative z-10 min-h-screen transition-all duration-700 ease-in-out px-4 sm:px-6 md:px-8 lg:px-10 pb-10 pt-20 lg:pt-24 ${hideSidebar ? "" : (isSidebarCollapsed ? "lg:ml-28" : "lg:ml-72")
+                className={`relative z-10 min-h-screen transition-all duration-700 ease-in-out px-4 sm:px-6 md:px-8 lg:px-10 pb-10 pt-20 lg:pt-24 ${hideSidebar ? "" : (isSidebarCollapsed ? "lg:ml-24" : "lg:ml-60")
                     }`}
             >
                 <div className="mx-auto max-w-[1600px]">
@@ -95,60 +95,60 @@ export default function AppShell({
             {isEditModalOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
                     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsEditModalOpen(false)}></div>
-                    <div className="relative w-full max-w-md rounded-3xl glass-premium p-8 shadow-2xl animate-in fade-in zoom-in duration-300 border border-white/20">
-                        <div className="flex items-center justify-between mb-8">
-                            <h2 className="text-xl font-black text-on-surface">Edit Profile</h2>
-                            <button onClick={() => setIsEditModalOpen(false)} className="h-8 w-8 flex items-center justify-center rounded-xl bg-black/5 hover:bg-black/10 transition-all backdrop-blur-md">
+                    <div className="relative w-full max-w-sm rounded-2xl glass-premium p-6 shadow-2xl animate-in fade-in zoom-in duration-300 border border-white/10">
+                        <div className="flex items-center justify-between mb-5">
+                            <h2 className="text-lg font-black text-on-surface">Edit Profile</h2>
+                            <button onClick={() => setIsEditModalOpen(false)} className="h-7 w-7 flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 transition-all">
                                 <span className="material-symbols-outlined text-sm">close</span>
                             </button>
                         </div>
 
-                        <div className="flex flex-col items-center mb-8">
+                        <div className="flex flex-col items-center mb-5">
                             <div className="relative group cursor-pointer">
                                 <img
                                     alt="Profile"
-                                    className="h-24 w-24 rounded-3xl object-cover ring-4 ring-black/5 shadow-xl bg-white transition-all group-hover:opacity-70"
+                                    className="h-20 w-20 rounded-2xl object-cover ring-2 ring-white/10 shadow-xl bg-white transition-all group-hover:opacity-70"
                                     src={`https://ui-avatars.com/api/?name=${encodeURIComponent(roleConfig.profileTitle)}&background=f1f5f9&color=94a3b8&bold=true&size=128`}
                                 />
                                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <div className="h-10 w-10 bg-black/50 backdrop-blur-md rounded-xl flex items-center justify-center text-white">
-                                        <span className="material-symbols-outlined">photo_camera</span>
+                                    <div className="h-8 w-8 bg-black/50 backdrop-blur-md rounded-xl flex items-center justify-center text-white">
+                                        <span className="material-symbols-outlined text-sm">photo_camera</span>
                                     </div>
                                 </div>
                             </div>
-                            <p className="text-[10px] font-bold text-gold-accent uppercase tracking-widest mt-4 cursor-pointer hover:underline">Ubah Foto Profil</p>
+                            <p className="text-[9px] font-bold text-gold-accent uppercase tracking-widest mt-3 cursor-pointer hover:underline">Ubah Foto Profil</p>
                         </div>
 
-                        <div className="space-y-5">
+                        <div className="space-y-4">
                             <div>
-                                <label className="block text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-2">Username</label>
-                                <input type="text" defaultValue={roleConfig.profileTitle} className="w-full bg-black/5 border border-black/10 rounded-2xl px-4 py-3 text-sm font-medium text-on-surface focus:outline-none focus:ring-2 focus:ring-gold-accent/50 transition-all backdrop-blur-md" />
+                                <label className="block text-[9px] font-bold text-on-surface-variant uppercase tracking-widest mb-1.5">Username</label>
+                                <input type="text" defaultValue={roleConfig.profileTitle} className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs font-medium text-white focus:outline-none focus:ring-1 focus:ring-gold-accent/50 transition-all" />
                             </div>
                             
-                            <div className="pt-2 border-t border-black/5">
-                                <p className="text-[10px] font-black text-on-surface uppercase tracking-widest mb-3">Ubah Password</p>
-                                <div className="space-y-3">
+                            <div className="pt-3 border-t border-white/10">
+                                <p className="text-[9px] font-black text-on-surface uppercase tracking-widest mb-2.5">Ubah Password</p>
+                                <div className="space-y-2.5">
                                     <div>
-                                        <label className="block text-[9px] font-bold text-on-surface-variant uppercase tracking-widest mb-1.5">Password Lama</label>
-                                        <input type="password" placeholder="Masukkan password saat ini" className="w-full bg-black/5 border border-black/10 rounded-2xl px-4 py-2.5 text-sm font-medium text-on-surface focus:outline-none focus:ring-2 focus:ring-gold-accent/50 transition-all placeholder:text-black/30 backdrop-blur-md" />
+                                        <label className="block text-[8px] font-bold text-on-surface-variant uppercase tracking-widest mb-1">Password Lama</label>
+                                        <input type="password" placeholder="Masukkan password saat ini" className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs font-medium text-white focus:outline-none focus:ring-1 focus:ring-gold-accent/50 transition-all placeholder:text-white/30" />
                                     </div>
                                     <div>
-                                        <label className="block text-[9px] font-bold text-on-surface-variant uppercase tracking-widest mb-1.5">Password Baru</label>
-                                        <input type="password" placeholder="Masukkan password baru" className="w-full bg-black/5 border border-black/10 rounded-2xl px-4 py-2.5 text-sm font-medium text-on-surface focus:outline-none focus:ring-2 focus:ring-gold-accent/50 transition-all placeholder:text-black/30 backdrop-blur-md" />
+                                        <label className="block text-[8px] font-bold text-on-surface-variant uppercase tracking-widest mb-1">Password Baru</label>
+                                        <input type="password" placeholder="Masukkan password baru" className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs font-medium text-white focus:outline-none focus:ring-1 focus:ring-gold-accent/50 transition-all placeholder:text-white/30" />
                                     </div>
                                     <div>
-                                        <label className="block text-[9px] font-bold text-on-surface-variant uppercase tracking-widest mb-1.5">Konfirmasi Password Baru</label>
-                                        <input type="password" placeholder="Ulangi password baru" className="w-full bg-black/5 border border-black/10 rounded-2xl px-4 py-2.5 text-sm font-medium text-on-surface focus:outline-none focus:ring-2 focus:ring-gold-accent/50 transition-all placeholder:text-black/30 backdrop-blur-md" />
+                                        <label className="block text-[8px] font-bold text-on-surface-variant uppercase tracking-widest mb-1">Konfirmasi Password Baru</label>
+                                        <input type="password" placeholder="Ulangi password baru" className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs font-medium text-white focus:outline-none focus:ring-1 focus:ring-gold-accent/50 transition-all placeholder:text-white/30" />
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="mt-8 flex gap-3">
-                            <button onClick={() => setIsEditModalOpen(false)} className="flex-1 py-3 rounded-2xl font-bold text-xs bg-black/5 text-on-surface hover:bg-black/10 transition-all backdrop-blur-md">
+                        <div className="mt-6 flex gap-3">
+                            <button onClick={() => setIsEditModalOpen(false)} className="flex-1 py-2.5 rounded-xl font-bold text-[11px] bg-white/5 text-on-surface hover:bg-white/10 transition-all">
                                 Batal
                             </button>
-                            <button onClick={() => setIsEditModalOpen(false)} className="flex-1 py-3 rounded-2xl font-bold text-xs bg-gold-gradient text-white shadow-gold-glow hover:opacity-90 transition-all">
+                            <button onClick={() => setIsEditModalOpen(false)} className="flex-1 py-2.5 rounded-xl font-bold text-[11px] bg-gold-gradient text-white shadow-gold-glow hover:opacity-90 transition-all">
                                 Simpan Perubahan
                             </button>
                         </div>
@@ -222,8 +222,8 @@ function TopNav({ isSidebarCollapsed, onToggleMenu, onLogout, roleConfig, onEdit
     return (
         <nav
             className={`fixed top-4 md:top-5 right-4 md:right-6 z-40 flex items-center justify-between transition-all duration-700 ease-in-out pointer-events-none ${isSidebarCollapsed
-                    ? "left-4 lg:left-28"
-                    : "left-4 lg:left-72"
+                    ? "left-4 lg:left-24"
+                    : "left-4 lg:left-60"
                 }`}
         >
             <div className="pointer-events-auto">
@@ -239,14 +239,14 @@ function TopNav({ isSidebarCollapsed, onToggleMenu, onLogout, roleConfig, onEdit
             <div className="flex items-center gap-3 md:gap-4 pointer-events-auto ml-auto">
                 <div className="relative hidden sm:block">
                     <button
-                        className="relative group flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 shadow-sm transition-all hover:bg-white/20 hover:-translate-y-0.5"
+                        className="relative group flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 backdrop-blur-md border border-white/15 shadow-sm transition-all hover:bg-white/20 hover:-translate-y-0.5"
                         onClick={() => {
                             setIsNotificationsOpen((previous) => !previous);
                             if (!isNotificationsOpen) loadNotifications();
                         }}
                         type="button"
                     >
-                        <span className="material-symbols-outlined text-on-surface-variant group-hover:text-gold-accent transition-colors">notifications</span>
+                        <span className="material-symbols-outlined text-lg text-on-surface-variant group-hover:text-gold-accent transition-colors">notifications</span>
                         {unreadCount > 0 && (
                             <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-gold-accent px-1.5 text-[9px] font-black text-black shadow-gold-glow border border-white">
                                 {unreadCount > 9 ? "9+" : unreadCount}
@@ -258,7 +258,7 @@ function TopNav({ isSidebarCollapsed, onToggleMenu, onLogout, roleConfig, onEdit
                         <>
                             <div className="fixed inset-0 z-10" onClick={() => setIsNotificationsOpen(false)}></div>
                             <div className="absolute right-0 top-full mt-4 z-20 w-[24rem] max-w-[calc(100vw-2rem)] origin-top-right rounded-3xl glass-premium p-3 shadow-glass-depth animate-in fade-in zoom-in duration-300">
-                                <div className="flex items-center justify-between border-b border-black/5 px-4 py-3">
+                                <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
                                     <div>
                                         <p className="text-sm font-black text-on-surface">Notifikasi</p>
                                         <p className="mt-0.5 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
@@ -266,7 +266,7 @@ function TopNav({ isSidebarCollapsed, onToggleMenu, onLogout, roleConfig, onEdit
                                         </p>
                                     </div>
                                     <button
-                                        className="flex h-9 w-9 items-center justify-center rounded-xl bg-black/5 text-on-surface-variant transition-all hover:bg-black/10 backdrop-blur-md"
+                                        className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/5 text-on-surface-variant transition-all hover:bg-white/10 backdrop-blur-md"
                                         onClick={loadNotifications}
                                         disabled={isLoadingNotifications}
                                         type="button"
@@ -275,7 +275,7 @@ function TopNav({ isSidebarCollapsed, onToggleMenu, onLogout, roleConfig, onEdit
                                     </button>
                                 </div>
 
-                                <div className="mt-2 max-h-[28rem] space-y-2 overflow-y-auto pr-1 custom-scrollbar">
+                                <div className="mt-2 h-[20rem] min-h-[15rem] max-h-[80vh] resize-y space-y-2 overflow-y-auto pr-1 custom-scrollbar">
                                     {isLoadingNotifications && notifications.length === 0 ? (
                                         <div className="px-4 py-8 text-center text-xs font-bold text-on-surface-variant">Memuat notifikasi...</div>
                                     ) : notifications.length > 0 ? (
@@ -286,52 +286,63 @@ function TopNav({ isSidebarCollapsed, onToggleMenu, onLogout, roleConfig, onEdit
                                             return (
                                                 <div
                                                     key={notification.id}
-                                                    className={`rounded-2xl px-3 py-3 transition-all hover:bg-black/5 backdrop-blur-md ${notification.readAt ? "opacity-70" : "bg-gold-accent/5"}`}
+                                                    className={`rounded-xl px-3 py-2.5 transition-all hover:bg-white/10 backdrop-blur-md ${notification.readAt ? "opacity-70" : "bg-gold-accent/10"}`}
                                                 >
-                                                    <button
-                                                        className="flex w-full items-start gap-3 text-left"
-                                                        onClick={() => handleOpenNotification(notification)}
-                                                        type="button"
-                                                    >
-                                                        <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${severityClass}`}>
-                                                            <span className="material-symbols-outlined text-lg">priority_high</span>
+                                                    <div className="flex w-full items-start gap-3 text-left">
+                                                        <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${severityClass}`}>
+                                                            <span className="material-symbols-outlined text-base">priority_high</span>
                                                         </div>
                                                         <div className="min-w-0 flex-1">
-                                                            <div className="mb-1 flex items-center gap-2">
-                                                                <p className="truncate text-xs font-black text-on-surface">{notification.title}</p>
-                                                                {!notification.readAt && <span className="h-2 w-2 shrink-0 rounded-full bg-gold-accent shadow-gold-glow"></span>}
-                                                                <span className={`rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-widest ${severityClass}`}>
-                                                                    {notification.severity}
-                                                                </span>
-                                                            </div>
-                                                            <p className="line-clamp-2 text-[11px] font-bold leading-relaxed text-on-surface-variant">{notification.message}</p>
-                                                            <p className="mt-2 text-[9px] font-black uppercase tracking-widest text-gold-accent">{notification.actionLabel}</p>
-                                                        </div>
-                                                    </button>
-                                                    <div className="mt-3 flex items-center justify-end gap-2 pl-12">
-                                                        {!notification.readAt && (
-                                                            <button
-                                                                className="rounded-lg bg-black/5 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-on-surface-variant transition-all hover:bg-black/10 hover:text-on-surface backdrop-blur-md"
-                                                                onClick={(event) => handleMarkRead(event, notification)}
+                                                            <button 
+                                                                onClick={() => handleOpenNotification(notification)}
+                                                                className="w-full text-left group focus:outline-none"
                                                                 type="button"
                                                             >
-                                                                Dibaca
+                                                                <div className="mb-1 flex items-center gap-2">
+                                                                    <p className="truncate text-[11px] font-black text-on-surface group-hover:text-gold-accent transition-colors">{notification.title}</p>
+                                                                    {!notification.readAt && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-gold-accent shadow-gold-glow"></span>}
+                                                                    <span className={`rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-widest ${severityClass}`}>
+                                                                        {notification.severity}
+                                                                    </span>
+                                                                </div>
+                                                                <p className="line-clamp-2 text-[10px] font-bold leading-relaxed text-on-surface-variant group-hover:text-white/80 transition-colors">{notification.message}</p>
                                                             </button>
-                                                        )}
-                                                        <button
-                                                            className="rounded-lg bg-emerald-500/10 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-emerald-700 transition-all hover:bg-emerald-500 hover:text-white backdrop-blur-md"
-                                                            onClick={(event) => handleMarkResolved(event, notification)}
-                                                            type="button"
-                                                        >
-                                                            Selesai
-                                                        </button>
+                                                            
+                                                            <div className="mt-1.5 flex items-center justify-between">
+                                                                <button
+                                                                    onClick={() => handleOpenNotification(notification)}
+                                                                    className="text-[8px] font-black uppercase tracking-widest text-gold-accent hover:underline focus:outline-none"
+                                                                    type="button"
+                                                                >
+                                                                    {notification.actionLabel}
+                                                                </button>
+                                                                <div className="flex items-center gap-1.5">
+                                                                    {!notification.readAt && (
+                                                                        <button
+                                                                            className="rounded-md bg-white/5 px-2 py-1 text-[8px] font-black uppercase tracking-widest text-on-surface-variant transition-all hover:bg-white/10 hover:text-white backdrop-blur-md"
+                                                                            onClick={(event) => handleMarkRead(event, notification)}
+                                                                            type="button"
+                                                                        >
+                                                                            Dibaca
+                                                                        </button>
+                                                                    )}
+                                                                    <button
+                                                                        className="rounded-md bg-emerald-500/20 px-2 py-1 text-[8px] font-black uppercase tracking-widest text-emerald-400 transition-all hover:bg-emerald-500 hover:text-white backdrop-blur-md"
+                                                                        onClick={(event) => handleMarkResolved(event, notification)}
+                                                                        type="button"
+                                                                    >
+                                                                        Selesai
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             );
                                         })
                                     ) : (
                                         <div className="px-4 py-10 text-center">
-                                            <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-black/5 text-on-surface-variant/50 backdrop-blur-md">
+                                            <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/5 text-on-surface-variant/50 backdrop-blur-md">
                                                 <span className="material-symbols-outlined text-3xl">notifications_off</span>
                                             </div>
                                             <p className="text-xs font-black uppercase tracking-widest text-on-surface">Tidak ada notifikasi</p>
@@ -346,20 +357,20 @@ function TopNav({ isSidebarCollapsed, onToggleMenu, onLogout, roleConfig, onEdit
 
                 <div className="relative">
                     <button
-                        className="flex items-center gap-3 rounded-full bg-white/10 backdrop-blur-md border border-white/15 shadow-sm p-1.5 pr-5 transition-all hover:bg-white/20 hover:-translate-y-0.5"
+                        className="flex items-center gap-2 rounded-full bg-white/10 backdrop-blur-md border border-white/15 shadow-sm p-1 pr-4 transition-all hover:bg-white/20 hover:-translate-y-0.5"
                         onClick={() => setIsProfileOpen(!isProfileOpen)}
                         type="button"
                     >
                         <div className="relative shrink-0">
                             <img
                                 alt="Profile"
-                                className="h-9 w-9 md:h-10 md:w-10 rounded-full object-cover ring-2 ring-white/50 shadow-sm bg-white"
+                                className="h-8 w-8 rounded-full object-cover ring-2 ring-white/50 shadow-sm bg-white"
                                 src={`https://ui-avatars.com/api/?name=${encodeURIComponent(roleConfig.profileTitle)}&background=f1f5f9&color=94a3b8&bold=true`}
                             />
                         </div>
                         <div className="hidden text-left md:block">
-                            <p className="text-xs font-black text-on-surface tracking-tight leading-none">{roleConfig.profileTitle}</p>
-                            <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-gold-accent mt-0.5">
+                            <p className="text-[10px] font-black text-on-surface tracking-tight leading-none">{roleConfig.profileTitle}</p>
+                            <p className="text-[8px] font-bold uppercase tracking-[0.1em] text-gold-accent mt-0.5">
                                 {roleConfig.profileSubtitle}
                             </p>
                         </div>
@@ -368,31 +379,31 @@ function TopNav({ isSidebarCollapsed, onToggleMenu, onLogout, roleConfig, onEdit
                     {isProfileOpen && (
                         <>
                             <div className="fixed inset-0 z-10" onClick={() => setIsProfileOpen(false)}></div>
-                            <div className="absolute right-0 top-full mt-4 md:mt-6 z-20 w-64 md:w-72 origin-top-right rounded-3xl glass-premium p-3 shadow-glass-depth animate-in fade-in zoom-in duration-300">
-                                <div className="px-5 py-4 border-b border-black/5 mb-2">
-                                    <p className="text-sm font-black text-on-surface">{roleConfig.profileTitle}</p>
-                                    <p className="text-[10px] font-bold text-on-surface-variant uppercase mt-0.5">{roleConfig.profileSubtitle}</p>
+                            <div className="absolute right-0 top-full mt-3 md:mt-4 z-20 w-52 md:w-56 origin-top-right rounded-2xl glass-premium p-2 shadow-glass-depth animate-in fade-in zoom-in duration-300">
+                                <div className="px-3 py-3 border-b border-white/10 mb-1.5">
+                                    <p className="text-xs font-black text-on-surface truncate">{roleConfig.profileTitle}</p>
+                                    <p className="text-[9px] font-bold text-on-surface-variant uppercase mt-0.5 truncate">{roleConfig.profileSubtitle}</p>
                                 </div>
                                 
-                                <div className="px-2 mb-2 pb-2 border-b border-black/5">
+                                <div className="px-1.5 mb-1.5 pb-1.5 border-b border-white/10">
                                     <button 
                                         onClick={() => { setIsProfileOpen(false); onEditProfile(); }}
-                                        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-bold text-on-surface hover:bg-black/5 transition-all backdrop-blur-md"
+                                        className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[11px] font-bold text-on-surface hover:bg-white/10 transition-all"
                                     >
-                                        <span className="material-symbols-outlined text-lg opacity-80">manage_accounts</span>
+                                        <span className="material-symbols-outlined text-base opacity-80">manage_accounts</span>
                                         <span>Edit Profile</span>
                                     </button>
                                 </div>
 
                                 <button
-                                    className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-xs font-bold text-rose-600 hover:bg-rose-50 transition-all"
+                                    className="flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-[11px] font-bold text-rose-400 hover:bg-rose-500/10 transition-all"
                                     onClick={() => {
                                         setIsProfileOpen(false);
                                         onLogout?.();
                                     }}
                                     type="button"
                                 >
-                                    <span className="material-symbols-outlined text-lg">logout</span>
+                                    <span className="material-symbols-outlined text-base opacity-80">logout</span>
                                     <span>Keluar Sesi</span>
                                 </button>
                             </div>
@@ -413,15 +424,15 @@ function Sidebar({ isCollapsed, onToggle, activeSection, onNavigate, roleConfig 
 
     return (
         <aside
-            className={`fixed left-4 lg:left-6 top-4 md:top-5 bottom-4 md:bottom-5 z-50 hidden lg:flex flex-col rounded-[20px] glass-sidebar shadow-glass-depth transition-all duration-700 ease-in-out ${isCollapsed ? "w-20" : "w-64"
+            className={`fixed left-4 lg:left-6 top-4 md:top-5 bottom-4 md:bottom-5 z-50 hidden lg:flex flex-col rounded-[20px] glass-sidebar shadow-glass-depth transition-all duration-700 ease-in-out ${isCollapsed ? "w-16" : "w-52"
                 }`}
         >
             <button
                 onClick={onToggle}
-                className={`w-full py-6 transition-all duration-500 hover:scale-[1.02] active:scale-[0.98] group focus:outline-none flex items-center ${isCollapsed ? "justify-center px-0" : "px-6 lg:px-8"}`}
+                className={`w-full py-5 transition-all duration-500 hover:scale-[1.02] active:scale-[0.98] group focus:outline-none flex items-center ${isCollapsed ? "justify-center px-0" : "px-4 lg:px-5"}`}
             >
                 <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 flex items-center justify-center rounded-xl bg-gold-gradient shadow-gold-glow shrink-0">
+                    <div className="h-8 w-8 flex items-center justify-center rounded-xl bg-gold-accent shadow-gold-glow shrink-0">
                         <img alt="" className="h-5 w-5 object-contain" src="/logo-kima.png" />
                     </div>
                     {!isCollapsed && (
@@ -433,7 +444,7 @@ function Sidebar({ isCollapsed, onToggle, activeSection, onNavigate, roleConfig 
                 </div>
             </button>
 
-            <nav className="flex-grow px-3 lg:px-4 space-y-1 mt-1 overflow-y-auto no-scrollbar">
+            <nav className="flex-grow px-2 lg:px-3 space-y-1 mt-1 overflow-y-auto no-scrollbar">
                 {roleConfig.menuItems.map((item) => {
                     const isActive = activeSection === item.key;
                     const href = getSectionPath(item.key, roleConfig.key);
@@ -442,7 +453,7 @@ function Sidebar({ isCollapsed, onToggle, activeSection, onNavigate, roleConfig 
                             key={item.key}
                             href={href}
                             title={isCollapsed ? item.label : ""}
-                            className={`flex items-center rounded-xl transition-all duration-300 group ${isCollapsed ? "justify-center h-10 w-10 mx-auto" : "gap-3 px-4 py-2.5"
+                            className={`flex items-center rounded-lg transition-all duration-300 group ${isCollapsed ? "justify-center h-10 w-10 mx-auto" : "gap-3 px-3 py-2"
                                 } ${isActive
                                     ? "active-glow-gold text-on-surface font-black"
                                     : "text-on-surface-variant hover:text-on-surface hover:bg-black/5"
@@ -466,12 +477,12 @@ function MobileDropdownMenu({ activeSection, onNavigate, onClose, roleConfig }) 
             <div className="relative h-fit w-full rounded-3xl glass-premium p-6 shadow-glass-depth">
                 <div className="flex items-center justify-between mb-8">
                     <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 flex items-center justify-center rounded-xl bg-gold-gradient">
+                        <div className="h-10 w-10 flex items-center justify-center rounded-xl bg-gold-accent">
                             <img alt="" className="h-6 w-6 object-contain" src="/logo-kima.png" />
                         </div>
                         <p className="text-lg font-black text-on-surface">KIMA</p>
                     </div>
-                    <button onClick={onClose} className="h-10 w-10 flex items-center justify-center rounded-xl bg-black/[0.03]">
+                    <button onClick={onClose} className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/[0.05] hover:bg-white/10 transition-all">
                         <span className="material-symbols-outlined">close</span>
                     </button>
                 </div>
@@ -482,7 +493,7 @@ function MobileDropdownMenu({ activeSection, onNavigate, onClose, roleConfig }) 
                         return (
                             <button
                                 key={item.key}
-                                className={`flex w-full items-center gap-4 rounded-xl px-6 py-4 transition-all ${isActive ? "bg-white/60 font-black" : "text-on-surface-variant hover:bg-white/40"
+                                className={`flex w-full items-center gap-4 rounded-xl px-6 py-4 transition-all ${isActive ? "bg-white/10 font-black text-white" : "text-on-surface-variant hover:bg-white/5"
                                     }`}
                                 onClick={() => { onNavigate(item.key); onClose(); }}
                             >
