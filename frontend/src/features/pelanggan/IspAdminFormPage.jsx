@@ -18,7 +18,8 @@ const GlassFieldInput = ({ label, type = "text", value, onChange, placeholder = 
                 <input
                     className={`w-full h-14 rounded-2xl bg-black/20 border backdrop-blur-md ${error ? "border-rose-500/70 ring-4 ring-rose-500/10" : "border-white/10 focus:border-gold-accent/40 focus:ring-4 focus:ring-gold-accent/5"} ${icon ? "pl-14" : "px-6"} pr-6 text-sm font-bold placeholder:text-white/10 outline-none transition-all focus:bg-black/40 shadow-inner-glass ${type === "date" ? "text-white/40 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer" : "text-white"} [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
                     onChange={(event) => onChange(event.target.value)}
-                    onKeyDown={(e) => type === "date" && e.preventDefault()}
+                    onInput={(event) => type === "date" && onChange(event.target.value)}
+                    onKeyDown={(e) => type === "date" && e.key !== "Tab" && e.preventDefault()}
                     onClick={(e) => type === "date" && e.target.showPicker && e.target.showPicker()}
                     placeholder={placeholder}
                     type={type}
@@ -71,7 +72,7 @@ const FileUploadCard = ({ label, fileName, onFileSelected, onClear, uploadPathPa
     </div>
 );
 
-const GlassCustomSelect = ({ label, value, onChange, options, icon }) => {
+const GlassCustomSelect = ({ label, value, onChange, options, icon, disabled = false, helperText = "" }) => {
     const [isOpen, setIsOpen] = useState(false);
     const containerRef = useRef(null);
     const selectedOption = options.find(opt => opt.value === value) || options[0];
@@ -80,9 +81,10 @@ const GlassCustomSelect = ({ label, value, onChange, options, icon }) => {
         const handleClickOutside = (e) => {
             if (containerRef.current && !containerRef.current.contains(e.target)) setIsOpen(false);
         };
+        if (disabled) return undefined;
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, []);
+    }, [disabled]);
 
     return (
         <div className={`space-y-3 relative ${isOpen ? "z-50" : "z-10"}`} ref={containerRef}>
@@ -91,8 +93,8 @@ const GlassCustomSelect = ({ label, value, onChange, options, icon }) => {
             </label>
             <div className="relative">
                 <div
-                    onClick={() => setIsOpen(!isOpen)}
-                    className={`w-full h-14 rounded-2xl bg-black/20 border flex items-center pl-14 pr-12 text-sm font-bold transition-all cursor-pointer shadow-inner-glass relative z-20 backdrop-blur-md ${isOpen ? "border-gold-accent/60 bg-black/40 shadow-gold-glow" : "border-white/10 text-white/70 hover:border-white/30"}`}
+                    onClick={() => !disabled && setIsOpen(!isOpen)}
+                    className={`w-full h-14 rounded-2xl bg-black/20 border flex items-center pl-14 pr-12 text-sm font-bold transition-all shadow-inner-glass relative z-20 backdrop-blur-md ${disabled ? "cursor-not-allowed border-white/10 text-white/50" : "cursor-pointer"} ${isOpen ? "border-gold-accent/60 bg-black/40 shadow-gold-glow" : "border-white/10 text-white/70 hover:border-white/30"}`}
                 >
                     <span className="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 text-xl transition-all duration-300" style={{ color: isOpen ? "#d4a937" : "rgba(255,255,255,0.2)" }}>
                         {icon}
@@ -103,7 +105,7 @@ const GlassCustomSelect = ({ label, value, onChange, options, icon }) => {
                     </span>
                 </div>
 
-                {isOpen && (
+                {isOpen && !disabled && (
                     <div className="absolute top-full left-0 right-0 mt-2 p-2 rounded-2xl bg-black/80 backdrop-blur-3xl border border-white/10 shadow-glass-depth z-50 animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
                         {options.map((opt) => (
                             <div
@@ -121,8 +123,22 @@ const GlassCustomSelect = ({ label, value, onChange, options, icon }) => {
                     </div>
                 )}
             </div>
+            {helperText && <p className="text-[10px] font-black uppercase tracking-widest text-white/30">{helperText}</p>}
         </div>
     );
+};
+
+const getTodayLocalIso = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+};
+
+const deriveOperationalStatus = (contractPeriodStart, fallbackStatus = "aktif") => {
+    if (!contractPeriodStart) return fallbackStatus;
+    return contractPeriodStart <= getTodayLocalIso() ? "aktif" : "belum_beroperasi";
 };
 
 const mapPackageName = (value) => String(value || "").toLowerCase() === "shared" ? "Shared" : "Core";
@@ -152,16 +168,18 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
 
     useEffect(() => {
         if (!initialData) return;
+        const contractPeriodStart = initialData.contractPeriodStart ?? initialData.contract_period_start ?? "";
+        const initialStatus = initialData.status ?? "aktif";
         setForm((prev) => ({
             ...prev,
             name: initialData.name ?? "",
-            status: initialData.status ?? "aktif",
+            status: deriveOperationalStatus(contractPeriodStart, initialStatus),
             logoUrl: initialData.logoUrl ?? initialData.logo_url ?? "",
             userEmail: initialData.userEmail ?? initialData.user_id ?? "",
             userPassword: "",
             contractReference: initialData.contractReference ?? initialData.contract_reference ?? "",
             contractStartDate: initialData.contractStartDate ?? initialData.contract_start_date ?? "",
-            contractPeriodStart: initialData.contractPeriodStart ?? initialData.contract_period_start ?? "",
+            contractPeriodStart,
             contractPeriodEnd: initialData.contractPeriodEnd ?? initialData.contract_period_end ?? "",
             bakFileName: initialData.bakFileName ?? initialData.bak_file_name ?? "",
             bakFileDataUrl: initialData.bakFileUrl ?? initialData.bak_file_url ?? "",
@@ -191,7 +209,7 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
         try {
             const payload = {
                 name: form.name.trim(),
-                status: form.status,
+                status: deriveOperationalStatus(form.contractPeriodStart, form.status),
                 contractReference: form.contractReference.trim() || undefined,
                 contractStartDate: form.contractStartDate || null,
                 contractPeriodStart: form.contractPeriodStart || null,
@@ -361,13 +379,15 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
                                         label="Status Operasional" 
                                         icon="verified_user"
                                         value={form.status} 
-                                        onChange={(val) => setForm(p => ({ ...p, status: val }))} 
+                                        onChange={(val) => setForm(p => ({ ...p, status: val }))}
+                                        disabled={Boolean(form.contractPeriodStart)}
+                                        helperText={form.contractPeriodStart ? "Otomatis dari Periode Berjalan Awal" : "Isi Periode Berjalan Awal untuk menghitung otomatis"}
                                         options={[
-                                            { value: "aktif", label: "BEROPERASI" }, 
+                                            { value: "aktif", label: "BEROPERASI" },
                                             { value: "belum_beroperasi", label: "BELUM BEROPERASI" },
-                                            ...(isEditMode ? [{ value: "expired", label: "BELUM DIPERPANJANG" }] : []),
-                                            { value: "berhenti", label: "BERHENTI" }
-                                        ]} 
+                                            ...(isEditMode && !form.contractPeriodStart ? [{ value: "expired", label: "BELUM DIPERPANJANG" }] : []),
+                                            ...(!form.contractPeriodStart ? [{ value: "berhenti", label: "BERHENTI" }] : [])
+                                        ]}
                                     />
                                 </div>
 
@@ -447,7 +467,7 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
                                         value={form.contractPeriodStart}
                                         error={fieldErrors.contractPeriodStart}
                                         onChange={(val) => {
-                                            setForm(p => ({ ...p, contractPeriodStart: val }));
+                                            setForm(p => ({ ...p, contractPeriodStart: val, status: deriveOperationalStatus(val, p.status) }));
                                             setFieldErrors((errors) => ({ ...errors, contractPeriodStart: "" }));
                                         }}
                                     />
