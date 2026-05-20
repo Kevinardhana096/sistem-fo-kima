@@ -2052,6 +2052,7 @@ export const monitoringApi = {
           isp:isps(id,name,status,logo_url)
         )
       `)
+      .is('deleted_at', null)
       .eq('status', 'aktif');
 
     if (error) throw error;
@@ -2480,7 +2481,7 @@ export const monitoringApi = {
 
       return contractsInHistory.map(contract => {
         const latestVersion = getLatestVersion(contract);
-        const contractInvoices = (customer.invoices || [])
+        const contractInvoices = customerInvoices
           .filter(invoice => invoice.contract_id === contract.id && invoice.schedule_status === 'active')
           .sort((left, right) => {
             const yearDiff = Number(right.period_year ?? 0) - Number(left.period_year ?? 0);
