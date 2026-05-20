@@ -221,14 +221,14 @@ function TopNav({ isSidebarCollapsed, onToggleMenu, onLogout, roleConfig, onEdit
 
     return (
         <nav
-            className={`fixed top-4 md:top-5 right-4 md:right-6 z-40 flex items-center justify-between transition-all duration-700 ease-in-out pointer-events-none ${isSidebarCollapsed
+            className={`fixed top-4 md:top-5 right-4 md:right-6 z-40 flex items-start justify-between transition-all duration-700 ease-in-out pointer-events-none ${isSidebarCollapsed
                     ? "left-4 lg:left-24"
                     : "left-4 lg:left-60"
                 }`}
         >
             <div className="pointer-events-auto">
                 <button
-                    className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 shadow-sm text-on-surface transition-all hover:bg-white/20 hover:-translate-y-0.5 lg:hidden"
+                    className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 shadow-sm text-on-surface transition-all hover:bg-white/20 lg:hidden"
                     onClick={onToggleMenu}
                     type="button"
                 >
@@ -236,12 +236,13 @@ function TopNav({ isSidebarCollapsed, onToggleMenu, onLogout, roleConfig, onEdit
                 </button>
             </div>
 
-            <div className="flex items-center gap-3 md:gap-4 pointer-events-auto ml-auto">
-                <div className="relative hidden sm:block">
+            <div className="absolute right-0 top-0 z-50 flex items-start gap-3 pointer-events-auto">
+                <div className="relative hidden shrink-0 sm:block">
                     <button
-                        className="relative group flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 backdrop-blur-md border border-white/15 shadow-sm transition-all hover:bg-white/20 hover:-translate-y-0.5"
+                        className="relative group flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/10 backdrop-blur-md border border-white/15 shadow-sm transition-all hover:bg-white/20"
                         onClick={() => {
                             setIsNotificationsOpen((previous) => !previous);
+                            setIsProfileOpen(false);
                             if (!isNotificationsOpen) loadNotifications();
                         }}
                         type="button"
@@ -256,8 +257,8 @@ function TopNav({ isSidebarCollapsed, onToggleMenu, onLogout, roleConfig, onEdit
 
                     {isNotificationsOpen && (
                         <>
-                            <div className="fixed inset-0 z-10" onClick={() => setIsNotificationsOpen(false)}></div>
-                            <div className="absolute right-0 top-full mt-4 z-20 w-[24rem] max-w-[calc(100vw-2rem)] origin-top-right rounded-3xl glass-premium p-3 shadow-glass-depth animate-in fade-in zoom-in duration-300">
+                            <div className="fixed inset-0 z-50" onClick={() => setIsNotificationsOpen(false)}></div>
+                            <div className="!absolute right-0 top-full z-[60] mt-3 w-[24rem] max-w-[calc(100vw-2rem)] origin-top-right rounded-3xl glass-premium p-3 shadow-glass-depth animate-in fade-in zoom-in duration-300">
                                 <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
                                     <div>
                                         <p className="text-sm font-black text-on-surface">Notifikasi</p>
@@ -275,7 +276,7 @@ function TopNav({ isSidebarCollapsed, onToggleMenu, onLogout, roleConfig, onEdit
                                     </button>
                                 </div>
 
-                                <div className="mt-2 h-[20rem] min-h-[15rem] max-h-[80vh] resize-y space-y-2 overflow-y-auto pr-1 custom-scrollbar">
+                                <div className="mt-2 h-[20rem] min-h-[15rem] max-h-[80vh] space-y-2 overflow-y-auto pr-1 custom-scrollbar">
                                     {isLoadingNotifications && notifications.length === 0 ? (
                                         <div className="px-4 py-8 text-center text-xs font-bold text-on-surface-variant">Memuat notifikasi...</div>
                                     ) : notifications.length > 0 ? (
@@ -355,10 +356,13 @@ function TopNav({ isSidebarCollapsed, onToggleMenu, onLogout, roleConfig, onEdit
                     )}
                 </div>
 
-                <div className="relative">
+                <div className="relative shrink-0">
                     <button
-                        className="flex items-center gap-2 rounded-full bg-white/10 backdrop-blur-md border border-white/15 shadow-sm p-1 pr-4 transition-all hover:bg-white/20 hover:-translate-y-0.5"
-                        onClick={() => setIsProfileOpen(!isProfileOpen)}
+                        className="flex shrink-0 items-center gap-2 rounded-full bg-white/10 backdrop-blur-md border border-white/15 shadow-sm p-1 pr-4 transition-all hover:bg-white/20"
+                        onClick={() => {
+                            setIsProfileOpen((previous) => !previous);
+                            setIsNotificationsOpen(false);
+                        }}
                         type="button"
                     >
                         <div className="relative shrink-0">
@@ -378,8 +382,8 @@ function TopNav({ isSidebarCollapsed, onToggleMenu, onLogout, roleConfig, onEdit
 
                     {isProfileOpen && (
                         <>
-                            <div className="fixed inset-0 z-10" onClick={() => setIsProfileOpen(false)}></div>
-                            <div className="absolute right-0 top-full mt-3 md:mt-4 z-20 w-52 md:w-56 origin-top-right rounded-2xl glass-premium p-2 shadow-glass-depth animate-in fade-in zoom-in duration-300">
+                            <div className="fixed inset-0 z-50" onClick={() => setIsProfileOpen(false)}></div>
+                            <div className="!absolute right-0 top-full z-[60] mt-3 w-52 origin-top-right rounded-2xl glass-premium p-2 shadow-glass-depth animate-in fade-in zoom-in duration-300 md:w-56">
                                 <div className="px-3 py-3 border-b border-white/10 mb-1.5">
                                     <p className="text-xs font-black text-on-surface truncate">{roleConfig.profileTitle}</p>
                                     <p className="text-[9px] font-bold text-on-surface-variant uppercase mt-0.5 truncate">{roleConfig.profileSubtitle}</p>
