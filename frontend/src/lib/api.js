@@ -79,18 +79,30 @@ export const getApiErrorDetails = (error, fallbackMessage = 'Terjadi kesalahan. 
   const code = String(error?.code ?? '');
   const fields = getApiErrorFields(text);
 
-  if (text.includes('user already registered') || text.includes('already been registered') || text.includes('email address already')) {
+  if (
+    text.includes('user already registered')
+    || text.includes('already been registered')
+    || text.includes('email address already')
+    || (text.includes('email') && text.includes('already exists'))
+  ) {
     return {
-      message: 'Email akun sudah terdaftar. Gunakan email lain atau hubungkan data ke akun yang sudah ada.',
+      message: 'Email akses sudah terdaftar. Gunakan email lain.',
       fields: fields.includes('userEmail') ? fields : ['userEmail'],
+      fieldMessages: {
+        userEmail: 'Email ini sudah dipakai akun lain.',
+      },
     };
   }
 
   if (code === '23505' || status === 409 || text.includes('duplicate key value') || text.includes('already exists')) {
     if (text.includes('isps') || text.includes('isp')) {
       return {
-        message: 'Nama atau email ISP sudah terdaftar. Periksa kembali field yang ditandai.',
+        message: 'Data ISP sudah terdaftar. Periksa nama ISP atau email akses.',
         fields: fields.length > 0 ? fields : ['name', 'userEmail'],
+        fieldMessages: {
+          name: 'Nama ISP sudah digunakan.',
+          userEmail: 'Email akses sudah digunakan.',
+        },
       };
     }
     if (text.includes('customers') || text.includes('customer') || text.includes('pelanggan')) {
@@ -296,6 +308,26 @@ const addDaysToIsoDate = (dateValue, dayOffset) => {
   return date.toISOString().slice(0, 10);
 };
 
+const getLatestRouteVersionByCustomerId = async () => {
+  const { data, error } = await supabase
+    .from('customer_route_versions')
+    .select('customer_id,version_number,flow_status,created_at,customer:customers(id,name,status)')
+    .order('customer_id', { ascending: true })
+    .order('version_number', { ascending: false })
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+
+  const latestByCustomerId = new Map();
+  (data || []).forEach((routeVersion) => {
+    const customerId = Number(routeVersion.customer_id);
+    if (Number.isFinite(customerId) && !latestByCustomerId.has(customerId)) {
+      latestByCustomerId.set(customerId, routeVersion);
+    }
+  });
+  return latestByCustomerId;
+};
+
 const createDerivedNotification = ({ code, type, severity = 'warning', title, message, customerId, customerName, actionLabel = 'Buka Detail', targetTab = 'overview', dueDate = null }) => ({
   id: `${code}-${customerId ?? 'general'}${dueDate ? `-${dueDate}` : ''}`,
   source: 'derived',
@@ -422,7 +454,7 @@ const getIspDerivedNotifications = async () => {
   });
 };
 
-const getDerivedNotifications = async () => {
+const getDerivedNotifications = async (latestRouteByCustomerId = null) => {
   const todayIso = new Date().toISOString().slice(0, 10);
   const baseInvoiceColumns = 'id,customer_id,invoice_number,amount,due_date,period_end_date,status,schedule_status';
   const [customersResult, incompleteInvoicesResult, missingFileInvoicesResult] = await Promise.all([
@@ -434,8 +466,7 @@ const getDerivedNotifications = async () => {
         status,
         activation_fee_amount,
         activation_fee_paid_at,
-        contracts(id, contract_number, status),
-        routeVersions:customer_route_versions(version_number, flow_status, created_at)
+        contracts(id, contract_number, status)
       `)
       .is('deleted_at', null),
     supabase
@@ -457,6 +488,8 @@ const getDerivedNotifications = async () => {
   if (customersResult.error) throw customersResult.error;
   if (incompleteInvoicesResult.error) throw incompleteInvoicesResult.error;
   if (missingFileInvoicesResult.error) throw missingFileInvoicesResult.error;
+
+  const routeByCustomerId = latestRouteByCustomerId ?? await getLatestRouteVersionByCustomerId();
 
   const invoicesByCustomerId = new Map();
   const invoicesById = new Map();
@@ -513,13 +546,7 @@ const getDerivedNotifications = async () => {
       }));
     }
 
-    const latestRoute = Array.isArray(customer.routeVersions)
-      ? [...customer.routeVersions].sort((left, right) => {
-        const versionDiff = Number(right.version_number ?? 0) - Number(left.version_number ?? 0);
-        if (versionDiff !== 0) return versionDiff;
-        return new Date(right.created_at || 0).getTime() - new Date(left.created_at || 0).getTime();
-      })[0]
-      : null;
+    const latestRoute = routeByCustomerId.get(Number(customerId)) ?? null;
     if (customerStatus === 'aktif' && !latestRoute?.flow_status) {
       notifications.push(createDerivedNotification({
         code: 'missing_route',
@@ -598,9 +625,10 @@ const notificationsApi = {
   async list({ year = new Date().getUTCFullYear(), limit = 30, includeResolved = false } = {}) {
     const cappedLimit = Math.max(1, Math.min(Number(limit) || 30, 100));
     const { user } = await getCurrentActor();
+    const latestRouteByCustomerId = await getLatestRouteVersionByCustomerId();
     const [result, customerDerivedNotifications, ispDerivedNotifications] = await Promise.all([
-      monitoringApi.getAlerts({ year }),
-      getDerivedNotifications(),
+      monitoringApi.getAlerts({ year, latestRouteByCustomerId }),
+      getDerivedNotifications(latestRouteByCustomerId),
       getIspDerivedNotifications(),
     ]);
     const alerts = Array.isArray(result) ? result : (result?.alerts ?? []);
@@ -1841,18 +1869,24 @@ export const ispsApi = {
     let authAccountRequested = false;
     if (ispData.userEmail && ispData.userPassword) {
       authAccountRequested = true;
-      try {
-        const { error: rpcError } = await supabase.rpc('upsert_isp_account', {
-          p_isp_id: data.id,
-          p_email: ispData.userEmail.trim().toLowerCase(),
-          p_password: ispData.userPassword,
-          p_name: ispData.name
-        });
-        if (rpcError) {
-          console.error('Failed to create ISP account via RPC:', rpcError);
+      const { error: rpcError } = await supabase.rpc('upsert_isp_account', {
+        p_isp_id: data.id,
+        p_email: ispData.userEmail.trim().toLowerCase(),
+        p_password: ispData.userPassword,
+        p_name: ispData.name
+      });
+
+      if (rpcError) {
+        const { error: rollbackError } = await supabase
+          .from('isps')
+          .delete()
+          .eq('id', data.id);
+
+        if (rollbackError) {
+          throw new Error(`Gagal membuat akun login ISP (${rpcError.message}) dan rollback ISP gagal (${rollbackError.message}).`);
         }
-      } catch (err) {
-        console.error('Failed to create ISP account via RPC (exception):', err);
+
+        throw new Error(rpcError.message || 'Gagal membuat akun login ISP.');
       }
     }
 
@@ -2494,14 +2528,14 @@ export const monitoringApi = {
   },
 
   // Get alerts
-  async getAlerts({ year }) {
+  async getAlerts({ year, latestRouteByCustomerId = null }) {
     const selectedYear = Number(year);
     const today = new Date().toISOString().slice(0, 10);
     const warningDate = new Date();
     warningDate.setUTCDate(warningDate.getUTCDate() + 90);
     const warningDateIso = warningDate.toISOString().slice(0, 10);
 
-    const [contractsResult, invoicesResult, routesResult] = await Promise.all([
+    const [contractsResult, invoicesResult] = await Promise.all([
       supabase
         .from('contracts')
         .select(`
@@ -2530,26 +2564,12 @@ export const monitoringApi = {
         .eq('schedule_status', 'active')
         .in('status', ['belum_bayar', 'terlambat'])
         .is('deleted_at', null),
-      supabase
-        .from('customers')
-        .select(`
-          id,
-          name,
-          status,
-          routeVersions:customer_route_versions(version_number, flow_status, created_at)
-        `)
-        .eq('status', 'aktif')
-        .is('deleted_at', null)
     ]);
 
     if (contractsResult.error) throw contractsResult.error;
     if (invoicesResult.error) throw invoicesResult.error;
-    if (routesResult.error) throw routesResult.error;
 
-    const getDateValue = (value) => {
-      const timestamp = value ? new Date(`${String(value).slice(0, 10)}T00:00:00.000Z`).getTime() : 0;
-      return Number.isFinite(timestamp) ? timestamp : 0;
-    };
+    const routeByCustomerId = latestRouteByCustomerId ?? await getLatestRouteVersionByCustomerId();
 
     const alerts = [];
 
@@ -2578,23 +2598,19 @@ export const monitoringApi = {
       });
     });
 
-    (routesResult.data || []).forEach(customer => {
-      const latestRoute = Array.isArray(customer.routeVersions)
-        ? [...customer.routeVersions].sort((left, right) => {
-          const versionDiff = Number(right.version_number ?? 0) - Number(left.version_number ?? 0);
-          if (versionDiff !== 0) return versionDiff;
-          return getDateValue(right.created_at) - getDateValue(left.created_at);
-        })[0]
-        : null;
+    routeByCustomerId.forEach((latestRoute) => {
       const routeStatus = String(latestRoute?.flow_status || 'aktif').trim().toLowerCase();
-      if (['gangguan', 'perbaikan', 'maintenance'].includes(routeStatus)) {
+      const customerStatus = String(latestRoute?.customer?.status || '').trim().toLowerCase();
+      if (customerStatus === 'aktif' && ['gangguan', 'perbaikan', 'maintenance'].includes(routeStatus)) {
+        const customerId = Number(latestRoute.customer_id);
+        const customerName = latestRoute.customer?.name || 'Customer';
         alerts.push({
           code: 'route_attention',
           type: 'route_attention',
-          customerId: customer.id,
-          customerName: customer.name || 'Customer',
+          customerId,
+          customerName,
           title: 'Jalur perlu perhatian',
-          message: `${customer.name || 'Customer'} jalur ${routeStatus}`,
+          message: `${customerName} jalur ${routeStatus}`,
           severity: routeStatus === 'gangguan' ? 'critical' : 'warning',
         });
       }

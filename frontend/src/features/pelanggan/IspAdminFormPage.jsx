@@ -216,7 +216,13 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
             console.error(error);
             const errorDetails = getApiErrorDetails(error, `Gagal ${isEditMode ? "memperbarui" : "menyimpan"} data ISP.`);
             setSubmitError(errorDetails.message);
-            setFieldErrors(Object.fromEntries(errorDetails.fields.map((field) => [field, "Periksa field ini."])));
+            const mappedFieldErrors = Object.fromEntries(
+                errorDetails.fields.map((field) => [
+                    field,
+                    errorDetails.fieldMessages?.[field] || "Periksa field ini.",
+                ])
+            );
+            setFieldErrors(mappedFieldErrors);
         } finally {
             setIsSubmitting(false);
         }
