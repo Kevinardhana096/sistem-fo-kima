@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, useMemo } from "react";
+import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import AppShell from "../../components/layout/AppShell";
 import api from "../../lib/api";
 import {
@@ -65,6 +65,8 @@ export default function DashboardPage({
         currentMonthOnly: true
     });
     const [isExportingCoreTrend, setIsExportingCoreTrend] = useState(false);
+    const [isExportingCoreTrendXlsx, setIsExportingCoreTrendXlsx] = useState(false);
+    const coreTrendChartRef = useRef(null);
 
     const currentYear = String(new Date().getUTCFullYear());
     const currentMonthCount = new Date().getUTCMonth() + 1;
@@ -149,53 +151,145 @@ export default function DashboardPage({
         return [Number(currentYear)];
     };
 
+    const buildCoreTrendExportRows = async () => {
+        const years = getExportYears();
+        const metricsByYear = await Promise.all(
+            years.map(async (year) => ({
+                year,
+                metrics: await api.monitoring.getDashboardMetrics({ year })
+            }))
+        );
+        const rows = [["Tahun", "Bulan", "Sharing 1:2", "Sharing 1:4", "Sharing 1:8", "Sharing 1:16", "Sharing 1:32", "Core"]];
+        metricsByYear.forEach(({ year, metrics }) => {
+            const sharingRows = metrics?.sharingTrend ?? [];
+            const coreRows = metrics?.coreTrend ?? [];
+            const shouldLimitExportToCurrentMonth = coreTrendExportFilter.mode === "this_year" && coreTrendExportFilter.currentMonthOnly && String(year) === currentYear;
+            const monthCount = shouldLimitExportToCurrentMonth ? currentMonthCount : Math.max(sharingRows.length, coreRows.length);
+            Array.from({ length: monthCount }, (_, index) => {
+                const sharing = sharingRows[index] ?? {};
+                const core = coreRows[index] ?? {};
+                rows.push([
+                    year,
+                    sharing.name || core.name || "",
+                    sharing["1:2"] ?? 0,
+                    sharing["1:4"] ?? 0,
+                    sharing["1:8"] ?? 0,
+                    sharing["1:16"] ?? 0,
+                    sharing["1:32"] ?? 0,
+                    core.count ?? 0,
+                ]);
+            });
+        });
+        return { years, rows };
+    };
+
+    const downloadBlob = (blob, filename) => {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    };
+
+    const getExportFilename = (years, extension) => {
+        const yearLabel = years.length === 1 ? String(years[0]) : `${years[0]}-${years[years.length - 1]}`;
+        return `tren_penggunaan_core_${yearLabel}.${extension}`;
+    };
+
+    const getCoreTrendChartPng = async () => {
+        const svg = coreTrendChartRef.current?.querySelector("svg");
+        if (!svg) return null;
+
+        const svgClone = svg.cloneNode(true);
+        const { width, height } = svg.getBoundingClientRect();
+        svgClone.setAttribute("width", String(width));
+        svgClone.setAttribute("height", String(height));
+        svgClone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+
+        const serialized = new XMLSerializer().serializeToString(svgClone);
+        const svgBlob = new Blob([serialized], { type: "image/svg+xml;charset=utf-8" });
+        const svgUrl = URL.createObjectURL(svgBlob);
+
+        try {
+            const image = await new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.onerror = reject;
+                img.src = svgUrl;
+            });
+            const canvas = document.createElement("canvas");
+            canvas.width = Math.ceil(width);
+            canvas.height = Math.ceil(height);
+            const context = canvas.getContext("2d");
+            context.fillStyle = "#1f2937";
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            context.drawImage(image, 0, 0);
+            return canvas.toDataURL("image/png");
+        } finally {
+            URL.revokeObjectURL(svgUrl);
+        }
+    };
+
     const handleExportCoreTrend = async () => {
         setIsExportingCoreTrend(true);
         try {
-            const years = getExportYears();
-            const metricsByYear = await Promise.all(
-                years.map(async (year) => ({
-                    year,
-                    metrics: await api.monitoring.getDashboardMetrics({ year })
-                }))
-            );
-            const rows = [["Tahun", "Bulan", "Sharing 1:2", "Sharing 1:4", "Sharing 1:8", "Sharing 1:16", "Sharing 1:32", "Core"]];
-            metricsByYear.forEach(({ year, metrics }) => {
-                const sharingRows = metrics?.sharingTrend ?? [];
-                const coreRows = metrics?.coreTrend ?? [];
-                const shouldLimitExportToCurrentMonth = coreTrendExportFilter.mode === "this_year" && coreTrendExportFilter.currentMonthOnly && String(year) === currentYear;
-                const monthCount = shouldLimitExportToCurrentMonth ? currentMonthCount : Math.max(sharingRows.length, coreRows.length);
-                Array.from({ length: monthCount }, (_, index) => {
-                    const sharing = sharingRows[index] ?? {};
-                    const core = coreRows[index] ?? {};
-                    rows.push([
-                        year,
-                        sharing.name || core.name || "",
-                        sharing["1:2"] ?? 0,
-                        sharing["1:4"] ?? 0,
-                        sharing["1:8"] ?? 0,
-                        sharing["1:16"] ?? 0,
-                        sharing["1:32"] ?? 0,
-                        core.count ?? 0,
-                    ]);
-                });
-            });
+            const { years, rows } = await buildCoreTrendExportRows();
             const csvContent = rows
                 .map(row => row.map(value => `"${String(value ?? "").replace(/"/g, '""')}"`).join(","))
                 .join("\n");
             const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement("a");
-            link.href = url;
-            link.download = `tren_penggunaan_core_${years[0]}-${years[years.length - 1]}.csv`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
+            downloadBlob(blob, getExportFilename(years, "csv"));
         } catch (error) {
             console.error("Core trend export error:", error);
         } finally {
             setIsExportingCoreTrend(false);
+        }
+    };
+
+    const handleExportCoreTrendXlsx = async () => {
+        setIsExportingCoreTrendXlsx(true);
+        try {
+            const [{ default: ExcelJS }, { years, rows }, chartPng] = await Promise.all([
+                import("exceljs"),
+                buildCoreTrendExportRows(),
+                getCoreTrendChartPng()
+            ]);
+            const workbook = new ExcelJS.Workbook();
+            workbook.creator = "Sistem FO KIMA";
+            workbook.created = new Date();
+            const worksheet = workbook.addWorksheet("Tren Core");
+            worksheet.addRows(rows);
+            worksheet.columns = [
+                { width: 12 },
+                { width: 12 },
+                { width: 14 },
+                { width: 14 },
+                { width: 14 },
+                { width: 15 },
+                { width: 15 },
+                { width: 12 },
+            ];
+            worksheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
+            worksheet.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF334155" } };
+
+            if (chartPng) {
+                const imageId = workbook.addImage({ base64: chartPng, extension: "png" });
+                worksheet.addImage(imageId, {
+                    tl: { col: 0, row: rows.length + 2 },
+                    ext: { width: 900, height: 320 },
+                });
+            }
+
+            const buffer = await workbook.xlsx.writeBuffer();
+            const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+            downloadBlob(blob, getExportFilename(years, "xlsx"));
+        } catch (error) {
+            console.error("Core trend XLSX export error:", error);
+        } finally {
+            setIsExportingCoreTrendXlsx(false);
         }
     };
 
@@ -266,7 +360,7 @@ export default function DashboardPage({
                                 </div>
                             </div>
                         </div>
-                        <div className="flex-1 w-full min-h-[160px]">
+                        <div ref={coreTrendChartRef} className="flex-1 w-full min-h-[160px]">
                             <ResponsiveContainer width="100%" height="100%">
                                 <LineChart data={coreChartType === "sharing" ? visibleSharingTrendData : visibleCoreTrendData} margin={{ top: 5, right: 5, bottom: 5, left: -25 }}>
                                     <CartesianGrid strokeDasharray="0" vertical={false} stroke="rgba(255,255,255,0.08)" />
@@ -303,15 +397,26 @@ export default function DashboardPage({
                                 <span className="text-[9px] font-black uppercase tracking-widest text-white/50">Export CSV</span>
                                 <ChartFilterSelector filter={coreTrendExportFilter} setFilter={setCoreTrendExportFilter} availableYears={availableYears} showCurrentMonthOption />
                             </div>
-                            <button
-                                type="button"
-                                onClick={handleExportCoreTrend}
-                                disabled={isExportingCoreTrend}
-                                className={`flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-[9px] font-black uppercase tracking-widest transition-all ${isExportingCoreTrend ? "bg-white/10 text-gold-accent" : "btn-premium"}`}
-                            >
-                                <span className={`material-symbols-outlined text-base ${isExportingCoreTrend ? "animate-spin" : ""}`}>{isExportingCoreTrend ? "sync" : "download"}</span>
-                                {isExportingCoreTrend ? "Menyiapkan" : "Export"}
-                            </button>
+                            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                                <button
+                                    type="button"
+                                    onClick={handleExportCoreTrend}
+                                    disabled={isExportingCoreTrend}
+                                    className={`flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-[9px] font-black uppercase tracking-widest transition-all ${isExportingCoreTrend ? "bg-white/10 text-gold-accent" : "btn-premium"}`}
+                                >
+                                    <span className={`material-symbols-outlined text-base ${isExportingCoreTrend ? "animate-spin" : ""}`}>{isExportingCoreTrend ? "sync" : "download"}</span>
+                                    {isExportingCoreTrend ? "Menyiapkan" : "CSV"}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleExportCoreTrendXlsx}
+                                    disabled={isExportingCoreTrendXlsx}
+                                    className={`flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-[9px] font-black uppercase tracking-widest transition-all ${isExportingCoreTrendXlsx ? "bg-white/10 text-gold-accent" : "btn-premium"}`}
+                                >
+                                    <span className={`material-symbols-outlined text-base ${isExportingCoreTrendXlsx ? "animate-spin" : ""}`}>{isExportingCoreTrendXlsx ? "sync" : "insert_chart"}</span>
+                                    {isExportingCoreTrendXlsx ? "Menyiapkan" : "XLSX Grafik"}
+                                </button>
+                            </div>
                         </div>
                     </div>
 

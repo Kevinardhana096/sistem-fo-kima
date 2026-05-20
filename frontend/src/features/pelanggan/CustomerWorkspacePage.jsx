@@ -305,9 +305,6 @@ function CustomerWorkspacePage({
     const totalStoppedTenants = customers.filter((tenant) => getTenantOperationalStatus(tenant, todayIso) === "berhenti").length;
     const totalOperationalTenants = totalActiveTenants + totalExpiredTenants;
     const filteredTenantCount = allGroups.reduce((total, group) => total + group.tenants.length, 0);
-    const totalFilteredActionCount = allGroups.reduce((total, group) => total + (group.totalActionCount || 0), 0);
-    const totalGlobalActionCount = customers.reduce((total, tenant) => total + getTenantActionCounts(tenant, notificationCountsByCustomerId).total, 0)
-        + isps.reduce((total, isp) => total + getIspActionCounts(isp, notificationCountsByIspId).total, 0);
     const isAnyFilterActive = Boolean(normalizedSearch)
         || contractStatusFilter !== "all"
         || routeStatusFilter !== "all"
@@ -468,7 +465,6 @@ function CustomerWorkspacePage({
                     <StatCard label="Lokasi Beroperasi" value={totalActiveTenants} icon="check_circle" accent="gold" />
                     <StatCard label="Belum Diperpanjang" value={totalExpiredTenants} icon="event_busy" accent="gold" />
                     <StatCard label="Lokasi Berhenti" value={totalStoppedTenants} icon="cancel" accent="gold" />
-                    {!isTeknisi && <StatCard label="Butuh Perhatian" value={totalGlobalActionCount} icon="warning" accent="gold" color="text-red-500" />}
                 </section>
 
                 {/* 4. FILTER PANEL */}
@@ -593,12 +589,6 @@ function CustomerWorkspacePage({
                                 <span><span className="text-white font-black">{allGroups.length}</span> ISP Terkait</span>
                             </div>
 
-                            {!isTeknisi && (
-                                <div className={`inline-flex items-center gap-3 px-6 py-3 rounded-2xl border text-[10px] font-black uppercase tracking-widest shadow-sm transition-all duration-500 backdrop-blur-md ${totalFilteredActionCount > 0 ? "bg-red-500/10 border-red-500/20 text-red-500 animate-pulse" : "bg-white/5 border-white/10 text-white/20"}`}>
-                                    <span className="material-symbols-outlined text-lg">warning</span>
-                                    <span>({totalFilteredActionCount}) Butuh Perhatian</span>
-                                </div>
-                            )}
                             {isAnyFilterActive && (
                                 <div className="inline-flex items-center gap-3 px-6 py-3 rounded-2xl bg-gold-accent/10 border border-gold-accent/20 text-[10px] font-black uppercase tracking-widest text-gold-accent shadow-lg shadow-gold-accent/5 backdrop-blur-md">
                                     <span className="material-symbols-outlined text-lg">filter_list</span>
