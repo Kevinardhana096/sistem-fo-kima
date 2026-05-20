@@ -79,11 +79,30 @@
 @layer utilities {
 
   .glass-premium {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
     background: rgba(15, 20, 30, 0.78);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
     border: 1px solid rgba(255, 255, 255, 0.15);
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+  }
+
+  .glass-premium::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background: rgba(15, 20, 30, 0.32);
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
+    pointer-events: none;
+  }
+
+  .glass-premium > * {
+    position: relative;
+    z-index: 1;
   }
 
   .glass-card {
