@@ -45,7 +45,7 @@ export default function DashboardPage({
 
     const [alerts, setAlerts] = useState(() => notifications.slice(0, 20));
     const [dashboardMetrics, setDashboardMetrics] = useState(null);
-    const [isLoadingOperational, setIsLoadingOperational] = useState(false);
+    const [, setIsLoadingOperational] = useState(false);
     const [growthType, setGrowthType] = useState("tenant");
     const [coreChartType, setCoreChartType] = useState("sharing");
     const [coreTrendFilter, setCoreTrendFilter] = useState({
@@ -124,7 +124,6 @@ export default function DashboardPage({
 
     const sharingTrendData = dashboardMetrics?.sharingTrend?.length ? dashboardMetrics.sharingTrend : [];
     const coreTrendData = dashboardMetrics?.coreTrend?.length ? dashboardMetrics.coreTrend : [];
-    const selectedCoreTrendYear = getCoreTrendYear();
     const shouldLimitCoreTrendToCurrentMonth = coreTrendFilter.mode === "this_year" && coreTrendFilter.currentMonthOnly;
     const visibleSharingTrendData = shouldLimitCoreTrendToCurrentMonth ? sharingTrendData.slice(0, currentMonthCount) : sharingTrendData;
     const visibleCoreTrendData = shouldLimitCoreTrendToCurrentMonth ? coreTrendData.slice(0, currentMonthCount) : coreTrendData;

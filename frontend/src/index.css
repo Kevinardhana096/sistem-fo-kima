@@ -99,16 +99,29 @@
     box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15), 0 0 15px rgba(212, 169, 55, 0.2);
   }
 
+  .monitoring-card:hover {
+    transform: none;
+  }
+
   .glass-sidebar {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(15, 20, 30, 0.62);
     backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.15);
   }
 
   .glass-navbar {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(15, 20, 30, 0.58);
     backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .glass-sidebar,
+    .glass-navbar {
+      background: rgba(15, 20, 30, 0.88);
+    }
   }
 
   .active-glow-gold {

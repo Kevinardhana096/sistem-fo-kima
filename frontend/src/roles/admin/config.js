@@ -12,7 +12,7 @@ export const adminRoleConfig = {
     label: "Administrator",
     profileTitle: "Administrator",
     profileSubtitle: "Super Admin",
-    defaultSection: "customers",
+    defaultSection: "dashboard",
     menuItems: adminMenuItems,
     capabilities: {
         canCreateIsp: true,

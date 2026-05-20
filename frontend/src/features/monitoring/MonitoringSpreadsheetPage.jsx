@@ -49,7 +49,7 @@ const CustomSelect = ({ value, onChange, options, icon, label, variant = "defaul
                         }`}
                 >
                     {!isCompact && icon && (
-                        <span className="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 text-xl transition-all duration-300 group-hover:scale-110" style={{ color: isOpen || isSelected ? "#d4a937" : "rgba(255,255,255,0.2)" }}>
+                        <span className="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 text-xl transition-all duration-300 " style={{ color: isOpen || isSelected ? "#d4a937" : "rgba(255,255,255,0.2)" }}>
                             {icon}
                         </span>
                     )}
@@ -267,7 +267,7 @@ function MonitoringSpreadsheetPage({
                         Tutup
                     </button>
                     <button
-                        className="inline-flex items-center gap-2 rounded-xl bg-gold-accent px-6 py-3 text-xs font-black uppercase tracking-widest text-[#05080a] shadow-lg shadow-gold-accent/20 transition-all hover:scale-[1.02] hover:shadow-gold-accent/40 active:scale-[0.98]"
+                        className="inline-flex items-center gap-2 rounded-xl bg-gold-accent px-6 py-3 text-xs font-black uppercase tracking-widest text-[#05080a] shadow-lg shadow-gold-accent/20 transition-all hover:shadow-gold-accent/40"
                         onClick={() => {
                             onOpenCustomerById(selectedInvoiceCell.customerId, "invoices");
                             setSelectedInvoiceCell(null);
@@ -657,7 +657,7 @@ function MonitoringSpreadsheetPage({
 
     const tableSection = (
         <section
-            className={`glass-card backdrop-blur-xl rounded-premium border-white/40 overflow-hidden shadow-glass-depth max-w-full ${tableOnly ? "flex h-full flex-col" : ""}`}
+            className={`glass-card monitoring-card backdrop-blur-xl rounded-premium border-white/40 overflow-hidden shadow-glass-depth max-w-full ${tableOnly ? "flex h-full flex-col" : ""}`}
             id="monitoring-table"
         >
             {/* Pagination Top */}
@@ -958,7 +958,7 @@ function MonitoringSpreadsheetPage({
                                                     className="p-0 transition-colors group-hover:bg-white/5 border-r border-white/5 backdrop-blur-md"
                                                 >
                                                     <button
-                                                        className={`h-10 w-full transition-all hover:scale-110 hover:z-10 relative hover:shadow-lg ${getMonthStatusClass(status)}`}
+                                                        className={`h-10 w-full transition-all hover:z-10 relative hover:shadow-lg ${getMonthStatusClass(status)}`}
                                                         onClick={() =>
                                                             setSelectedInvoiceCell({
                                                                 customerId: row.customerId,
@@ -1027,7 +1027,7 @@ function MonitoringSpreadsheetPage({
     );
 
     const historyTableSection = (
-        <section className="glass-card backdrop-blur-xl rounded-premium border-white/40 overflow-hidden shadow-glass-depth max-w-full">
+        <section className="glass-card monitoring-card backdrop-blur-xl rounded-premium border-white/40 overflow-hidden shadow-glass-depth max-w-full">
             <div className="flex flex-col gap-3 border-b border-white/10 bg-[#0f141e]/60 px-8 py-6 backdrop-blur-md md:flex-row md:items-center md:justify-between">
                 <div>
                     <p className="text-[10px] font-black uppercase tracking-[0.35em] text-gold-accent/70">Arsip Kontrak</p>
@@ -1132,7 +1132,7 @@ function MonitoringSpreadsheetPage({
                     <div className="shrink-0 flex items-center justify-between gap-6 px-2">
                         <div className="flex items-center gap-4">
                             <button
-                                className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-5 py-2.5 text-[11px] font-black uppercase tracking-[0.2em] text-white shadow-lg transition-all hover:bg-white/20 hover:scale-105 active:scale-95 backdrop-blur-md"
+                                className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-5 py-2.5 text-[11px] font-black uppercase tracking-[0.2em] text-white shadow-lg transition-all hover:bg-white/20 backdrop-blur-md"
                                 onClick={onCloseTableOnly}
                                 type="button"
                             >
@@ -1226,7 +1226,7 @@ function MonitoringSpreadsheetPage({
                             </div>
 
                             <button
-                                className="h-[44px] w-[44px] rounded-xl btn-premium shadow-gold-glow flex items-center justify-center active:scale-95 transition-transform shrink-0"
+                                className="h-[44px] w-[44px] rounded-xl btn-premium shadow-gold-glow flex items-center justify-center transition-colors shrink-0"
                                 onClick={() => setAppliedFilters({
                                     year: filters.year,
                                     contractStatus: filters.contractStatus,
@@ -1240,7 +1240,7 @@ function MonitoringSpreadsheetPage({
                             </button>
 
                             <button
-                                className="h-[44px] px-4 rounded-xl bg-white/5 border border-white/10 flex items-center gap-2 active:scale-95 transition-transform shrink-0 hover:bg-white/10 group backdrop-blur-md"
+                                className="h-[44px] px-4 rounded-xl bg-white/5 border border-white/10 flex items-center gap-2 transition-colors shrink-0 hover:bg-white/10 group backdrop-blur-md"
                                 onClick={() => {
                                     const reset = {
                                         search: "",
@@ -1371,7 +1371,7 @@ function MonitoringSpreadsheetPage({
 
 
                 {/* Premium Filter Section */}
-                <section className="glass-card backdrop-blur-xl rounded-premium p-8 border-white/40 shadow-glass-depth relative z-[40] !overflow-visible">
+                <section className="glass-card monitoring-card backdrop-blur-xl rounded-premium p-8 border-white/40 shadow-glass-depth relative z-[40] !overflow-visible">
                     <div className="flex flex-col gap-6 mb-6">
                         <div className="flex items-center gap-3 shrink-0">
                             <span className="h-6 w-1.5 bg-gold-accent rounded-full shadow-gold-glow"></span>
@@ -1392,7 +1392,7 @@ function MonitoringSpreadsheetPage({
                             </div>
 
                             <button
-                                className="h-14 bg-white/5 hover:bg-white/10 text-on-surface-variant px-6 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all border border-white/10 hover:border-white/20 active:scale-95 flex items-center gap-2 backdrop-blur-md"
+                                className="h-14 bg-white/5 hover:bg-white/10 text-on-surface-variant px-6 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all border border-white/10 hover:border-white/20 flex items-center gap-2 backdrop-blur-md"
                                 onClick={() => {
                                     setFilters({
                                         search: "",
@@ -1416,7 +1416,7 @@ function MonitoringSpreadsheetPage({
                             </button>
 
                             <button
-                                className="h-14 btn-premium px-8 rounded-2xl shadow-gold-glow active:scale-95 transition-transform flex items-center gap-2"
+                                className="h-14 btn-premium px-8 rounded-2xl shadow-gold-glow transition-colors flex items-center gap-2"
                                 onClick={() => setAppliedFilters({
                                     year: filters.year,
                                     contractStatus: filters.contractStatus,
@@ -1583,7 +1583,7 @@ function MonitoringSpreadsheetPage({
 
                 {/* Consolidated Detailed Overview moved to bottom */}
                 <section className="grid grid-cols-1">
-                    <div className="glass-card backdrop-blur-xl rounded-premium p-8 border-white/40 shadow-glass-depth">
+                    <div className="glass-card monitoring-card backdrop-blur-xl rounded-premium p-8 border-white/40 shadow-glass-depth">
                         <div className="flex flex-col lg:flex-row gap-10">
                             {/* Left: Billing Overview */}
                             <div className="flex-1">
@@ -1627,7 +1627,7 @@ function MonitoringSpreadsheetPage({
                     </div>
                 </section>
 
-                <section className="glass-card backdrop-blur-xl rounded-premium p-8 border-white/40">
+                <section className="glass-card monitoring-card backdrop-blur-xl rounded-premium p-8 border-white/40">
                     <div className="mb-8 flex items-center justify-between shrink-0">
                         <div className="flex items-center gap-3">
                             <span className="h-6 w-1.5 bg-gold-accent rounded-full shadow-gold-glow"></span>
@@ -1793,7 +1793,7 @@ function StatCard({ label, value, icon, accent, sub }) {
         white: "text-on-surface-variant bg-white/10 border-white/20"
     };
     return (
-        <div className="glass-card backdrop-blur-xl rounded-2xl p-6 border-white/40 group hover:border-gold-accent/30 transition-all hover:scale-[1.02]">
+        <div className="glass-card monitoring-card backdrop-blur-xl rounded-2xl p-6 border-white/40 group hover:border-gold-accent/30 transition-all">
             <div className="flex justify-between items-start mb-6">
                 <p className="text-[9px] font-black uppercase tracking-[0.2em] text-on-surface-variant group-hover:text-gold-accent transition-colors">{label}</p>
                 <div className={`h-11 w-11 flex items-center justify-center rounded-xl border transition-all group-hover:shadow-lg ${accents[accent]}`}>
