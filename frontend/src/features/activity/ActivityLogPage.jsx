@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { createPortal } from "react-dom";
 import AppShell from "../../components/layout/AppShell";
 import api from "../../lib/api";
@@ -84,7 +84,7 @@ function ChangeSummary({ metadata }) {
     );
 }
 
-function CustomDropdown({ value, options, onChange, align = "left", triggerClass = "" }) {
+function CustomDropdown({ value, options, onChange, align = "left", position = "bottom", triggerClass = "", hideArrow = false, menuWidth = "min-w-[160px]" }) {
     const [isOpen, setIsOpen] = useState(false);
     const selectedOption = options.find(opt => String(opt.value) === String(value)) || options[0] || { label: value };
 
@@ -93,16 +93,18 @@ function CustomDropdown({ value, options, onChange, align = "left", triggerClass
             <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className={`flex w-full h-full items-center justify-between gap-1 appearance-none bg-transparent border-none font-black focus:outline-none ${triggerClass}`}
+                className={`flex w-full h-full items-center ${hideArrow ? "justify-center" : "justify-between"} gap-1 appearance-none bg-transparent border-none font-black focus:outline-none ${triggerClass}`}
             >
                 <span className="truncate">{selectedOption.label}</span>
-                <span className={`material-symbols-outlined text-[16px] shrink-0 transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`}>expand_more</span>
+                {!hideArrow && (
+                    <span className={`material-symbols-outlined text-[16px] shrink-0 transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`}>expand_more</span>
+                )}
             </button>
 
             {isOpen && (
                 <>
                     <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)}></div>
-                    <div className={`absolute top-full mt-3 ${align === "right" ? "right-0" : "left-0"} z-50 w-full min-w-[160px] rounded-2xl bg-black/60 border border-white/10 backdrop-blur-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200`}>
+                    <div className={`absolute ${position === "top" ? "bottom-full mb-3" : "top-full mt-3"} ${align === "right" ? "right-0" : "left-0"} z-50 w-full ${menuWidth} rounded-2xl bg-black/60 border border-white/10 backdrop-blur-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200`}>
                         <div className="max-h-[250px] overflow-y-auto py-1.5 [&::-webkit-scrollbar]:w-[2px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gold-accent/30 [&::-webkit-scrollbar-thumb]:rounded-full">
                         {options.map((opt) => (
                             <button
@@ -142,7 +144,6 @@ export default function ActivityLogPage({ activeSection, onNavigate, onLogout, c
     const [logs, setLogs] = useState([]);
     const [searchQuery, setSearchQuery] = useState("");
     const [entityType, setEntityType] = useState("");
-    const [action, setAction] = useState("");
 
     // Default is "all" (Semua Waktu) with empty dates initially
     const [dateMode, setDateMode] = useState("all");
@@ -152,7 +153,10 @@ export default function ActivityLogPage({ activeSection, onNavigate, onLogout, c
 
     // Pagination states
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 10;
+    const [itemsPerPage, setItemsPerPage] = useState(10);
+
+    const paginationRef = useRef(null);
+    const isScrollingProgrammatically = useRef(false);
 
     const [selectedLog, setSelectedLog] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -186,7 +190,7 @@ export default function ActivityLogPage({ activeSection, onNavigate, onLogout, c
         }
     };
 
-    const actionOptions = useMemo(() => Object.entries(ACTION_LABELS), []);
+
 
     const loadLogs = useCallback(async () => {
         setIsLoading(true);
@@ -195,7 +199,6 @@ export default function ActivityLogPage({ activeSection, onNavigate, onLogout, c
             const data = await api.activityLogs.list({
                 search: searchQuery,
                 entityType,
-                action,
                 dateFrom,
                 dateTo,
                 limit: 150,
@@ -207,7 +210,7 @@ export default function ActivityLogPage({ activeSection, onNavigate, onLogout, c
         } finally {
             setIsLoading(false);
         }
-    }, [action, dateFrom, dateTo, entityType, searchQuery]);
+    }, [dateFrom, dateTo, entityType, searchQuery]);
 
     useEffect(() => {
         loadLogs();
@@ -215,36 +218,47 @@ export default function ActivityLogPage({ activeSection, onNavigate, onLogout, c
 
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchQuery, entityType, action, dateFrom, dateTo]);
+    }, [searchQuery, entityType, dateFrom, dateTo]);
 
-    const handleApplyFilter = (event) => {
-        event.preventDefault();
-        loadLogs();
+    const hasFilters = searchQuery !== "" || entityType !== "" || dateMode !== "all";
+
+    const resetFilters = () => {
+        setSearchQuery("");
+        setEntityType("");
+        setDateMode("all");
+        setDateFrom("");
+        setDateTo("");
+        setSelectedYear(String(new Date().getFullYear()));
     };
 
     const totalPages = Math.max(Math.ceil(logs.length / itemsPerPage), 1);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+
+    const handlePaginationScroll = useCallback((e) => {
+        if (isScrollingProgrammatically.current) return;
+        const scrollLeft = e.target.scrollLeft;
+        const page = Math.round(scrollLeft / 34) + 1;
+        if (page >= 1 && page <= totalPages && page !== currentPage) {
+            setCurrentPage(page);
+        }
+    }, [currentPage, totalPages]);
+
+    const handlePageChange = useCallback((page) => {
+        isScrollingProgrammatically.current = true;
+        setCurrentPage(page);
+        if (paginationRef.current) {
+            paginationRef.current.scrollTo({ left: (page - 1) * 34, behavior: 'smooth' });
+        }
+        setTimeout(() => { isScrollingProgrammatically.current = false; }, 400);
+    }, []);
 
     const pageNumbers = useMemo(() => {
-        const delta = 1;
-        const range = [];
-        for (let i = Math.max(2, currentPage - delta); i <= Math.min(totalPages - 1, currentPage + delta); i++) {
-            range.push(i);
+        const pages = [];
+        for (let i = 1; i <= totalPages; i++) {
+            pages.push(i);
         }
-
-        if (currentPage - delta > 2) {
-            range.unshift("...");
-        }
-        if (currentPage + delta < totalPages - 1) {
-            range.push("...");
-        }
-
-        range.unshift(1);
-        if (totalPages > 1) {
-            range.push(totalPages);
-        }
-
-        return range;
-    }, [currentPage, totalPages]);
+        return pages;
+    }, [totalPages]);
 
     return (
         <AppShell activeSection={activeSection} onNavigate={onNavigate} onLogout={onLogout} currentRole={currentRole}>
@@ -273,13 +287,13 @@ export default function ActivityLogPage({ activeSection, onNavigate, onLogout, c
                     </button>
                 </header>
 
-                <form onSubmit={handleApplyFilter} className="glass-card rounded-xl p-2 sm:p-2.5 flex flex-col sm:flex-row gap-2 items-center z-50 relative">
+                <div className="glass-card rounded-xl p-2 sm:p-2.5 flex flex-col sm:flex-row gap-2 items-center z-50 relative">
                     <div className={`flex flex-col sm:flex-row gap-2 w-full ${dateMode === "range" || dateMode === "till_today" ? "lg:flex-row" : ""}`}>
                         <div className={`grid gap-2 w-full ${dateMode === "range" || dateMode === "till_today"
-                                ? "lg:grid-cols-[1.2fr_0.8fr_1fr_1.1fr_0.8fr_0.8fr]"
+                                ? "lg:grid-cols-[1.5fr_1fr_1.2fr_0.8fr_0.8fr]"
                                 : dateMode === "year"
-                                    ? "lg:grid-cols-[1.2fr_0.8fr_1fr_1.1fr_0.8fr]"
-                                    : "lg:grid-cols-[1.5fr_0.9fr_1.1fr_1.1fr]"
+                                    ? "lg:grid-cols-[1.5fr_1fr_1.2fr_0.8fr]"
+                                    : "lg:grid-cols-[2fr_1fr_1.2fr]"
                             }`}>
                         <div className="relative w-full group">
                             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-gold-accent transition-colors z-10 pointer-events-none text-[15px]">
@@ -310,21 +324,7 @@ export default function ActivityLogPage({ activeSection, onNavigate, onLogout, c
                             </div>
                         </div>
 
-                        <div className="relative z-50">
-                            <div className="relative group h-9 rounded-lg bg-white/5 border border-white/10 focus-within:border-gold-accent/40 focus-within:bg-black/40 transition-all backdrop-blur-md">
-                                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold-accent transition-colors z-10 pointer-events-none text-[15px]">manage_history</span>
-                                <CustomDropdown
-                                    value={action}
-                                    onChange={setAction}
-                                    options={[
-                                        { value: "", label: "Semua Aktivitas" },
-                                        ...actionOptions.map(([val, lbl]) => ({ value: val, label: lbl }))
-                                    ]}
-                                    triggerClass="pl-9 pr-3 text-[9px] uppercase tracking-widest text-white/40 group-focus-within:text-gold-accent"
-                                    align="left"
-                                />
-                            </div>
-                        </div>
+
 
                         <div className="relative z-40">
                             <div className="relative group h-9 rounded-lg bg-white/5 border border-white/10 focus-within:border-gold-accent/40 focus-within:bg-black/40 transition-all backdrop-blur-md">
@@ -413,13 +413,20 @@ export default function ActivityLogPage({ activeSection, onNavigate, onLogout, c
                     </div>
                     </div>
                     <button
-                        className="h-9 w-9 flex-shrink-0 flex items-center justify-center rounded-lg bg-gold-accent text-black transition-all hover:brightness-110 active:scale-95 shadow-gold-glow"
-                        type="submit"
-                        title="Terapkan Filter"
+                        onClick={resetFilters}
+                        disabled={!hasFilters}
+                        className={`h-9 px-3 shrink-0 rounded-lg border transition-all backdrop-blur-md flex items-center gap-1.5 ${
+                            hasFilters 
+                                ? "border-[#ff2400]/20 bg-[#ff2400]/10 text-[#ff2400] hover:bg-[#ff2400] hover:text-white" 
+                                : "border-white/5 bg-white/5 text-white/20 opacity-50 cursor-not-allowed"
+                        }`}
+                        type="button"
+                        title="Reset Filter"
                     >
-                        <span className="material-symbols-outlined text-base">filter_alt</span>
+                        <span className="material-symbols-outlined text-[15px]">filter_alt_off</span>
+                        <span className="text-[9px] font-black uppercase tracking-widest hidden sm:block">Reset</span>
                     </button>
-                </form>
+                </div>
 
                 <section className="glass-card rounded-2xl p-5 cursor-default relative z-40">
                     <div className="mb-5 flex items-center justify-between">
@@ -492,54 +499,84 @@ export default function ActivityLogPage({ activeSection, onNavigate, onLogout, c
                             {/* Pagination controls */}
                             {totalPages > 1 && (
                                 <div className="mt-5 flex items-center justify-between gap-2 border-t border-white/10 pt-4">
-                                    <button
-                                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                                        disabled={currentPage === 1}
-                                        className="flex h-8 items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 text-[8px] font-black uppercase tracking-widest text-white/60 transition-all hover:bg-white/10 hover:text-white disabled:opacity-30 backdrop-blur-md"
-                                        type="button"
-                                    >
-                                        <span className="material-symbols-outlined text-sm">chevron_left</span>
-                                        Prev
-                                    </button>
-
-                                    <div className="flex items-center gap-1 flex-wrap justify-center">
-                                        {pageNumbers.map((page, idx) => {
-                                            if (page === "...") {
-                                                return (
-                                                    <span
-                                                        key={`ellipsis-${idx}`}
-                                                        className="w-7 h-7 flex items-center justify-center text-[9px] font-black text-white/30 cursor-default"
-                                                    >
-                                                        ...
-                                                    </span>
-                                                );
-                                            }
-                                            const isActive = page === currentPage;
-                                            return (
-                                                <button
-                                                    key={`page-${page}`}
-                                                    onClick={() => setCurrentPage(page)}
-                                                    className={`w-7 h-7 rounded-lg flex items-center justify-center text-[9px] font-black transition-all ${isActive
-                                                            ? "bg-gold-accent text-black shadow-gold-glow"
-                                                            : "border border-white/5 bg-white/5 text-white/50 hover:bg-white/10 hover:text-white"
-                                                        } backdrop-blur-md`}
-                                                    type="button"
-                                                >
-                                                    {page}
-                                                </button>
-                                            );
-                                        })}
+                                    <div className="flex items-center gap-3">
+                                        <div className="relative z-[60] w-12 hidden sm:block">
+                                            <div className="relative group h-8 rounded-lg bg-white/5 border border-white/10 focus-within:border-gold-accent/40 focus-within:bg-black/40 transition-all backdrop-blur-md">
+                                                <CustomDropdown
+                                                    value={itemsPerPage}
+                                                    onChange={(val) => setItemsPerPage(Number(val))}
+                                                    options={[10, 20, 50, 100].map(n => ({ value: n, label: String(n) }))}
+                                                    triggerClass="text-[10px] font-black uppercase tracking-widest text-white/50 group-hover:text-white"
+                                                    position="top"
+                                                    hideArrow={true}
+                                                    menuWidth="min-w-[60px]"
+                                                />
+                                            </div>
+                                        </div>
+                                        <p className="text-[8px] font-black uppercase tracking-widest text-white/30 hidden sm:block">
+                                            {logs.length === 0 ? 0 : startIndex + 1}–{Math.min(startIndex + itemsPerPage, logs.length)} dari {logs.length}
+                                        </p>
                                     </div>
+                                    
+                                    <div className="flex items-center gap-1.5 w-full sm:w-auto justify-between sm:justify-end">
+                                        <button
+                                            className="flex h-8 items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-3 text-[8px] font-black uppercase tracking-widest text-white/50 transition-all hover:bg-white/10 hover:text-white disabled:opacity-30 backdrop-blur-md"
+                                            type="button" disabled={currentPage <= 1} onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+                                        >
+                                            <span className="material-symbols-outlined text-sm">chevron_left</span> Prev
+                                        </button>
+                                        
+                                        <div 
+                                            ref={paginationRef}
+                                            onScroll={handlePaginationScroll}
+                                            className="flex items-center gap-1.5 w-[164px] justify-start overflow-x-auto overflow-y-hidden snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden" 
+                                            style={{ scrollbarWidth: 'none' }}
+                                        >
+                                            <div className="shrink-0 w-7 h-7 snap-center pointer-events-none opacity-0"></div>
+                                            <div className="shrink-0 w-7 h-7 snap-center pointer-events-none opacity-0"></div>
 
-                                    <button
-                                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                                        disabled={currentPage === totalPages}
-                                        className="flex h-8 items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 text-[8px] font-black uppercase tracking-widest text-white/60 transition-all hover:bg-white/10 hover:text-white disabled:opacity-30 backdrop-blur-md"
-                                        type="button"
-                                    >
-                                        Next
-                                        <span className="material-symbols-outlined text-sm">chevron_right</span>
-                                    </button>
+                                            {pageNumbers.map((page) => {
+                                                const distance = Math.abs(currentPage - page);
+                                                const isActive = distance === 0;
+                                                
+                                                let scaleClass = "scale-100 opacity-100 z-10";
+                                                let bgClass = "bg-white/5 border border-white/5 text-white/50 hover:bg-white/10 hover:text-white";
+                                                
+                                                if (distance === 1) {
+                                                    scaleClass = "scale-90 opacity-80 z-0";
+                                                    bgClass = "bg-white/5 border border-white/5 text-white/40 hover:bg-white/10 hover:text-white";
+                                                } else if (distance >= 2) {
+                                                    scaleClass = "scale-75 opacity-40 z-0";
+                                                    bgClass = "bg-white/5 border border-white/5 text-white/30";
+                                                }
+
+                                                if (isActive) {
+                                                    bgClass = "bg-gold-accent text-black shadow-gold-glow";
+                                                }
+
+                                                return (
+                                                    <button
+                                                        key={`page-${page}`}
+                                                        onClick={() => handlePageChange(page)}
+                                                        className={`snap-center shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-[9px] font-black transition-all duration-300 ease-out transform ${scaleClass} ${bgClass} backdrop-blur-md`}
+                                                        type="button"
+                                                    >
+                                                        {page}
+                                                    </button>
+                                                );
+                                            })}
+
+                                            <div className="shrink-0 w-7 h-7 snap-center pointer-events-none opacity-0"></div>
+                                            <div className="shrink-0 w-7 h-7 snap-center pointer-events-none opacity-0"></div>
+                                        </div>
+
+                                        <button
+                                            className="flex h-8 items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-3 text-[8px] font-black uppercase tracking-widest text-white/50 transition-all hover:bg-white/10 hover:text-white disabled:opacity-30 backdrop-blur-md"
+                                            type="button" disabled={currentPage >= totalPages} onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+                                        >
+                                            Next <span className="material-symbols-outlined text-sm">chevron_right</span>
+                                        </button>
+                                    </div>
                                 </div>
                             )}
                         </div>
