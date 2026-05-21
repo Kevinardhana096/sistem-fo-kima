@@ -2152,7 +2152,7 @@ function TenantDetailPage({
               </div>
               {columnType === "renewal" ? (
                 hasRenewalFile ? (
-                  <a href={followUp.renewalFileUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[8px] font-black text-gold-accent uppercase tracking-widest hover:underline underline-offset-2">
+                  <a href={followUp.renewalFileUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[8px] font-black text-gold-accent uppercase tracking-widest hover:underline underline-offset-2">
                     <span className="material-symbols-outlined text-[11px]">open_in_new</span>Lihat
                   </a>
                 ) : (
@@ -2163,7 +2163,7 @@ function TenantDetailPage({
                 )
               ) : (
                 hasResponseFile ? (
-                  <a href={followUp.responseFileUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[8px] font-black text-emerald-400 uppercase tracking-widest hover:underline underline-offset-2">
+                  <a href={followUp.responseFileUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[8px] font-black text-emerald-400 uppercase tracking-widest hover:underline underline-offset-2">
                     <span className="material-symbols-outlined text-[11px]">open_in_new</span>Tanggapan
                   </a>
                 ) : hasRenewalFile ? (
@@ -3375,8 +3375,7 @@ function TenantDetailPage({
                                                         <a
                                                             className="inline-flex items-center gap-1 text-[8px] font-black text-gold-accent uppercase tracking-widest hover:underline underline-offset-2"
                                                             href={contractFileUrl}
-                                                            rel="noopener noreferrer"
-                                                            target="_blank"
+                                                            target="_blank" rel="noopener noreferrer"
                                                         >
                                                             <span className="material-symbols-outlined text-[11px]">open_in_new</span>
                                                             Lihat
@@ -3751,8 +3750,7 @@ function TenantDetailPage({
                                                         <a
                                                             className="inline-flex items-center gap-1 text-[8px] font-black text-gold-accent uppercase tracking-widest hover:underline underline-offset-2"
                                                             href={invoice.invoiceFileUrl}
-                                                            rel="noopener noreferrer"
-                                                            target="_blank"
+                                                            target="_blank" rel="noopener noreferrer"
                                                         >
                                                             <span className="material-symbols-outlined text-[11px]">open_in_new</span>
                                                             Lihat
@@ -3778,8 +3776,7 @@ function TenantDetailPage({
                                                         <a
                                                             className="inline-flex items-center gap-1 text-[8px] font-black text-emerald-400 uppercase tracking-widest hover:underline underline-offset-2"
                                                             href={invoice.paymentProofFileUrl}
-                                                            rel="noopener noreferrer"
-                                                            target="_blank"
+                                                            target="_blank" rel="noopener noreferrer"
                                                         >
                                                             <span className="material-symbols-outlined text-[11px]">open_in_new</span>
                                                             Lihat

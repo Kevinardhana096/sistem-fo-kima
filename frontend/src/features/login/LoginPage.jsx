@@ -137,8 +137,7 @@ export default function LoginPage({ onLoginSuccess }) {
                         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
                             <a
                                 href={canOpenWhatsApp ? adminWhatsAppLink : "#"}
-                                target="_blank"
-                                rel="noreferrer"
+                                target="_blank" rel="noopener noreferrer"
                                 style={{
                                     display: "flex",
                                     alignItems: "center",
@@ -357,8 +356,7 @@ export default function LoginPage({ onLoginSuccess }) {
                 </div>
             </div>
 
-            <style dangerouslySetInnerHTML={{
-                __html: `
+            <style>{`
                 @keyframes shake {
                     0%, 100% { transform: translateX(0); }
                     25% { transform: translateX(-4px); }
@@ -375,7 +373,7 @@ export default function LoginPage({ onLoginSuccess }) {
                     -webkit-text-fill-color: rgba(255,255,255,0.9) !important;
                     caret-color: rgba(255,255,255,0.9);
                 }
-            `}} />
+            `}</style>
         </div>
     );
 }
