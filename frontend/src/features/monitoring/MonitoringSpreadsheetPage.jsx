@@ -15,7 +15,7 @@ import {
 import api from "../../lib/api";
 
 // --- Custom UI Components ---
-const CustomSelect = ({ value, onChange, options, icon, label, variant = "default" }) => {
+const CustomSelect = ({ value, onChange, options, icon, label, variant = "default", menuPosition = "bottom", menuClassName = "", hideArrow = false }) => {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef(null);
     const selectedOption = options.find(opt => opt.value === value) || options[0];
@@ -34,38 +34,38 @@ const CustomSelect = ({ value, onChange, options, icon, label, variant = "defaul
     const isCompact = variant === "compact";
 
     return (
-        <div className={isCompact ? "relative" : "space-y-3"} ref={dropdownRef}>
+        <div className={isCompact ? "relative" : "space-y-1.5"} ref={dropdownRef}>
             {!isCompact && <p className="text-[10px] font-black uppercase tracking-[0.3em] pl-1 text-gold-accent/40">{label}</p>}
             <div className="relative group">
                 {/* Trigger */}
                 <div
                     onClick={() => setIsOpen(!isOpen)}
-                    className={`w-full rounded-xl flex items-center text-[11px] font-bold cursor-pointer transition-all border relative z-20 ${isCompact
-                            ? "h-[38px] px-3 pr-8 bg-white/5 border-white/10 text-white hover:bg-white/10"
-                            : `h-14 pl-14 pr-12 uppercase font-black tracking-widest shadow-inner-glass ${isOpen || isSelected
+                    className={`w-full rounded-xl flex items-center justify-center text-[9px] font-bold cursor-pointer transition-all border relative z-20 ${isCompact
+                            ? `h-8 px-2 ${hideArrow ? "" : "pr-8"} bg-white/5 border-white/10 text-white hover:bg-white/10`
+                            : `h-9 pl-9 pr-8 uppercase font-black tracking-widest shadow-inner-glass ${isOpen || isSelected
                                 ? "bg-gold-accent/10 border-gold-accent/60 text-gold-accent shadow-gold-glow"
                                 : "bg-black/20 border-white/10 text-white/70 hover:border-white/30"
                             }`
                         }`}
                 >
                     {!isCompact && icon && (
-                        <span className="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 text-xl transition-all duration-300 " style={{ color: isOpen || isSelected ? "#d4a937" : "rgba(255,255,255,0.2)" }}>
+                        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[15px] transition-all duration-300 " style={{ color: isOpen || isSelected ? "#d4a937" : "rgba(255,255,255,0.2)" }}>
                             {icon}
                         </span>
                     )}
-                    <span className="truncate">{selectedOption.label}</span>
-                    <div className={`absolute inset-y-0 right-0 flex items-center justify-center transition-colors ${isCompact ? "w-8" : "w-12 border-l border-white/5 group-hover:border-gold-accent/20"}`}>
-                        <span className={`material-symbols-outlined transition-all duration-500 ${isCompact ? "text-base text-gold-accent" : "text-xl"} ${isOpen ? "rotate-180" : (isSelected ? "" : "text-white/20 group-hover:text-gold-accent")}`}>
-                            expand_more
-                        </span>
-                    </div>
+                    <span className={`truncate ${hideArrow ? "text-center w-full" : ""}`}>{selectedOption.label}</span>
+                    {!hideArrow && (
+                        <div className={`absolute inset-y-0 right-0 flex items-center justify-center transition-colors w-8 ${!isCompact && "border-l border-white/5 group-hover:border-gold-accent/20"}`}>
+                            <span className={`material-symbols-outlined transition-all duration-500 text-[15px] ${isCompact ? "text-gold-accent" : ""} ${isOpen ? "rotate-180" : (isSelected ? "" : "text-white/20 group-hover:text-gold-accent")}`}>
+                                expand_more
+                            </span>
+                        </div>
+                    )}
                 </div>
 
                 {/* Dropdown Menu - Deep Steel Glass Alignment (Matched with Pelanggan) */}
                 {isOpen && (
-                    <div className={`absolute left-0 right-0 bg-black/60 border border-white/10 rounded-2xl overflow-hidden z-50 shadow-2xl backdrop-blur-3xl animate-in fade-in slide-in-from-top-2 duration-300 ${isCompact ? "top-[calc(100%+4px)] min-w-[200px]" : "top-[calc(100%+8px)]"}`}>
-                        {/* Shimmer Effect */}
-                        <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none"></div>
+                    <div className={`absolute left-0 right-0 bg-[#0a0d16] border border-white/15 rounded-2xl overflow-hidden z-[9999] shadow-2xl backdrop-blur-sm animate-in fade-in duration-300 ${menuPosition === "top" ? "slide-in-from-bottom-2 bottom-[calc(100%+4px)]" : "slide-in-from-top-2"} ${menuPosition === "bottom" ? (isCompact ? "top-[calc(100%+4px)]" : "top-[calc(100%+8px)]") : ""} ${isCompact ? "min-w-[200px]" : ""} ${menuClassName}`}>
 
                         <div className="relative p-2 max-h-64 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10">
                             {options.map((opt) => (
@@ -75,18 +75,15 @@ const CustomSelect = ({ value, onChange, options, icon, label, variant = "defaul
                                         onChange(opt.value);
                                         setIsOpen(false);
                                     }}
-                                    className={`px-5 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest cursor-pointer transition-all mb-1 last:mb-0 flex items-center justify-between group/item ${value === opt.value
-                                            ? "text-black shadow-gold-glow relative overflow-hidden"
-                                            : "text-white/40 hover:bg-white/5 hover:text-white"
+                                    className={`px-2 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest cursor-pointer transition-all mb-1 last:mb-0 flex items-center justify-center group/item ${value === opt.value
+                                            ? "text-black relative overflow-hidden"
+                                            : "text-white/50 hover:bg-white/8 hover:text-white"
                                         }`}
                                 >
                                     {value === opt.value && (
-                                        <div className="absolute inset-0 bg-gold-gradient animate-shimmer"></div>
+                                        <div className="absolute inset-0 bg-[#d4a937]"></div>
                                     )}
-                                    <span className={`relative z-10 ${value === opt.value ? "italic" : ""}`}>{opt.label}</span>
-                                    {value === opt.value && (
-                                        <span className="material-symbols-outlined text-base relative z-10">check_circle</span>
-                                    )}
+                                    <span className={`relative z-10 w-full text-center font-black ${value === opt.value ? "" : ""}`}>{opt.label}</span>
                                 </div>
                             ))}
                         </div>
@@ -177,19 +174,19 @@ function MonitoringSpreadsheetPage({
 
     const invoiceDetailModal = selectedInvoiceCell && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4 animate-in fade-in duration-300">
-            <div className="relative w-full max-w-xl rounded-3xl bg-slate-900/80 backdrop-blur-2xl p-8 shadow-2xl animate-in fade-in zoom-in duration-300 border border-white/10 overflow-hidden group">
+            <div className="relative w-full max-w-lg rounded-2xl bg-slate-900/80 backdrop-blur-2xl p-5 shadow-2xl animate-in fade-in zoom-in duration-300 border border-white/10 overflow-hidden group">
                 <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-gold-accent/5 blur-3xl transition-all duration-700 group-hover:bg-gold-accent/10 backdrop-blur-md" />
 
-                <div className="relative mb-8 flex items-start justify-between gap-6">
+                <div className="relative mb-5 flex items-start justify-between gap-6">
                     <div>
                         <div className="flex items-center gap-2 mb-1">
                             <span className="h-1.5 w-1.5 rounded-full bg-gold-accent animate-pulse" />
-                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gold-accent/80">Invoice Detail (Read Only)</p>
+                            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-gold-accent/80">Invoice Detail (Read Only)</p>
                         </div>
-                        <h3 className="text-2xl font-black text-white tracking-tight leading-tight">
+                        <h3 className="text-lg font-black text-white tracking-tight leading-tight">
                             {selectedInvoiceCell.customerName}
                         </h3>
-                        <p className="mt-1 text-xs font-bold text-white/40 uppercase tracking-widest">
+                        <p className="mt-0.5 text-[10px] font-bold text-white/40 uppercase tracking-widest">
                             {selectedInvoiceCell.ispName} <span className="mx-2 text-white/10">|</span> {selectedInvoiceCell.customerCode}
                         </p>
                     </div>
@@ -202,37 +199,37 @@ function MonitoringSpreadsheetPage({
                     </button>
                 </div>
 
-                <div className="relative grid grid-cols-1 gap-4 md:grid-cols-2 mb-8">
-                    <div className="rounded-xl bg-white/5 border border-white/5 p-4 transition-colors hover:bg-white/[0.07] backdrop-blur-md">
-                        <dt className="text-[10px] font-black uppercase tracking-[0.15em] text-white/30 mb-2">Periode Tagihan</dt>
-                        <dd className="text-sm font-black text-white flex items-center gap-2">
+                <div className="relative grid grid-cols-1 gap-3 md:grid-cols-2 mb-5">
+                    <div className="rounded-xl bg-white/5 border border-white/5 p-3 transition-colors hover:bg-white/[0.07] backdrop-blur-md">
+                        <dt className="text-[9px] font-black uppercase tracking-[0.15em] text-white/30 mb-1.5">Periode Tagihan</dt>
+                        <dd className="text-xs font-black text-white flex items-center gap-2">
                             <span className="material-symbols-outlined text-gold-accent text-sm">calendar_today</span>
                             {selectedInvoiceCell.month} {selectedInvoiceCell.year}
                         </dd>
                     </div>
-                    <div className="rounded-xl bg-white/5 border border-white/5 p-4 transition-colors hover:bg-white/[0.07] backdrop-blur-md">
-                        <dt className="text-[10px] font-black uppercase tracking-[0.15em] text-white/30 mb-2">Status Pembayaran</dt>
+                    <div className="rounded-xl bg-white/5 border border-white/5 p-3 transition-colors hover:bg-white/[0.07] backdrop-blur-md">
+                        <dt className="text-[9px] font-black uppercase tracking-[0.15em] text-white/30 mb-1.5">Status Pembayaran</dt>
                         <dd className="flex items-center">
-                            <span className={`rounded-lg px-3 py-1.5 text-[9px] font-black tracking-widest border transition-all ${getMonthStatusClass(selectedInvoiceCell.status)} border-opacity-30`}>
+                            <span className={`rounded-lg px-2.5 py-1 text-[8px] font-black tracking-widest border transition-all ${getMonthStatusClass(selectedInvoiceCell.status)} border-opacity-30`}>
                                 {invoiceStatusLabelMap[selectedInvoiceCell.status]?.toUpperCase() ?? selectedInvoiceCell.status.toUpperCase()}
                             </span>
                         </dd>
                     </div>
-                    <div className="rounded-xl bg-white/5 border border-white/5 p-4 transition-colors hover:bg-white/[0.07] backdrop-blur-md">
-                        <dt className="text-[10px] font-black uppercase tracking-[0.15em] text-white/30 mb-2">Kontrak Awal</dt>
-                        <dd className="text-xs font-bold text-white/70">
+                    <div className="rounded-xl bg-white/5 border border-white/5 p-3 transition-colors hover:bg-white/[0.07] backdrop-blur-md">
+                        <dt className="text-[9px] font-black uppercase tracking-[0.15em] text-white/30 mb-1.5">Kontrak Awal</dt>
+                        <dd className="text-[11px] font-bold text-white/70">
                             {formatDate(selectedInvoiceCell.contractStart)}
                         </dd>
                     </div>
-                    <div className="rounded-xl bg-white/5 border border-white/5 p-4 transition-colors hover:bg-white/[0.07] backdrop-blur-md">
-                        <dt className="text-[10px] font-black uppercase tracking-[0.15em] text-white/30 mb-2">Kontrak Akhir</dt>
-                        <dd className="text-xs font-bold text-white/70">
+                    <div className="rounded-xl bg-white/5 border border-white/5 p-3 transition-colors hover:bg-white/[0.07] backdrop-blur-md">
+                        <dt className="text-[9px] font-black uppercase tracking-[0.15em] text-white/30 mb-1.5">Kontrak Akhir</dt>
+                        <dd className="text-[11px] font-bold text-white/70">
                             {formatDate(selectedInvoiceCell.contractEnd)}
                         </dd>
                     </div>
-                    <div className="rounded-xl bg-white/5 border border-white/5 p-4 transition-colors hover:bg-white/[0.07] backdrop-blur-md">
-                        <dt className="text-[10px] font-black uppercase tracking-[0.15em] text-white/30 mb-2">Paket</dt>
-                        <dd className="text-xs font-bold text-white/70">
+                    <div className="rounded-xl bg-white/5 border border-white/5 p-3 transition-colors hover:bg-white/[0.07] backdrop-blur-md">
+                        <dt className="text-[9px] font-black uppercase tracking-[0.15em] text-white/30 mb-1.5">Paket</dt>
+                        <dd className="text-[11px] font-bold text-white/70">
                             {toTitleCase(selectedInvoiceCell.coreType)}
                             <span className="mx-2 text-white/10">•</span>
                             {formatCoreAllocation({
@@ -242,39 +239,39 @@ function MonitoringSpreadsheetPage({
                             })}
                         </dd>
                     </div>
-                    <div className="rounded-xl bg-white/5 border border-white/5 p-4 transition-colors hover:bg-white/[0.07] backdrop-blur-md">
-                        <dt className="text-[10px] font-black uppercase tracking-[0.15em] text-white/30 mb-2">Sisa Masa Sewa</dt>
-                        <dd className="text-xs font-bold text-white/70 flex items-center gap-2">
-                            <span className="material-symbols-outlined text-gold-accent text-sm">timer</span>
+                    <div className="rounded-xl bg-white/5 border border-white/5 p-3 transition-colors hover:bg-white/[0.07] backdrop-blur-md">
+                        <dt className="text-[9px] font-black uppercase tracking-[0.15em] text-white/30 mb-1.5">Sisa Masa Sewa</dt>
+                        <dd className="text-[11px] font-bold text-white/70 flex items-center gap-2">
+                            <span className="material-symbols-outlined text-gold-accent text-[13px]">timer</span>
                             {getRemainingRentalDays(selectedInvoiceCell.contractEnd)} Hari
                         </dd>
                     </div>
                 </div>
 
-                <div className="rounded-xl bg-amber-500/5 border border-amber-500/10 p-4 mb-8">
-                    <p className="text-[11px] leading-relaxed text-amber-200/60 font-medium italic">
+                <div className="rounded-xl bg-amber-500/5 border border-amber-500/10 p-3 mb-5">
+                    <p className="text-[10px] leading-relaxed text-amber-200/60 font-medium italic">
                         <span className="font-black not-italic text-amber-500 mr-1 uppercase">Catatan:</span>
                         Monitoring ini bersifat informatif. Gunakan Detail Lokasi untuk meninjau data kontrak, invoice, dan dokumen secara terpusat.
                     </p>
                 </div>
 
-                <div className="flex flex-wrap justify-end gap-3">
+                <div className="flex flex-wrap justify-end gap-2">
                     <button
-                        className="rounded-xl px-6 py-3 text-xs font-black uppercase tracking-widest text-white/40 transition-all hover:text-white hover:bg-white/5 backdrop-blur-md"
+                        className="rounded-xl px-4 py-2.5 text-[9px] font-black uppercase tracking-widest text-white/40 transition-all hover:text-white hover:bg-white/5 backdrop-blur-md"
                         onClick={() => setSelectedInvoiceCell(null)}
                         type="button"
                     >
                         Tutup
                     </button>
                     <button
-                        className="inline-flex items-center gap-2 rounded-xl bg-gold-accent px-6 py-3 text-xs font-black uppercase tracking-widest text-[#05080a] shadow-lg shadow-gold-accent/20 transition-all hover:shadow-gold-accent/40"
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-gold-accent px-4 py-2.5 text-[9px] font-black uppercase tracking-widest text-[#05080a] shadow-lg shadow-gold-accent/20 transition-all hover:shadow-gold-accent/40"
                         onClick={() => {
                             onOpenCustomerById(selectedInvoiceCell.customerId, "invoices");
                             setSelectedInvoiceCell(null);
                         }}
                         type="button"
                     >
-                        <span className="material-symbols-outlined text-sm">open_in_new</span>
+                        <span className="material-symbols-outlined text-[14px]">open_in_new</span>
                         Buka Detail Lokasi
                     </button>
                 </div>
@@ -525,11 +522,6 @@ function MonitoringSpreadsheetPage({
     const handlePageChange = (newPage) => {
         if (newPage >= 1 && newPage <= totalPages) {
             setCurrentPage(newPage);
-            // Scroll to table top
-            const tableEl = document.getElementById("monitoring-table");
-            if (tableEl) {
-                tableEl.scrollIntoView({ behavior: "smooth", block: "start" });
-            }
         }
     };
 
@@ -657,7 +649,7 @@ function MonitoringSpreadsheetPage({
 
     const tableSection = (
         <section
-            className={`glass-card monitoring-card backdrop-blur-xl rounded-premium border-white/40 overflow-hidden shadow-glass-depth max-w-full ${tableOnly ? "flex h-full flex-col" : ""}`}
+            className={`glass-card monitoring-card backdrop-blur-xl rounded-premium border-white/40 shadow-glass-depth max-w-full ${tableOnly ? "flex h-full flex-col overflow-hidden" : ""}`}
             id="monitoring-table"
         >
             {/* Pagination Top */}
@@ -671,83 +663,84 @@ function MonitoringSpreadsheetPage({
                     totalItems={filteredRows.length}
                     startIndex={startIndex}
                     endIndex={endIndex}
+                    dropdownPosition="bottom"
                 />
             )}
 
-            <div className={`max-w-full overflow-auto custom-scrollbar ${tableOnly ? "flex-1 min-h-0" : ""}`}>
-                <table className="w-full min-w-[2400px] table-fixed border-separate border-spacing-0 text-[13px]">
+            <div className={`max-w-full overflow-auto custom-scrollbar ${tableOnly ? "flex-1 min-h-0" : "min-h-[600px]"}`}>
+                <table className="w-full min-w-[2000px] table-fixed border-separate border-spacing-0 text-[11px]">
                     <colgroup>
                         <col style={{ width: "64px" }} />
-                        <col style={{ width: "160px" }} />
-                        <col style={{ width: "240px" }} />
+                        <col style={{ width: "130px" }} />
                         <col style={{ width: "200px" }} />
-                        <col style={{ width: "120px" }} />
-                        <col style={{ width: "120px" }} />
-                        <col style={{ width: "150px" }} />
+                        <col style={{ width: "160px" }} />
                         <col style={{ width: "100px" }} />
+                        <col style={{ width: "100px" }} />
+                        <col style={{ width: "120px" }} />
+                        <col style={{ width: "80px" }} />
                         {!isTeknisi && (
                             <>
-                                <col style={{ width: "180px" }} />
-                                <col style={{ width: "180px" }} />
+                                <col style={{ width: "140px" }} />
+                                <col style={{ width: "140px" }} />
                             </>
                         )}
-                        <col style={{ width: "180px" }} />
-                        <col style={{ width: "240px" }} />
-                        <col style={{ width: "180px" }} />
-                        {!isTeknisi && <col style={{ width: "200px" }} />}
+                        <col style={{ width: "140px" }} />
+                        <col style={{ width: "160px" }} />
+                        <col style={{ width: "140px" }} />
+                        {!isTeknisi && <col style={{ width: "160px" }} />}
                         {!isTeknisi && monitoringMonths.map((month) => (
                             <col key={`month-${month}`} style={{ width: "48px" }} />
                         ))}
                     </colgroup>
                     <thead>
                         <tr>
-                            <th rowSpan="2" className="sticky left-0 top-0 z-[100] w-[64px] pl-2 pr-0 py-5 text-center font-black uppercase tracking-widest text-gold-accent bg-[#1e293b]/95 border-b border-white/10 shadow-lg backdrop-blur-3xl">
+                            <th rowSpan="2" className="sticky left-0 top-0 z-[100] w-[64px] pl-2 pr-0 py-3 text-center font-black uppercase tracking-widest text-gold-accent bg-[#1e293b]/95 border-b border-white/10 shadow-lg backdrop-blur-3xl">
                                 NO
                             </th>
-                            <th rowSpan="2" className="sticky left-[64px] top-0 z-[100] -ml-px w-[160px] pl-0 pr-0 py-5 text-center font-black uppercase tracking-widest text-white bg-[#1e293b]/95 border-b border-white/10 shadow-lg backdrop-blur-3xl">
+                            <th rowSpan="2" className="sticky left-[64px] top-0 z-[100] -ml-px w-[130px] pl-0 pr-0 py-3 text-center font-black uppercase tracking-widest text-white bg-[#1e293b]/95 border-b border-white/10 shadow-lg backdrop-blur-3xl">
                                 MITRA ISP
                             </th>
-                            <th rowSpan="2" className="sticky left-[224px] top-0 z-[100] -ml-px w-[240px] pl-0 pr-2 py-5 text-center font-black uppercase tracking-widest text-white bg-[#1e293b]/95 border-b border-white/10 shadow-lg backdrop-blur-3xl">
+                            <th rowSpan="2" className="sticky left-[194px] top-0 z-[100] -ml-px w-[200px] pl-0 pr-2 py-3 text-center font-black uppercase tracking-widest text-white bg-[#1e293b]/95 border-b border-white/10 shadow-lg backdrop-blur-3xl">
                                 UNIT LOKASI
                                 <span className="absolute right-0 top-0 h-full w-px bg-white/5 backdrop-blur-md" />
                             </th>
-                            <th rowSpan="2" className="sticky top-0 z-[90] w-[200px] px-4 py-5 text-center font-black uppercase tracking-widest text-white bg-[#1e293b]/95 border-b border-r border-white/10 backdrop-blur-3xl">
+                            <th rowSpan="2" className="sticky top-0 z-[90] w-[160px] px-3 py-3 text-center font-black uppercase tracking-widest text-white bg-[#1e293b]/95 border-b border-r border-white/10 backdrop-blur-3xl">
                                 PERIODE AWAL
                             </th>
-                            <th ref={headerRow1Ref} colSpan="2" className="sticky top-0 z-[90] px-4 py-4 text-center font-black uppercase tracking-widest text-gold-accent bg-[#1e293b]/95 border-b border-r border-white/10 backdrop-blur-3xl">
+                            <th ref={headerRow1Ref} colSpan="2" className="sticky top-0 z-[90] px-3 py-2.5 text-center font-black uppercase tracking-widest text-gold-accent bg-[#1e293b]/95 border-b border-r border-white/10 backdrop-blur-3xl">
                                 PERIODE BERJALAN
                             </th>
-                            <th rowSpan="2" className="sticky top-0 z-[90] w-[150px] px-4 py-5 text-center font-black uppercase tracking-widest text-white bg-[#1e293b]/95 border-b border-r border-white/10 backdrop-blur-3xl">
+                            <th rowSpan="2" className="sticky top-0 z-[90] w-[120px] px-3 py-3 text-center font-black uppercase tracking-widest text-white bg-[#1e293b]/95 border-b border-r border-white/10 backdrop-blur-3xl">
                                 PAKET
                             </th>
-                            <th rowSpan="2" className="sticky top-0 z-[90] w-[100px] px-4 py-5 text-center font-black uppercase tracking-widest text-white bg-[#1e293b]/95 border-b border-r border-white/10 backdrop-blur-3xl">
+                            <th rowSpan="2" className="sticky top-0 z-[90] w-[80px] px-3 py-3 text-center font-black uppercase tracking-widest text-white bg-[#1e293b]/95 border-b border-r border-white/10 backdrop-blur-3xl">
                                 JUMLAH
                             </th>
                             {!isTeknisi && (
                                 <>
-                                    <th rowSpan="2" className="sticky top-0 z-[90] w-[180px] px-4 py-5 text-center font-black uppercase tracking-widest text-white bg-[#1e293b]/95 border-b border-r border-white/10 backdrop-blur-3xl">
+                                    <th rowSpan="2" className="sticky top-0 z-[90] w-[140px] px-3 py-3 text-center font-black uppercase tracking-widest text-white bg-[#1e293b]/95 border-b border-r border-white/10 backdrop-blur-3xl">
                                         NO. KONTRAK
                                     </th>
-                                    <th rowSpan="2" className="sticky top-0 z-[90] w-[180px] px-4 py-5 text-center font-black uppercase tracking-widest text-white bg-[#1e293b]/95 border-b border-r border-white/10 backdrop-blur-3xl">
+                                    <th rowSpan="2" className="sticky top-0 z-[90] w-[140px] px-3 py-3 text-center font-black uppercase tracking-widest text-white bg-[#1e293b]/95 border-b border-r border-white/10 backdrop-blur-3xl">
                                         NO. INVOICE
                                     </th>
                                 </>
                             )}
-                            <th rowSpan="2" className="sticky top-0 z-[90] w-[180px] px-6 py-5 text-center font-black uppercase tracking-widest text-white bg-[#1e293b]/95 border-b border-r border-white/10 backdrop-blur-3xl">
+                            <th rowSpan="2" className="sticky top-0 z-[90] w-[140px] px-4 py-3 text-center font-black uppercase tracking-widest text-white bg-[#1e293b]/95 border-b border-r border-white/10 backdrop-blur-3xl">
                                 SISA SEWA
                             </th>
-                            <th rowSpan="2" className="sticky top-0 z-[90] w-[240px] px-6 py-5 text-center font-black uppercase tracking-widest text-white bg-[#1e293b]/95 border-b border-r border-white/10 backdrop-blur-3xl">
+                            <th rowSpan="2" className="sticky top-0 z-[90] w-[160px] px-4 py-3 text-center font-black uppercase tracking-widest text-white bg-[#1e293b]/95 border-b border-r border-white/10 backdrop-blur-3xl">
                                 ST. KONTRAK
                             </th>
-                            <th rowSpan="2" className="sticky top-0 z-[90] w-[180px] px-6 py-5 text-center font-black uppercase tracking-widest text-white bg-[#1e293b]/95 border-b border-r border-white/10 backdrop-blur-3xl">
+                            <th rowSpan="2" className="sticky top-0 z-[90] w-[140px] px-4 py-3 text-center font-black uppercase tracking-widest text-white bg-[#1e293b]/95 border-b border-r border-white/10 backdrop-blur-3xl">
                                 ST. JALUR
                             </th>
                             {!isTeknisi && (
                                 <>
-                                    <th rowSpan="2" className="sticky top-0 z-[90] w-[200px] px-6 py-5 text-center font-black uppercase tracking-widest text-white bg-[#1e293b]/95 border-b border-r border-white/10 backdrop-blur-3xl">
+                                    <th rowSpan="2" className="sticky top-0 z-[90] w-[160px] px-4 py-3 text-center font-black uppercase tracking-widest text-white bg-[#1e293b]/95 border-b border-r border-white/10 backdrop-blur-3xl">
                                         AKTIVASI
                                     </th>
-                                    <th colSpan="12" className="sticky top-0 z-[90] px-6 py-4 text-center font-black uppercase tracking-widest text-gold-accent bg-[#1e293b]/95 border-b border-r border-white/10 shadow-lg backdrop-blur-3xl">
+                                    <th colSpan="12" className="sticky top-0 z-[90] px-4 py-2.5 text-center font-black uppercase tracking-widest text-gold-accent bg-[#1e293b]/95 border-b border-r border-white/10 shadow-lg backdrop-blur-3xl">
                                         MONITORING BILLING {appliedFilters.year}
                                     </th>
                                 </>
@@ -755,13 +748,13 @@ function MonitoringSpreadsheetPage({
                         </tr>
                         <tr>
                             <th
-                                className="sticky z-[80] w-[120px] px-4 py-3 text-center font-black text-[10px] uppercase tracking-widest text-white/40 bg-[#1e293b]/95 border-b border-r border-white/10 backdrop-blur-3xl shadow-md"
+                                className="sticky z-[80] w-[100px] px-3 py-2 text-center font-black text-[9px] uppercase tracking-widest text-white/40 bg-[#1e293b]/95 border-b border-r border-white/10 backdrop-blur-3xl shadow-md"
                                 style={{ top: `${headerRow1Height}px` }}
                             >
                                 AWAL
                             </th>
                             <th
-                                className="sticky z-[80] w-[120px] px-4 py-3 text-center font-black text-[10px] uppercase tracking-widest text-white/40 bg-[#1e293b]/95 border-b border-r border-white/10 backdrop-blur-3xl shadow-md"
+                                className="sticky z-[80] w-[100px] px-3 py-2 text-center font-black text-[9px] uppercase tracking-widest text-white/40 bg-[#1e293b]/95 border-b border-r border-white/10 backdrop-blur-3xl shadow-md"
                                 style={{ top: `${headerRow1Height}px` }}
                             >
                                 AKHIR
@@ -769,7 +762,7 @@ function MonitoringSpreadsheetPage({
                             {!isTeknisi && monitoringMonths.map((month) => (
                                 <th
                                     key={`month-header-${month}`}
-                                    className="sticky z-[80] w-12 px-2 py-3 text-center font-black text-[10px] uppercase tracking-widest text-white/40 bg-[#1e293b]/95 border-b border-r border-white/10 backdrop-blur-3xl shadow-md"
+                                    className="sticky z-[80] w-12 px-2 py-2 text-center font-black text-[9px] uppercase tracking-widest text-white/40 bg-[#1e293b]/95 border-b border-r border-white/10 backdrop-blur-3xl shadow-md"
                                     style={{ top: `${headerRow1Height}px` }}
                                 >
                                     {month}
@@ -792,29 +785,29 @@ function MonitoringSpreadsheetPage({
 
                         {!isLoading && filteredRows.length === 0 && (
                             <tr>
-                                <td className="px-6 py-32 text-center" colSpan="27">
+                                <td className="px-6 py-24 text-center" colSpan="27">
                                     <div className="flex flex-col items-center justify-center animate-in fade-in zoom-in duration-500">
                                         {/* Icon Container with Glow */}
-                                        <div className="relative mb-8">
-                                            <div className="absolute inset-0 scale-150 bg-gold-accent/10 blur-[50px] rounded-full backdrop-blur-md" />
-                                            <div className="relative flex h-24 w-24 items-center justify-center rounded-3xl bg-white/5 border border-white/10 shadow-2xl backdrop-blur-xl">
-                                                <span className="material-symbols-outlined text-6xl text-gold-accent/40">data_alert</span>
+                                        <div className="relative mb-6">
+                                            <div className="absolute inset-0 scale-150 bg-gold-accent/10 blur-[30px] rounded-full backdrop-blur-md" />
+                                            <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5 border border-white/10 shadow-xl backdrop-blur-xl">
+                                                <span className="material-symbols-outlined text-4xl text-gold-accent/40">data_alert</span>
                                             </div>
                                         </div>
 
                                         {/* Text Section */}
                                         <div className="max-w-md mx-auto">
-                                            <h3 className="text-xl font-black text-white uppercase tracking-widest mb-8">Data Tidak Ditemukan</h3>
+                                            <h3 className="text-sm font-black text-white uppercase tracking-widest mb-6">Data Tidak Ditemukan</h3>
 
                                             {/* Action Button */}
                                             <button
-                                                className="inline-flex items-center gap-3 rounded-2xl bg-white/5 border border-white/10 px-8 py-3 text-[11px] font-black uppercase tracking-[0.2em] text-white transition-all hover:bg-white/10 hover:border-gold-accent/30 hover:text-gold-accent shadow-xl group backdrop-blur-md"
+                                                className="inline-flex items-center gap-2 rounded-xl bg-white/5 border border-white/10 px-6 py-2.5 text-[9px] font-black uppercase tracking-[0.2em] text-white transition-all hover:bg-white/10 hover:border-gold-accent/30 hover:text-gold-accent shadow-lg group backdrop-blur-md"
                                                 onClick={() => {
                                                     setFilters({ search: "", year: currentYear, contractStatus: "all", routeStatus: "all", todoStatus: "all", package: "all" });
                                                     setAppliedFilters({ year: currentYear, contractStatus: "all", routeStatus: "all", todoStatus: "all", package: "all" });
                                                 }}
                                             >
-                                                <span className="material-symbols-outlined text-base group-hover:rotate-180 transition-transform duration-500">restart_alt</span>
+                                                <span className="material-symbols-outlined text-[15px] group-hover:rotate-180 transition-transform duration-500">restart_alt</span>
                                                 Reset Semua Filter
                                             </button>
                                         </div>
@@ -827,50 +820,50 @@ function MonitoringSpreadsheetPage({
                             const actualRowNumber = tableOnly ? rowIndex + 1 : startIndex + rowIndex + 1;
                             return (
                             <tr key={`${row.customerId}-${rowIndex}`} className="bg-[#0f172a]/40 transition-all group hover:bg-[#1e293b]/60">
-                                <td className="relative sticky left-0 z-20 w-[64px] pl-2 pr-0 py-5 font-black text-white/30 text-center bg-[#0f172a]/65 backdrop-blur-sm group-hover:!bg-[#0f1117] group-hover:!backdrop-blur-none group-hover:text-gold-accent transition-colors shadow-[2px_0_10px_rgba(0,0,0,0.3)] group-hover:border-l-4 group-hover:border-l-gold-accent">
+                                <td className="relative sticky left-0 z-20 w-[64px] pl-2 pr-0 py-3 font-black text-white/30 text-center bg-[#0f172a]/65 backdrop-blur-sm group-hover:!bg-[#0f1117] group-hover:!backdrop-blur-none group-hover:text-gold-accent transition-colors shadow-[2px_0_10px_rgba(0,0,0,0.3)] group-hover:border-l-4 group-hover:border-l-gold-accent">
                                     {String(actualRowNumber).padStart(2, "0")}
                                 </td>
-                                <td className="relative sticky left-[64px] z-20 -ml-px w-[160px] pl-0 pr-0 py-5 font-black text-white bg-[#0f172a]/65 backdrop-blur-sm group-hover:!bg-[#0f1117] group-hover:!backdrop-blur-none transition-colors shadow-[2px_0_10px_rgba(0,0,0,0.3)]">
-                                    {row.ispName}
+                                <td className="relative sticky left-[64px] z-20 -ml-px w-[130px] pl-0 pr-0 py-3 font-black text-white bg-[#0f172a]/65 backdrop-blur-sm group-hover:!bg-[#0f1117] group-hover:!backdrop-blur-none transition-colors shadow-[2px_0_10px_rgba(0,0,0,0.3)]">
+                                    <div className="w-[120px] truncate pl-2">{row.ispName}</div>
                                 </td>
-                                <td className="relative sticky left-[224px] z-20 -ml-px w-[240px] pl-0 pr-2 py-5 bg-[#0f172a]/65 backdrop-blur-sm group-hover:!bg-[#0f1117] group-hover:!backdrop-blur-none transition-colors shadow-[4px_0_15px_rgba(0,0,0,0.4)]">
-                                    <p className="font-black text-on-surface truncate max-w-[200px] tracking-tight group-hover:text-gold-accent transition-colors">{row.customerName}</p>
+                                <td className="relative sticky left-[194px] z-20 -ml-px w-[200px] pl-0 pr-2 py-3 bg-[#0f172a]/65 backdrop-blur-sm group-hover:!bg-[#0f1117] group-hover:!backdrop-blur-none transition-colors shadow-[4px_0_15px_rgba(0,0,0,0.4)]">
+                                    <p className="font-black text-on-surface truncate max-w-[190px] tracking-tight group-hover:text-gold-accent transition-colors">{row.customerName}</p>
                                     <button
-                                        className="mt-1.5 inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-gold-accent hover:text-white transition-colors"
+                                        className="mt-1 inline-flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-gold-accent hover:text-white transition-colors"
                                         onClick={() => onOpenCustomerById(row.customerId, "overview")}
                                         type="button"
                                     >
-                                        <span className="material-symbols-outlined text-[14px]">open_in_new</span>
+                                        <span className="material-symbols-outlined text-[13px]">open_in_new</span>
                                         Detail Unit
                                     </button>
                                     <span className="absolute right-0 top-0 h-full w-px bg-white/10 backdrop-blur-md" />
                                 </td>
-                                <td className="px-4 py-5 text-on-surface-variant font-bold text-center group-hover:bg-white/5 transition-colors border-r border-white/5 backdrop-blur-md">
+                                <td className="px-3 py-3 text-on-surface-variant font-bold text-center group-hover:bg-white/5 transition-colors border-r border-white/5 backdrop-blur-md">
                                     {formatDate(row.ispContractStart)}
                                 </td>
-                                <td className="px-4 py-5 text-on-surface-variant font-bold group-hover:bg-white/5 transition-colors border-r border-white/5 backdrop-blur-md">
+                                <td className="px-4 py-3 text-on-surface-variant font-bold group-hover:bg-white/5 transition-colors border-r border-white/5 backdrop-blur-md">
                                     {formatDate(row.contractStart)}
                                 </td>
-                                <td className="px-4 py-5 text-on-surface-variant font-bold group-hover:bg-white/5 transition-colors border-r border-white/5 backdrop-blur-md">
+                                <td className="px-4 py-3 text-on-surface-variant font-bold group-hover:bg-white/5 transition-colors border-r border-white/5 backdrop-blur-md">
                                     {formatDate(row.contractEnd)}
                                 </td>
-                                <td className="px-4 py-5 text-on-surface-variant font-black tracking-tight transition-colors group-hover:bg-white/5 border-r border-white/5 text-center backdrop-blur-md">
+                                <td className="px-4 py-3 text-on-surface-variant font-black tracking-tight transition-colors group-hover:bg-white/5 border-r border-white/5 text-center backdrop-blur-md">
                                     {toTitleCase(row.coreType)}
                                 </td>
-                                <td className="px-4 py-5 text-on-surface-variant font-black text-center transition-colors group-hover:bg-white/5 border-r border-white/5 backdrop-blur-md">
+                                <td className="px-4 py-3 text-on-surface-variant font-black text-center transition-colors group-hover:bg-white/5 border-r border-white/5 backdrop-blur-md">
                                     {formatMonitoringCoreAmount(row)}
                                 </td>
                                 {!isTeknisi && (
                                     <>
-                                        <td className="px-4 py-5 text-on-surface-variant font-mono text-[11px] font-bold transition-colors group-hover:bg-white/5 border-r border-white/5 backdrop-blur-md">
+                                        <td className="px-4 py-3 text-on-surface-variant font-mono text-[11px] font-bold transition-colors group-hover:bg-white/5 border-r border-white/5 backdrop-blur-md">
                                             {row.contractNumber ?? "-"}
                                         </td>
-                                        <td className="px-4 py-5 text-on-surface-variant font-mono text-[11px] font-bold transition-colors group-hover:bg-white/5 border-r border-white/5 backdrop-blur-md">
+                                        <td className="px-4 py-3 text-on-surface-variant font-mono text-[11px] font-bold transition-colors group-hover:bg-white/5 border-r border-white/5 backdrop-blur-md">
                                             {row.currentInvoiceNumber ?? "-"}
                                         </td>
                                     </>
                                 )}
-                                <td className="px-6 py-5 whitespace-nowrap transition-colors group-hover:bg-white/5 border-r border-white/5 text-center backdrop-blur-md">
+                                <td className="px-6 py-3 whitespace-nowrap transition-colors group-hover:bg-white/5 border-r border-white/5 text-center backdrop-blur-md">
                                     {(() => {
                                         const remainingDays = getRemainingRentalDays(row.contractEnd);
 
@@ -890,7 +883,7 @@ function MonitoringSpreadsheetPage({
                                         return <span className={`font-black ${colorClass} uppercase text-[10px] tracking-widest flex items-center gap-1 justify-center`}><span className="material-symbols-outlined text-sm">schedule</span> {remainingDays} hari</span>;
                                     })()}
                                 </td>
-                                <td className="px-6 py-5 text-center transition-colors group-hover:bg-white/5 border-r border-white/5 backdrop-blur-md">
+                                <td className="px-6 py-3 text-center transition-colors group-hover:bg-white/5 border-r border-white/5 backdrop-blur-md">
                                     {(() => {
                                         const remainingDays = getRemainingRentalDays(row.contractEnd);
                                         let label = "BEROPERASI";
@@ -911,7 +904,7 @@ function MonitoringSpreadsheetPage({
                                         );
                                     })()}
                                 </td>
-                                <td className="px-6 py-5 text-center transition-colors group-hover:bg-white/5 border-r border-white/5 backdrop-blur-md">
+                                <td className="px-6 py-3 text-center transition-colors group-hover:bg-white/5 border-r border-white/5 backdrop-blur-md">
                                     {(() => {
                                         const statusValue = resolveRouteStatus(row.customerStatus, row.routeStatus);
                                         const label = statusValue === "perbaikan" || statusValue === "sedang perbaikan" ? "PERBAIKAN" : statusValue.toUpperCase();
@@ -932,7 +925,7 @@ function MonitoringSpreadsheetPage({
                                 </td>
                                 {!isTeknisi && (
                                     <>
-                                        <td className="px-6 py-5 transition-colors group-hover:bg-white/5 border-r border-white/5 text-center backdrop-blur-md">
+                                        <td className="px-6 py-3 transition-colors group-hover:bg-white/5 border-r border-white/5 text-center backdrop-blur-md">
                                             {row.activationFeePaidAt ? (
                                                 <div className="flex flex-col items-center gap-1.5">
                                                     <span className="inline-flex rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 text-[9px] font-black text-emerald-500 tracking-widest uppercase backdrop-blur-md">
@@ -1009,16 +1002,16 @@ function MonitoringSpreadsheetPage({
             )}
 
             {!tableOnly && (
-                <div className="flex flex-wrap items-center justify-between gap-6 border-t border-white/10 bg-[#0f141e]/50 px-10 py-6 backdrop-blur-md">
-                    <div className="flex items-center gap-10">
-                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">
-                            ISP: <span className="text-gold-accent ml-2">{ispOptions.length}</span>
+                <div className="flex flex-wrap items-center justify-between gap-6 border-t border-white/10 bg-[#0f141e]/50 px-5 py-3.5 backdrop-blur-md">
+                    <div className="flex items-center gap-8">
+                        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/40">
+                            ISP: <span className="text-gold-accent ml-1.5">{ispOptions.length}</span>
                         </p>
-                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">
-                            LOKASI: <span className="text-gold-accent ml-2">{filteredRows.length}</span>
+                        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/40">
+                            LOKASI: <span className="text-gold-accent ml-1.5">{filteredRows.length}</span>
                         </p>
-                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">
-                            RIWAYAT: <span className="text-gold-accent ml-2">{filteredHistoryRows.length}</span>
+                        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/40">
+                            RIWAYAT: <span className="text-gold-accent ml-1.5">{filteredHistoryRows.length}</span>
                         </p>
                     </div>
                 </div>
@@ -1028,20 +1021,20 @@ function MonitoringSpreadsheetPage({
 
     const historyTableSection = (
         <section className="glass-card monitoring-card backdrop-blur-xl rounded-premium border-white/40 overflow-hidden shadow-glass-depth max-w-full">
-            <div className="flex flex-col gap-3 border-b border-white/10 bg-[#0f141e]/60 px-8 py-6 backdrop-blur-md md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-col gap-3 border-b border-white/10 bg-[#0f141e]/60 px-5 py-2.5 backdrop-blur-md md:flex-row md:items-center md:justify-between">
                 <div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.35em] text-gold-accent/70">Arsip Kontrak</p>
-                    <h2 className="mt-2 text-xl font-black uppercase tracking-widest text-white">Riwayat Monitoring</h2>
-                    <p className="mt-2 max-w-3xl text-xs font-medium leading-relaxed text-white/45">
-                        Menampilkan kontrak yang sudah selesai tetapi masih beririsan dengan tahun filter, agar relasi lama seperti Medialink dan Merapi tetap bisa dilacak.
+                    <p className="text-[9px] font-black uppercase tracking-[0.3em] text-gold-accent/70">Arsip Kontrak</p>
+                    <h2 className="mt-1 text-sm font-black uppercase tracking-widest text-white">Riwayat Monitoring</h2>
+                    <p className="mt-1 max-w-3xl text-[10px] font-medium leading-relaxed text-white/45">
+                        Menampilkan kontrak yang sudah selesai tetapi masih beririsan dengan tahun filter.
                     </p>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-white/50 backdrop-blur-md">
+                <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-[9px] font-black uppercase tracking-[0.2em] text-white/50 backdrop-blur-md">
                     {filteredHistoryRows.length} Riwayat
                 </div>
             </div>
             <div className="max-w-full overflow-auto custom-scrollbar">
-                <table className="w-full min-w-[1320px] table-fixed border-separate border-spacing-0 text-[13px]">
+                <table className="w-full min-w-[1320px] table-fixed border-separate border-spacing-0 text-[11px]">
                     <thead>
                         <tr>
                             {[
@@ -1055,7 +1048,7 @@ function MonitoringSpreadsheetPage({
                                 "INVOICE TERAKHIR",
                                 "STATUS",
                             ].map((header) => (
-                                <th key={header} className="sticky top-0 z-20 border-b border-r border-white/10 bg-[#1e293b]/95 px-5 py-4 text-center text-[10px] font-black uppercase tracking-widest text-white backdrop-blur-3xl">
+                                <th key={header} className="sticky top-0 z-20 border-b border-r border-white/10 bg-[#1e293b]/95 px-5 py-2.5 text-center text-[10px] font-black uppercase tracking-widest text-white backdrop-blur-3xl">
                                     {header}
                                 </th>
                             ))}
@@ -1064,7 +1057,7 @@ function MonitoringSpreadsheetPage({
                     <tbody className="divide-y divide-white/5">
                         {isLoadingHistory && (
                             <tr>
-                                <td className="px-6 py-16 text-center text-sm font-bold italic text-white/35" colSpan="9">
+                                <td className="px-6 py-10 text-center text-sm font-bold italic text-white/35" colSpan="9">
                                     Sinkronisasi riwayat kontrak...
                                 </td>
                             </tr>
@@ -1072,7 +1065,7 @@ function MonitoringSpreadsheetPage({
 
                         {!isLoadingHistory && filteredHistoryRows.length === 0 && (
                             <tr>
-                                <td className="px-6 py-16 text-center text-sm font-bold italic text-white/35" colSpan="9">
+                                <td className="px-6 py-10 text-center text-sm font-bold italic text-white/35" colSpan="9">
                                     Riwayat kontrak tidak ditemukan untuk filter saat ini.
                                 </td>
                             </tr>
@@ -1080,13 +1073,13 @@ function MonitoringSpreadsheetPage({
 
                         {!isLoadingHistory && filteredHistoryRows.map((row, rowIndex) => (
                             <tr key={`${row.customerId}-${row.contractId}-${rowIndex}`} className="bg-[#0f172a]/40 transition-all group hover:bg-[#1e293b]/60">
-                                <td className="border-r border-white/5 px-5 py-5 text-center font-black text-white/30 group-hover:text-gold-accent">
+                                <td className="border-r border-white/5 px-5 py-3 text-center font-black text-white/30 group-hover:text-gold-accent">
                                     {String(rowIndex + 1).padStart(2, "0")}
                                 </td>
-                                <td className="border-r border-white/5 px-5 py-5 font-black text-white">
+                                <td className="border-r border-white/5 px-5 py-3 font-black text-white">
                                     {row.ispName}
                                 </td>
-                                <td className="border-r border-white/5 px-5 py-5">
+                                <td className="border-r border-white/5 px-5 py-3">
                                     <p className="truncate font-black text-on-surface group-hover:text-gold-accent">{row.customerName}</p>
                                     <button
                                         className="mt-1.5 inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-gold-accent hover:text-white transition-colors"
@@ -1097,22 +1090,22 @@ function MonitoringSpreadsheetPage({
                                         Detail Unit
                                     </button>
                                 </td>
-                                <td className="border-r border-white/5 px-5 py-5 text-center text-xs font-bold text-on-surface-variant">
+                                <td className="border-r border-white/5 px-5 py-3 text-center text-xs font-bold text-on-surface-variant">
                                     {formatDate(row.contractStart)} <span className="mx-2 text-white/15">-</span> {formatDate(row.contractEnd)}
                                 </td>
-                                <td className="border-r border-white/5 px-5 py-5 text-center font-black text-on-surface-variant">
+                                <td className="border-r border-white/5 px-5 py-3 text-center font-black text-on-surface-variant">
                                     {toTitleCase(row.coreType)}
                                 </td>
-                                <td className="border-r border-white/5 px-5 py-5 text-center font-black text-on-surface-variant">
+                                <td className="border-r border-white/5 px-5 py-3 text-center font-black text-on-surface-variant">
                                     {formatMonitoringCoreAmount(row)}
                                 </td>
-                                <td className="border-r border-white/5 px-5 py-5 font-mono text-[11px] font-bold text-on-surface-variant">
+                                <td className="border-r border-white/5 px-5 py-3 font-mono text-[11px] font-bold text-on-surface-variant">
                                     {row.contractNumber ?? "-"}
                                 </td>
-                                <td className="border-r border-white/5 px-5 py-5 font-mono text-[11px] font-bold text-on-surface-variant">
+                                <td className="border-r border-white/5 px-5 py-3 font-mono text-[11px] font-bold text-on-surface-variant">
                                     {row.lastInvoiceNumber ?? "-"}
                                 </td>
-                                <td className="px-5 py-5 text-center">
+                                <td className="px-5 py-3 text-center">
                                     <span className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-white/45 backdrop-blur-md">
                                         Selesai
                                     </span>
@@ -1226,7 +1219,7 @@ function MonitoringSpreadsheetPage({
                             </div>
 
                             <button
-                                className="h-[44px] w-[44px] rounded-xl btn-premium shadow-gold-glow flex items-center justify-center transition-colors shrink-0"
+                                className="h-9 w-9 rounded-xl border border-gold-accent bg-gold-accent/10 shadow-gold-glow flex items-center justify-center transition-colors shrink-0 text-gold-accent hover:bg-gold-accent hover:text-black"
                                 onClick={() => setAppliedFilters({
                                     year: filters.year,
                                     contractStatus: filters.contractStatus,
@@ -1236,7 +1229,7 @@ function MonitoringSpreadsheetPage({
                                 })}
                                 title="Update Data"
                             >
-                                <span className="material-symbols-outlined text-sm">sync_alt</span>
+                                <span className="material-symbols-outlined text-[15px]">sync_alt</span>
                             </button>
 
                             <button
@@ -1267,7 +1260,7 @@ function MonitoringSpreadsheetPage({
                     </div>
                 )}
                 {error && (
-                    <div className="shrink-0 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-6 py-4 text-sm font-bold text-rose-400 backdrop-blur-md">
+                    <div className="shrink-0 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-6 py-2.5 text-sm font-bold text-rose-400 backdrop-blur-md">
                         <div className="flex items-center gap-3">
                             <span className="material-symbols-outlined">warning</span>
                             {error}
@@ -1314,51 +1307,25 @@ function MonitoringSpreadsheetPage({
                             <span className="h-[2px] w-8 bg-gold-accent shadow-gold-glow"></span>
                             <p className="text-[10px] font-black text-gold-accent uppercase tracking-[0.4em]">Mesin Analitik</p>
                         </div>
-                        <h1 className="text-3xl md:text-4xl xl:text-5xl font-black text-on-surface tracking-tight leading-tight">
+                        <h1 className="text-3xl md:text-4xl font-black text-on-surface tracking-tight leading-tight">
                             Monitoring <span className="text-gold-accent italic">Operasional</span>
                         </h1>
-                        <p className="mt-4 text-sm font-medium text-on-surface-variant max-w-2xl leading-relaxed opacity-80">
+                        <p className="mt-2 text-[11px] font-bold text-white/40 max-w-2xl leading-relaxed">
                             Pusat kendali informasi operasional, prioritas aksi, dan matriks billing pelanggan.
                             Gunakan mode spreadsheet untuk pemantauan mendalam.
                         </p>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-2">
                         {showEnterTableButton && (
                             <button
-                                className="btn-premium px-6 py-3 flex items-center gap-2"
+                                className="h-9 px-3 rounded-lg border border-gold-accent bg-gold-accent/10 text-gold-accent hover:bg-gold-accent hover:text-black transition-all flex items-center gap-1.5 backdrop-blur-md"
                                 onClick={handleEnterTable}
                             >
-                                <span className="material-symbols-outlined text-xl">table_chart</span>
-                                <span className="text-[11px] font-black uppercase tracking-widest">Masuk ke Tabel</span>
+                                <span className="material-symbols-outlined text-[15px]">table_chart</span>
+                                <span className="text-[9px] font-black uppercase tracking-widest">Masuk ke Tabel</span>
                             </button>
                         )}
-                        {typeof onOpenTableOnly === "function" && (
-                            <button
-                                className="bg-white/10 hover:bg-white/15 backdrop-blur-md border border-white/20 text-on-surface px-5 py-3 rounded-xl transition-all flex items-center gap-2"
-                                onClick={onOpenTableOnly}
-                            >
-                                <span className="material-symbols-outlined text-xl">fullscreen</span>
-                                <span className="text-[11px] font-black uppercase tracking-widest">Mode Fokus</span>
-                            </button>
-                        )}
-                        <button
-                            className="bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-600 px-5 py-3 rounded-xl transition-all flex items-center gap-2 backdrop-blur-md disabled:opacity-60"
-                            onClick={exportToExcel}
-                            disabled={isExporting}
-                        >
-                            <span className="material-symbols-outlined text-xl text-emerald-500">{isExporting ? "progress_activity" : "download_for_offline"}</span>
-                            <span className="text-[11px] font-black uppercase tracking-widest">{isExporting ? "Menyiapkan..." : "Ekspor Excel"}</span>
-                        </button>
-                        <div className="flex items-center gap-2 bg-white/10 p-1.5 rounded-2xl border border-white/15 backdrop-blur-md">
-                            <button
-                                onClick={handleRefreshMonitoring}
-                                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-all ${isLoading ? "bg-white/10 text-gold-accent" : "btn-premium"}`}
-                                disabled={isLoading}
-                            >
-                                <span className={`material-symbols-outlined text-xl ${isLoading ? "animate-spin" : ""}`}>sync</span>
-                            </button>
-                        </div>
                     </div>
                 </header>
 
@@ -1371,19 +1338,19 @@ function MonitoringSpreadsheetPage({
 
 
                 {/* Premium Filter Section */}
-                <section className="glass-card monitoring-card backdrop-blur-xl rounded-premium p-8 border-white/40 shadow-glass-depth relative z-[40] !overflow-visible">
-                    <div className="flex flex-col gap-6 mb-6">
-                        <div className="flex items-center gap-3 shrink-0">
-                            <span className="h-6 w-1.5 bg-gold-accent rounded-full shadow-gold-glow"></span>
-                            <h2 className="text-xl font-black text-on-surface tracking-tight uppercase tracking-widest">Filter Tabel Monitoring</h2>
+                <section className="glass-card monitoring-card backdrop-blur-xl rounded-premium p-5 border-white/40 shadow-glass-depth relative z-[40] !overflow-visible">
+                    <div className="flex flex-col gap-4 mb-4">
+                        <div className="flex items-center gap-2 shrink-0">
+                            <span className="h-4 w-1 bg-gold-accent rounded-full shadow-gold-glow"></span>
+                            <h2 className="text-sm font-black text-on-surface uppercase tracking-widest">Filter Tabel Monitoring</h2>
                         </div>
 
-                        <div className="flex flex-wrap items-center gap-4">
+                        <div className="flex flex-wrap items-center gap-3">
                             {/* Search Input - Now inside card */}
-                            <div className="relative group flex-grow">
-                                <span className="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 text-xl text-white/30 group-focus-within:text-gold-accent transition-all duration-300">search</span>
+                            <div className="relative group flex-grow min-w-[200px]">
+                                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[15px] text-white/30 group-focus-within:text-gold-accent transition-all duration-300">search</span>
                                 <input
-                                    className="w-full h-14 rounded-2xl bg-black/20 border border-white/10 pl-14 pr-6 text-sm font-bold text-white placeholder:text-white/20 outline-none transition-all focus:bg-black/40 focus:border-gold-accent/40 focus:ring-4 focus:ring-gold-accent/5 shadow-inner-glass backdrop-blur-md"
+                                    className="w-full h-9 rounded-xl bg-black/20 border border-white/10 pl-9 pr-3 text-[10px] font-bold text-white placeholder:text-white/20 outline-none transition-all focus:bg-black/40 focus:border-gold-accent/40 focus:ring-2 focus:ring-gold-accent/10 shadow-inner-glass backdrop-blur-md"
                                     onChange={(e) => setFilters(p => ({ ...p, search: e.target.value }))}
                                     placeholder="Cari ISP atau Lokasi..."
                                     type="text"
@@ -1392,7 +1359,7 @@ function MonitoringSpreadsheetPage({
                             </div>
 
                             <button
-                                className="h-14 bg-white/5 hover:bg-white/10 text-on-surface-variant px-6 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all border border-white/10 hover:border-white/20 flex items-center gap-2 backdrop-blur-md"
+                                className="h-9 bg-white/5 hover:bg-white/10 text-on-surface-variant px-3 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] transition-all border border-white/10 hover:border-white/20 flex items-center gap-1.5 backdrop-blur-md"
                                 onClick={() => {
                                     setFilters({
                                         search: "",
@@ -1411,12 +1378,12 @@ function MonitoringSpreadsheetPage({
                                     });
                                 }}
                             >
-                                <span className="material-symbols-outlined text-base">restart_alt</span>
+                                <span className="material-symbols-outlined text-[15px]">restart_alt</span>
                                 Reset
                             </button>
 
                             <button
-                                className="h-14 btn-premium px-8 rounded-2xl shadow-gold-glow transition-colors flex items-center gap-2"
+                                className="h-9 btn-premium px-4 rounded-xl shadow-gold-glow transition-colors flex items-center gap-1.5"
                                 onClick={() => setAppliedFilters({
                                     year: filters.year,
                                     contractStatus: filters.contractStatus,
@@ -1425,8 +1392,8 @@ function MonitoringSpreadsheetPage({
                                     package: filters.package,
                                 })}
                             >
-                                <span className="material-symbols-outlined text-base">sync_alt</span>
-                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white">Terapkan</span>
+                                <span className="material-symbols-outlined text-[15px]">sync_alt</span>
+                                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-white">Terapkan</span>
                             </button>
                         </div>
                     </div>
@@ -1494,19 +1461,19 @@ function MonitoringSpreadsheetPage({
                     </div>
 
                     {/* Result Indicators - Matched with Pelanggan */}
-                    <div className="mt-6 flex flex-wrap items-center gap-4 pt-6 border-t border-white/5">
-                        <div className="inline-flex items-center gap-3 px-6 py-3 rounded-2xl bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white/60 shadow-sm backdrop-blur-md">
-                            <span className="material-symbols-outlined text-lg text-gold-accent">location_on</span>
+                    <div className="mt-4 flex flex-wrap items-center gap-3 pt-4 border-t border-white/5">
+                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-widest text-white/60 shadow-sm backdrop-blur-md">
+                            <span className="material-symbols-outlined text-[15px] text-gold-accent">location_on</span>
                             <span><span className="text-white font-black">{filteredRows.length}</span> Lokasi Terpilih</span>
                         </div>
-                        <div className="inline-flex items-center gap-3 px-6 py-3 rounded-2xl bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white/60 shadow-sm backdrop-blur-md">
-                            <span className="material-symbols-outlined text-lg text-gold-accent">hub</span>
+                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-widest text-white/60 shadow-sm backdrop-blur-md">
+                            <span className="material-symbols-outlined text-[15px] text-gold-accent">hub</span>
                             <span><span className="text-white font-black">{new Set(filteredRows.map(r => r.ispName)).size}</span> ISP Terkait</span>
                         </div>
                     </div>
                 </section>
 
-                <section className="flex flex-wrap items-center gap-x-10 gap-y-4 rounded-premium glass-premium backdrop-blur-xl p-6 border-white/30">
+                <section className="flex flex-wrap items-center gap-x-8 gap-y-2 rounded-xl glass-premium backdrop-blur-xl px-5 py-2.5 border-white/30">
                     <div className="flex items-center gap-2">
                         <span className="h-2 w-2 rounded-full bg-[#00c853] shadow-[0_0_12px_rgba(0,200,83,0.4)]"></span>
                         <span className="text-[10px] font-black uppercase tracking-widest text-on-surface/60">Lunas</span>
@@ -1531,25 +1498,54 @@ function MonitoringSpreadsheetPage({
                     </div>
                 </section>
 
-                <section className="flex items-center gap-3 rounded-2xl bg-white/5 border border-white/10 p-2.5 backdrop-blur-md w-fit">
-                    <button
-                        type="button"
-                        onClick={() => setActiveDataTab("table")}
-                        className={`rounded-xl px-5 py-2 text-[10px] font-black uppercase tracking-widest transition-all ${activeDataTab === "table" ? "bg-gold-accent text-white shadow-gold-glow" : "text-white/60 hover:text-white hover:bg-white/10"}`}
-                    >
-                        Tabel Aktif
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => setActiveDataTab("history")}
-                        className={`rounded-xl px-5 py-2 text-[10px] font-black uppercase tracking-widest transition-all ${activeDataTab === "history" ? "bg-gold-accent text-white shadow-gold-glow" : "text-white/60 hover:text-white hover:bg-white/10"}`}
-                    >
-                        Riwayat
-                    </button>
-                    {isLoadingSupplementary && (
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-white/40 px-2">Sync notifikasi...</span>
-                    )}
-                </section>
+                <div className="flex flex-wrap items-center justify-between gap-4 w-full">
+                    <section className="flex items-center gap-2 rounded-2xl bg-white/5 border border-white/10 p-1.5 backdrop-blur-md w-fit">
+                        <button
+                            type="button"
+                            onClick={() => setActiveDataTab("table")}
+                            className={`rounded-xl px-4 py-1.5 text-[9px] font-black uppercase tracking-widest transition-all ${activeDataTab === "table" ? "bg-gold-accent text-white shadow-gold-glow" : "text-white/60 hover:text-white hover:bg-white/10"}`}
+                        >
+                            Tabel Aktif
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setActiveDataTab("history")}
+                            className={`rounded-xl px-4 py-1.5 text-[9px] font-black uppercase tracking-widest transition-all ${activeDataTab === "history" ? "bg-gold-accent text-white shadow-gold-glow" : "text-white/60 hover:text-white hover:bg-white/10"}`}
+                        >
+                            Riwayat
+                        </button>
+                        {isLoadingSupplementary && (
+                            <span className="text-[9px] font-bold uppercase tracking-widest text-white/40 px-2">Sync notifikasi...</span>
+                        )}
+                    </section>
+                    
+                    <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
+                        {typeof onOpenTableOnly === "function" && (
+                            <button
+                                className="h-8 px-3 rounded-lg border border-white/10 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white transition-all flex items-center gap-1.5 backdrop-blur-md"
+                                onClick={onOpenTableOnly}
+                            >
+                                <span className="material-symbols-outlined text-[14px]">fullscreen</span>
+                                <span className="text-[9px] font-black uppercase tracking-widest">Mode Fokus</span>
+                            </button>
+                        )}
+                        <button
+                            className="h-8 px-3 rounded-lg border border-emerald-500/20 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white transition-all flex items-center gap-1.5 backdrop-blur-md disabled:opacity-60"
+                            onClick={exportToExcel}
+                            disabled={isExporting}
+                        >
+                            <span className="material-symbols-outlined text-[14px]">{isExporting ? "progress_activity" : "download_for_offline"}</span>
+                            <span className="text-[9px] font-black uppercase tracking-widest">{isExporting ? "Menyiapkan..." : "Ekspor Excel"}</span>
+                        </button>
+                        <button
+                            onClick={handleRefreshMonitoring}
+                            className={`h-8 w-8 flex items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/40 hover:bg-white/10 hover:text-white transition-all backdrop-blur-md ${isLoading ? "animate-pulse" : ""}`}
+                            disabled={isLoading}
+                        >
+                            <span className={`material-symbols-outlined text-[14px] ${isLoading ? "animate-spin" : ""}`}>sync</span>
+                        </button>
+                    </div>
+                </div>
 
                 {activeDataTab === "table" ? tableSection : historyTableSection}
 
@@ -1583,22 +1579,22 @@ function MonitoringSpreadsheetPage({
 
                 {/* Consolidated Detailed Overview moved to bottom */}
                 <section className="grid grid-cols-1">
-                    <div className="glass-card monitoring-card backdrop-blur-xl rounded-premium p-8 border-white/40 shadow-glass-depth">
+                    <div className="glass-card monitoring-card backdrop-blur-xl rounded-2xl p-5 border-white/40 shadow-glass-depth">
                         <div className="flex flex-col lg:flex-row gap-10">
                             {/* Left: Billing Overview */}
                             <div className="flex-1">
-                                <div className="flex items-center gap-3 mb-8">
-                                    <span className="h-6 w-1.5 bg-emerald-500 rounded-full shadow-emerald-glow"></span>
-                                    <h2 className="text-xl font-black text-on-surface tracking-tight uppercase tracking-widest">Ringkasan Status Jalur</h2>
+                                <div className="flex items-center gap-2 mb-6">
+                                    <span className="h-4 w-1 bg-emerald-500 rounded-full shadow-emerald-glow"></span>
+                                    <h2 className="text-sm font-black text-on-surface tracking-tight uppercase tracking-widest">Ringkasan Status Jalur</h2>
                                 </div>
 
-                                <div className="space-y-6">
+                                <div className="space-y-4">
                                     <div>
-                                        <div className="flex items-center justify-between mb-2">
-                                            <span className="text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em]">Indeks Keamanan Jalur</span>
-                                            <span className="text-xs font-black text-emerald-500">{Math.round((routeSummary.aktif / (billingRows.length || 1)) * 100)}%</span>
+                                        <div className="flex items-center justify-between mb-1.5">
+                                            <span className="text-[9px] font-black text-on-surface-variant uppercase tracking-[0.2em]">Indeks Keamanan Jalur</span>
+                                            <span className="text-[10px] font-black text-emerald-500">{Math.round((routeSummary.aktif / (billingRows.length || 1)) * 100)}%</span>
                                         </div>
-                                        <div className="h-2.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/10 p-[1px] backdrop-blur-md">
+                                        <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden border border-white/10 p-[1px] backdrop-blur-md">
                                             <div
                                                 className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 rounded-full shadow-emerald-glow"
                                                 style={{ width: `${(routeSummary.aktif / (billingRows.length || 1)) * 100}%` }}
@@ -1606,18 +1602,18 @@ function MonitoringSpreadsheetPage({
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-3 gap-4">
-                                        <div className="p-4 rounded-2xl bg-white/5 border border-white/10 group/substat hover:border-emerald-500/30 transition-colors backdrop-blur-md">
-                                            <p className="text-[9px] font-black text-on-surface-variant uppercase tracking-widest mb-1 opacity-60">Aktif / Aman</p>
-                                            <p className="text-2xl font-black text-emerald-500">{routeSummary.aktif}</p>
+                                    <div className="grid grid-cols-3 gap-3">
+                                        <div className="p-3 rounded-xl bg-white/5 border border-white/10 group/substat hover:border-emerald-500/30 transition-colors backdrop-blur-md">
+                                            <p className="text-[8px] font-black text-on-surface-variant uppercase tracking-widest mb-0.5 opacity-60">Aktif / Aman</p>
+                                            <p className="text-lg font-black text-emerald-500">{routeSummary.aktif}</p>
                                         </div>
-                                        <div className="p-4 rounded-2xl bg-white/5 border border-white/10 group/substat hover:border-rose-500/30 transition-colors backdrop-blur-md">
-                                            <p className="text-[9px] font-black text-on-surface-variant uppercase tracking-widest mb-1 opacity-60">Gangguan</p>
-                                            <p className="text-2xl font-black text-rose-500">{routeSummary.gangguan}</p>
+                                        <div className="p-3 rounded-xl bg-white/5 border border-white/10 group/substat hover:border-rose-500/30 transition-colors backdrop-blur-md">
+                                            <p className="text-[8px] font-black text-on-surface-variant uppercase tracking-widest mb-0.5 opacity-60">Gangguan</p>
+                                            <p className="text-lg font-black text-rose-500">{routeSummary.gangguan}</p>
                                         </div>
-                                        <div className="p-4 rounded-2xl bg-white/5 border border-white/10 group/substat hover:border-amber-500/30 transition-colors backdrop-blur-md">
-                                            <p className="text-[9px] font-black text-on-surface-variant uppercase tracking-widest mb-1 opacity-60">Perbaikan</p>
-                                            <p className="text-2xl font-black text-amber-500">{routeSummary.perbaikan}</p>
+                                        <div className="p-3 rounded-xl bg-white/5 border border-white/10 group/substat hover:border-amber-500/30 transition-colors backdrop-blur-md">
+                                            <p className="text-[8px] font-black text-on-surface-variant uppercase tracking-widest mb-0.5 opacity-60">Perbaikan</p>
+                                            <p className="text-lg font-black text-amber-500">{routeSummary.perbaikan}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -1627,13 +1623,13 @@ function MonitoringSpreadsheetPage({
                     </div>
                 </section>
 
-                <section className="glass-card monitoring-card backdrop-blur-xl rounded-premium p-8 border-white/40">
-                    <div className="mb-8 flex items-center justify-between shrink-0">
-                        <div className="flex items-center gap-3">
-                            <span className="h-6 w-1.5 bg-gold-accent rounded-full shadow-gold-glow"></span>
-                            <h2 className="text-xl font-black text-on-surface tracking-tight uppercase tracking-widest">Aktivitas Lintas Unit</h2>
+                <section className="glass-card monitoring-card backdrop-blur-xl rounded-2xl p-5 border-white/40 mt-6">
+                    <div className="mb-5 flex items-center justify-between shrink-0">
+                        <div className="flex items-center gap-2">
+                            <span className="h-4 w-1 bg-gold-accent rounded-full shadow-gold-glow"></span>
+                            <h2 className="text-sm font-black text-on-surface tracking-tight uppercase tracking-widest">Aktivitas Lintas Unit</h2>
                         </div>
-                        <span className="px-4 py-1 rounded-full bg-white/5 text-on-surface-variant text-[10px] font-black uppercase tracking-widest border border-white/10 backdrop-blur-md">REAL-TIME FEED</span>
+                        <span className="px-3 py-1 rounded-full bg-white/5 text-on-surface-variant text-[9px] font-black uppercase tracking-widest border border-white/10 backdrop-blur-md">REAL-TIME FEED</span>
                     </div>
 
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -1686,98 +1682,114 @@ function MonitoringSpreadsheetPage({
 /** 
  * Pagination Component
  */
-function PaginationControls({ currentPage, totalPages, onPageChange, itemsPerPage, onItemsPerPageChange, totalItems, startIndex, endIndex }) {
-    const getPageNumbers = () => {
-        const pages = [];
-        const maxVisible = 7;
+function PaginationControls({ currentPage, totalPages, onPageChange, itemsPerPage, onItemsPerPageChange, totalItems, startIndex, endIndex, dropdownPosition = "top" }) {
+    const paginationRef = useRef(null);
+    const isScrollingProgrammatically = useRef(false);
 
-        if (totalPages <= maxVisible) {
-            for (let i = 1; i <= totalPages; i++) {
-                pages.push(i);
-            }
-        } else {
-            if (currentPage <= 4) {
-                for (let i = 1; i <= 5; i++) pages.push(i);
-                pages.push('...');
-                pages.push(totalPages);
-            } else if (currentPage >= totalPages - 3) {
-                pages.push(1);
-                pages.push('...');
-                for (let i = totalPages - 4; i <= totalPages; i++) pages.push(i);
-            } else {
-                pages.push(1);
-                pages.push('...');
-                for (let i = currentPage - 1; i <= currentPage + 1; i++) pages.push(i);
-                pages.push('...');
-                pages.push(totalPages);
-            }
+    const handlePaginationScroll = useCallback((e) => {
+        if (isScrollingProgrammatically.current) return;
+        const scrollLeft = e.target.scrollLeft;
+        const page = Math.round(scrollLeft / 34) + 1;
+        if (page >= 1 && page <= totalPages && page !== currentPage) {
+            onPageChange(page);
         }
+    }, [currentPage, totalPages, onPageChange]);
 
-        return pages;
-    };
+    const handlePageChange = useCallback((page) => {
+        isScrollingProgrammatically.current = true;
+        onPageChange(page);
+        if (paginationRef.current) {
+            paginationRef.current.scrollTo({ left: (page - 1) * 34, behavior: 'smooth' });
+        }
+        setTimeout(() => { isScrollingProgrammatically.current = false; }, 400);
+    }, [onPageChange]);
+
+    const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1);
 
     return (
-        <div className="flex flex-wrap items-center justify-between gap-4 px-6 py-4 border-t border-white/10 bg-[#0f141e]/50 backdrop-blur-md">
-            {/* Left: Info */}
-            <div className="flex items-center gap-4">
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">
-                    Menampilkan <span className="text-gold-accent mx-1">{startIndex + 1}</span> - <span className="text-gold-accent mx-1">{Math.min(endIndex, totalItems)}</span> dari <span className="text-gold-accent mx-1">{totalItems}</span> lokasi
-                </p>
-                
-                {/* Items per page selector */}
-                <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">Per Halaman:</span>
-                    <select
+        <div className="mt-5 flex items-center justify-between gap-2 border-t border-white/10 pt-4 bg-[#0f141e]/50 backdrop-blur-md px-4 pb-4 relative z-[70]">
+            <div className="flex items-center gap-3">
+                <div className="relative z-[60] w-[60px] hidden sm:block">
+                    <CustomSelect
                         value={itemsPerPage}
-                        onChange={(e) => onItemsPerPageChange(Number(e.target.value))}
-                        className="rounded-lg bg-white/5 border border-white/10 px-3 py-1.5 text-[11px] font-bold text-white outline-none transition-all hover:bg-white/10 focus:border-gold-accent/40 focus:ring-2 focus:ring-gold-accent/10 backdrop-blur-md"
-                    >
-                        <option value={20}>20</option>
-                        <option value={50}>50</option>
-                        <option value={100}>100</option>
-                        <option value={200}>200</option>
-                    </select>
+                        onChange={(val) => onItemsPerPageChange(Number(val))}
+                        options={[
+                            { label: "10", value: 10 },
+                            { label: "20", value: 20 },
+                            { label: "50", value: 50 },
+                            { label: "100", value: 100 },
+                            { label: "200", value: 200 }
+                        ]}
+                        variant="compact"
+                        menuPosition={dropdownPosition}
+                        menuClassName="!min-w-[60px]"
+                        hideArrow={true}
+                    />
                 </div>
+                <p className="text-[8px] font-black uppercase tracking-widest text-white/30 hidden sm:block">
+                    {totalItems === 0 ? 0 : startIndex + 1}–{Math.min(endIndex, totalItems)} dari {totalItems}
+                </p>
             </div>
+            
+            <div className="flex items-center gap-1.5 w-full sm:w-auto justify-between sm:justify-end">
+                <button
+                    className="flex h-8 items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-3 text-[8px] font-black uppercase tracking-widest text-white/50 transition-all hover:bg-white/10 hover:text-white disabled:opacity-30 backdrop-blur-md"
+                    type="button" disabled={currentPage <= 1} onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+                >
+                    <span className="material-symbols-outlined text-sm">chevron_left</span> Prev
+                </button>
+                
+                <div 
+                    ref={paginationRef}
+                    onScroll={handlePaginationScroll}
+                    className="flex items-center gap-1.5 w-[164px] justify-start overflow-x-auto overflow-y-hidden snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden" 
+                    style={{ scrollbarWidth: 'none' }}
+                >
+                    <div className="shrink-0 w-7 h-7 snap-center pointer-events-none opacity-0"></div>
+                    <div className="shrink-0 w-7 h-7 snap-center pointer-events-none opacity-0"></div>
 
-            {/* Right: Pagination buttons */}
-            {totalPages > 1 && (
-                <div className="flex items-center gap-2">
-                    <button
-                        onClick={() => onPageChange(currentPage - 1)}
-                        disabled={currentPage === 1}
-                        className="h-9 w-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center transition-all hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-white/5 backdrop-blur-md"
-                    >
-                        <span className="material-symbols-outlined text-sm text-white">chevron_left</span>
-                    </button>
+                    {pageNumbers.map((page) => {
+                        const distance = Math.abs(currentPage - page);
+                        const isActive = distance === 0;
+                        
+                        let scaleClass = "scale-100 opacity-100 z-10";
+                        let bgClass = "bg-white/5 border border-white/5 text-white/50 hover:bg-white/10 hover:text-white";
+                        
+                        if (distance === 1) {
+                            scaleClass = "scale-90 opacity-80 z-0";
+                            bgClass = "bg-white/5 border border-white/5 text-white/40 hover:bg-white/10 hover:text-white";
+                        } else if (distance >= 2) {
+                            scaleClass = "scale-75 opacity-40 z-0";
+                            bgClass = "bg-white/5 border border-white/5 text-white/30";
+                        }
 
-                    {getPageNumbers().map((page, idx) => (
-                        page === '...' ? (
-                            <span key={`ellipsis-${idx}`} className="px-2 text-white/40 text-sm font-black">...</span>
-                        ) : (
+                        if (isActive) {
+                            bgClass = "bg-gold-accent text-black shadow-gold-glow";
+                        }
+
+                        return (
                             <button
-                                key={page}
-                                onClick={() => onPageChange(page)}
-                                className={`h-9 min-w-[36px] px-3 rounded-lg text-[11px] font-black transition-all ${
-                                    currentPage === page
-                                        ? 'bg-gold-accent text-black shadow-gold-glow'
-                                        : 'bg-white/5 border border-white/10 text-white hover:bg-white/10'
-                                }`}
+                                key={`page-${page}`}
+                                onClick={() => handlePageChange(page)}
+                                className={`snap-center shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-[9px] font-black transition-all duration-300 ease-out transform ${scaleClass} ${bgClass} backdrop-blur-md`}
+                                type="button"
                             >
                                 {page}
                             </button>
-                        )
-                    ))}
+                        );
+                    })}
 
-                    <button
-                        onClick={() => onPageChange(currentPage + 1)}
-                        disabled={currentPage === totalPages}
-                        className="h-9 w-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center transition-all hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-white/5 backdrop-blur-md"
-                    >
-                        <span className="material-symbols-outlined text-sm text-white">chevron_right</span>
-                    </button>
+                    <div className="shrink-0 w-7 h-7 snap-center pointer-events-none opacity-0"></div>
+                    <div className="shrink-0 w-7 h-7 snap-center pointer-events-none opacity-0"></div>
                 </div>
-            )}
+
+                <button
+                    className="flex h-8 items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-3 text-[8px] font-black uppercase tracking-widest text-white/50 transition-all hover:bg-white/10 hover:text-white disabled:opacity-30 backdrop-blur-md"
+                    type="button" disabled={currentPage >= totalPages} onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+                >
+                    Next <span className="material-symbols-outlined text-sm">chevron_right</span>
+                </button>
+            </div>
         </div>
     );
 }
@@ -1793,15 +1805,15 @@ function StatCard({ label, value, icon, accent, sub }) {
         white: "text-on-surface-variant bg-white/10 border-white/20"
     };
     return (
-        <div className="glass-card monitoring-card backdrop-blur-xl rounded-2xl p-6 border-white/40 group hover:border-gold-accent/30 transition-all">
-            <div className="flex justify-between items-start mb-6">
+        <div className="glass-card monitoring-card backdrop-blur-xl rounded-2xl p-4 border-white/40 group hover:border-gold-accent/30 transition-all">
+            <div className="flex justify-between items-start mb-4">
                 <p className="text-[9px] font-black uppercase tracking-[0.2em] text-on-surface-variant group-hover:text-gold-accent transition-colors">{label}</p>
-                <div className={`h-11 w-11 flex items-center justify-center rounded-xl border transition-all group-hover:shadow-lg ${accents[accent]}`}>
-                    <span className="material-symbols-outlined text-xl">{icon}</span>
+                <div className={`h-9 w-9 flex items-center justify-center rounded-xl border transition-all group-hover:shadow-lg ${accents[accent]}`}>
+                    <span className="material-symbols-outlined text-[15px]">{icon}</span>
                 </div>
             </div>
-            <h3 className="text-3xl font-black text-on-surface tracking-tighter mb-2">{value}</h3>
-            <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest opacity-60">{sub}</p>
+            <h3 className="text-2xl font-black text-on-surface tracking-tighter mb-1">{value}</h3>
+            <p className="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest opacity-60">{sub}</p>
         </div>
     );
 }
