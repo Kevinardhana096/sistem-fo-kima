@@ -249,7 +249,6 @@ function GlassInput({ label, icon, ...props }) {
 
 function TenantDetailPage({
   customer,
-  contextIsp,
   initialTab = "overview",
   onBack,
   onEditTenant,
@@ -288,12 +287,8 @@ function TenantDetailPage({
   const [isSubmittingVersion, setIsSubmittingVersion] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [ispPopupOpen, setIspPopupOpen] = useState(false);
-  const [deleteMode, setDeleteMode] = useState(
-    contextIsp?.id ? "this" : "selected",
-  );
-  const [selectedDeleteIspIds, setSelectedDeleteIspIds] = useState([]);
   const [deleteError, setDeleteError] = useState("");
-  const [isDeletingLink, setIsDeletingLink] = useState(false);
+  const [isDeletingTenant, setIsDeletingTenant] = useState(false);
   const [invoiceSetDateMode, setInvoiceSetDateMode] = useState("manual");
   const [invoiceFixedDueDay, setInvoiceFixedDueDay] = useState("1");
   const [invoicePaymentOrderSort, setInvoicePaymentOrderSort] = useState("asc");
@@ -1350,35 +1345,27 @@ function TenantDetailPage({
     }
   };
 
-  const handleRemoveTenantLinks = async () => {
-    setIsDeletingLink(true);
+  const handleDeleteTenant = async () => {
+    setIsDeletingTenant(true);
     setDeleteError("");
     try {
-      const payload =
-        deleteMode === "this"
-          ? { mode: "this", ispId: contextIsp?.id }
-          : deleteMode === "all"
-            ? { mode: "all" }
-            : { mode: "selected", ispIds: selectedDeleteIspIds };
-
-      await api.customerIspMemberships.removeByCustomer(customer.id, payload);
+      await api.customers.delete(customer.id);
       setDeleteModalOpen(false);
-      await Promise.all([loadDetail(), onRefreshAll?.()]);
+      onBack?.();
+      await onRefreshAll?.();
     } catch (requestError) {
       setDeleteError(
         requestError instanceof Error
           ? requestError.message
-          : "Terjadi kesalahan saat menghapus relasi tenant.",
+          : "Terjadi kesalahan saat menghapus lokasi.",
       );
     } finally {
-      setIsDeletingLink(false);
+      setIsDeletingTenant(false);
     }
   };
 
   const handleOpenDeleteModal = () => {
     setDeleteError("");
-    setSelectedDeleteIspIds([]);
-    setDeleteMode(contextIsp?.id ? "this" : "selected");
     setDeleteModalOpen(true);
   };
 
@@ -4304,86 +4291,18 @@ function TenantDetailPage({
 
         {deleteModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/20 px-4">
-            <div className="w-full max-w-xl rounded-2xl border border-slate-100 bg-white p-6 shadow-2xl">
+            <div className="w-full max-w-md rounded-2xl border border-slate-100 bg-white p-6 shadow-2xl">
               <div className="mb-4">
-                <p className="text-xs font-black uppercase tracking-widest text-primary">
-                  Delete Tenant Logic
+                <p className="text-xs font-black uppercase tracking-widest text-red-600">
+                  Hapus Lokasi
                 </p>
                 <h3 className="text-xl font-bold text-on-surface">
                   {tenantName}
                 </h3>
               </div>
-              <div className="space-y-3">
-                <label className="flex items-start gap-3 rounded-xl border border-slate-200 p-4">
-                  <input
-                    checked={deleteMode === "this"}
-                    disabled={!contextIsp?.id}
-                    onChange={() => setDeleteMode("this")}
-                    type="radio"
-                  />
-                  <div>
-                    <p className="text-sm font-semibold text-on-surface">
-                      Remove from this ISP only
-                    </p>
-                    <p className="text-xs text-on-surface-variant">
-                      {contextIsp?.name
-                        ? `Lepas dari ${contextIsp.name}.`
-                        : "Hanya tersedia jika tenant dibuka dari detail ISP."}
-                    </p>
-                  </div>
-                </label>
-                <label className="flex items-start gap-3 rounded-xl border border-slate-200 p-4">
-                  <input
-                    checked={deleteMode === "all"}
-                    onChange={() => setDeleteMode("all")}
-                    type="radio"
-                  />
-                  <div>
-                    <p className="text-sm font-semibold text-on-surface">
-                      Remove from all ISP
-                    </p>
-                    <p className="text-xs text-on-surface-variant">
-                      Lepas tenant dari seluruh grouping ISP.
-                    </p>
-                  </div>
-                </label>
-                <label className="flex items-start gap-3 rounded-xl border border-slate-200 p-4">
-                  <input
-                    checked={deleteMode === "selected"}
-                    onChange={() => setDeleteMode("selected")}
-                    type="radio"
-                  />
-                  <div className="w-full">
-                    <p className="text-sm font-semibold text-on-surface">
-                      Select ISP(s)
-                    </p>
-                    <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-2">
-                      {isps.map((ispItem) => (
-                        <label
-                          key={ispItem.id}
-                          className="flex items-center gap-2 text-sm text-slate-700"
-                        >
-                          <input
-                            checked={selectedDeleteIspIds.includes(ispItem.id)}
-                            disabled={deleteMode !== "selected"}
-                            onChange={() =>
-                              setSelectedDeleteIspIds((previous) =>
-                                previous.includes(ispItem.id)
-                                  ? previous.filter(
-                                    (value) => value !== ispItem.id,
-                                  )
-                                  : [...previous, ispItem.id],
-                              )
-                            }
-                            type="checkbox"
-                          />
-                          {ispItem.name}
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                </label>
-              </div>
+              <p className="text-sm text-on-surface-variant">
+                Lokasi ini akan dipindahkan ke sampah dan tidak lagi tampil di daftar lokasi aktif.
+              </p>
               {deleteError && (
                 <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
                   {deleteError}
@@ -4399,15 +4318,11 @@ function TenantDetailPage({
                 </button>
                 <button
                   className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-                  disabled={
-                    isDeletingLink ||
-                    (deleteMode === "selected" &&
-                      selectedDeleteIspIds.length === 0)
-                  }
-                  onClick={() => void handleRemoveTenantLinks()}
+                  disabled={isDeletingTenant}
+                  onClick={() => void handleDeleteTenant()}
                   type="button"
                 >
-                  {isDeletingLink ? "Memproses..." : "Lanjutkan"}
+                  {isDeletingTenant ? "Menghapus..." : "Hapus Lokasi"}
                 </button>
               </div>
             </div>

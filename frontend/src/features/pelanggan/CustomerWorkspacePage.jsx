@@ -2,19 +2,8 @@ import { useMemo, useState, useEffect, useRef } from "react";
 import AppShell from "../../components/layout/AppShell";
 import { SummaryCard, StatCard } from "../../components/shared/AppShared";
 import api from "../../lib/api";
+import { getPackageDisplay, normalizeOperationalStatus, isStoppedStatus } from "./utils";
 
-const getPackageDisplay = (packageValue) => {
-    const normalizedPackage = String(packageValue ?? "").toLowerCase();
-    const isSharingPackage = normalizedPackage.includes("shar") || normalizedPackage === "shared";
-
-    return {
-        label: isSharingPackage ? "SHARING CORE" : "CORE",
-        isSharingPackage,
-    };
-};
-
-const normalizeOperationalStatus = (status) => String(status ?? "").trim().toLowerCase();
-const isStoppedStatus = (status) => ["berhenti", "nonaktif"].includes(normalizeOperationalStatus(status));
 const getTenantOperationalStatus = (tenant, todayIso) => {
     const rawStatus = normalizeOperationalStatus(tenant?.rawStatus);
     if (isStoppedStatus(rawStatus)) return "berhenti";

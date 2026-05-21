@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import AppShell from "../../components/layout/AppShell";
+import { formatDateTime as formatDate } from "../../app/utils";
 import api from "../../lib/api";
 
 const TYPE_LABELS = {
@@ -15,6 +16,7 @@ const TYPE_LABELS = {
     invoice_not_uploaded: "Invoice",
     isp_contract: "Kontrak ISP",
     isp_document: "Dokumen ISP",
+    isp_renewal: "Perpanjangan ISP",
 };
 
 const SEVERITY_LABELS = {
@@ -40,14 +42,6 @@ const TYPE_ICON = {
     activation_fee: "payments",
     isp_contract: "assignment",
     isp_document: "upload_file",
-};
-
-const formatDate = (value) => {
-    if (!value) return "-";
-    return new Date(value).toLocaleString("id-ID", {
-        day: "2-digit", month: "short", year: "numeric",
-        hour: "2-digit", minute: "2-digit",
-    });
 };
 
 const getStatusKey = (n) => n.resolvedAt ? "resolved" : n.readAt ? "read" : "unread";

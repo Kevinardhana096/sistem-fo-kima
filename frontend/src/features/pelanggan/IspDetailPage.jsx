@@ -12,19 +12,14 @@ import {
 } from "../../app/utils";
 import api from "../../lib/api";
 import { uploadFileForRecord } from "../../lib/files";
+import {
+    getPackageDisplay,
+    normalizeOperationalStatus,
+    isStoppedStatus,
+    getOperationalLabel,
+    isOperationallyActive,
+} from "./utils";
 
-const getPackageDisplay = (packageValue) => {
-    const normalizedPackage = String(packageValue ?? "").toLowerCase();
-    const isSharingPackage = normalizedPackage.includes("shar") || normalizedPackage === "shared";
-
-    return {
-        label: isSharingPackage ? "SHARING CORE" : "CORE",
-        filterValue: isSharingPackage ? "sharing_core" : "core",
-    };
-};
-
-const normalizeOperationalStatus = (status) => String(status ?? "").trim().toLowerCase();
-const isStoppedStatus = (status) => ["berhenti", "nonaktif"].includes(normalizeOperationalStatus(status));
 const getPrimaryIspContractRowId = (ispId) => `primary-isp-contract-${ispId}`;
 
 const buildPrimaryIspContractRow = (ispDetail, fallbackIsp) => {
@@ -54,14 +49,6 @@ const buildPrimaryIspContractRow = (ispDetail, fallbackIsp) => {
         renewalFollowUps: [],
     };
 };
-
-const getOperationalLabel = (status) => {
-    const normalizedStatus = normalizeOperationalStatus(status);
-    if (isStoppedStatus(normalizedStatus)) return "Berhenti";
-    if (normalizedStatus === "expired") return "Belum Diperpanjang";
-    return "Beroperasi";
-};
-const isOperationallyActive = (status) => normalizeOperationalStatus(status) === "aktif";
 const getTenantActionCount = (tenant) => {
     const priorityCount = Number(tenant?.todoSummary?.counts?.priority ?? 0);
     const needActionCount = Number(tenant?.todoSummary?.counts?.needAction ?? 0);

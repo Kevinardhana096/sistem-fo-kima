@@ -1,8 +1,0 @@
-{
-  "browser": {
-    "cdpEndpoint": "http://172.27.208.1:9223",
-    "cdpTimeout": 30000
-  },
-  "capabilities": ["core", "vision", "devtools"],
-  "outputDir": ".claude/playwright-output"
-}

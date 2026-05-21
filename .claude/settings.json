@@ -20,14 +20,6 @@
       "type": "http",
       "url": "https://mcp.supabase.com/mcp?project_ref=jkzjqzskrzcdmahrikwm"
     },
-    "playwright": {
-      "type": "stdio",
-      "command": "npx",
-      "args": [
-        "--no-install",
-        "playwright-mcp"
-      ]
-    },
     "code-pathfinder": {
       "type": "http",
       "url": "http://localhost:3001/mcp"

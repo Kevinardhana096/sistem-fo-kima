@@ -366,7 +366,8 @@ const createIspDerivedNotification = ({ code, type, severity = 'warning', title,
 });
 
 const getIspDerivedNotifications = async () => {
-  const [ispsResult, missingBakResult, missingContractResult] = await Promise.all([
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const [ispsResult, missingBakResult, missingContractResult, contractRowsResult] = await Promise.all([
     supabase
       .from('isps')
       .select('id,name,status,contract_reference,contract_start_date,contract_period_start,contract_period_end')
@@ -381,14 +382,30 @@ const getIspDerivedNotifications = async () => {
       .select('id')
       .is('deleted_at', null)
       .or('contract_file_url.is.null,contract_file_url.eq.'),
+    supabase
+      .from('isp_contract_rows')
+      .select('id,isp_id,contract_reference,period_end,renewal_status,renewal_file_url,response_file_url')
+      .is('deleted_at', null)
+      .eq('renewal_status', 'active'),
   ]);
 
   if (ispsResult.error) throw ispsResult.error;
   if (missingBakResult.error) throw missingBakResult.error;
   if (missingContractResult.error) throw missingContractResult.error;
+  if (contractRowsResult.error) throw contractRowsResult.error;
 
   const missingBakIds = new Set((missingBakResult.data || []).map((isp) => Number(isp.id)));
   const missingContractIds = new Set((missingContractResult.data || []).map((isp) => Number(isp.id)));
+
+  // Group contract rows by ISP ID
+  const contractRowsByIspId = new Map();
+  (contractRowsResult.data || []).forEach((row) => {
+    const ispId = Number(row.isp_id);
+    if (!contractRowsByIspId.has(ispId)) {
+      contractRowsByIspId.set(ispId, []);
+    }
+    contractRowsByIspId.get(ispId).push(row);
+  });
 
   return (ispsResult.data || []).flatMap((isp) => {
     const ispId = isp.id;
@@ -449,6 +466,77 @@ const getIspDerivedNotifications = async () => {
         actionLabel: 'Buka Dokumen',
       }));
     }
+
+    // Check contract renewal notifications
+    const contractRows = contractRowsByIspId.get(Number(ispId)) || [];
+    contractRows.forEach((row) => {
+      const periodEnd = row.period_end;
+      if (!periodEnd) return;
+
+      const threeMonthsBefore = addDaysToIsoDate(periodEnd, -90);
+      const twoMonthsBefore = addDaysToIsoDate(periodEnd, -60);
+      const oneMonthBefore = addDaysToIsoDate(periodEnd, -30);
+      const hasRenewalFile = !!(row.renewal_file_url && String(row.renewal_file_url).trim());
+      const hasResponseFile = !!(row.response_file_url && String(row.response_file_url).trim());
+
+      // Peringatan 3 bulan sebelum masa berakhir - belum ada surat perpanjangan
+      if (todayIso >= threeMonthsBefore && todayIso < periodEnd && !hasRenewalFile) {
+        notifications.push(createIspDerivedNotification({
+          code: 'isp_renewal_warning_3m',
+          type: 'isp_renewal',
+          title: 'Kontrak ISP akan berakhir dalam 3 bulan',
+          message: `Kontrak ${row.contract_reference || 'ISP'} untuk ${ispName} akan berakhir pada ${periodEnd}. Segera buat surat perpanjangan.`,
+          ispId,
+          ispName,
+          actionLabel: 'Buka Kontrak',
+          targetTab: 'contracts',
+        }));
+      }
+
+      // Peringatan 2 bulan - surat sudah ada tapi belum ada tanggapan
+      if (todayIso >= twoMonthsBefore && todayIso < periodEnd && hasRenewalFile && !hasResponseFile) {
+        notifications.push(createIspDerivedNotification({
+          code: 'isp_renewal_warning_2m',
+          type: 'isp_renewal',
+          title: 'Peringatan ke-2: Menunggu tanggapan perpanjangan',
+          message: `Kontrak ${row.contract_reference || 'ISP'} untuk ${ispName} akan berakhir pada ${periodEnd}. Surat perpanjangan sudah dikirim, menunggu tanggapan ISP.`,
+          ispId,
+          ispName,
+          actionLabel: 'Buka Kontrak',
+          targetTab: 'contracts',
+        }));
+      }
+
+      // Peringatan 1 bulan - surat sudah ada tapi belum ada tanggapan
+      if (todayIso >= oneMonthBefore && todayIso < periodEnd && hasRenewalFile && !hasResponseFile) {
+        notifications.push(createIspDerivedNotification({
+          code: 'isp_renewal_warning_1m',
+          type: 'isp_renewal',
+          severity: 'critical',
+          title: 'Peringatan ke-3: Kontrak akan berakhir dalam 1 bulan',
+          message: `Kontrak ${row.contract_reference || 'ISP'} untuk ${ispName} akan berakhir pada ${periodEnd}. Belum ada tanggapan dari ISP.`,
+          ispId,
+          ispName,
+          actionLabel: 'Buka Kontrak',
+          targetTab: 'contracts',
+        }));
+      }
+
+      // Sudah lewat masa berakhir - belum ada tanggapan
+      if (todayIso > periodEnd && !hasResponseFile) {
+        notifications.push(createIspDerivedNotification({
+          code: 'isp_renewal_overdue',
+          type: 'isp_renewal',
+          severity: 'critical',
+          title: 'Kontrak ISP belum diperpanjang',
+          message: `Kontrak ${row.contract_reference || 'ISP'} untuk ${ispName} telah berakhir pada ${periodEnd}. Status: Belum Diperpanjang.`,
+          ispId,
+          ispName,
+          actionLabel: 'Buka Kontrak',
+          targetTab: 'contracts',
+        }));
+      }
+    });
 
     return notifications;
   });
