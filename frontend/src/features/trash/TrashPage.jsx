@@ -39,7 +39,8 @@ function CustomDropdown({ value, options, onChange, align = "right", triggerClas
             {isOpen && (
                 <>
                     <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)}></div>
-                    <div className={`absolute top-full mt-3 ${align === "right" ? "right-0" : "left-0"} z-50 w-full min-w-[160px] max-h-[250px] overflow-y-auto custom-scrollbar rounded-2xl glass-premium shadow-glass-depth py-1.5 animate-in fade-in zoom-in duration-300`}>
+                    <div className={`absolute top-full mt-3 ${align === "right" ? "right-0" : "left-0"} z-50 w-full min-w-[160px] rounded-2xl glass-premium shadow-glass-depth overflow-hidden animate-in fade-in zoom-in duration-300`}>
+                        <div className="max-h-[250px] overflow-y-auto py-1.5 [&::-webkit-scrollbar]:w-[2px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gold-accent/30 [&::-webkit-scrollbar-thumb]:rounded-full">
                         {options.map((opt) => (
                             <button
                                 key={opt.value}
@@ -53,6 +54,7 @@ function CustomDropdown({ value, options, onChange, align = "right", triggerClas
                                 <span>{opt.label}</span>
                             </button>
                         ))}
+                        </div>
                     </div>
                 </>
             )}
@@ -408,15 +410,15 @@ export default function TrashPage({ activeSection, onNavigate, onLogout: _onLogo
                                 })}
                             </div>
                         ) : (
-                            <div className="flex flex-col items-center justify-center py-20 animate-in fade-in zoom-in duration-500">
-                                <div className="relative mb-8 mt-4 group">
-                                    <div className="absolute inset-0 scale-125 bg-gold-accent/5 blur-[50px] rounded-full transition-all duration-700 group-hover:bg-gold-accent/10" />
-                                    <div className="relative flex h-24 w-24 items-center justify-center rounded-full bg-white/5 border border-white/10 backdrop-blur-xl shadow-inner-glass transition-all duration-500 group-hover:scale-105 group-hover:border-gold-accent/30 group-hover:bg-white/10">
-                                        <span className="material-symbols-outlined text-[72px] text-white/20 transition-colors duration-500 group-hover:text-gold-accent/80">delete_outline</span>
+                            <div className="flex flex-col items-center justify-center py-10 sm:py-12 animate-in fade-in zoom-in duration-500">
+                                <div className="relative mb-5 mt-2 group">
+                                    <div className="absolute inset-0 scale-125 bg-gold-accent/5 blur-[40px] rounded-full transition-all duration-700 group-hover:bg-gold-accent/10" />
+                                    <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-white/5 border border-white/10 backdrop-blur-xl shadow-inner-glass transition-all duration-500 group-hover:scale-105 group-hover:border-gold-accent/30 group-hover:bg-white/10">
+                                        <span className="material-symbols-outlined text-[44px] text-white/20 transition-colors duration-500 group-hover:text-gold-accent/80">delete_outline</span>
                                     </div>
                                 </div>
-                                <h3 className="text-xl font-black text-white uppercase tracking-widest mb-3">Tempat Sampah Kosong</h3>
-                                <p className="text-sm font-bold text-white/30 tracking-wide">Data yang Anda hapus sementara akan muncul di sini.</p>
+                                <h3 className="text-sm font-black text-white uppercase tracking-widest mb-2">Tempat Sampah Kosong</h3>
+                                <p className="text-[11px] font-bold text-white/30 tracking-wide text-center max-w-[240px] leading-relaxed">Data yang Anda hapus sementara akan muncul di sini.</p>
                             </div>
                         )}
                     </div>
