@@ -1,3 +1,4 @@
+import { buildInvoiceScheduleRows } from '../app/utils';
 import { supabase } from './supabase';
 
 /**
@@ -308,6 +309,18 @@ const addDaysToIsoDate = (dateValue, dayOffset) => {
   return date.toISOString().slice(0, 10);
 };
 
+const getFirstDayOfNextMonthIso = (dateValue) => {
+  if (!dateValue) return null;
+  const date = new Date(`${String(dateValue).slice(0, 10)}T00:00:00.000Z`);
+  if (Number.isNaN(date.getTime())) return null;
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 1)).toISOString().slice(0, 10);
+};
+
+const getIsoDateValue = (dateValue) => {
+  const timestamp = dateValue ? new Date(`${String(dateValue).slice(0, 10)}T00:00:00.000Z`).getTime() : 0;
+  return Number.isFinite(timestamp) ? timestamp : 0;
+};
+
 const getLatestRouteVersionByCustomerId = async () => {
   const { data, error } = await supabase
     .from('customer_route_versions')
@@ -554,7 +567,8 @@ const getDerivedNotifications = async (latestRouteByCustomerId = null) => {
         status,
         activation_fee_amount,
         activation_fee_paid_at,
-        contracts(id, contract_number, status)
+        contracts(id, contract_number, status),
+        documents(id, contract_id, jenis_dokumen, file_url, deleted_at)
       `)
       .is('deleted_at', null),
     supabase
@@ -634,6 +648,50 @@ const getDerivedNotifications = async (latestRouteByCustomerId = null) => {
         actionLabel: 'Buka Kontrak',
         targetTab: 'contracts',
       }));
+    }
+
+    if (customerStatus === 'aktif' && activeContract) {
+      const activeContractId = Number(activeContract.id);
+      const documents = Array.isArray(customer.documents) ? customer.documents : [];
+      const activeContractDocuments = documents.filter((document) => (
+        Number(document.contract_id) === activeContractId
+        && !document.deleted_at
+        && String(document.file_url || '').trim()
+      ));
+      const hasContractFile = activeContractDocuments.some((document) => (
+        String(document.jenis_dokumen || '').trim().toLowerCase() === 'kontrak'
+      ));
+      const hasBakFile = activeContractDocuments.some((document) => (
+        String(document.jenis_dokumen || '').trim().toLowerCase() === 'bak'
+      ));
+
+      if (!hasContractFile) {
+        notifications.push(createDerivedNotification({
+          code: 'contract_file_missing',
+          type: 'contract_admin',
+          severity: 'warning',
+          title: 'Berkas kontrak belum diunggah',
+          message: `${customerName} belum memiliki berkas kontrak yang diunggah.`,
+          customerId,
+          customerName,
+          actionLabel: 'Upload Kontrak',
+          targetTab: 'contracts',
+        }));
+      }
+
+      if (!hasBakFile) {
+        notifications.push(createDerivedNotification({
+          code: 'bak_missing',
+          type: 'contract_admin',
+          severity: 'warning',
+          title: 'BAK belum tersedia',
+          message: `${customerName} belum memiliki Berita Acara Koneksi/BAK.`,
+          customerId,
+          customerName,
+          actionLabel: 'Buka Kontrak',
+          targetTab: 'contracts',
+        }));
+      }
     }
 
     const latestRoute = routeByCustomerId.get(Number(customerId)) ?? null;
@@ -806,6 +864,11 @@ const mapInvoiceFollowUp = (followUp) => ({
   ...followUp,
   invoiceId: followUp.invoiceId ?? followUp.invoice_id ?? null,
   splitOrder: followUp.splitOrder ?? followUp.split_order ?? 1,
+  source: followUp.source ?? null,
+  triggerCode: followUp.triggerCode ?? followUp.trigger_code ?? null,
+  title: followUp.title ?? null,
+  description: followUp.description ?? null,
+  status: followUp.status ?? null,
   invoiceNumber: followUp.invoiceNumber ?? followUp.invoice_number ?? null,
   invoiceFileUrl: followUp.invoiceFileUrl ?? followUp.invoice_file_url ?? null,
 });
@@ -824,6 +887,7 @@ const mapContractVersionRenewalFollowUp = (followUp) => ({
 const mapContractVersion = (version) => ({
   ...version,
   contractId: version.contractId ?? version.contract_id ?? null,
+  contractNumber: version.contractNumber ?? version.contract_number ?? null,
   versionNumber: version.versionNumber ?? version.version_number ?? 1,
   startDate: version.startDate ?? version.start_date ?? null,
   endDate: version.endDate ?? version.end_date ?? null,
@@ -858,6 +922,8 @@ const mapCustomerInvoice = (invoice) => ({
   ...invoice,
   customerId: invoice.customerId ?? invoice.customer_id ?? null,
   contractId: invoice.contractId ?? invoice.contract_id ?? null,
+  contractVersionId: invoice.contractVersionId ?? invoice.contract_version_id ?? null,
+  contractNumber: invoice.contractNumber ?? invoice.contract_number ?? null,
   periodYear: invoice.periodYear ?? invoice.period_year ?? null,
   periodMonth: invoice.periodMonth ?? invoice.period_month ?? null,
   periodStartDate: invoice.periodStartDate ?? invoice.period_start_date ?? null,
@@ -936,7 +1002,7 @@ const getLatestContractVersion = (contract) => sortContractVersions(contract?.ve
 
 const getEffectiveContractVersion = (contract, date = getTodayIso()) => (
   sortContractVersions(contract?.versions).find(version => isInPeriod(version, date))
-  ?? getLatestContractVersion(contract)
+  ?? null
 );
 
 const getContractLatestPeriodTimestamp = (contract) => {
@@ -1035,6 +1101,7 @@ const mapContractVersionPayload = (versionData = {}) => {
   const payload = {};
   assignIfPresent(payload, versionData, ['contract_id', 'contractId'], 'contract_id');
   assignIfPresent(payload, versionData, ['customer_id', 'customerId'], 'customer_id');
+  assignIfPresent(payload, versionData, ['contract_number', 'contractNumber'], 'contract_number');
   assignIfPresent(payload, versionData, ['version_number', 'versionNumber'], 'version_number');
   assignIfPresent(payload, versionData, ['start_date', 'startDate'], 'start_date');
   assignIfPresent(payload, versionData, ['end_date', 'endDate'], 'end_date');
@@ -1166,6 +1233,81 @@ const mapCustomerDetail = (customer) => {
   };
 };
 
+const getCustomerDetailStaleActiveInvoiceIds = (detail) => {
+  const invoices = Array.isArray(detail?.invoices) ? detail.invoices : [];
+  const contracts = Array.isArray(detail?.contracts) ? detail.contracts : [];
+  const contractVersions = Array.isArray(detail?.contractVersions) ? detail.contractVersions : [];
+  const todayIso = getTodayIso();
+
+  const contractById = new Map();
+  contracts.forEach((contract) => {
+    const key = Number(contract?.id);
+    if (Number.isFinite(key)) {
+      contractById.set(key, contract);
+    }
+  });
+
+  const versionById = new Map();
+  contractVersions.forEach((version) => {
+    const key = Number(version?.id);
+    if (Number.isFinite(key)) {
+      versionById.set(key, version);
+    }
+  });
+
+  return invoices
+    .filter((invoice) => {
+      if (String(invoice?.scheduleStatus ?? invoice?.schedule_status ?? "").toLowerCase() === "history") {
+        return false;
+      }
+
+      const versionKey = Number(invoice?.contractVersionId ?? invoice?.contract_version_id);
+      if (Number.isFinite(versionKey)) {
+        const version = versionById.get(versionKey);
+        const versionEnd = getPeriodEnd(version);
+        if (versionEnd && versionEnd < todayIso) {
+          return true;
+        }
+      }
+
+      const contractKey = Number(invoice?.contractId ?? invoice?.contract_id);
+      if (!Number.isFinite(contractKey)) {
+        return false;
+      }
+
+      const contract = contractById.get(contractKey);
+      if (!contract) {
+        return false;
+      }
+
+      const contractEnd = getPeriodEnd(contract);
+      const contractStatus = String(contract?.status ?? "").toLowerCase();
+
+      return (
+        contractStatus === "expired" ||
+        contractStatus === "nonaktif" ||
+        Boolean(contractEnd && contractEnd < todayIso)
+      );
+    })
+    .map((invoice) => Number(invoice?.id))
+    .filter(Number.isFinite);
+};
+
+const syncPastDueContractInvoicesToHistory = async (detail) => {
+  const staleInvoiceIds = getCustomerDetailStaleActiveInvoiceIds(detail);
+  if (staleInvoiceIds.length === 0) {
+    return false;
+  }
+
+  const { error } = await supabase
+    .from('invoices')
+    .update(withUpdatedAt({ schedule_status: 'history' }))
+    .in('id', staleInvoiceIds);
+
+  if (error) throw error;
+  return true;
+};
+
 const CUSTOMER_DETAIL_SELECT = `
   id,
   customer_code,
@@ -1226,6 +1368,7 @@ const CUSTOMER_DETAIL_SELECT = `
       id,
       contract_id,
       customer_id,
+      contract_number,
       version_number,
       start_date,
       end_date,
@@ -1414,6 +1557,7 @@ export const customersApi = {
             versions:contract_versions(
               id,
               contract_id,
+              contract_number,
               version_number,
               start_date,
               end_date,
@@ -1491,7 +1635,21 @@ export const customersApi = {
       .single();
 
     if (error) throw error;
-    return mapCustomerDetail(data);
+    const mappedDetail = mapCustomerDetail(data);
+    const didSyncStaleInvoices = await syncPastDueContractInvoicesToHistory(mappedDetail);
+
+    if (!didSyncStaleInvoices) {
+      return mappedDetail;
+    }
+
+    const { data: refreshedData, error: refreshedError } = await supabase
+      .from('customers')
+      .select(CUSTOMER_DETAIL_SELECT)
+      .eq('id', id)
+      .single();
+
+    if (refreshedError) throw refreshedError;
+    return mapCustomerDetail(refreshedData);
   },
 
   // Create customer
@@ -1558,7 +1716,7 @@ export const customersApi = {
           ?? customerData.contract_number
           ?? `NO-BAK-${customerCode}-${String(customerData.contractPeriodStart).replaceAll('-', '')}`;
 
-        const { error: contractError } = await supabase
+        const { data: contractData, error: contractError } = await supabase
           .from('contracts')
           .insert({
             customer_id: data.id,
@@ -1571,9 +1729,52 @@ export const customersApi = {
             status: 'aktif',
             ...billingSchedule,
             updated_at: now,
-          });
+          })
+          .select('id, contract_number')
+          .single();
 
         if (contractError) throw contractError;
+
+        const invoiceRows = buildInvoiceScheduleRows(
+          customerData.contractPeriodStart,
+          customerData.contractPeriodEnd,
+          {
+            every: billingSchedule.billing_every,
+            unit: billingSchedule.billing_unit,
+          },
+        );
+
+        if (invoiceRows.length > 0) {
+          const invoicePayload = invoiceRows.map((row) => {
+            const periodDate = new Date(`${row.periodStartDate}T00:00:00.000Z`);
+            const periodYear = Number.isFinite(periodDate.getTime())
+              ? periodDate.getUTCFullYear()
+              : null;
+            const periodMonth = Number.isFinite(periodDate.getTime())
+              ? periodDate.getUTCMonth() + 1
+              : null;
+
+            return {
+              customer_id: data.id,
+              contract_id: contractData.id,
+              contract_number: contractData.contract_number,
+              period_start_date: row.periodStartDate,
+              period_end_date: row.periodEndDate,
+              period_year: periodYear,
+              period_month: periodMonth,
+              amount: 0,
+              status: 'belum_ditagih',
+              schedule_status: 'active',
+              updated_at: now,
+            };
+          });
+
+          const { error: invoiceError } = await supabase
+            .from('invoices')
+            .insert(invoicePayload);
+
+          if (invoiceError) throw invoiceError;
+        }
       }
     } catch (relatedError) {
       await supabase.from('customers').delete().eq('id', data.id);
@@ -1600,19 +1801,23 @@ export const customersApi = {
   async update(id, customerData) {
     const { data: previousCustomer, error: previousError } = await supabase
       .from('customers')
-      .select('id,name,status,isp_name,customer_code')
+      .select('id,name,status,isp_name,customer_code,activation_fee_paid_at')
       .eq('id', id)
       .single();
 
     if (previousError) throw previousError;
 
+    const updatePayload = {
+      updated_at: new Date().toISOString(),
+    };
+    if (Object.prototype.hasOwnProperty.call(customerData, 'name')) updatePayload.name = customerData.name;
+    if (Object.prototype.hasOwnProperty.call(customerData, 'status')) updatePayload.status = customerData.status;
+    if (Object.prototype.hasOwnProperty.call(customerData, 'activationFeePaidAt')) updatePayload.activation_fee_paid_at = customerData.activationFeePaidAt;
+    if (Object.prototype.hasOwnProperty.call(customerData, 'activation_fee_paid_at')) updatePayload.activation_fee_paid_at = customerData.activation_fee_paid_at;
+
     const { data, error } = await supabase
       .from('customers')
-      .update({
-        name: customerData.name,
-        status: customerData.status,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updatePayload)
       .eq('id', id)
       .select()
       .single();
@@ -1620,15 +1825,25 @@ export const customersApi = {
     if (error) throw error;
 
     const statusChanged = previousCustomer?.status !== data?.status;
+    const activationFeePaid = !previousCustomer?.activation_fee_paid_at && Boolean(data?.activation_fee_paid_at);
+    const activationFeePaymentReverted = Boolean(previousCustomer?.activation_fee_paid_at) && !data?.activation_fee_paid_at;
     await createActivityLog({
-      action: statusChanged ? 'customer.status_changed' : 'customer.updated',
+      action: activationFeePaid
+        ? 'customer.activation_fee_paid'
+        : activationFeePaymentReverted
+          ? 'customer.activation_fee_payment_reverted'
+          : statusChanged ? 'customer.status_changed' : 'customer.updated',
       entity_type: 'customer',
       entity_id: data.id,
       entity_name: data.name,
-      description: statusChanged
-        ? `Mengubah status pelanggan ${data.name}`
-        : `Mengubah data pelanggan ${data.name}`,
-      metadata: pickChangedFields(previousCustomer, data, ['name', 'status', 'isp_name', 'customer_code']),
+      description: activationFeePaid
+        ? `Menandai biaya aktivasi pelanggan ${data.name} sudah dibayar`
+        : activationFeePaymentReverted
+          ? `Membatalkan status lunas biaya aktivasi pelanggan ${data.name}`
+          : statusChanged
+            ? `Mengubah status pelanggan ${data.name}`
+            : `Mengubah data pelanggan ${data.name}`,
+      metadata: pickChangedFields(previousCustomer, data, ['name', 'status', 'isp_name', 'customer_code', 'activation_fee_paid_at']),
     });
 
     return data;
@@ -1879,6 +2094,7 @@ const ISP_DETAIL_SELECT = `
           id,
           contract_id,
           customer_id,
+          contract_number,
           version_number,
           start_date,
           end_date,
@@ -2181,6 +2397,7 @@ export const monitoringApi = {
             status,
             versions:contract_versions(
               id,
+              contract_number,
               version_number,
               start_date,
               end_date,
@@ -2281,7 +2498,11 @@ export const monitoringApi = {
         return getDateValue(right.end_date) - getDateValue(left.end_date);
       });
 
-      return sortedContracts.find(contract => contract.start_date <= today && contract.end_date >= today)
+      const yearStart = `${selectedYear}-01-01`;
+      const yearEnd = `${selectedYear}-12-31`;
+
+      return sortedContracts.find(contract => contract.start_date <= yearEnd && contract.end_date >= yearStart)
+        ?? sortedContracts.find(contract => contract.start_date <= today && contract.end_date >= today)
         ?? sortedContracts.find(contract => contract.start_date > today)
         ?? sortedContracts[0]
         ?? null;
@@ -2782,7 +3003,7 @@ export const monitoringApi = {
             sharing_ratio,
             status,
             deleted_at,
-            versions:contract_versions(version_number, start_date, end_date, core_type, core_total, shared_core_ratio, deleted_at)
+            versions:contract_versions(contract_number, version_number, start_date, end_date, core_type, core_total, shared_core_ratio, deleted_at)
           ),
           routeVersions:customer_route_versions(version_number, flow_status, created_at)
         `)
@@ -3128,7 +3349,7 @@ export const contractVersionsApi = {
       const [{ data: contract, error: contractError }, { data: latestVersions, error: versionError }] = await Promise.all([
         supabase
           .from('contracts')
-          .select('customer_id, core_type, core_total, sharing_ratio')
+          .select('customer_id, contract_number, core_type, core_total, sharing_ratio')
           .eq('id', contractId)
           .single(),
         supabase
@@ -3151,6 +3372,7 @@ export const contractVersionsApi = {
         ...payload,
         customer_id: payload.customer_id ?? contract?.customer_id,
         version_number: payload.version_number ?? nextVersionNumber,
+        contract_number: payload.contract_number ?? contract?.contract_number ?? null,
         core_type: coreType,
         core_total: payload.core_total ?? (coreType === 'core' ? Number(contract?.core_total ?? 0) : 0),
         monthly_amount: payload.monthly_amount ?? 0,
@@ -3179,6 +3401,147 @@ export const contractVersionsApi = {
 
     if (error) throw error;
     return data;
+  },
+
+  async changePackageMidPeriod(changeData = {}) {
+    const contractId = changeData.contract_id ?? changeData.contractId;
+    const requestedDate = String(changeData.requestedDate ?? changeData.requested_date ?? '').slice(0, 10);
+    if (!contractId) throw new Error('Kontrak tidak valid untuk perubahan paket.');
+    if (!requestedDate) throw new Error('Tanggal perubahan paket wajib diisi.');
+
+    const newEffectiveStart = getFirstDayOfNextMonthIso(requestedDate);
+    const oldEffectiveEnd = addDaysToIsoDate(newEffectiveStart, -1);
+    if (!newEffectiveStart || !oldEffectiveEnd) throw new Error('Tanggal perubahan paket tidak valid.');
+
+    const { data: contract, error: contractError } = await supabase
+      .from('contracts')
+      .select('id,customer_id,contract_number,start_date,end_date,core_type,core_total,sharing_ratio,billing_every,billing_unit')
+      .eq('id', contractId)
+      .single();
+    if (contractError) throw contractError;
+    if (!contract?.customer_id) throw new Error('Data kontrak tidak lengkap.');
+    if (contract.end_date && newEffectiveStart > contract.end_date) {
+      throw new Error('Tanggal efektif paket baru melewati akhir kontrak.');
+    }
+
+    const { data: versionRows, error: versionsError } = await supabase
+      .from('contract_versions')
+      .select('*')
+      .eq('contract_id', contractId)
+      .is('deleted_at', null)
+      .order('version_number', { ascending: true });
+    if (versionsError) throw versionsError;
+
+    const versions = Array.isArray(versionRows) ? versionRows : [];
+    let workingVersions = [...versions];
+    let nextVersionNumber = Math.max(0, ...workingVersions.map((version) => Number(version.version_number ?? 0))) + 1;
+
+    if (workingVersions.length === 0) {
+      const { data: baselineVersion, error: baselineError } = await supabase
+        .from('contract_versions')
+        .insert(withUpdatedAt({
+          contract_id: contract.id,
+          customer_id: contract.customer_id,
+          contract_number: contract.contract_number ?? null,
+          version_number: nextVersionNumber,
+          start_date: contract.start_date,
+          end_date: contract.end_date,
+          core_type: contract.core_type ?? 'core',
+          core_total: Number(contract.core_total ?? 0),
+          shared_core_ratio: contract.sharing_ratio ?? null,
+          monthly_amount: 0,
+          yearly_amount: 0,
+          remarks: 'Baseline kontrak sebelum perubahan paket.',
+        }))
+        .select()
+        .single();
+      if (baselineError) throw baselineError;
+      workingVersions = [baselineVersion];
+      nextVersionNumber += 1;
+    }
+
+    const effectiveVersion = [...workingVersions]
+      .sort((left, right) => getIsoDateValue(right.end_date ?? right.start_date) - getIsoDateValue(left.end_date ?? left.start_date))
+      .find((version) => String(version.start_date ?? '') <= requestedDate && String(version.end_date ?? '') >= requestedDate)
+      ?? [...workingVersions].sort((left, right) => getIsoDateValue(right.end_date ?? right.start_date) - getIsoDateValue(left.end_date ?? left.start_date))[0];
+
+    if (!effectiveVersion?.id) throw new Error('Versi kontrak aktif tidak ditemukan.');
+    if (effectiveVersion.start_date && newEffectiveStart <= effectiveVersion.start_date) {
+      throw new Error('Paket baru harus mulai setelah awal periode versi aktif.');
+    }
+
+    const coreType = changeData.core_type ?? changeData.coreType ?? changeData.packageType ?? effectiveVersion.core_type ?? contract.core_type ?? 'core';
+    const isSharingCore = String(coreType).toLowerCase().includes('shar');
+    const monthlyAmount = Number(changeData.monthly_amount ?? changeData.monthlyAmount ?? 0);
+    const yearlyAmount = Number(changeData.yearly_amount ?? changeData.yearlyAmount ?? monthlyAmount * 12);
+    const sharedCoreRatio = changeData.shared_core_ratio ?? changeData.sharedCoreRatio ?? null;
+    const coreTotal = Number(changeData.core_total ?? changeData.coreTotal ?? 0);
+
+    if (!Number.isFinite(monthlyAmount) || monthlyAmount <= 0) throw new Error('Nominal bulanan wajib lebih dari 0.');
+    if (isSharingCore && !String(sharedCoreRatio ?? '').trim()) throw new Error('Rasio sharing wajib diisi.');
+    if (!isSharingCore && (!Number.isFinite(coreTotal) || coreTotal <= 0)) throw new Error('Jumlah core wajib lebih dari 0.');
+
+    const { error: closeError } = await supabase
+      .from('contract_versions')
+      .update(withUpdatedAt({ end_date: oldEffectiveEnd }))
+      .eq('id', effectiveVersion.id);
+    if (closeError) throw closeError;
+
+    const { data: newVersion, error: newVersionError } = await supabase
+      .from('contract_versions')
+      .insert(withUpdatedAt({
+        contract_id: contract.id,
+        customer_id: contract.customer_id,
+        contract_number: changeData.contract_number ?? changeData.contractNumber ?? effectiveVersion.contract_number ?? contract.contract_number ?? null,
+        version_number: nextVersionNumber,
+        start_date: newEffectiveStart,
+        end_date: effectiveVersion.end_date ?? contract.end_date,
+        core_type: isSharingCore ? 'sharing_core' : 'core',
+        core_total: isSharingCore ? 0 : coreTotal,
+        shared_core_ratio: isSharingCore ? sharedCoreRatio : null,
+        monthly_amount: monthlyAmount,
+        yearly_amount: yearlyAmount,
+        remarks: changeData.remarks ?? `Perubahan paket diminta ${requestedDate}; efektif ${newEffectiveStart}.`,
+      }))
+      .select()
+      .single();
+    if (newVersionError) throw newVersionError;
+
+    const { data: futureInvoices, error: invoicesError } = await supabase
+      .from('invoices')
+      .select('id,status,paid_at,payment_proof_file_url,period_start_date,schedule_status')
+      .eq('customer_id', contract.customer_id)
+      .eq('contract_id', contract.id)
+      .gte('period_start_date', newEffectiveStart)
+      .is('deleted_at', null);
+    if (invoicesError) throw invoicesError;
+
+    const unpaidActiveInvoices = (futureInvoices || []).filter((invoice) => (
+      invoice.schedule_status !== 'history'
+      && String(invoice.status || '').toLowerCase() !== 'lunas'
+      && !invoice.paid_at
+      && !invoice.payment_proof_file_url
+    ));
+
+    await Promise.all(unpaidActiveInvoices.map((invoice) => supabase
+      .from('invoices')
+      .update(withUpdatedAt({
+        contract_version_id: newVersion.id,
+        contract_number: newVersion.contract_number ?? null,
+        amount: monthlyAmount,
+      }))
+      .eq('id', invoice.id)
+      .then(({ error }) => {
+        if (error) throw error;
+      })));
+
+    return {
+      oldVersionId: effectiveVersion.id,
+      oldEffectiveEnd,
+      newEffectiveStart,
+      newVersion,
+      updatedInvoiceCount: unpaidActiveInvoices.length,
+    };
   },
 
   // Delete contract version
@@ -3299,6 +3662,17 @@ export const ispContractRowsApi = {
 // ============================================================================
 
 export const invoiceFollowUpsApi = {
+  async create(followUpData) {
+    const { data, error } = await supabase
+      .from('invoice_follow_ups')
+      .insert(withUpdatedAt(mapInvoiceFollowUpPayload(followUpData)))
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
   async update(id, followUpData) {
     const { data, error } = await supabase
       .from('invoice_follow_ups')
@@ -3529,7 +3903,7 @@ export const trashApi = {
       .not('deleted_at', 'is', null)
       .order('deleted_at', { ascending: true })
       .limit(1)
-      .single();
+      .maybeSingle();
 
     return {
       lastClearedAt: lastCleared?.deleted_at || new Date().toISOString(),

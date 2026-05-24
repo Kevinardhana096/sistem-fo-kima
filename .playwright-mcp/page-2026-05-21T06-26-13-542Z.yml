@@ -1,0 +1,309 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e1187]:
+    - navigation:
+      - generic [ref=e1189]:
+        - button "notifications 9+" [ref=e1191]:
+          - generic [ref=e1192]: notifications
+          - generic [ref=e1193]: 9+
+        - button "Profile Administrator Super Admin" [ref=e1195]:
+          - img "Profile" [ref=e1197]
+          - generic [ref=e1198]:
+            - paragraph [ref=e1199]: Administrator
+            - paragraph [ref=e1200]: Super Admin
+    - complementary [ref=e1201]:
+      - button "KIMA ARCHIVE" [ref=e1202]:
+        - generic [ref=e1205]:
+          - paragraph [ref=e1206]: KIMA
+          - paragraph [ref=e1207]: ARCHIVE
+      - navigation [ref=e1208]:
+        - link "dashboard Dashboard" [ref=e1209] [cursor=pointer]:
+          - /url: /dashboard
+          - generic [ref=e1210]: dashboard
+          - generic [ref=e1211]: Dashboard
+        - link "groups Pelanggan" [ref=e1212] [cursor=pointer]:
+          - /url: /customers
+          - generic [ref=e1213]: groups
+          - generic [ref=e1214]: Pelanggan
+        - link "monitor_heart Monitoring" [ref=e1215] [cursor=pointer]:
+          - /url: /monitoring
+          - generic [ref=e1216]: monitor_heart
+          - generic [ref=e1217]: Monitoring
+        - link "task_alt Tindak Lanjut" [ref=e1218] [cursor=pointer]:
+          - /url: /todos
+          - generic [ref=e1219]: task_alt
+          - generic [ref=e1220]: Tindak Lanjut
+        - link "manage_history Log Aktivitas" [ref=e1221] [cursor=pointer]:
+          - /url: /activity-log
+          - generic [ref=e1222]: manage_history
+          - generic [ref=e1223]: Log Aktivitas
+        - link "delete Tempat Sampah" [ref=e1224] [cursor=pointer]:
+          - /url: /trash
+          - generic [ref=e1225]: delete
+          - generic [ref=e1226]: Tempat Sampah
+    - main [ref=e1227]:
+      - generic [ref=e1229]:
+        - generic [ref=e1230]:
+          - generic [ref=e1231]:
+            - paragraph [ref=e1234]: Pusat Tindakan
+            - heading "Tindak Lanjut" [level=1] [ref=e1235]
+            - paragraph [ref=e1236]: Kelola semua notifikasi operasional yang perlu dibaca atau ditindaklanjuti.
+          - button "sync" [ref=e1237]:
+            - generic [ref=e1238]: sync
+        - generic [ref=e1239]:
+          - generic [ref=e1240]:
+            - generic [ref=e1241]:
+              - paragraph [ref=e1242]: Aktif
+              - generic [ref=e1244]: task_alt
+            - paragraph [ref=e1245]: "200"
+          - generic [ref=e1246]:
+            - generic [ref=e1247]:
+              - paragraph [ref=e1248]: Belum Dibaca
+              - generic [ref=e1250]: mark_email_unread
+            - paragraph [ref=e1251]: "200"
+          - generic [ref=e1252]:
+            - generic [ref=e1253]:
+              - paragraph [ref=e1254]: Dibaca
+              - generic [ref=e1256]: drafts
+            - paragraph [ref=e1257]: "0"
+          - generic [ref=e1258]:
+            - generic [ref=e1259]:
+              - paragraph [ref=e1260]: Selesai
+              - generic [ref=e1262]: check_circle
+            - paragraph [ref=e1263]: "0"
+        - generic [ref=e1264]:
+          - generic [ref=e1265]:
+            - generic: search
+            - textbox "Cari pelanggan, pesan, atau kode..." [ref=e1266]
+          - generic [ref=e1267]:
+            - generic [ref=e1268]:
+              - generic [ref=e1270]:
+                - generic: category
+                - button "Kontrak ISP expand_more" [ref=e1550]:
+                  - generic [ref=e1273]: Kontrak ISP
+                  - generic [ref=e1274]: expand_more
+              - generic [ref=e1276]:
+                - generic: warning
+                - button "Semua Severity expand_more" [ref=e1278]:
+                  - generic [ref=e1279]: Semua Severity
+                  - generic [ref=e1280]: expand_more
+              - generic [ref=e1282]:
+                - generic: flag
+                - button "Aktif expand_more" [ref=e1284]:
+                  - generic [ref=e1285]: Aktif
+                  - generic [ref=e1286]: expand_more
+            - button "filter_alt_off Reset" [ref=e1287]:
+              - generic [ref=e1288]: filter_alt_off
+              - generic [ref=e1289]: Reset
+        - generic [ref=e1290]:
+          - generic [ref=e1291]:
+            - heading "Daftar Tindakan" [level=2] [ref=e1294]
+            - generic [ref=e1295]:
+              - generic [ref=e1296]: "Total:"
+              - generic [ref=e1297]: "15"
+          - generic [ref=e1298]:
+            - generic [ref=e1551]:
+              - generic [ref=e1552]:
+                - generic [ref=e1554]: assignment
+                - generic [ref=e1555]:
+                  - generic [ref=e1556]:
+                    - heading "Nomor kontrak ISP belum diisi" [level=3] [ref=e1557]
+                    - generic [ref=e1559]: Warning
+                    - generic [ref=e1560]: Belum Dibaca
+                  - paragraph [ref=e1561]: ISP Test Kelengkapan Berkas belum memiliki nomor kontrak/referensi kontrak.
+                  - generic [ref=e1562]:
+                    - generic [ref=e1563]: Kontrak ISP
+                    - generic [ref=e1564]: ISP Test Kelengkapan Berkas
+                    - generic [ref=e1565]: "Dibuat: 21 Mei 2026, 14.25"
+              - generic [ref=e1566]:
+                - button "open_in_new Buka ISP" [ref=e1567]:
+                  - generic [ref=e1568]: open_in_new
+                  - text: Buka ISP
+                - button "Dibaca" [ref=e1569]
+                - button "Selesai" [ref=e1570]
+            - generic [ref=e1571]:
+              - generic [ref=e1572]:
+                - generic [ref=e1574]: assignment
+                - generic [ref=e1575]:
+                  - generic [ref=e1576]:
+                    - heading "Awal kontrak ISP belum diisi" [level=3] [ref=e1577]
+                    - generic [ref=e1579]: Warning
+                    - generic [ref=e1580]: Belum Dibaca
+                  - paragraph [ref=e1581]: ISP Test Kelengkapan Berkas belum memiliki tanggal awal kontrak.
+                  - generic [ref=e1582]:
+                    - generic [ref=e1583]: Kontrak ISP
+                    - generic [ref=e1584]: ISP Test Kelengkapan Berkas
+                    - generic [ref=e1585]: "Dibuat: 21 Mei 2026, 14.25"
+              - generic [ref=e1586]:
+                - button "open_in_new Buka ISP" [ref=e1587]:
+                  - generic [ref=e1588]: open_in_new
+                  - text: Buka ISP
+                - button "Dibaca" [ref=e1589]
+                - button "Selesai" [ref=e1590]
+            - generic [ref=e1591]:
+              - generic [ref=e1592]:
+                - generic [ref=e1594]: assignment
+                - generic [ref=e1595]:
+                  - generic [ref=e1596]:
+                    - heading "Periode berjalan ISP belum lengkap" [level=3] [ref=e1597]
+                    - generic [ref=e1599]: Warning
+                    - generic [ref=e1600]: Belum Dibaca
+                  - paragraph [ref=e1601]: ISP Test Kelengkapan Berkas belum memiliki periode berjalan awal dan akhir yang lengkap.
+                  - generic [ref=e1602]:
+                    - generic [ref=e1603]: Kontrak ISP
+                    - generic [ref=e1604]: ISP Test Kelengkapan Berkas
+                    - generic [ref=e1605]: "Dibuat: 21 Mei 2026, 14.25"
+              - generic [ref=e1606]:
+                - button "open_in_new Buka ISP" [ref=e1607]:
+                  - generic [ref=e1608]: open_in_new
+                  - text: Buka ISP
+                - button "Dibaca" [ref=e1609]
+                - button "Selesai" [ref=e1610]
+            - generic [ref=e1611]:
+              - generic [ref=e1612]:
+                - generic [ref=e1614]: assignment
+                - generic [ref=e1615]:
+                  - generic [ref=e1616]:
+                    - heading "Nomor kontrak ISP belum diisi" [level=3] [ref=e1617]
+                    - generic [ref=e1619]: Warning
+                    - generic [ref=e1620]: Belum Dibaca
+                  - paragraph [ref=e1621]: PT Aplikanusa Lintasarta belum memiliki nomor kontrak/referensi kontrak.
+                  - generic [ref=e1622]:
+                    - generic [ref=e1623]: Kontrak ISP
+                    - generic [ref=e1624]: PT Aplikanusa Lintasarta
+                    - generic [ref=e1625]: "Dibuat: 21 Mei 2026, 14.25"
+              - generic [ref=e1626]:
+                - button "open_in_new Buka ISP" [ref=e1627]:
+                  - generic [ref=e1628]: open_in_new
+                  - text: Buka ISP
+                - button "Dibaca" [ref=e1629]
+                - button "Selesai" [ref=e1630]
+            - generic [ref=e1631]:
+              - generic [ref=e1632]:
+                - generic [ref=e1634]: assignment
+                - generic [ref=e1635]:
+                  - generic [ref=e1636]:
+                    - heading "Awal kontrak ISP belum diisi" [level=3] [ref=e1637]
+                    - generic [ref=e1639]: Warning
+                    - generic [ref=e1640]: Belum Dibaca
+                  - paragraph [ref=e1641]: PT Aplikanusa Lintasarta belum memiliki tanggal awal kontrak.
+                  - generic [ref=e1642]:
+                    - generic [ref=e1643]: Kontrak ISP
+                    - generic [ref=e1644]: PT Aplikanusa Lintasarta
+                    - generic [ref=e1645]: "Dibuat: 21 Mei 2026, 14.25"
+              - generic [ref=e1646]:
+                - button "open_in_new Buka ISP" [ref=e1647]:
+                  - generic [ref=e1648]: open_in_new
+                  - text: Buka ISP
+                - button "Dibaca" [ref=e1649]
+                - button "Selesai" [ref=e1650]
+            - generic [ref=e1651]:
+              - generic [ref=e1652]:
+                - generic [ref=e1654]: assignment
+                - generic [ref=e1655]:
+                  - generic [ref=e1656]:
+                    - heading "Periode berjalan ISP belum lengkap" [level=3] [ref=e1657]
+                    - generic [ref=e1659]: Warning
+                    - generic [ref=e1660]: Belum Dibaca
+                  - paragraph [ref=e1661]: PT Aplikanusa Lintasarta belum memiliki periode berjalan awal dan akhir yang lengkap.
+                  - generic [ref=e1662]:
+                    - generic [ref=e1663]: Kontrak ISP
+                    - generic [ref=e1664]: PT Aplikanusa Lintasarta
+                    - generic [ref=e1665]: "Dibuat: 21 Mei 2026, 14.25"
+              - generic [ref=e1666]:
+                - button "open_in_new Buka ISP" [ref=e1667]:
+                  - generic [ref=e1668]: open_in_new
+                  - text: Buka ISP
+                - button "Dibaca" [ref=e1669]
+                - button "Selesai" [ref=e1670]
+            - generic [ref=e1671]:
+              - generic [ref=e1672]:
+                - generic [ref=e1674]: assignment
+                - generic [ref=e1675]:
+                  - generic [ref=e1676]:
+                    - heading "Nomor kontrak ISP belum diisi" [level=3] [ref=e1677]
+                    - generic [ref=e1679]: Warning
+                    - generic [ref=e1680]: Belum Dibaca
+                  - paragraph [ref=e1681]: PT Citra Prima Media belum memiliki nomor kontrak/referensi kontrak.
+                  - generic [ref=e1682]:
+                    - generic [ref=e1683]: Kontrak ISP
+                    - generic [ref=e1684]: PT Citra Prima Media
+                    - generic [ref=e1685]: "Dibuat: 21 Mei 2026, 14.25"
+              - generic [ref=e1686]:
+                - button "open_in_new Buka ISP" [ref=e1687]:
+                  - generic [ref=e1688]: open_in_new
+                  - text: Buka ISP
+                - button "Dibaca" [ref=e1689]
+                - button "Selesai" [ref=e1690]
+            - generic [ref=e1691]:
+              - generic [ref=e1692]:
+                - generic [ref=e1694]: assignment
+                - generic [ref=e1695]:
+                  - generic [ref=e1696]:
+                    - heading "Awal kontrak ISP belum diisi" [level=3] [ref=e1697]
+                    - generic [ref=e1699]: Warning
+                    - generic [ref=e1700]: Belum Dibaca
+                  - paragraph [ref=e1701]: PT Citra Prima Media belum memiliki tanggal awal kontrak.
+                  - generic [ref=e1702]:
+                    - generic [ref=e1703]: Kontrak ISP
+                    - generic [ref=e1704]: PT Citra Prima Media
+                    - generic [ref=e1705]: "Dibuat: 21 Mei 2026, 14.25"
+              - generic [ref=e1706]:
+                - button "open_in_new Buka ISP" [ref=e1707]:
+                  - generic [ref=e1708]: open_in_new
+                  - text: Buka ISP
+                - button "Dibaca" [ref=e1709]
+                - button "Selesai" [ref=e1710]
+            - generic [ref=e1711]:
+              - generic [ref=e1712]:
+                - generic [ref=e1714]: assignment
+                - generic [ref=e1715]:
+                  - generic [ref=e1716]:
+                    - heading "Periode berjalan ISP belum lengkap" [level=3] [ref=e1717]
+                    - generic [ref=e1719]: Warning
+                    - generic [ref=e1720]: Belum Dibaca
+                  - paragraph [ref=e1721]: PT Citra Prima Media belum memiliki periode berjalan awal dan akhir yang lengkap.
+                  - generic [ref=e1722]:
+                    - generic [ref=e1723]: Kontrak ISP
+                    - generic [ref=e1724]: PT Citra Prima Media
+                    - generic [ref=e1725]: "Dibuat: 21 Mei 2026, 14.25"
+              - generic [ref=e1726]:
+                - button "open_in_new Buka ISP" [ref=e1727]:
+                  - generic [ref=e1728]: open_in_new
+                  - text: Buka ISP
+                - button "Dibaca" [ref=e1729]
+                - button "Selesai" [ref=e1730]
+            - generic [ref=e1731]:
+              - generic [ref=e1732]:
+                - generic [ref=e1734]: assignment
+                - generic [ref=e1735]:
+                  - generic [ref=e1736]:
+                    - heading "Nomor kontrak ISP belum diisi" [level=3] [ref=e1737]
+                    - generic [ref=e1739]: Warning
+                    - generic [ref=e1740]: Belum Dibaca
+                  - paragraph [ref=e1741]: PT Fiber Networks Indonesia belum memiliki nomor kontrak/referensi kontrak.
+                  - generic [ref=e1742]:
+                    - generic [ref=e1743]: Kontrak ISP
+                    - generic [ref=e1744]: PT Fiber Networks Indonesia
+                    - generic [ref=e1745]: "Dibuat: 21 Mei 2026, 14.25"
+              - generic [ref=e1746]:
+                - button "open_in_new Buka ISP" [ref=e1747]:
+                  - generic [ref=e1748]: open_in_new
+                  - text: Buka ISP
+                - button "Dibaca" [ref=e1749]
+                - button "Selesai" [ref=e1750]
+            - generic [ref=e1499]:
+              - generic [ref=e1500]:
+                - button "10" [ref=e1504]:
+                  - generic [ref=e1505]: "10"
+                - paragraph [ref=e1506]: 1–10 dari 15
+              - generic [ref=e1507]:
+                - button "chevron_left Prev" [disabled] [ref=e1508]:
+                  - generic [ref=e1509]: chevron_left
+                  - text: Prev
+                - generic [ref=e1510]:
+                  - button "1" [ref=e1511]
+                  - button "2" [ref=e1512]
+                - button "Next chevron_right" [ref=e1531]:
+                  - text: Next
+                  - generic [ref=e1532]: chevron_right
+  - generic [ref=e525]: "0"

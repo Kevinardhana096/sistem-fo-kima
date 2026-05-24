@@ -1,0 +1,294 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e46]:
+    - navigation:
+      - generic [ref=e48]:
+        - button "notifications 9+" [ref=e50]:
+          - generic [ref=e51]: notifications
+          - generic [ref=e52]: 9+
+        - button "Profile Administrator Super Admin" [ref=e54]:
+          - img "Profile" [ref=e56]
+          - generic [ref=e57]:
+            - paragraph [ref=e58]: Administrator
+            - paragraph [ref=e59]: Super Admin
+    - complementary [ref=e60]:
+      - button "KIMA ARCHIVE" [ref=e61]:
+        - generic [ref=e64]:
+          - paragraph [ref=e65]: KIMA
+          - paragraph [ref=e66]: ARCHIVE
+      - navigation [ref=e67]:
+        - link "dashboard Dashboard" [ref=e68] [cursor=pointer]:
+          - /url: /dashboard
+          - generic [ref=e69]: dashboard
+          - generic [ref=e70]: Dashboard
+        - link "groups Pelanggan" [ref=e71] [cursor=pointer]:
+          - /url: /customers
+          - generic [ref=e72]: groups
+          - generic [ref=e73]: Pelanggan
+        - link "monitor_heart Monitoring" [ref=e74] [cursor=pointer]:
+          - /url: /monitoring
+          - generic [ref=e75]: monitor_heart
+          - generic [ref=e76]: Monitoring
+        - link "task_alt Tindak Lanjut" [ref=e77] [cursor=pointer]:
+          - /url: /todos
+          - generic [ref=e78]: task_alt
+          - generic [ref=e79]: Tindak Lanjut
+        - link "manage_history Log Aktivitas" [ref=e80] [cursor=pointer]:
+          - /url: /activity-log
+          - generic [ref=e81]: manage_history
+          - generic [ref=e82]: Log Aktivitas
+        - link "delete Tempat Sampah" [ref=e83] [cursor=pointer]:
+          - /url: /trash
+          - generic [ref=e84]: delete
+          - generic [ref=e85]: Tempat Sampah
+    - main [ref=e86]:
+      - generic [ref=e88]:
+        - generic [ref=e90]:
+          - paragraph [ref=e93]: Mesin Analitik
+          - heading "Dashboard FO KIMA" [level=1] [ref=e94]
+        - generic [ref=e95]:
+          - generic [ref=e96]:
+            - generic [ref=e97]:
+              - paragraph [ref=e98]: Total ISP
+              - generic [ref=e100]: hub
+            - heading "18" [level=3] [ref=e101]
+            - paragraph [ref=e102]: Mitra ISP Terintegrasi
+          - generic [ref=e103]:
+            - generic [ref=e104]:
+              - paragraph [ref=e105]: Total Lokasi
+              - generic [ref=e107]: groups
+            - heading "85" [level=3] [ref=e108]
+            - paragraph [ref=e109]: Total Lokasi Terdata
+          - generic [ref=e110]:
+            - generic [ref=e111]:
+              - paragraph [ref=e112]: Kapasitas Core
+              - generic [ref=e114]: storage
+            - heading "384" [level=3] [ref=e115]
+            - paragraph [ref=e116]: Total Core
+          - generic [ref=e117]:
+            - generic [ref=e118]:
+              - paragraph [ref=e119]: Core Tersewa
+              - generic [ref=e121]: cable
+            - heading "278" [level=3] [ref=e122]
+            - paragraph [ref=e123]: 13 Lokasi
+          - generic [ref=e124]:
+            - generic [ref=e125]:
+              - paragraph [ref=e126]: Core Tersedia
+              - generic [ref=e128]: check_circle
+            - heading "106" [level=3] [ref=e129]
+            - paragraph [ref=e130]: 28% Tersedia
+        - generic [ref=e131]:
+          - generic [ref=e132]:
+            - generic [ref=e133]:
+              - heading "Tren Penggunaan Core" [level=2] [ref=e136]
+              - generic [ref=e137]:
+                - generic [ref=e138]:
+                  - button "Bulan Ini expand_more" [ref=e141]:
+                    - generic [ref=e142]: Bulan Ini
+                    - generic [ref=e143]: expand_more
+                  - button "Tahun Ini expand_more" [ref=e145]:
+                    - generic [ref=e146]: Tahun Ini
+                    - generic [ref=e147]: expand_more
+                - generic [ref=e148]:
+                  - button "Sharing Core" [ref=e149]
+                  - button "Core" [ref=e150]
+            - application [ref=e154]:
+              - generic [ref=e199]:
+                - generic [ref=e200]:
+                  - generic [ref=e202]: Jan
+                  - generic [ref=e204]: Feb
+                  - generic [ref=e206]: Mar
+                  - generic [ref=e208]: Apr
+                  - generic [ref=e210]: Mei
+                - generic [ref=e211]:
+                  - generic [ref=e213]: "0"
+                  - generic [ref=e215]: "9"
+                  - generic [ref=e217]: "18"
+                  - generic [ref=e219]: "27"
+                  - generic [ref=e221]: "36"
+            - generic [ref=e222]:
+              - generic [ref=e225]: 1:2
+              - generic [ref=e228]: 1:4
+              - generic [ref=e231]: 1:8
+              - generic [ref=e234]: 1:16
+              - generic [ref=e237]: 1:32
+            - generic [ref=e238]:
+              - generic [ref=e240]:
+                - button "Bulan Ini expand_more" [ref=e243]:
+                  - generic [ref=e244]: Bulan Ini
+                  - generic [ref=e245]: expand_more
+                - button "Tahun Ini expand_more" [ref=e247]:
+                  - generic [ref=e248]: Tahun Ini
+                  - generic [ref=e249]: expand_more
+              - generic [ref=e250]:
+                - button "download CSV" [ref=e251]:
+                  - generic [ref=e252]: download
+                  - text: CSV
+                - button "insert_chart XLSX Grafik" [ref=e253]:
+                  - generic [ref=e254]: insert_chart
+                  - text: XLSX Grafik
+          - generic [ref=e255]:
+            - heading "Rincian Sharing Core" [level=2] [ref=e258]
+            - generic [ref=e259]:
+              - generic [ref=e260]:
+                - generic [ref=e261]: Ratio 1:2
+                - generic [ref=e262]: "0"
+              - generic [ref=e263]:
+                - generic [ref=e264]: Ratio 1:4
+                - generic [ref=e265]: "1"
+              - generic [ref=e266]:
+                - generic [ref=e267]: Ratio 1:8
+                - generic [ref=e268]: "12"
+              - generic [ref=e269]:
+                - generic [ref=e270]: Ratio 1:16
+                - generic [ref=e271]: "17"
+              - generic [ref=e272]:
+                - generic [ref=e273]: Ratio 1:32
+                - generic [ref=e274]: "26"
+        - generic [ref=e275]:
+          - generic [ref=e276]:
+            - generic [ref=e277]:
+              - heading "Grafik Pertumbuhan" [level=2] [ref=e280]
+              - generic [ref=e281]:
+                - generic [ref=e282]:
+                  - generic [ref=e283]:
+                    - spinbutton [ref=e284]: "5"
+                    - generic [ref=e285]: Tahun Terakhir
+                  - button "Rentang expand_more" [ref=e287]:
+                    - generic [ref=e288]: Rentang
+                    - generic [ref=e289]: expand_more
+                - generic [ref=e290]:
+                  - button "Lokasi" [ref=e291]
+                  - button "ISP" [ref=e292]
+            - application [ref=e296]:
+              - generic [ref=e311]:
+                - generic [ref=e312]:
+                  - generic [ref=e314]: "2022"
+                  - generic [ref=e316]: "2023"
+                  - generic [ref=e318]: "2024"
+                  - generic [ref=e320]: "2025"
+                  - generic [ref=e322]: "2026"
+                - generic [ref=e323]:
+                  - generic [ref=e325]: "0"
+                  - generic [ref=e327]: "35"
+                  - generic [ref=e329]: "70"
+                  - generic [ref=e331]: "105"
+                  - generic [ref=e333]: "140"
+          - generic [ref=e334]:
+            - generic [ref=e335]:
+              - heading "Tindakan Kritis" [level=2] [ref=e338]
+              - generic [ref=e339]: 20 MASALAH
+            - generic [ref=e340]:
+              - generic [ref=e341]:
+                - generic [ref=e343]: priority_high
+                - paragraph [ref=e344]: 1 Core belum memiliki data jalur aktif.
+              - generic [ref=e345]:
+                - generic [ref=e347]: priority_high
+                - paragraph [ref=e348]: 1 Core mendekati jatuh tempo. Upload invoice pembayaran diperlukan.
+              - generic [ref=e349]:
+                - generic [ref=e351]: priority_high
+                - paragraph [ref=e352]: 1 Core mendekati jatuh tempo. Upload invoice pembayaran diperlukan.
+              - generic [ref=e353]:
+                - generic [ref=e355]: priority_high
+                - paragraph [ref=e356]: 12 Core masih memiliki biaya aktivasi outstanding.
+              - generic [ref=e357]:
+                - generic [ref=e359]: priority_high
+                - paragraph [ref=e360]: 12 Core belum memiliki data jalur aktif.
+              - generic [ref=e361]:
+                - generic [ref=e363]: priority_high
+                - paragraph [ref=e364]: 12 Core mendekati jatuh tempo. Upload invoice pembayaran diperlukan.
+              - generic [ref=e365]:
+                - generic [ref=e367]: priority_high
+                - paragraph [ref=e368]: 12 Core mendekati jatuh tempo. Upload invoice pembayaran diperlukan.
+              - generic [ref=e369]:
+                - generic [ref=e371]: priority_high
+                - paragraph [ref=e372]: 12 Core mendekati jatuh tempo. Upload invoice pembayaran diperlukan.
+              - generic [ref=e373]:
+                - generic [ref=e375]: priority_high
+                - paragraph [ref=e376]: 12 Core mendekati jatuh tempo. Upload invoice pembayaran diperlukan.
+              - generic [ref=e377]:
+                - generic [ref=e379]: priority_high
+                - paragraph [ref=e380]: 12 Core mendekati jatuh tempo. Upload invoice pembayaran diperlukan.
+              - generic [ref=e381]:
+                - generic [ref=e383]: priority_high
+                - paragraph [ref=e384]: 12 Core mendekati jatuh tempo. Upload invoice pembayaran diperlukan.
+              - generic [ref=e385]:
+                - generic [ref=e387]: priority_high
+                - paragraph [ref=e388]: 12 Core mendekati jatuh tempo. Upload invoice pembayaran diperlukan.
+              - generic [ref=e389]:
+                - generic [ref=e391]: priority_high
+                - paragraph [ref=e392]: 12 Core mendekati jatuh tempo. Upload invoice pembayaran diperlukan.
+              - generic [ref=e393]:
+                - generic [ref=e395]: priority_high
+                - paragraph [ref=e396]: 12 Core mendekati jatuh tempo. Upload invoice pembayaran diperlukan.
+              - generic [ref=e397]:
+                - generic [ref=e399]: priority_high
+                - paragraph [ref=e400]: 12 Core mendekati jatuh tempo. Upload invoice pembayaran diperlukan.
+              - generic [ref=e401]:
+                - generic [ref=e403]: priority_high
+                - paragraph [ref=e404]: 12 Core mendekati jatuh tempo. Upload invoice pembayaran diperlukan.
+              - generic [ref=e405]:
+                - generic [ref=e407]: priority_high
+                - paragraph [ref=e408]: 12 Core mendekati jatuh tempo. Upload invoice pembayaran diperlukan.
+              - generic [ref=e409]:
+                - generic [ref=e411]: priority_high
+                - paragraph [ref=e412]: 12 Core mendekati jatuh tempo. Upload invoice pembayaran diperlukan.
+              - generic [ref=e413]:
+                - generic [ref=e415]: priority_high
+                - paragraph [ref=e416]: 12 Core mendekati jatuh tempo. Upload invoice pembayaran diperlukan.
+              - generic [ref=e417]:
+                - generic [ref=e419]: priority_high
+                - paragraph [ref=e420]: 12 Core mendekati jatuh tempo. Upload invoice pembayaran diperlukan.
+        - generic [ref=e421]:
+          - generic [ref=e422]:
+            - heading "Berita Terbaru" [level=2] [ref=e425]
+            - generic [ref=e426]:
+              - generic [ref=e427]: news
+              - paragraph [ref=e428]: Belum Ada Berita
+          - generic [ref=e429]:
+            - heading "Status Jalur" [level=2] [ref=e432]
+            - generic [ref=e433]:
+              - generic [ref=e434]:
+                - generic [ref=e436] [cursor=pointer]:
+                  - generic [ref=e437]: Aktif & Beroperasi
+                  - generic [ref=e438]: "85"
+                - generic [ref=e442] [cursor=pointer]:
+                  - generic [ref=e443]: Gangguan Jaringan
+                  - generic [ref=e444]: "0"
+                - generic [ref=e447] [cursor=pointer]:
+                  - generic [ref=e448]: Sedang Perbaikan
+                  - generic [ref=e449]: "0"
+              - generic [ref=e451]:
+                - generic [ref=e452]:
+                  - paragraph [ref=e453]: Total Jalur Terdata
+                  - paragraph [ref=e454]: "122"
+                - generic [ref=e456]: route
+          - generic [ref=e457]:
+            - heading "Status Kontrak" [level=2] [ref=e460]
+            - generic [ref=e461]:
+              - generic [ref=e462]:
+                - generic [ref=e463]:
+                  - generic [ref=e464]:
+                    - generic [ref=e466]: check_circle
+                    - generic [ref=e467]: Beroperasi
+                  - generic [ref=e468]: "69"
+                - generic [ref=e469]:
+                  - generic [ref=e470]:
+                    - generic [ref=e472]: schedule
+                    - generic [ref=e473]: Belum Beroperasi
+                  - generic [ref=e474]: "0"
+                - generic [ref=e475]:
+                  - generic [ref=e476]:
+                    - generic [ref=e478]: warning
+                    - generic [ref=e479]: Belum Diperpanjang
+                  - generic [ref=e480]: "16"
+                - generic [ref=e481]:
+                  - generic [ref=e482]:
+                    - generic [ref=e484]: cancel
+                    - generic [ref=e485]: Berhenti
+                  - generic [ref=e486]: "37"
+              - generic [ref=e487]:
+                - generic [ref=e488]:
+                  - paragraph [ref=e489]: Total Operasional
+                  - paragraph [ref=e490]: "85"
+                - generic [ref=e492]: domain
+  - generic [ref=e493]: "0"

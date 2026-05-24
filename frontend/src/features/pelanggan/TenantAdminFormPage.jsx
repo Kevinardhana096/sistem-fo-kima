@@ -56,11 +56,13 @@ const GlassCustomSelect = ({ label, value, onChange, options, icon, heightClass 
             <div className="relative">
                 <div
                     onClick={() => setIsOpen(!isOpen)}
-                    className={`rounded-2xl bg-black/20 border flex items-center justify-center transition-all cursor-pointer shadow-inner-glass relative z-20 backdrop-blur-md ${isOpen ? "border-gold-accent/60 bg-black/40 shadow-gold-glow" : "border-white/10 text-white/70 hover:border-white/30"} ${heightClass} ${iconOnly ? "w-11 px-0" : "w-full pl-14 pr-12 text-[10px] font-black"}`}
+                    className={`rounded-2xl bg-black/20 border flex items-center justify-center transition-all cursor-pointer shadow-inner-glass relative z-20 backdrop-blur-md ${isOpen ? "border-gold-accent/60 bg-black/40 shadow-gold-glow" : "border-white/10 text-white/70 hover:border-white/30"} ${heightClass} ${iconOnly ? "w-11 px-0" : icon ? "w-full pl-14 pr-12 text-[10px] font-black" : "w-full px-5 text-[10px] font-black"}`}
                 >
-                    <span className={`material-symbols-outlined transition-all duration-300 ${iconOnly ? "text-xl" : "absolute left-5 top-1/2 -translate-y-1/2 text-xl"}`} style={{ color: isOpen ? "#d4a937" : "rgba(255,255,255,0.2)" }}>
-                        {icon}
-                    </span>
+                    {icon && (
+                        <span className={`material-symbols-outlined transition-all duration-300 ${iconOnly ? "text-xl" : "absolute left-5 top-1/2 -translate-y-1/2 text-xl"}`} style={{ color: isOpen ? "#d4a937" : "rgba(255,255,255,0.2)" }}>
+                            {icon}
+                        </span>
+                    )}
                     {!iconOnly && <span className="truncate uppercase tracking-widest">{selectedOption.label}</span>}
                     {!iconOnly && (
                         <span className={`material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 transition-transform duration-300 ${isOpen ? "rotate-180 text-gold-accent" : "text-white/20"}`}>
@@ -170,6 +172,11 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
             if (!selectedIspId) {
                 setSubmitError("Lokasi harus terhubung ke satu ISP.");
                 setFieldErrors({ selectedIspId: "Pilih salah satu ISP." });
+                return;
+            }
+            if (form.paket === "core" && (!form.jumlah || Math.round(Number(form.jumlah || 0)) < 1)) {
+                setSubmitError("Jumlah core minimal 1 untuk paket Core.");
+                setFieldErrors({ jumlah: "Minimal 1." });
                 return;
             }
             if (form.paket === "shared" && (!form.ratioLeft || !form.ratioRight || Number(form.ratioLeft) < 1 || Number(form.ratioRight) < 1)) {
@@ -340,12 +347,12 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                                                 label="Jumlah Core"
                                                 icon="hub"
                                                 type="number"
-                                                min="0"
+                                                min="1"
                                                 onKeyDown={(e) => { if (e.key === '-' || e.key === 'e' || e.key === 'E') e.preventDefault(); }}
-                                                placeholder="0"
+                                                placeholder="1"
                                                 value={form.jumlah}
                                                 error={fieldErrors.jumlah}
-                                                onChange={(val) => { if (val === '' || Number(val) >= 0) setForm(p => ({ ...p, jumlah: val })); }}
+                                                onChange={(val) => { if (val === '' || Number(val) >= 1) setForm(p => ({ ...p, jumlah: val })); setFieldErrors((errors) => ({ ...errors, jumlah: "" })); }}
                                             />
                                         ) : (
                                             <div className="space-y-3">

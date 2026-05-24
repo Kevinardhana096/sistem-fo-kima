@@ -1,0 +1,138 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e1065]:
+    - navigation:
+      - generic [ref=e1067]:
+        - button "notifications 8" [ref=e1069]:
+          - generic [ref=e1070]: notifications
+          - generic [ref=e1071]: "8"
+        - button "Profile Administrator Super Admin" [ref=e1073]:
+          - img "Profile" [ref=e1075]
+          - generic [ref=e1076]:
+            - paragraph [ref=e1077]: Administrator
+            - paragraph [ref=e1078]: Super Admin
+    - complementary [ref=e1079]:
+      - button "KIMA ARCHIVE" [ref=e1080]:
+        - generic [ref=e1083]:
+          - paragraph [ref=e1084]: KIMA
+          - paragraph [ref=e1085]: ARCHIVE
+      - navigation [ref=e1086]:
+        - link "dashboard Dashboard" [ref=e1087] [cursor=pointer]:
+          - /url: /dashboard
+          - generic [ref=e1088]: dashboard
+          - generic [ref=e1089]: Dashboard
+        - link "groups Pelanggan" [ref=e1090] [cursor=pointer]:
+          - /url: /customers
+          - generic [ref=e1091]: groups
+          - generic [ref=e1092]: Pelanggan
+        - link "monitor_heart Monitoring" [ref=e1093] [cursor=pointer]:
+          - /url: /monitoring
+          - generic [ref=e1094]: monitor_heart
+          - generic [ref=e1095]: Monitoring
+        - link "task_alt Tindak Lanjut" [ref=e1096] [cursor=pointer]:
+          - /url: /todos
+          - generic [ref=e1097]: task_alt
+          - generic [ref=e1098]: Tindak Lanjut
+        - link "manage_history Log Aktivitas" [ref=e1099] [cursor=pointer]:
+          - /url: /activity-log
+          - generic [ref=e1100]: manage_history
+          - generic [ref=e1101]: Log Aktivitas
+        - link "delete Tempat Sampah" [ref=e1102] [cursor=pointer]:
+          - /url: /trash
+          - generic [ref=e1103]: delete
+          - generic [ref=e1104]: Tempat Sampah
+    - main [ref=e1105]:
+      - generic [ref=e1107]:
+        - generic [ref=e1108]:
+          - generic [ref=e1109]:
+            - generic [ref=e1112]: Modul Pendaftaran
+            - heading "Daftar Lokasi Baru" [level=1] [ref=e1113]
+            - paragraph [ref=e1114]: Silakan lengkapi data administratif dan konfigurasi layanan untuk mendaftarkan titik lokasi baru.
+          - generic [ref=e1115]:
+            - button "Batal" [ref=e1116]
+            - button "Tambah Lokasi" [ref=e1117]
+        - generic [ref=e1118]:
+          - generic [ref=e1119]:
+            - generic [ref=e1120]:
+              - heading "Identitas Lokasi" [level=3] [ref=e1123]
+              - generic [ref=e1124]:
+                - generic [ref=e1125]:
+                  - generic [ref=e1126]: Nama Lokasi
+                  - generic [ref=e1127]:
+                    - generic: location_on
+                    - 'textbox "Contoh: Gedung A - Lantai 2" [ref=e1128]': PT Karya Teknik Mulia (PT Wastec International)
+                - generic [ref=e1129]:
+                  - generic [ref=e1130]: Status Operasional
+                  - generic [ref=e1132] [cursor=pointer]:
+                    - generic [ref=e1133]: verified_user
+                    - generic [ref=e1134]: BEROPERASI
+                    - generic [ref=e1135]: expand_more
+            - generic [ref=e1136]:
+              - heading "Layanan & Kontrak" [level=3] [ref=e1139]
+              - generic [ref=e1140]:
+                - generic [ref=e1141]:
+                  - generic [ref=e1142]:
+                    - generic [ref=e1143]: Jenis Paket
+                    - generic [ref=e1144]:
+                      - generic [ref=e1145] [cursor=pointer]:
+                        - generic [ref=e1146]: inventory_2
+                        - generic [ref=e1147]: CORE
+                        - generic [ref=e1148]: expand_more
+                      - generic [ref=e1211]:
+                        - generic [ref=e1212] [cursor=pointer]:
+                          - text: CORE
+                          - generic [ref=e1213]: check_circle
+                        - generic [ref=e1214] [cursor=pointer]: SHARING CORE
+                  - generic [ref=e1149]:
+                    - generic [ref=e1150]: Jumlah Core
+                    - generic [ref=e1151]:
+                      - generic: hub
+                      - spinbutton [ref=e1152]: "0"
+                - generic [ref=e1153]:
+                  - generic [ref=e1154]:
+                    - generic [ref=e1155]: Awal Kontrak (Ops)
+                    - generic [ref=e1156]:
+                      - generic: calendar_today
+                      - textbox [ref=e1157]: 2022-08-15
+                  - generic [ref=e1158]:
+                    - generic [ref=e1159]: Mulai Periode
+                    - generic [ref=e1160]:
+                      - generic: event_available
+                      - textbox [ref=e1161]: 2025-08-18
+                  - generic [ref=e1162]:
+                    - generic [ref=e1163]: Akhir Periode
+                    - generic [ref=e1164]:
+                      - generic: event_busy
+                      - textbox [ref=e1165]: 2026-08-17
+            - generic [ref=e1166]:
+              - generic [ref=e1167]:
+                - heading "Pilih Mitra ISP" [level=3] [ref=e1170]
+                - generic [ref=e1171]:
+                  - generic [ref=e1172]:
+                    - generic [ref=e1173]: search
+                    - textbox "Cari ISP..." [ref=e1174]
+                  - generic [ref=e1179] [cursor=pointer]: sort
+              - generic [ref=e1182] [cursor=pointer]:
+                - generic [ref=e1184]: check_circle
+                - generic [ref=e1185]:
+                  - paragraph [ref=e1186]: PT Cendikia Global Solusi
+                  - paragraph [ref=e1187]: Tanpa referensi
+          - generic [ref=e1191]:
+            - heading "Billing & Biaya" [level=3] [ref=e1194]
+            - generic [ref=e1195]:
+              - generic [ref=e1196]:
+                - generic [ref=e1197]: Siklus Penagihan
+                - generic [ref=e1198]:
+                  - button "Bulan" [ref=e1199]
+                  - button "3 Bln" [ref=e1200]
+                  - button "Kustom" [ref=e1201]
+              - generic [ref=e1202]:
+                - generic [ref=e1203]: Biaya Aktivasi (IDR)
+                - generic [ref=e1204]:
+                  - generic: payments
+                  - spinbutton [ref=e1205]: "2500000"
+              - generic [ref=e1206]:
+                - generic [ref=e1207]:
+                  - generic [ref=e1208]: info
+                  - paragraph [ref=e1209]: Informasi Sistem
+                - paragraph [ref=e1210]: Invoice dan kontrak pertama akan dibuat secara otomatis setelah data disimpan.
+  - generic [ref=e505]: "0"

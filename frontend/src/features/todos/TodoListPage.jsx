@@ -131,11 +131,12 @@ export default function TodoListPage({ activeSection, onNavigate, onLogout, curr
     }, [notifications]);
 
     const filteredNotifications = useMemo(() => {
-        const q = search.trim().toLowerCase();
+        const queryTokens = search.trim().toLowerCase().split(/\s+/).filter(Boolean);
         return notifications.filter((n) => {
             const haystack = [n.title, n.message, n.customerName, n.code, n.type].filter(Boolean).join(" ").toLowerCase();
+            const matchesSearch = queryTokens.length === 0 || queryTokens.every((token) => haystack.includes(token));
             const sk = getStatusKey(n);
-            return (!q || haystack.includes(q))
+            return matchesSearch
                 && (severity === "all" || n.severity === severity)
                 && (type === "all" || n.type === type || n.code === type)
                 && (status === "all" || (status === "active" && !n.resolvedAt) || sk === status);

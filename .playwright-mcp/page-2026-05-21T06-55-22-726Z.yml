@@ -1,0 +1,140 @@
+- generic [ref=e46]:
+  - navigation:
+    - generic [ref=e48]:
+      - button "notifications 9+" [ref=e159]:
+        - generic [ref=e51]: notifications
+        - generic [ref=e160]: 9+
+      - button "Profile Administrator Super Admin" [ref=e53]:
+        - img "Profile" [ref=e55]
+        - generic [ref=e56]:
+          - paragraph [ref=e57]: Administrator
+          - paragraph [ref=e58]: Super Admin
+  - complementary [ref=e59]:
+    - button "KIMA ARCHIVE" [ref=e60]:
+      - generic [ref=e63]:
+        - paragraph [ref=e64]: KIMA
+        - paragraph [ref=e65]: ARCHIVE
+    - navigation [ref=e66]:
+      - link "dashboard Dashboard" [ref=e67] [cursor=pointer]:
+        - /url: /dashboard
+        - generic [ref=e68]: dashboard
+        - generic [ref=e69]: Dashboard
+      - link "groups Pelanggan" [ref=e70] [cursor=pointer]:
+        - /url: /customers
+        - generic [ref=e71]: groups
+        - generic [ref=e72]: Pelanggan
+      - link "monitor_heart Monitoring" [ref=e73] [cursor=pointer]:
+        - /url: /monitoring
+        - generic [ref=e74]: monitor_heart
+        - generic [ref=e75]: Monitoring
+      - link "task_alt Tindak Lanjut" [ref=e76] [cursor=pointer]:
+        - /url: /todos
+        - generic [ref=e77]: task_alt
+        - generic [ref=e78]: Tindak Lanjut
+      - link "manage_history Log Aktivitas" [ref=e79] [cursor=pointer]:
+        - /url: /activity-log
+        - generic [ref=e80]: manage_history
+        - generic [ref=e81]: Log Aktivitas
+      - link "delete Tempat Sampah" [ref=e82] [cursor=pointer]:
+        - /url: /trash
+        - generic [ref=e83]: delete
+        - generic [ref=e84]: Tempat Sampah
+  - main [ref=e85]:
+    - generic [ref=e87]:
+      - generic [ref=e88]:
+        - generic [ref=e89]:
+          - paragraph [ref=e92]: Pusat Tindakan
+          - heading "Tindak Lanjut" [level=1] [ref=e93]
+          - paragraph [ref=e94]: Kelola semua notifikasi operasional yang perlu dibaca atau ditindaklanjuti.
+        - button "sync" [ref=e95]:
+          - generic [ref=e96]: sync
+      - generic [ref=e97]:
+        - generic [ref=e98]:
+          - generic [ref=e99]:
+            - paragraph [ref=e100]: Aktif
+            - generic [ref=e102]: task_alt
+          - paragraph [ref=e103]: "200"
+        - generic [ref=e104]:
+          - generic [ref=e105]:
+            - paragraph [ref=e106]: Belum Dibaca
+            - generic [ref=e108]: mark_email_unread
+          - paragraph [ref=e109]: "200"
+        - generic [ref=e110]:
+          - generic [ref=e111]:
+            - paragraph [ref=e112]: Dibaca
+            - generic [ref=e114]: drafts
+          - paragraph [ref=e115]: "0"
+        - generic [ref=e116]:
+          - generic [ref=e117]:
+            - paragraph [ref=e118]: Selesai
+            - generic [ref=e120]: check_circle
+          - paragraph [ref=e121]: "0"
+      - generic [ref=e122]:
+        - generic [ref=e123]:
+          - generic: search
+          - textbox "Cari pelanggan, pesan, atau kode..." [ref=e124]
+        - generic [ref=e125]:
+          - generic [ref=e126]:
+            - generic [ref=e128]:
+              - generic: category
+              - button "Perpanjangan ISP expand_more" [ref=e414]:
+                - generic [ref=e131]: Perpanjangan ISP
+                - generic [ref=e132]: expand_more
+            - generic [ref=e134]:
+              - generic: warning
+              - button "Semua Severity expand_more" [ref=e136]:
+                - generic [ref=e137]: Semua Severity
+                - generic [ref=e138]: expand_more
+            - generic [ref=e140]:
+              - generic: flag
+              - button "Aktif expand_more" [ref=e142]:
+                - generic [ref=e143]: Aktif
+                - generic [ref=e144]: expand_more
+          - button "filter_alt_off Reset" [ref=e145]:
+            - generic [ref=e146]: filter_alt_off
+            - generic [ref=e147]: Reset
+      - generic [ref=e148]:
+        - generic [ref=e149]:
+          - heading "Daftar Tindakan" [level=2] [ref=e152]
+          - generic [ref=e153]:
+            - generic [ref=e154]: "Total:"
+            - generic [ref=e155]: "2"
+        - generic [ref=e156]:
+          - generic [ref=e161]:
+            - generic [ref=e162]:
+              - generic [ref=e164]: task_alt
+              - generic [ref=e165]:
+                - generic [ref=e166]:
+                  - heading "Kontrak ISP belum diperpanjang" [level=3] [ref=e167]
+                  - generic [ref=e169]: Critical
+                  - generic [ref=e170]: Belum Dibaca
+                - paragraph [ref=e171]: "Kontrak ISP-CONTRACT-004 untuk ISP Test Kelengkapan Berkas telah berakhir pada 2026-04-21. Status: Belum Diperpanjang."
+                - generic [ref=e172]:
+                  - generic [ref=e173]: Perpanjangan ISP
+                  - generic [ref=e174]: ISP Test Kelengkapan Berkas
+                  - generic [ref=e175]: "Dibuat: 21 Mei 2026, 14.54"
+            - generic [ref=e176]:
+              - button "open_in_new Buka Kontrak" [ref=e177]:
+                - generic [ref=e178]: open_in_new
+                - text: Buka Kontrak
+              - button "Dibaca" [ref=e179]
+              - button "Selesai" [ref=e180]
+          - generic [ref=e415]:
+            - generic [ref=e416]:
+              - generic [ref=e418]: task_alt
+              - generic [ref=e419]:
+                - generic [ref=e420]:
+                  - 'heading "Peringatan ke-2: Menunggu tanggapan perpanjangan" [level=3] [ref=e421]'
+                  - generic [ref=e423]: Warning
+                  - generic [ref=e424]: Belum Dibaca
+                - paragraph [ref=e425]: Kontrak ISP-CONTRACT-003 untuk ISP Test Kelengkapan Berkas akan berakhir pada 2026-06-21. Surat perpanjangan sudah dikirim, menunggu tanggapan ISP.
+                - generic [ref=e426]:
+                  - generic [ref=e427]: Perpanjangan ISP
+                  - generic [ref=e428]: ISP Test Kelengkapan Berkas
+                  - generic [ref=e429]: "Dibuat: 21 Mei 2026, 14.54"
+            - generic [ref=e430]:
+              - button "open_in_new Buka Kontrak" [ref=e431]:
+                - generic [ref=e432]: open_in_new
+                - text: Buka Kontrak
+              - button "Dibaca" [ref=e433]
+              - button "Selesai" [ref=e434]

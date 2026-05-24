@@ -1,0 +1,549 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e1223]:
+    - navigation:
+      - generic [ref=e1225]:
+        - button "notifications 9+" [ref=e1227]:
+          - generic [ref=e1228]: notifications
+          - generic [ref=e1229]: 9+
+        - button "Profile Administrator Super Admin" [ref=e1231]:
+          - img "Profile" [ref=e1233]
+          - generic [ref=e1234]:
+            - paragraph [ref=e1235]: Administrator
+            - paragraph [ref=e1236]: Super Admin
+    - complementary [ref=e1237]:
+      - button "KIMA ARCHIVE" [ref=e1238]:
+        - generic [ref=e1241]:
+          - paragraph [ref=e1242]: KIMA
+          - paragraph [ref=e1243]: ARCHIVE
+      - navigation [ref=e1244]:
+        - link "dashboard Dashboard" [ref=e1245] [cursor=pointer]:
+          - /url: /dashboard
+          - generic [ref=e1246]: dashboard
+          - generic [ref=e1247]: Dashboard
+        - link "groups Pelanggan" [ref=e1248] [cursor=pointer]:
+          - /url: /customers
+          - generic [ref=e1249]: groups
+          - generic [ref=e1250]: Pelanggan
+        - link "monitor_heart Monitoring" [ref=e1251] [cursor=pointer]:
+          - /url: /monitoring
+          - generic [ref=e1252]: monitor_heart
+          - generic [ref=e1253]: Monitoring
+        - link "task_alt Tindak Lanjut" [ref=e1254] [cursor=pointer]:
+          - /url: /todos
+          - generic [ref=e1255]: task_alt
+          - generic [ref=e1256]: Tindak Lanjut
+        - link "manage_history Log Aktivitas" [ref=e1257] [cursor=pointer]:
+          - /url: /activity-log
+          - generic [ref=e1258]: manage_history
+          - generic [ref=e1259]: Log Aktivitas
+        - link "delete Tempat Sampah" [ref=e1260] [cursor=pointer]:
+          - /url: /trash
+          - generic [ref=e1261]: delete
+          - generic [ref=e1262]: Tempat Sampah
+    - main [ref=e1263]:
+      - generic [ref=e1265]:
+        - generic [ref=e1266]:
+          - button "arrow_back Kembali ke Workspace" [ref=e1268]:
+            - generic [ref=e1269]: arrow_back
+            - text: Kembali ke Workspace
+          - generic [ref=e1270]:
+            - button "sync Refresh" [ref=e1271]:
+              - generic [ref=e1272]: sync
+              - text: Refresh
+            - button "edit_note Edit Lokasi" [ref=e1273]:
+              - generic [ref=e1274]: edit_note
+              - text: Edit Lokasi
+            - button "delete_forever Hapus Lokasi" [ref=e1275]:
+              - generic [ref=e1276]: delete_forever
+              - text: Hapus Lokasi
+        - generic [ref=e1279]:
+          - generic [ref=e1280]:
+            - generic [ref=e1281]:
+              - generic [ref=e1282]:
+                - generic [ref=e1284]: location_on
+                - generic [ref=e1285]:
+                  - paragraph [ref=e1286]: Lokasi Operasional
+                  - paragraph [ref=e1287]: "#CUST-20260523135916"
+              - heading "PT Karya Teknik Mulia (PT Wastec International)" [level=1] [ref=e1288]
+              - generic [ref=e1289]:
+                - generic [ref=e1290]: corporate_fare
+                - generic [ref=e1291]: PT Cendikia Global Solusi
+            - generic [ref=e1292]:
+              - generic [ref=e1293]:
+                - generic [ref=e1294]: check_circle
+                - generic [ref=e1295]:
+                  - paragraph [ref=e1296]: Kontrak
+                  - paragraph [ref=e1297]: Beroperasi
+              - generic [ref=e1299]:
+                - generic [ref=e1300]: cable
+                - generic [ref=e1301]:
+                  - paragraph [ref=e1302]: Jalur FO
+                  - paragraph [ref=e1303]: Jalur Aktif
+          - generic [ref=e1306]:
+            - generic [ref=e1307]:
+              - paragraph [ref=e1308]: Paket
+              - generic [ref=e1309]:
+                - generic [ref=e1310]: package_2
+                - paragraph [ref=e1311]: SHARING CORE
+            - generic [ref=e1312]:
+              - paragraph [ref=e1313]: Jumlah
+              - generic [ref=e1314]:
+                - generic [ref=e1315]: speed
+                - paragraph [ref=e1316]: 1/32
+            - generic [ref=e1317]:
+              - paragraph [ref=e1318]: Periode Awal Kontrak
+              - generic [ref=e1319]:
+                - generic [ref=e1320]: event_available
+                - paragraph [ref=e1321]: 15 Agu 2022
+            - generic [ref=e1322]:
+              - paragraph [ref=e1323]: Periode Berjalan
+              - generic [ref=e1324]:
+                - generic [ref=e1325]: date_range
+                - paragraph [ref=e1326]: 18 Agu 2025—17 Agu 2026
+        - generic [ref=e1328]:
+          - button "Ringkasan" [ref=e1329]
+          - button "Jalur" [ref=e1330]
+          - button "Kontrak" [ref=e1331]
+          - button "Invoice" [ref=e1332]
+          - button "Dokumen" [ref=e1333]
+          - button "Timeline" [ref=e1334]
+        - generic [ref=e1548]:
+          - generic [ref=e1549]:
+            - generic [ref=e1551]:
+              - generic [ref=e1552]:
+                - heading "Manajemen Tagihan Bulanan" [level=2] [ref=e1553]
+                - paragraph [ref=e1554]: Monitoring siklus invoice dan rekonsiliasi bayar
+              - generic [ref=e1555]:
+                - generic [ref=e1556]:
+                  - paragraph [ref=e1557]: Urutan Bayar
+                  - generic [ref=e1558]:
+                    - button "arrow_downward Awal ke Akhir" [ref=e1559]:
+                      - generic [ref=e1560]: arrow_downward
+                      - text: Awal ke Akhir
+                    - button "arrow_upward Akhir ke Awal" [ref=e1561]:
+                      - generic [ref=e1562]: arrow_upward
+                      - text: Akhir ke Awal
+                - generic [ref=e1563]:
+                  - paragraph [ref=e1564]: Mode Set Tanggal
+                  - generic [ref=e1565]:
+                    - button "edit_note Satuan" [ref=e1566]:
+                      - generic [ref=e1567]: edit_note
+                      - text: Satuan
+                    - button "calendar_month Semua" [ref=e1568]:
+                      - generic [ref=e1569]: calendar_month
+                      - text: Semua
+                - generic [ref=e2044]:
+                  - generic [ref=e2045]:
+                    - paragraph [ref=e2046]: Tanggal (1–31)
+                    - spinbutton [ref=e2047]: "17"
+                  - button "check_circle Terapkan Semua" [disabled] [ref=e2048]:
+                    - generic [ref=e2049]: check_circle
+                    - text: Terapkan Semua
+                - button "tune Rekonfigurasi Periode" [ref=e1570]:
+                  - generic [ref=e1571]: tune
+                  - text: Rekonfigurasi Periode
+            - generic [ref=e1572]:
+              - generic [ref=e1573]:
+                - generic [ref=e1574]: Pending Approval
+                - generic [ref=e1575]: "0"
+              - generic [ref=e1576]:
+                - generic [ref=e1577]: Unpaid / Overdue
+                - generic [ref=e1578]: "0"
+              - generic [ref=e1579]:
+                - generic [ref=e1580]: Settled / Paid
+                - generic [ref=e1581]: "0"
+              - generic [ref=e1582]:
+                - generic [ref=e1583]: Next Sequence
+                - generic [ref=e1584]: Active
+          - generic [ref=e2071]:
+            - generic [ref=e2072]: verified
+            - text: Set date global berhasil diterapkan ke semua invoice.
+          - generic [ref=e1585]:
+            - generic [ref=e1586]:
+              - generic [ref=e1587]:
+                - generic [ref=e1588]: payments
+                - heading "Siklus Pembayaran Aktif" [level=3] [ref=e1589]
+              - generic [ref=e1590]: 12 Sequence
+            - table [ref=e1592]:
+              - rowgroup [ref=e1593]:
+                - row "No Pembayaran Ke Nomor Invoice Terakhir Bayar Jumlah Dibayar Status Pembayaran Waktu Terbayar Upload Invoice Bukti Bayar Aksi" [ref=e1594]:
+                  - columnheader "No" [ref=e1595]
+                  - columnheader "Pembayaran Ke" [ref=e1596]
+                  - columnheader "Nomor Invoice" [ref=e1597]
+                  - columnheader "Terakhir Bayar" [ref=e1598]
+                  - columnheader "Jumlah Dibayar" [ref=e1599]
+                  - columnheader "Status Pembayaran" [ref=e1600]
+                  - columnheader "Waktu Terbayar" [ref=e1601]
+                  - columnheader "Upload Invoice" [ref=e1602]
+                  - columnheader "Bukti Bayar" [ref=e1603]
+                  - columnheader "Aksi" [ref=e1604]
+              - rowgroup [ref=e1605]:
+                - 'row "1 #1 — 17 Agu 2025 — Mengatur nominal jumlah pembayaran. Lengkapi Data — upload_file Upload receipt_long Upload edit_note" [ref=e2073]':
+                  - cell "1" [ref=e1607]
+                  - cell "#1" [ref=e1608]:
+                    - generic [ref=e1609]: "#1"
+                  - cell "—" [ref=e2034]:
+                    - generic [ref=e2035]: —
+                  - cell "17 Agu 2025" [ref=e2074]:
+                    - generic [ref=e1613]: 17 Agu 2025
+                  - cell "— Mengatur nominal jumlah pembayaran." [ref=e2039]:
+                    - generic [ref=e1617]:
+                      - generic [ref=e1618]: —
+                      - paragraph [ref=e2040]: Mengatur nominal jumlah pembayaran.
+                  - cell "Lengkapi Data" [ref=e1620]:
+                    - generic [ref=e1621]: Lengkapi Data
+                  - cell "—" [ref=e1623]:
+                    - generic [ref=e1624]: —
+                  - cell "upload_file Upload" [ref=e1625]:
+                    - generic [ref=e1627] [cursor=pointer]:
+                      - generic [ref=e1628]: upload_file
+                      - text: Upload
+                      - button "upload_file Upload" [disabled] [ref=e1629]
+                  - cell "receipt_long Upload" [ref=e1630]:
+                    - generic [ref=e1632] [cursor=pointer]:
+                      - generic [ref=e1633]: receipt_long
+                      - text: Upload
+                      - button "receipt_long Upload" [disabled] [ref=e1634]
+                  - cell "edit_note" [ref=e2041]:
+                    - button "edit_note" [ref=e2042]:
+                      - generic [ref=e2043]: edit_note
+                - 'row "2 #2 — 17 Sep 2025 — Mengatur nominal jumlah pembayaran. Lengkapi Data — upload_file Upload receipt_long Upload edit_note" [ref=e2075]':
+                  - cell "2" [ref=e1640]
+                  - cell "#2" [ref=e1641]:
+                    - generic [ref=e1642]: "#2"
+                  - cell "—" [ref=e1643]:
+                    - generic [ref=e1644]: —
+                  - cell "17 Sep 2025" [ref=e2076]:
+                    - generic [ref=e1646]: 17 Sep 2025
+                  - cell "— Mengatur nominal jumlah pembayaran." [ref=e1649]:
+                    - generic [ref=e1650]:
+                      - generic [ref=e1651]: —
+                      - paragraph [ref=e1652]: Mengatur nominal jumlah pembayaran.
+                  - cell "Lengkapi Data" [ref=e1653]:
+                    - generic [ref=e1654]: Lengkapi Data
+                  - cell "—" [ref=e1656]:
+                    - generic [ref=e1657]: —
+                  - cell "upload_file Upload" [ref=e1658]:
+                    - generic [ref=e1660] [cursor=pointer]:
+                      - generic [ref=e1661]: upload_file
+                      - text: Upload
+                      - button "upload_file Upload" [disabled] [ref=e1662]
+                  - cell "receipt_long Upload" [ref=e1663]:
+                    - generic [ref=e1665] [cursor=pointer]:
+                      - generic [ref=e1666]: receipt_long
+                      - text: Upload
+                      - button "receipt_long Upload" [disabled] [ref=e1667]
+                  - cell "edit_note" [ref=e1668]:
+                    - button "edit_note" [ref=e1670]:
+                      - generic [ref=e1671]: edit_note
+                - 'row "3 #3 — 17 Okt 2025 — Mengatur nominal jumlah pembayaran. Lengkapi Data — upload_file Upload receipt_long Upload edit_note" [ref=e2077]':
+                  - cell "3" [ref=e1673]
+                  - cell "#3" [ref=e1674]:
+                    - generic [ref=e1675]: "#3"
+                  - cell "—" [ref=e1676]:
+                    - generic [ref=e1677]: —
+                  - cell "17 Okt 2025" [ref=e2078]:
+                    - generic [ref=e1679]: 17 Okt 2025
+                  - cell "— Mengatur nominal jumlah pembayaran." [ref=e1682]:
+                    - generic [ref=e1683]:
+                      - generic [ref=e1684]: —
+                      - paragraph [ref=e1685]: Mengatur nominal jumlah pembayaran.
+                  - cell "Lengkapi Data" [ref=e1686]:
+                    - generic [ref=e1687]: Lengkapi Data
+                  - cell "—" [ref=e1689]:
+                    - generic [ref=e1690]: —
+                  - cell "upload_file Upload" [ref=e1691]:
+                    - generic [ref=e1693] [cursor=pointer]:
+                      - generic [ref=e1694]: upload_file
+                      - text: Upload
+                      - button "upload_file Upload" [disabled] [ref=e1695]
+                  - cell "receipt_long Upload" [ref=e1696]:
+                    - generic [ref=e1698] [cursor=pointer]:
+                      - generic [ref=e1699]: receipt_long
+                      - text: Upload
+                      - button "receipt_long Upload" [disabled] [ref=e1700]
+                  - cell "edit_note" [ref=e1701]:
+                    - button "edit_note" [ref=e1703]:
+                      - generic [ref=e1704]: edit_note
+                - 'row "4 #4 — 17 Nov 2025 — Mengatur nominal jumlah pembayaran. Lengkapi Data — upload_file Upload receipt_long Upload edit_note" [ref=e2079]':
+                  - cell "4" [ref=e1706]
+                  - cell "#4" [ref=e1707]:
+                    - generic [ref=e1708]: "#4"
+                  - cell "—" [ref=e1709]:
+                    - generic [ref=e1710]: —
+                  - cell "17 Nov 2025" [ref=e2080]:
+                    - generic [ref=e1712]: 17 Nov 2025
+                  - cell "— Mengatur nominal jumlah pembayaran." [ref=e1715]:
+                    - generic [ref=e1716]:
+                      - generic [ref=e1717]: —
+                      - paragraph [ref=e1718]: Mengatur nominal jumlah pembayaran.
+                  - cell "Lengkapi Data" [ref=e1719]:
+                    - generic [ref=e1720]: Lengkapi Data
+                  - cell "—" [ref=e1722]:
+                    - generic [ref=e1723]: —
+                  - cell "upload_file Upload" [ref=e1724]:
+                    - generic [ref=e1726] [cursor=pointer]:
+                      - generic [ref=e1727]: upload_file
+                      - text: Upload
+                      - button "upload_file Upload" [disabled] [ref=e1728]
+                  - cell "receipt_long Upload" [ref=e1729]:
+                    - generic [ref=e1731] [cursor=pointer]:
+                      - generic [ref=e1732]: receipt_long
+                      - text: Upload
+                      - button "receipt_long Upload" [disabled] [ref=e1733]
+                  - cell "edit_note" [ref=e1734]:
+                    - button "edit_note" [ref=e1736]:
+                      - generic [ref=e1737]: edit_note
+                - 'row "5 #5 — 17 Des 2025 — Mengatur nominal jumlah pembayaran. Lengkapi Data — upload_file Upload receipt_long Upload edit_note" [ref=e2081]':
+                  - cell "5" [ref=e1739]
+                  - cell "#5" [ref=e1740]:
+                    - generic [ref=e1741]: "#5"
+                  - cell "—" [ref=e1742]:
+                    - generic [ref=e1743]: —
+                  - cell "17 Des 2025" [ref=e2082]:
+                    - generic [ref=e1745]: 17 Des 2025
+                  - cell "— Mengatur nominal jumlah pembayaran." [ref=e1748]:
+                    - generic [ref=e1749]:
+                      - generic [ref=e1750]: —
+                      - paragraph [ref=e1751]: Mengatur nominal jumlah pembayaran.
+                  - cell "Lengkapi Data" [ref=e1752]:
+                    - generic [ref=e1753]: Lengkapi Data
+                  - cell "—" [ref=e1755]:
+                    - generic [ref=e1756]: —
+                  - cell "upload_file Upload" [ref=e1757]:
+                    - generic [ref=e1759] [cursor=pointer]:
+                      - generic [ref=e1760]: upload_file
+                      - text: Upload
+                      - button "upload_file Upload" [disabled] [ref=e1761]
+                  - cell "receipt_long Upload" [ref=e1762]:
+                    - generic [ref=e1764] [cursor=pointer]:
+                      - generic [ref=e1765]: receipt_long
+                      - text: Upload
+                      - button "receipt_long Upload" [disabled] [ref=e1766]
+                  - cell "edit_note" [ref=e1767]:
+                    - button "edit_note" [ref=e1769]:
+                      - generic [ref=e1770]: edit_note
+                - 'row "6 #6 — 17 Jan 2026 — Mengatur nominal jumlah pembayaran. Lengkapi Data — upload_file Upload receipt_long Upload edit_note" [ref=e2083]':
+                  - cell "6" [ref=e1772]
+                  - cell "#6" [ref=e1773]:
+                    - generic [ref=e1774]: "#6"
+                  - cell "—" [ref=e1775]:
+                    - generic [ref=e1776]: —
+                  - cell "17 Jan 2026" [ref=e2084]:
+                    - generic [ref=e1778]: 17 Jan 2026
+                  - cell "— Mengatur nominal jumlah pembayaran." [ref=e1781]:
+                    - generic [ref=e1782]:
+                      - generic [ref=e1783]: —
+                      - paragraph [ref=e1784]: Mengatur nominal jumlah pembayaran.
+                  - cell "Lengkapi Data" [ref=e1785]:
+                    - generic [ref=e1786]: Lengkapi Data
+                  - cell "—" [ref=e1788]:
+                    - generic [ref=e1789]: —
+                  - cell "upload_file Upload" [ref=e1790]:
+                    - generic [ref=e1792] [cursor=pointer]:
+                      - generic [ref=e1793]: upload_file
+                      - text: Upload
+                      - button "upload_file Upload" [disabled] [ref=e1794]
+                  - cell "receipt_long Upload" [ref=e1795]:
+                    - generic [ref=e1797] [cursor=pointer]:
+                      - generic [ref=e1798]: receipt_long
+                      - text: Upload
+                      - button "receipt_long Upload" [disabled] [ref=e1799]
+                  - cell "edit_note" [ref=e1800]:
+                    - button "edit_note" [ref=e1802]:
+                      - generic [ref=e1803]: edit_note
+                - 'row "7 #7 — 17 Feb 2026 — Mengatur nominal jumlah pembayaran. Lengkapi Data — upload_file Upload receipt_long Upload edit_note" [ref=e2085]':
+                  - cell "7" [ref=e1805]
+                  - cell "#7" [ref=e1806]:
+                    - generic [ref=e1807]: "#7"
+                  - cell "—" [ref=e1808]:
+                    - generic [ref=e1809]: —
+                  - cell "17 Feb 2026" [ref=e2086]:
+                    - generic [ref=e1811]: 17 Feb 2026
+                  - cell "— Mengatur nominal jumlah pembayaran." [ref=e1814]:
+                    - generic [ref=e1815]:
+                      - generic [ref=e1816]: —
+                      - paragraph [ref=e1817]: Mengatur nominal jumlah pembayaran.
+                  - cell "Lengkapi Data" [ref=e1818]:
+                    - generic [ref=e1819]: Lengkapi Data
+                  - cell "—" [ref=e1821]:
+                    - generic [ref=e1822]: —
+                  - cell "upload_file Upload" [ref=e1823]:
+                    - generic [ref=e1825] [cursor=pointer]:
+                      - generic [ref=e1826]: upload_file
+                      - text: Upload
+                      - button "upload_file Upload" [disabled] [ref=e1827]
+                  - cell "receipt_long Upload" [ref=e1828]:
+                    - generic [ref=e1830] [cursor=pointer]:
+                      - generic [ref=e1831]: receipt_long
+                      - text: Upload
+                      - button "receipt_long Upload" [disabled] [ref=e1832]
+                  - cell "edit_note" [ref=e1833]:
+                    - button "edit_note" [ref=e1835]:
+                      - generic [ref=e1836]: edit_note
+                - 'row "8 #8 — 17 Mar 2026 — Mengatur nominal jumlah pembayaran. Lengkapi Data — upload_file Upload receipt_long Upload edit_note" [ref=e2087]':
+                  - cell "8" [ref=e1838]
+                  - cell "#8" [ref=e1839]:
+                    - generic [ref=e1840]: "#8"
+                  - cell "—" [ref=e1841]:
+                    - generic [ref=e1842]: —
+                  - cell "17 Mar 2026" [ref=e2088]:
+                    - generic [ref=e1844]: 17 Mar 2026
+                  - cell "— Mengatur nominal jumlah pembayaran." [ref=e1847]:
+                    - generic [ref=e1848]:
+                      - generic [ref=e1849]: —
+                      - paragraph [ref=e1850]: Mengatur nominal jumlah pembayaran.
+                  - cell "Lengkapi Data" [ref=e1851]:
+                    - generic [ref=e1852]: Lengkapi Data
+                  - cell "—" [ref=e1854]:
+                    - generic [ref=e1855]: —
+                  - cell "upload_file Upload" [ref=e1856]:
+                    - generic [ref=e1858] [cursor=pointer]:
+                      - generic [ref=e1859]: upload_file
+                      - text: Upload
+                      - button "upload_file Upload" [disabled] [ref=e1860]
+                  - cell "receipt_long Upload" [ref=e1861]:
+                    - generic [ref=e1863] [cursor=pointer]:
+                      - generic [ref=e1864]: receipt_long
+                      - text: Upload
+                      - button "receipt_long Upload" [disabled] [ref=e1865]
+                  - cell "edit_note" [ref=e1866]:
+                    - button "edit_note" [ref=e1868]:
+                      - generic [ref=e1869]: edit_note
+                - 'row "9 #9 — 17 Apr 2026 — Mengatur nominal jumlah pembayaran. Lengkapi Data — upload_file Upload receipt_long Upload edit_note" [ref=e2089]':
+                  - cell "9" [ref=e1871]
+                  - cell "#9" [ref=e1872]:
+                    - generic [ref=e1873]: "#9"
+                  - cell "—" [ref=e1874]:
+                    - generic [ref=e1875]: —
+                  - cell "17 Apr 2026" [ref=e2090]:
+                    - generic [ref=e1877]: 17 Apr 2026
+                  - cell "— Mengatur nominal jumlah pembayaran." [ref=e1880]:
+                    - generic [ref=e1881]:
+                      - generic [ref=e1882]: —
+                      - paragraph [ref=e1883]: Mengatur nominal jumlah pembayaran.
+                  - cell "Lengkapi Data" [ref=e1884]:
+                    - generic [ref=e1885]: Lengkapi Data
+                  - cell "—" [ref=e1887]:
+                    - generic [ref=e1888]: —
+                  - cell "upload_file Upload" [ref=e1889]:
+                    - generic [ref=e1891] [cursor=pointer]:
+                      - generic [ref=e1892]: upload_file
+                      - text: Upload
+                      - button "upload_file Upload" [disabled] [ref=e1893]
+                  - cell "receipt_long Upload" [ref=e1894]:
+                    - generic [ref=e1896] [cursor=pointer]:
+                      - generic [ref=e1897]: receipt_long
+                      - text: Upload
+                      - button "receipt_long Upload" [disabled] [ref=e1898]
+                  - cell "edit_note" [ref=e1899]:
+                    - button "edit_note" [ref=e1901]:
+                      - generic [ref=e1902]: edit_note
+                - 'row "10 #10 — 17 Mei 2026 — Mengatur nominal jumlah pembayaran. Lengkapi Data — upload_file Upload receipt_long Upload edit_note" [ref=e2091]':
+                  - cell "10" [ref=e1904]
+                  - cell "#10" [ref=e1905]:
+                    - generic [ref=e1906]: "#10"
+                  - cell "—" [ref=e1907]:
+                    - generic [ref=e1908]: —
+                  - cell "17 Mei 2026" [ref=e2092]:
+                    - generic [ref=e1910]: 17 Mei 2026
+                  - cell "— Mengatur nominal jumlah pembayaran." [ref=e1913]:
+                    - generic [ref=e1914]:
+                      - generic [ref=e1915]: —
+                      - paragraph [ref=e1916]: Mengatur nominal jumlah pembayaran.
+                  - cell "Lengkapi Data" [ref=e1917]:
+                    - generic [ref=e1918]: Lengkapi Data
+                  - cell "—" [ref=e1920]:
+                    - generic [ref=e1921]: —
+                  - cell "upload_file Upload" [ref=e1922]:
+                    - generic [ref=e1924] [cursor=pointer]:
+                      - generic [ref=e1925]: upload_file
+                      - text: Upload
+                      - button "upload_file Upload" [disabled] [ref=e1926]
+                  - cell "receipt_long Upload" [ref=e1927]:
+                    - generic [ref=e1929] [cursor=pointer]:
+                      - generic [ref=e1930]: receipt_long
+                      - text: Upload
+                      - button "receipt_long Upload" [disabled] [ref=e1931]
+                  - cell "edit_note" [ref=e1932]:
+                    - button "edit_note" [ref=e1934]:
+                      - generic [ref=e1935]: edit_note
+                - 'row "11 #11 — 17 Jun 2026 — Mengatur nominal jumlah pembayaran. Lengkapi Data — upload_file Upload receipt_long Upload edit_note" [ref=e2093]':
+                  - cell "11" [ref=e1937]
+                  - cell "#11" [ref=e1938]:
+                    - generic [ref=e1939]: "#11"
+                  - cell "—" [ref=e1940]:
+                    - generic [ref=e1941]: —
+                  - cell "17 Jun 2026" [ref=e2094]:
+                    - generic [ref=e1943]: 17 Jun 2026
+                  - cell "— Mengatur nominal jumlah pembayaran." [ref=e1946]:
+                    - generic [ref=e1947]:
+                      - generic [ref=e1948]: —
+                      - paragraph [ref=e1949]: Mengatur nominal jumlah pembayaran.
+                  - cell "Lengkapi Data" [ref=e1950]:
+                    - generic [ref=e1951]: Lengkapi Data
+                  - cell "—" [ref=e1953]:
+                    - generic [ref=e1954]: —
+                  - cell "upload_file Upload" [ref=e1955]:
+                    - generic [ref=e1957] [cursor=pointer]:
+                      - generic [ref=e1958]: upload_file
+                      - text: Upload
+                      - button "upload_file Upload" [disabled] [ref=e1959]
+                  - cell "receipt_long Upload" [ref=e1960]:
+                    - generic [ref=e1962] [cursor=pointer]:
+                      - generic [ref=e1963]: receipt_long
+                      - text: Upload
+                      - button "receipt_long Upload" [disabled] [ref=e1964]
+                  - cell "edit_note" [ref=e1965]:
+                    - button "edit_note" [ref=e1967]:
+                      - generic [ref=e1968]: edit_note
+                - 'row "12 #12 — 17 Jul 2026 — Mengatur nominal jumlah pembayaran. Lengkapi Data — upload_file Upload receipt_long Upload edit_note" [ref=e2095]':
+                  - cell "12" [ref=e1970]
+                  - cell "#12" [ref=e1971]:
+                    - generic [ref=e1972]: "#12"
+                  - cell "—" [ref=e1973]:
+                    - generic [ref=e1974]: —
+                  - cell "17 Jul 2026" [ref=e2096]:
+                    - generic [ref=e1976]: 17 Jul 2026
+                  - cell "— Mengatur nominal jumlah pembayaran." [ref=e1979]:
+                    - generic [ref=e1980]:
+                      - generic [ref=e1981]: —
+                      - paragraph [ref=e1982]: Mengatur nominal jumlah pembayaran.
+                  - cell "Lengkapi Data" [ref=e1983]:
+                    - generic [ref=e1984]: Lengkapi Data
+                  - cell "—" [ref=e1986]:
+                    - generic [ref=e1987]: —
+                  - cell "upload_file Upload" [ref=e1988]:
+                    - generic [ref=e1990] [cursor=pointer]:
+                      - generic [ref=e1991]: upload_file
+                      - text: Upload
+                      - button "upload_file Upload" [disabled] [ref=e1992]
+                  - cell "receipt_long Upload" [ref=e1993]:
+                    - generic [ref=e1995] [cursor=pointer]:
+                      - generic [ref=e1996]: receipt_long
+                      - text: Upload
+                      - button "receipt_long Upload" [disabled] [ref=e1997]
+                  - cell "edit_note" [ref=e1998]:
+                    - button "edit_note" [ref=e2000]:
+                      - generic [ref=e2001]: edit_note
+          - generic [ref=e2002]:
+            - generic [ref=e2003]:
+              - generic [ref=e2004]:
+                - generic [ref=e2005]: history
+                - heading "Arsip & Riwayat Settlement" [level=3] [ref=e2006]
+              - generic [ref=e2007]: 0 Logged
+            - table [ref=e2009]:
+              - rowgroup [ref=e2010]:
+                - row "# Urutan Identitas Masa Periode Settlement Status Akhir Waktu Bayar Versi Log" [ref=e2011]:
+                  - columnheader "#" [ref=e2012]
+                  - columnheader "Urutan" [ref=e2013]
+                  - columnheader "Identitas" [ref=e2014]
+                  - columnheader "Masa Periode" [ref=e2015]
+                  - columnheader "Settlement" [ref=e2016]
+                  - columnheader "Status Akhir" [ref=e2017]
+                  - columnheader "Waktu Bayar" [ref=e2018]
+                  - columnheader "Versi Log" [ref=e2019]
+              - rowgroup [ref=e2020]:
+                - row "Arsip riwayat settlement kosong." [ref=e2021]:
+                  - cell "Arsip riwayat settlement kosong." [ref=e2022]
+  - generic [ref=e505]: "0"

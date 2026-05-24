@@ -158,8 +158,7 @@ function App() {
         try {
             const result = await api.notifications.list({ limit: 500 });
             setNotifications(Array.isArray(result) ? result : []);
-        } catch (error) {
-            console.error("Failed to load customer workspace notifications:", error);
+        } catch {
             setNotifications([]);
         }
     }, []);
@@ -993,7 +992,7 @@ function App() {
                 isps={isps}
                 error={customersError}
                 secondaryError={ispsError}
-                isLoading={isLoadingCustomers || isLoadingIsps}
+                isLoading={isLoadingCustomers}
                 currentRole={currentRole}
                 onNavigate={handleNavigate}
                 onLogout={handleLogout}

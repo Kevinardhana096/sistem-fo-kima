@@ -1,0 +1,211 @@
+- generic [ref=e1]:
+  - generic [ref=e711]:
+    - navigation:
+      - generic [ref=e713]:
+        - button "notifications 8" [ref=e964]:
+          - generic [ref=e716]: notifications
+          - generic [ref=e965]: "8"
+        - button "Profile Administrator Super Admin" [ref=e718]:
+          - img "Profile" [ref=e720]
+          - generic [ref=e721]:
+            - paragraph [ref=e722]: Administrator
+            - paragraph [ref=e723]: Super Admin
+    - complementary [ref=e724]:
+      - button "KIMA ARCHIVE" [ref=e725]:
+        - generic [ref=e728]:
+          - paragraph [ref=e729]: KIMA
+          - paragraph [ref=e730]: ARCHIVE
+      - navigation [ref=e731]:
+        - link "dashboard Dashboard" [ref=e732] [cursor=pointer]:
+          - /url: /dashboard
+          - generic [ref=e733]: dashboard
+          - generic [ref=e734]: Dashboard
+        - link "groups Pelanggan" [ref=e735] [cursor=pointer]:
+          - /url: /customers
+          - generic [ref=e736]: groups
+          - generic [ref=e737]: Pelanggan
+        - link "monitor_heart Monitoring" [ref=e738] [cursor=pointer]:
+          - /url: /monitoring
+          - generic [ref=e739]: monitor_heart
+          - generic [ref=e740]: Monitoring
+        - link "task_alt Tindak Lanjut" [ref=e741] [cursor=pointer]:
+          - /url: /todos
+          - generic [ref=e742]: task_alt
+          - generic [ref=e743]: Tindak Lanjut
+        - link "manage_history Log Aktivitas" [ref=e744] [cursor=pointer]:
+          - /url: /activity-log
+          - generic [ref=e745]: manage_history
+          - generic [ref=e746]: Log Aktivitas
+        - link "delete Tempat Sampah" [ref=e747] [cursor=pointer]:
+          - /url: /trash
+          - generic [ref=e748]: delete
+          - generic [ref=e749]: Tempat Sampah
+    - main [ref=e750]:
+      - generic [ref=e752]:
+        - generic [ref=e753]:
+          - generic [ref=e754]:
+            - button "arrow_back KEMBALI KE WORKSPACE" [ref=e756]:
+              - generic [ref=e757]: arrow_back
+              - text: KEMBALI KE WORKSPACE
+            - generic [ref=e758]:
+              - button "sync Refresh" [ref=e759]:
+                - generic [ref=e760]: sync
+                - text: Refresh
+              - button "manage_accounts Akun Akses" [ref=e761]:
+                - generic [ref=e762]: manage_accounts
+                - text: Akun Akses
+              - button "edit_note Edit ISP" [ref=e763]:
+                - generic [ref=e764]: edit_note
+                - text: Edit ISP
+              - button "delete_forever Hapus ISP" [ref=e765]:
+                - generic [ref=e766]: delete_forever
+                - text: Hapus ISP
+          - generic [ref=e769]:
+            - generic [ref=e770]:
+              - generic [ref=e771]:
+                - generic [ref=e772]:
+                  - generic [ref=e774]: corporate_fare
+                  - paragraph [ref=e776]: Internet Service Provider
+                - heading "PT Cendikia Global Solusi" [level=1] [ref=e777]
+              - generic [ref=e779]:
+                - generic [ref=e780]: check_circle
+                - generic [ref=e781]:
+                  - paragraph [ref=e782]: Status
+                  - paragraph [ref=e783]: Beroperasi
+            - generic [ref=e786]:
+              - generic [ref=e787]:
+                - paragraph [ref=e788]: Nomor Kontrak
+                - generic [ref=e789]:
+                  - generic [ref=e790]: description
+                  - paragraph [ref=e791]: "-"
+              - generic [ref=e792]:
+                - paragraph [ref=e793]: Periode Awal Kontrak
+                - generic [ref=e794]:
+                  - generic [ref=e795]: event_available
+                  - paragraph [ref=e796]: —
+              - generic [ref=e797]:
+                - paragraph [ref=e798]: Periode Berjalan
+                - generic [ref=e799]:
+                  - generic [ref=e800]: date_range
+                  - paragraph [ref=e801]: —
+              - generic [ref=e802]:
+                - paragraph [ref=e803]: Paket
+                - generic [ref=e804]:
+                  - generic [ref=e805]: hub
+                  - paragraph [ref=e806]: Core -
+        - navigation [ref=e809]:
+          - button "dashboard Ringkasan" [ref=e810]:
+            - generic [ref=e811]: dashboard
+            - generic [ref=e812]: Ringkasan
+          - button "groups Daftar Lokasi" [active] [ref=e813]:
+            - generic [ref=e814]: groups
+            - generic [ref=e815]: Daftar Lokasi
+          - button "map Peta Jalur" [ref=e816]:
+            - generic [ref=e817]: map
+            - generic [ref=e818]: Peta Jalur
+          - button "description Kontrak" [ref=e819]:
+            - generic [ref=e820]: description
+            - generic [ref=e821]: Kontrak
+          - button "inventory_2 Dokumen" [ref=e822]:
+            - generic [ref=e823]: inventory_2
+            - generic [ref=e824]: Dokumen
+          - button "history Timeline" [ref=e825]:
+            - generic [ref=e826]: history
+            - generic [ref=e827]: Timeline
+        - generic [ref=e966]:
+          - generic [ref=e967]:
+            - generic [ref=e968]:
+              - generic [ref=e969]:
+                - heading "Inventori Lokasi" [level=2] [ref=e970]
+                - paragraph [ref=e971]: Manajemen titik layanan dan status operasional
+              - generic [ref=e972]:
+                - generic [ref=e973]:
+                  - generic [ref=e974]: "Total:"
+                  - generic [ref=e975]: "1"
+                - generic [ref=e976]:
+                  - generic [ref=e977]: "Beroperasi:"
+                  - generic [ref=e978]: "1"
+                - generic [ref=e979]:
+                  - generic [ref=e980]: "Belum Diperpanjang:"
+                  - generic [ref=e981]: "0"
+                - generic [ref=e982]:
+                  - generic [ref=e983]: "Berhenti:"
+                  - generic [ref=e984]: "0"
+            - generic [ref=e985]:
+              - button "description Ekspor Excel" [ref=e986]:
+                - generic [ref=e987]: description
+                - text: Ekspor Excel
+              - button "add_location Tambah Lokasi" [ref=e988]:
+                - generic [ref=e989]: add_location
+                - text: Tambah Lokasi
+          - generic [ref=e990]:
+            - generic [ref=e991]:
+              - paragraph [ref=e992]: Cari Lokasi
+              - generic [ref=e993]:
+                - generic [ref=e994]: search
+                - textbox "Nama atau ID Lokasi..." [ref=e995]
+            - generic [ref=e996]:
+              - generic [ref=e997]: Status Kontrak
+              - generic [ref=e999] [cursor=pointer]:
+                - generic [ref=e1000]: verified_user
+                - generic [ref=e1001]: SEMUA STATUS
+                - generic [ref=e1002]: expand_more
+            - generic [ref=e1003]:
+              - generic [ref=e1004]: Jenis Paket
+              - generic [ref=e1006] [cursor=pointer]:
+                - generic [ref=e1007]: inventory_2
+                - generic [ref=e1008]: SEMUA PAKET
+                - generic [ref=e1009]: expand_more
+            - generic [ref=e1010]:
+              - generic [ref=e1011]: Urutkan
+              - generic [ref=e1013] [cursor=pointer]:
+                - generic [ref=e1014]: sort
+                - generic [ref=e1015]: TERBARU
+                - generic [ref=e1016]: expand_more
+          - table [ref=e1018]:
+            - rowgroup [ref=e1019]:
+              - row "No Lokasi Status Kontrak Status Jalur Periode Awal Kontrak Berjalan Paket Jumlah Tindak Lanjut Aksi" [ref=e1020]:
+                - columnheader "No" [ref=e1021]
+                - columnheader "Lokasi" [ref=e1022]
+                - columnheader "Status Kontrak" [ref=e1023]
+                - columnheader "Status Jalur" [ref=e1024]
+                - columnheader "Periode Awal" [ref=e1025]
+                - columnheader "Kontrak Berjalan" [ref=e1026]
+                - columnheader "Paket" [ref=e1027]
+                - columnheader "Jumlah" [ref=e1028]
+                - columnheader "Tindak Lanjut" [ref=e1029]
+                - columnheader "Aksi" [ref=e1030]
+              - row "Awal Akhir" [ref=e1031]:
+                - columnheader "Awal" [ref=e1032]
+                - columnheader "Akhir" [ref=e1033]
+            - rowgroup [ref=e1034]:
+              - row "01 PT Bank Tabungan Negara (Persero) Beroperasi Aktif 25 Jul 2022 08 Jul 2025 07 Jul 2026 SHARING CORE 1/32 0 receipt_long visibility edit delete" [ref=e1035]:
+                - cell "01" [ref=e1036]
+                - cell "PT Bank Tabungan Negara (Persero)" [ref=e1037]:
+                  - paragraph [ref=e1038]: PT Bank Tabungan Negara (Persero)
+                - cell "Beroperasi" [ref=e1039]:
+                  - generic [ref=e1040]: Beroperasi
+                - cell "Aktif" [ref=e1042]:
+                  - generic [ref=e1043]: Aktif
+                - cell "25 Jul 2022" [ref=e1044]:
+                  - paragraph [ref=e1045]: 25 Jul 2022
+                - cell "08 Jul 2025" [ref=e1046]:
+                  - paragraph [ref=e1047]: 08 Jul 2025
+                - cell "07 Jul 2026" [ref=e1048]:
+                  - paragraph [ref=e1049]: 07 Jul 2026
+                - cell "SHARING CORE" [ref=e1050]:
+                  - paragraph [ref=e1051]: SHARING CORE
+                - cell "1/32" [ref=e1052]:
+                  - paragraph [ref=e1053]: 1/32
+                - cell "0" [ref=e1054]
+                - cell "receipt_long visibility edit delete" [ref=e1055]:
+                  - generic [ref=e1056]:
+                    - button "receipt_long" [ref=e1057]:
+                      - generic [ref=e1058]: receipt_long
+                    - button "visibility" [ref=e1059]:
+                      - generic [ref=e1060]: visibility
+                    - button "edit" [ref=e1061]:
+                      - generic [ref=e1062]: edit
+                    - button "delete" [ref=e1063]:
+                      - generic [ref=e1064]: delete
+  - generic [ref=e505]: "0"

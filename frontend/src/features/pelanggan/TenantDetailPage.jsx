@@ -12,6 +12,7 @@ import {
 } from "../../app/constants";
 import {
   addDaysToIsoDate,
+  buildInvoiceScheduleRows,
   formatCurrency,
   formatDate,
   formatDateTime,
@@ -35,6 +36,13 @@ const ROUTE_OPERATION_LABEL_MAP = {
 };
 
 const ROUTE_META_PREFIX = "[FO_ROUTE_META]";
+
+const INVOICE_STATUS_OPTIONS = [
+  { value: "belum_ditagih", label: "Belum Ditagih" },
+  { value: "belum_bayar", label: "Belum Bayar" },
+  { value: "terlambat", label: "Terlambat" },
+  { value: "lunas", label: "Lunas" },
+];
 
 function encodeRoutePlannerMeta(routeMeta) {
   if (!routeMeta || typeof routeMeta !== "object") {
@@ -163,6 +171,84 @@ function normalizeDraftRoutePoints(points) {
   }));
 }
 
+function toUtcDate(dateValue) {
+  if (!dateValue) return null;
+  const date = new Date(`${String(dateValue).slice(0, 10)}T00:00:00.000Z`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function toIsoDate(date) {
+  return date instanceof Date && !Number.isNaN(date.getTime())
+    ? date.toISOString().slice(0, 10)
+    : "";
+}
+
+function getMonthlyPeriodsBetween(startDate, endDate) {
+  const start = toUtcDate(startDate);
+  const end = toUtcDate(endDate);
+
+  if (!start || !end || start.getTime() > end.getTime()) {
+    return [];
+  }
+
+  const periods = [];
+  let cursorStart = new Date(start.getTime());
+
+  while (cursorStart.getTime() <= end.getTime()) {
+    const nextMonthStart = new Date(Date.UTC(
+      cursorStart.getUTCFullYear(),
+      cursorStart.getUTCMonth() + 1,
+      cursorStart.getUTCDate(),
+    ));
+    const cursorEnd = new Date(Math.min(
+      end.getTime(),
+      nextMonthStart.getTime() - 86400000,
+    ));
+
+    periods.push({
+      periodStartDate: toIsoDate(cursorStart),
+      periodEndDate: toIsoDate(cursorEnd),
+      periodYear: cursorStart.getUTCFullYear(),
+      periodMonth: cursorStart.getUTCMonth() + 1,
+    });
+
+    cursorStart = new Date(nextMonthStart.getTime());
+  }
+
+  return periods;
+}
+
+function buildHistoricalInvoiceNumber(baseInvoiceNumber, period, shouldAppendPeriodSuffix) {
+  const normalizedBase = String(baseInvoiceNumber ?? "").trim();
+
+  if (!normalizedBase) return "";
+  if (!shouldAppendPeriodSuffix) return normalizedBase;
+
+  const suffix = `${period.periodYear}${String(period.periodMonth).padStart(2, "0")}`;
+  if (normalizedBase.endsWith(`-${suffix}`)) {
+    return normalizedBase;
+  }
+
+  return `${normalizedBase}-${suffix}`;
+}
+
+function alignRecurringDateToPeriod(period, templateDate, fallbackDate) {
+  const template = toUtcDate(templateDate);
+  const periodEnd = toUtcDate(period?.periodEndDate);
+  const fallback = String(fallbackDate ?? "").trim() || period?.periodEndDate || "";
+
+  if (!template || !periodEnd) {
+    return fallback;
+  }
+
+  const targetYear = periodEnd.getUTCFullYear();
+  const targetMonth = periodEnd.getUTCMonth();
+  const maxDay = new Date(Date.UTC(targetYear, targetMonth + 1, 0)).getUTCDate();
+  const targetDay = Math.min(template.getUTCDate(), maxDay);
+
+  return new Date(Date.UTC(targetYear, targetMonth, targetDay)).toISOString().slice(0, 10);
+}
+
 function GlassSelect({ label, value, onChange, options, placeholder = "Pilih opsi" }) {
   const [isOpen, setIsOpen] = useState(false);
   const selectedOption = options.find((opt) => opt.value === value);
@@ -247,6 +333,14 @@ function GlassInput({ label, icon, ...props }) {
   );
 }
 
+function formatDisplayContractNumber(contractNumber) {
+  const normalizedNumber = String(contractNumber ?? "").trim();
+  if (!normalizedNumber || normalizedNumber.startsWith("NO-BAK-")) {
+    return "-";
+  }
+  return normalizedNumber;
+}
+
 function TenantDetailPage({
   customer,
   initialTab = "overview",
@@ -296,10 +390,24 @@ function TenantDetailPage({
   const [invoiceFeedback, setInvoiceFeedback] = useState("");
   const [isSavingInvoice, setIsSavingInvoice] = useState(false);
   const [invoiceEditingId, setInvoiceEditingId] = useState(null);
+  const [historicalArchiveDraft, setHistoricalArchiveDraft] = useState({
+    periodStartDate: "",
+    periodEndDate: "",
+    contractNumber: "",
+    invoiceNumber: "",
+    dueDate: "",
+    paidAt: "",
+    amount: "250000",
+    packageType: "sharing_core",
+    ratio: "1:32",
+    coreTotal: "",
+    remarks: "",
+  });
   const [billingEditor, setBillingEditor] = useState(null);
   const [billingError, setBillingError] = useState("");
   const [isSavingBilling, setIsSavingBilling] = useState(false);
-  const [contractNumberInput, setContractNumberInput] = useState("");
+  const [isMarkingActivationFeePaid, setIsMarkingActivationFeePaid] = useState(false);
+  const [contractNumberInputs, setContractNumberInputs] = useState({});
   const [isSavingContractNumber, setIsSavingContractNumber] = useState(false);
   const [emptyContractNumberRows, setEmptyContractNumberRows] = useState({});
   const [emptyBakRows, setEmptyBakRows] = useState({});
@@ -448,21 +556,95 @@ function TenantDetailPage({
         return (Number.isFinite(rightDate) ? rightDate : 0) - (Number.isFinite(leftDate) ? leftDate : 0);
       })[0] ?? null)
     : null;
-  const versions = Array.isArray(detail?.contractVersions)
-    ? detail.contractVersions
-    : [];
+  const versions = useMemo(
+    () => (Array.isArray(detail?.contractVersions) ? detail.contractVersions : []),
+    [detail?.contractVersions],
+  );
+  const todayIso = new Date().toISOString().slice(0, 10);
   const invoices = useMemo(
     () => (Array.isArray(detail?.invoices) ? detail.invoices : []),
     [detail?.invoices],
   );
-  const activeInvoices = useMemo(
-    () => invoices.filter((invoice) => invoice.scheduleStatus !== "history"),
-    [invoices],
+  const contractsList = useMemo(
+    () => (Array.isArray(detail?.contracts) ? detail.contracts : []),
+    [detail?.contracts],
   );
-  const historyInvoices = useMemo(
-    () => invoices.filter((invoice) => invoice.scheduleStatus === "history"),
-    [invoices],
-  );
+  const contractById = useMemo(() => {
+    const map = new Map();
+    contractsList.forEach((item) => {
+      const key = Number(item?.id);
+      if (Number.isFinite(key)) {
+        map.set(key, item);
+      }
+    });
+    return map;
+  }, [contractsList]);
+  const contractVersionById = useMemo(() => {
+    const map = new Map();
+    versions.forEach((item) => {
+      const key = Number(item?.id);
+      if (Number.isFinite(key)) {
+        map.set(key, item);
+      }
+    });
+    return map;
+  }, [versions]);
+  const resolveInvoiceContractPeriodEnd = useCallback((invoice) => {
+    const versionKey = Number(invoice?.contractVersionId ?? invoice?.contract_version_id);
+    if (Number.isFinite(versionKey)) {
+      const version = contractVersionById.get(versionKey);
+      const versionEndDate = version?.endDate ?? version?.end_date ?? null;
+      if (versionEndDate) {
+        return versionEndDate;
+      }
+    }
+
+    const contractKey = Number(invoice?.contractId ?? invoice?.contract_id);
+    if (Number.isFinite(contractKey)) {
+      const contractRow = contractById.get(contractKey);
+      const contractEndDate = contractRow?.endDate ?? contractRow?.end_date ?? null;
+      if (contractEndDate) {
+        return contractEndDate;
+      }
+    }
+
+    return null;
+  }, [contractById, contractVersionById]);
+  const shouldArchiveInvoice = useCallback((invoice) => {
+    if (invoice?.scheduleStatus === "history") {
+      return true;
+    }
+
+    const contractPeriodEnd = resolveInvoiceContractPeriodEnd(invoice);
+    if (contractPeriodEnd && contractPeriodEnd < todayIso) {
+      return true;
+    }
+
+    const contractKey = Number(invoice?.contractId ?? invoice?.contract_id);
+    if (Number.isFinite(contractKey)) {
+      const contractRow = contractById.get(contractKey);
+      const contractEndDate = contractRow?.endDate ?? contractRow?.end_date ?? null;
+      if (
+        contractRow &&
+        (
+          contractRow.status === "expired" ||
+          contractRow.status === "nonaktif" ||
+          (contractEndDate && contractEndDate < todayIso)
+        )
+      ) {
+        return true;
+      }
+    }
+
+    return false;
+  }, [contractById, resolveInvoiceContractPeriodEnd, todayIso]);
+  const activeInvoices = useMemo(() => {
+    return invoices.filter((invoice) => !shouldArchiveInvoice(invoice));
+  }, [invoices, shouldArchiveInvoice]);
+
+  const historyInvoices = useMemo(() => {
+    return invoices.filter((invoice) => shouldArchiveInvoice(invoice));
+  }, [invoices, shouldArchiveInvoice]);
   const todoSummary = detail?.todoSummary ?? {
     priority: [],
     needAction: [],
@@ -542,7 +724,6 @@ function TenantDetailPage({
     });
     return map;
   }, [allDocuments]);
-  const todayIso = new Date().toISOString().slice(0, 10);
   const activationFeePaidAt =
     detail?.activationFeePaidAt ?? customer?.activationFeePaidAt ?? null;
   const activationFeeAmount = Number(
@@ -639,48 +820,8 @@ function TenantDetailPage({
     [previewSourcePoints],
   );
   useEffect(() => {
-    setContractNumberInput(String(contract?.contractNumber ?? ""));
-  }, [contract?.contractNumber, contract?.id]);
-
-  const resolveInvoiceStatusMeta = (invoice) => {
-    const hasInvoiceFile =
-      typeof invoice?.invoiceFileUrl === "string" &&
-      invoice.invoiceFileUrl.trim().length > 0;
-    const hasPaymentProof =
-      typeof invoice?.paymentProofFileUrl === "string" &&
-      invoice.paymentProofFileUrl.trim().length > 0;
-    const hasPaidAt = typeof invoice?.paidAt === "string" && invoice.paidAt.trim().length > 0;
-
-    if (hasPaymentProof || hasPaidAt) {
-      return {
-        key: "paid",
-        label: "Paid",
-        badgeClass: "bg-emerald-100 text-emerald-700",
-      };
-    }
-
-    if (invoice?.status === "terlambat") {
-      return {
-        key: "overdue",
-        label: "Overdue",
-        badgeClass: "bg-amber-100 text-amber-700",
-      };
-    }
-
-    if (hasInvoiceFile) {
-      return {
-        key: "unpaid",
-        label: "Unpaid",
-        badgeClass: "bg-rose-100 text-rose-700",
-      };
-    }
-
-    return {
-      key: "pending",
-      label: "Pending",
-      badgeClass: "bg-slate-100 text-slate-700",
-    };
-  };
+    setContractNumberInputs({});
+  }, [contract?.id]);
 
   const getInvoiceFollowUps = (invoice) => {
     const followUps = Array.isArray(invoice?.invoiceFollowUps)
@@ -692,10 +833,204 @@ function TenantDetailPage({
     );
   };
 
+  const isInvoicePaid = (invoice) =>
+    String(invoice?.status ?? "").toLowerCase() === "lunas" ||
+    isOpenableFileUrl(invoice?.paymentProofFileUrl) ||
+    (typeof invoice?.paidAt === "string" && invoice.paidAt.trim().length > 0);
+
   const hasUploadedInvoiceSplit = (invoice) =>
     getInvoiceFollowUps(invoice).some((followUp) =>
       isOpenableFileUrl(followUp?.invoiceFileUrl),
     );
+
+  const hasAnyUploadedInvoiceFile = (invoice) =>
+    isOpenableFileUrl(invoice?.invoiceFileUrl) || hasUploadedInvoiceSplit(invoice);
+
+  const getInvoiceSetupWarnings = (invoice) => {
+    const warnings = [];
+    const dueDate = String(invoice?.workflowDueDate ?? invoice?.dueDate ?? "").trim();
+    const amount = Number(invoice?.workflowAmount ?? invoice?.amount ?? 0);
+
+    if (!dueDate) {
+      warnings.push({
+        code: "missing_due_date",
+        message: "Segera mengatur tanggal terakhir pembayaran.",
+      });
+    }
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      warnings.push({
+        code: "missing_amount",
+        message: "Mengatur nominal jumlah pembayaran.",
+      });
+    }
+
+    return warnings;
+  };
+
+  const getInvoiceWorkflowMeta = (invoice, rowsForSequence = []) => {
+    const followUps = getInvoiceFollowUps(invoice);
+    const firstFollowUp = followUps.find((followUp) => Number(followUp?.splitOrder ?? 0) === 1) ?? null;
+    const secondFollowUp = followUps.find((followUp) => Number(followUp?.splitOrder ?? 0) === 2) ?? null;
+    const setupWarnings = getInvoiceSetupWarnings(invoice);
+    const dueDate = String(invoice?.workflowDueDate ?? invoice?.dueDate ?? "").trim();
+    const h7Date = dueDate ? addDaysToIsoDate(dueDate, -7) : "";
+    const h3Date = dueDate ? addDaysToIsoDate(dueDate, -3) : "";
+    const hasMainInvoiceFile = isOpenableFileUrl(invoice?.invoiceFileUrl);
+    const firstWarningUploaded = isOpenableFileUrl(firstFollowUp?.invoiceFileUrl);
+    const secondWarningUploaded = isOpenableFileUrl(secondFollowUp?.invoiceFileUrl);
+    const isPaid = isInvoicePaid(invoice);
+    const h7Reached = Boolean(h7Date && h7Date <= todayIso);
+    const h3Reached = Boolean(h3Date && h3Date <= todayIso);
+    const dueDateReached = Boolean(dueDate && dueDate <= todayIso);
+    const hasAnyInvoiceFile = hasMainInvoiceFile || firstWarningUploaded || secondWarningUploaded;
+    const hasBlockingPreviousUnpaid = rowsForSequence.some(
+      (candidate) => candidate.paymentOrder < invoice.paymentOrder && !isInvoicePaid(candidate),
+    );
+
+    if (isPaid) {
+      return {
+        key: "paid",
+        label: "Lunas",
+        setupWarnings,
+        firstFollowUp,
+        secondFollowUp,
+        hasMainInvoiceFile,
+        firstWarningUploaded,
+        secondWarningUploaded,
+        hasAnyInvoiceFile,
+        canUploadMainInvoice: false,
+        canUploadFirstWarning: false,
+        canUploadSecondWarning: false,
+        canMarkPaid: false,
+      };
+    }
+
+    if (setupWarnings.length > 0) {
+      return {
+        key: "pending_setup",
+        label: "Lengkapi Data",
+        setupWarnings,
+        firstFollowUp,
+        secondFollowUp,
+        hasMainInvoiceFile,
+        firstWarningUploaded,
+        secondWarningUploaded,
+        hasAnyInvoiceFile,
+        canUploadMainInvoice: false,
+        canUploadFirstWarning: false,
+        canUploadSecondWarning: false,
+        canMarkPaid: false,
+      };
+    }
+
+    if (dueDateReached && (secondWarningUploaded || h3Reached)) {
+      return {
+        key: "warning_unpaid",
+        label: "Warning Belum Bayar",
+        setupWarnings,
+        firstFollowUp,
+        secondFollowUp,
+        hasMainInvoiceFile,
+        firstWarningUploaded,
+        secondWarningUploaded,
+        hasAnyInvoiceFile,
+        canUploadMainInvoice: false,
+        canUploadFirstWarning: false,
+        canUploadSecondWarning: h3Reached && !secondWarningUploaded,
+        canMarkPaid: hasAnyInvoiceFile,
+      };
+    }
+
+    if (h3Reached && !hasBlockingPreviousUnpaid && (hasMainInvoiceFile || firstWarningUploaded) && !secondWarningUploaded) {
+      return {
+        key: "warning_required_h3",
+        label: "Peringatan Kedua",
+        setupWarnings,
+        firstFollowUp,
+        secondFollowUp,
+        hasMainInvoiceFile,
+        firstWarningUploaded,
+        secondWarningUploaded,
+        hasAnyInvoiceFile,
+        canUploadMainInvoice: false,
+        canUploadFirstWarning: false,
+        canUploadSecondWarning: true,
+        canMarkPaid: hasAnyInvoiceFile,
+      };
+    }
+
+    if (hasAnyInvoiceFile) {
+      return {
+        key: "waiting_payment_confirmation",
+        label: "Menunggu Konfirmasi Pembayaran",
+        setupWarnings,
+        firstFollowUp,
+        secondFollowUp,
+        hasMainInvoiceFile,
+        firstWarningUploaded,
+        secondWarningUploaded,
+        hasAnyInvoiceFile,
+        canUploadMainInvoice: false,
+        canUploadFirstWarning: false,
+        canUploadSecondWarning: h3Reached && !secondWarningUploaded,
+        canMarkPaid: true,
+      };
+    }
+
+    if (h7Reached && !hasBlockingPreviousUnpaid) {
+      return {
+        key: "warning_required_h7",
+        label: "Peringatan Pertama",
+        setupWarnings,
+        firstFollowUp,
+        secondFollowUp,
+        hasMainInvoiceFile,
+        firstWarningUploaded,
+        secondWarningUploaded,
+        hasAnyInvoiceFile,
+        canUploadMainInvoice: true,
+        canUploadFirstWarning: true,
+        canUploadSecondWarning: false,
+        canMarkPaid: false,
+      };
+    }
+
+    return {
+      key: "pending",
+      label: "Menunggu Jadwal",
+      setupWarnings,
+      firstFollowUp,
+      secondFollowUp,
+      hasMainInvoiceFile,
+      firstWarningUploaded,
+      secondWarningUploaded,
+      hasAnyInvoiceFile,
+      canUploadMainInvoice: false,
+      canUploadFirstWarning: false,
+      canUploadSecondWarning: false,
+      canMarkPaid: false,
+    };
+  };
+
+  const resolveInvoiceStatusMeta = (invoice) => {
+    const workflowMeta = invoice?.workflowMeta ?? getInvoiceWorkflowMeta(invoice);
+    const badgeClassByKey = {
+      paid: "bg-emerald-100 text-emerald-700",
+      warning_unpaid: "bg-rose-100 text-rose-700",
+      warning_required_h3: "bg-orange-100 text-orange-700",
+      warning_required_h7: "bg-amber-100 text-amber-700",
+      waiting_payment_confirmation: "bg-blue-100 text-blue-700",
+      pending_setup: "bg-rose-100 text-rose-700",
+      pending: "bg-slate-100 text-slate-700",
+    };
+
+    return {
+      key: workflowMeta.key,
+      label: workflowMeta.label,
+      badgeClass: badgeClassByKey[workflowMeta.key] ?? "bg-slate-100 text-slate-700",
+    };
+  };
 
   const sortedInvoices = useMemo(() => {
     const nextItems = [...activeInvoices];
@@ -727,15 +1062,21 @@ function TenantDetailPage({
     return nextItems;
   }, [historyInvoices]);
 
-  const invoiceRows = useMemo(
-    () =>
-      sortedInvoices.map((invoice, index) => ({
+  const invoiceRows = useMemo(() => {
+    const baseRows = sortedInvoices.map((invoice, index) => ({
+      ...invoice,
+      paymentOrder: index + 1,
+    }));
+
+    return baseRows.map((invoice) => {
+      const workflowMeta = getInvoiceWorkflowMeta(invoice, baseRows);
+      return {
         ...invoice,
-        paymentOrder: index + 1,
-        statusMeta: resolveInvoiceStatusMeta(invoice),
-      })),
-    [sortedInvoices],
-  );
+        workflowMeta,
+        statusMeta: resolveInvoiceStatusMeta({ ...invoice, workflowMeta }),
+      };
+    });
+  }, [sortedInvoices]);
 
   const historyInvoiceRows = useMemo(
     () =>
@@ -765,6 +1106,41 @@ function TenantDetailPage({
     return items;
   }, [historyInvoiceRows]);
 
+  const historicalArchiveMonthlyPeriods = useMemo(() => (
+    getMonthlyPeriodsBetween(
+      historicalArchiveDraft.periodStartDate,
+      historicalArchiveDraft.periodEndDate,
+    )
+  ), [
+    historicalArchiveDraft.periodEndDate,
+    historicalArchiveDraft.periodStartDate,
+  ]);
+
+  const historicalArchiveInvoicePreview = useMemo(() => {
+    const baseInvoiceNumber = String(historicalArchiveDraft.invoiceNumber ?? "").trim();
+    if (!baseInvoiceNumber || historicalArchiveMonthlyPeriods.length === 0) {
+      return "";
+    }
+
+    const firstInvoiceNumber = buildHistoricalInvoiceNumber(
+      baseInvoiceNumber,
+      historicalArchiveMonthlyPeriods[0],
+      historicalArchiveMonthlyPeriods.length > 1,
+    );
+
+    if (historicalArchiveMonthlyPeriods.length === 1) {
+      return firstInvoiceNumber;
+    }
+
+    const lastInvoiceNumber = buildHistoricalInvoiceNumber(
+      baseInvoiceNumber,
+      historicalArchiveMonthlyPeriods[historicalArchiveMonthlyPeriods.length - 1],
+      true,
+    );
+
+    return `${firstInvoiceNumber} s/d ${lastInvoiceNumber}`;
+  }, [historicalArchiveDraft.invoiceNumber, historicalArchiveMonthlyPeriods]);
+
   useEffect(() => {
     setInvoiceDrafts((previousDrafts) => {
       const nextDrafts = {};
@@ -790,13 +1166,17 @@ function TenantDetailPage({
 
         nextFollowUpDrafts.initial = {
           invoiceNumber: String(
-            previousFollowUpDrafts.initial?.invoiceNumber ?? "",
+            previousFollowUpDrafts.initial?.invoiceNumber ??
+            invoice?.invoiceNumber ??
+            "",
           ),
         };
 
         nextDrafts[invoice.id] = {
+          invoiceNumber: previousDraft.invoiceNumber ?? String(invoice.invoiceNumber ?? ""),
           dueDate: previousDraft.dueDate ?? String(invoice.dueDate ?? ""),
           amount: previousDraft.amount ?? normalizedAmount,
+          status: previousDraft.status ?? String(invoice.status ?? "belum_ditagih"),
           followUps: nextFollowUpDrafts,
         };
       });
@@ -824,11 +1204,19 @@ function TenantDetailPage({
             !isOpenableFileUrl(followUp?.invoiceFileUrl),
         );
 
-        return {
+        const rowWithDraft = {
           ...invoice,
           workflowDueDate: dueDateValue,
           workflowAmount: amountValue,
           activeReminderSplits,
+        };
+
+        const workflowMeta = getInvoiceWorkflowMeta(rowWithDraft, invoiceRows);
+
+        return {
+          ...rowWithDraft,
+          workflowMeta,
+          statusMeta: resolveInvoiceStatusMeta({ ...rowWithDraft, workflowMeta }),
         };
       }),
     [invoiceRows, invoiceDrafts],
@@ -837,8 +1225,8 @@ function TenantDetailPage({
   const paidInvoiceCount = invoiceRows.filter(
     (invoice) => invoice.statusMeta.key === "paid",
   ).length;
-  const unpaidInvoiceCount = invoiceRows.filter((invoice) =>
-    ["unpaid", "overdue"].includes(invoice.statusMeta.key),
+  const unpaidInvoiceCount = workflowInvoiceRows.filter((invoice) =>
+    ["waiting_payment_confirmation", "warning_required_h7", "warning_required_h3", "warning_unpaid"].includes(invoice.statusMeta.key),
   ).length;
   const pendingInvoiceCount = invoiceRows.filter(
     (invoice) => invoice.statusMeta.key === "pending",
@@ -853,28 +1241,9 @@ function TenantDetailPage({
   }).length;
 
   const nextActionInvoice =
-    workflowInvoiceRows.find((invoice) => {
-      const hasPaymentProof =
-        typeof invoice?.paymentProofFileUrl === "string" &&
-        invoice.paymentProofFileUrl.trim().length > 0;
-      const hasInvoiceFile = hasUploadedInvoiceSplit(invoice);
-      const dueDate =
-        typeof invoice?.workflowDueDate === "string"
-          ? invoice.workflowDueDate
-          : "";
-      const amountValue = Number(invoice?.workflowAmount ?? 0);
-
-      if (hasPaymentProof || hasInvoiceFile) {
-        return false;
-      }
-
-      if (!dueDate || amountValue <= 0) {
-        return false;
-      }
-
-      const reminderDate = addDaysToIsoDate(dueDate, -7);
-      return reminderDate <= todayIso;
-    }) ?? null;
+    workflowInvoiceRows.find((invoice) =>
+      ["pending_setup", "warning_required_h7", "warning_required_h3", "warning_unpaid"].includes(invoice.workflowMeta?.key),
+    ) ?? null;
 
   const nextActionMeta = (() => {
     if (!nextActionInvoice) {
@@ -885,11 +1254,39 @@ function TenantDetailPage({
       typeof nextActionInvoice?.workflowDueDate === "string"
         ? nextActionInvoice.workflowDueDate
         : "";
+
+    if (nextActionInvoice.workflowMeta?.key === "pending_setup") {
+      return {
+        type: "invoice_setup_incomplete",
+        title: `Lengkapi pembayaran ke-${nextActionInvoice.paymentOrder}`,
+        message: nextActionInvoice.workflowMeta.setupWarnings.map((warning) => warning.message).join(" "),
+        dueDate,
+      };
+    }
+
+    if (nextActionInvoice.workflowMeta?.key === "warning_required_h3") {
+      return {
+        type: "upload_h_minus_3",
+        title: `Peringatan H-3 pembayaran ke-${nextActionInvoice.paymentOrder}`,
+        message: "Pembayaran belum dikonfirmasi. Upload invoice peringatan kedua melalui split upload.",
+        dueDate,
+      };
+    }
+
+    if (nextActionInvoice.workflowMeta?.key === "warning_unpaid") {
+      return {
+        type: "warning_unpaid",
+        title: `Warning Belum Bayar pembayaran ke-${nextActionInvoice.paymentOrder}`,
+        message: "Peringatan maksimal sudah tercapai dan pembayaran belum dikonfirmasi.",
+        dueDate,
+      };
+    }
+
     return {
       type: "upload_h_minus_7",
       title: `Peringatan H-7 pembayaran ke-${nextActionInvoice.paymentOrder}`,
       message:
-        "Mendekati jatuh tempo. Isi nomor invoice awal lalu upload invoice untuk pembayaran ini.",
+        "Mendekati jatuh tempo. Isi nomor invoice lalu upload invoice peringatan pertama untuk pembayaran ini.",
       dueDate,
     };
   })();
@@ -900,12 +1297,26 @@ function TenantDetailPage({
       : contract
         ? `contract-${contract.id}`
         : null;
+  const activeContractId = Number(contract?.id);
+  const activeContractDocument = Number.isFinite(activeContractId)
+    ? contractDocumentByContractId.get(activeContractId)
+    : null;
+  const activeBakDocument = Number.isFinite(activeContractId)
+    ? bakDocumentByContractId.get(activeContractId)
+    : null;
+  const activeContractFileUrl = String(activeContractDocument?.fileUrl ?? "");
+  const hasActiveContractFile = isOpenableFileUrl(activeContractFileUrl);
+  const hasActiveBakFile = Boolean(activeBakDocument);
+  const activeContractRowId = contract ? `contract-${contract.id}` : null;
   const hasContractNumberValue = Boolean(
     String(contract?.contractNumber ?? "").trim(),
   );
   const isContractNumberExplicitlyEmpty = Object.values(
     emptyContractNumberRows,
   ).some(Boolean);
+  const isBakExplicitlyEmpty = activeContractRowId
+    ? Boolean(emptyBakRows[activeContractRowId])
+    : false;
 
   const backendPriorityTodos = Array.isArray(todoSummary.priority)
     ? todoSummary.priority.filter(
@@ -966,6 +1377,77 @@ function TenantDetailPage({
         "Isi nomor kontrak lokasi atau tandai memang kosong jika datanya memang tidak ada.",
       dueDate: null,
     });
+  }
+
+  if (contract && !hasActiveContractFile) {
+    derivedNeedActionTodos.push({
+      id: `derived-contract-file-missing-${customer.id}`,
+      code: "contract_file_missing_local",
+      title: "Berkas kontrak belum diunggah",
+      message: "Upload berkas kontrak agar arsip legal lokasi lengkap.",
+      dueDate: null,
+    });
+  }
+
+  if (contract && !hasActiveBakFile && !isBakExplicitlyEmpty) {
+    derivedNeedActionTodos.push({
+      id: `derived-bak-missing-${customer.id}`,
+      code: "bak_missing_local",
+      title: "BAK belum tersedia",
+      message: "Upload Berita Acara Koneksi/BAK atau tandai tidak perlu jika tidak diwajibkan.",
+      dueDate: null,
+    });
+  }
+
+  // Contract renewal warnings (H-3, H-2, H-1 months)
+  if (contract?.endDate) {
+    const endDate = new Date(contract.endDate);
+    const today = new Date(todayIso);
+    const daysUntilEnd = Math.floor((endDate - today) / (1000 * 60 * 60 * 24));
+
+    const primaryContract = Array.isArray(detail?.contracts)
+      ? detail.contracts.find((contractRow) => Number(contractRow?.id) === Number(contract.id))
+      : null;
+    const renewalFollowUps = Array.isArray(primaryContract?.versions)
+      ? primaryContract.versions.flatMap((version) => (
+          Array.isArray(version?.renewalFollowUps) ? version.renewalFollowUps : []
+        ))
+      : [];
+    const hasRenewalUpload = renewalFollowUps.some((followUp) => followUp?.renewalFileUrl);
+    const hasResponse = renewalFollowUps.some((followUp) => followUp?.responseFileUrl);
+
+    // H-3 months warning (90 days before end)
+    if (daysUntilEnd <= 90 && daysUntilEnd > 60 && !hasRenewalUpload) {
+      derivedNeedActionTodos.push({
+        id: `derived-renewal-h3-${customer.id}`,
+        code: "renewal_h3_warning",
+        title: "Kontrak akan berakhir dalam 3 bulan",
+        message: `Kontrak akan berakhir dalam ${daysUntilEnd} hari (H-3 bulan). Segera buat dan upload surat perpanjangan kontrak.`,
+        dueDate: contract.endDate,
+      });
+    }
+
+    // H-2 months warning (60 days before end)
+    if (daysUntilEnd <= 60 && daysUntilEnd > 30 && hasRenewalUpload && !hasResponse) {
+      derivedNeedActionTodos.push({
+        id: `derived-renewal-h2-${customer.id}`,
+        code: "renewal_h2_warning",
+        title: "Kontrak akan berakhir dalam 2 bulan",
+        message: `Kontrak akan berakhir dalam ${daysUntilEnd} hari (H-2 bulan). Surat perpanjangan sudah diupload. Menunggu tanggapan dari lokasi.`,
+        dueDate: contract.endDate,
+      });
+    }
+
+    // H-1 month warning (30 days before end)
+    if (daysUntilEnd <= 30 && daysUntilEnd > 0 && !hasResponse) {
+      derivedNeedActionTodos.push({
+        id: `derived-renewal-h1-${customer.id}`,
+        code: "renewal_h1_warning",
+        title: "Kontrak akan berakhir dalam 1 bulan",
+        message: `Kontrak akan berakhir dalam ${daysUntilEnd} hari (H-1 bulan). ${hasRenewalUpload ? 'Belum ada tanggapan perpanjangan. Segera follow up dengan lokasi.' : 'Segera upload surat perpanjangan kontrak!'}`,
+        dueDate: contract.endDate,
+      });
+    }
   }
 
   const displayPriorityTodos = [
@@ -1032,6 +1514,12 @@ function TenantDetailPage({
 
   const billingEvery = Number(contract?.billingEvery ?? 1);
   const billingUnitLabel = toTitleCase(contract?.billingUnit ?? "bulan");
+  const getFirstDayOfNextMonth = (dateValue) => {
+    if (!dateValue) return "";
+    const date = new Date(`${String(dateValue).slice(0, 10)}T00:00:00.000Z`);
+    if (Number.isNaN(date.getTime())) return "";
+    return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 1)).toISOString().slice(0, 10);
+  };
   const getRowPeriodTime = (row) => {
     const rawDate = row?.periodEnd ?? row?.periodStart ?? "";
     const timestamp = new Date(`${String(rawDate).slice(0, 10)}T00:00:00.000Z`).getTime();
@@ -1070,35 +1558,90 @@ function TenantDetailPage({
   };
   const contractsForTable = Array.isArray(detail?.contracts)
     ? [...detail.contracts].sort((left, right) => (
-        getRowPeriodTime({ periodEnd: right?.endDate ?? right?.end_date, periodStart: right?.startDate ?? right?.start_date })
-        - getRowPeriodTime({ periodEnd: left?.endDate ?? left?.end_date, periodStart: left?.startDate ?? left?.start_date })
+        getRowPeriodTime({ periodEnd: left?.endDate ?? left?.end_date, periodStart: left?.startDate ?? left?.start_date })
+        - getRowPeriodTime({ periodEnd: right?.endDate ?? right?.end_date, periodStart: right?.startDate ?? right?.start_date })
       ))
     : [];
-  const contractRowsForTable = contractsForTable.map((contractRow, index) => ({
-    id: `contract-${contractRow.id ?? index}`,
-    contractId: contractRow.id ?? null,
-    versionId: null,
-    number: index + 1,
-    contractNumber: contractRow.contractNumber ?? contractRow.contract_number ?? "",
-    note: index === 0 ? "Kontrak Beroperasi" : "Riwayat Perubahan",
-    periodStart: contractRow.startDate ?? contractRow.start_date ?? "",
-    periodEnd: contractRow.endDate ?? contractRow.end_date ?? "",
-    paket: getContractPackageDisplay(resolveContractPackageType(contractRow)),
-    jumlahPaket: resolveContractActualValue(contractRow),
-    hasBak: Boolean(
-      (contractRow.id ? bakDocumentByContractId.get(Number(contractRow.id)) : null)
-        ?? (Array.isArray(contractRow.versions)
-          ? contractRow.versions.some((version) => (
-              Boolean(version?.id ? bakDocumentByVersionId.get(Number(version.id)) : null)
-            ))
-          : false),
-    ),
-    renewalFollowUps: Array.isArray(contractRow.versions)
-      ? contractRow.versions.flatMap((version) => (
-          Array.isArray(version?.renewalFollowUps) ? version.renewalFollowUps : []
+  const getContractRowNote = (periodStart, periodEnd) => {
+    if (periodStart && periodEnd && periodStart <= todayIso && periodEnd >= todayIso) {
+      return "Kontrak Beroperasi";
+    }
+    if (periodStart && periodStart > todayIso) {
+      return "Akan Berjalan";
+    }
+    return "Riwayat Perubahan";
+  };
+  const buildContractTableRow = ({ contractRow, version = null, id, number }) => {
+    const periodStart = version?.startDate ?? version?.start_date ?? contractRow.startDate ?? contractRow.start_date ?? "";
+    const periodEnd = version?.endDate ?? version?.end_date ?? contractRow.endDate ?? contractRow.end_date ?? "";
+    const rowSource = version
+      ? {
+          ...contractRow,
+          coreType: version.coreType ?? version.core_type ?? contractRow.coreType ?? contractRow.core_type,
+          coreTotal: version.coreTotal ?? version.core_total ?? contractRow.coreTotal ?? contractRow.core_total,
+          sharingRatio: version.sharedCoreRatio ?? version.shared_core_ratio ?? contractRow.sharingRatio ?? contractRow.sharing_ratio,
+        }
+      : contractRow;
+
+    const note = getContractRowNote(periodStart, periodEnd);
+
+    const versionContractNumber = version
+      ? (version?.contractNumber ?? version?.contract_number)
+      : (contractRow.contractNumber ?? contractRow.contract_number);
+
+    return {
+      id,
+      contractId: contractRow.id ?? null,
+      versionId: version?.id ?? null,
+      number,
+      contractNumber: formatDisplayContractNumber(versionContractNumber),
+      note,
+      isHistory: note === "Riwayat Perubahan",
+      isFuture: note === "Akan Berjalan",
+      isActive: note === "Kontrak Beroperasi",
+      periodStart,
+      periodEnd,
+      paket: getContractPackageDisplay(resolveContractPackageType(rowSource)),
+      jumlahPaket: resolveContractActualValue(rowSource),
+      monthlyAmount: version?.monthlyAmount ?? version?.monthly_amount ?? null,
+      yearlyAmount: version?.yearlyAmount ?? version?.yearly_amount ?? null,
+      hasBak: Boolean(
+        version?.id
+          ? bakDocumentByVersionId.get(Number(version.id))
+          : (contractRow.id ? bakDocumentByContractId.get(Number(contractRow.id)) : null),
+      ),
+      renewalFollowUps: Array.isArray(version?.renewalFollowUps)
+        ? version.renewalFollowUps
+        : [],
+    };
+  };
+  const contractRowsForTable = contractsForTable.flatMap((contractRow) => {
+    const rows = [
+      buildContractTableRow({
+        contractRow,
+        id: `contract-${contractRow.id ?? "unknown"}`,
+        number: 0,
+      }),
+    ];
+
+    if (Array.isArray(contractRow.versions)) {
+      const versionRows = [...contractRow.versions]
+        .sort((left, right) => (
+          getRowPeriodTime({ periodEnd: left?.endDate ?? left?.end_date, periodStart: left?.startDate ?? left?.start_date })
+          - getRowPeriodTime({ periodEnd: right?.endDate ?? right?.end_date, periodStart: right?.startDate ?? right?.start_date })
         ))
-      : [],
-  }));
+        .map((version) => buildContractTableRow({
+          contractRow,
+          version,
+          id: `version-${version.id ?? `${contractRow.id}-${version.startDate ?? version.start_date ?? "unknown"}`}`,
+          number: 0,
+        }));
+      rows.push(...versionRows);
+    }
+
+    return rows;
+  }).sort((left, right) => getRowPeriodTime(right) - getRowPeriodTime(left))
+    .map((row, index) => ({ ...row, number: index + 1 }));
 
   const toggleContractNumberEmptyMark = (rowId) => {
     setEmptyContractNumberRows((previous) => ({
@@ -1127,6 +1670,66 @@ function TenantDetailPage({
       billingUnit: String(contract?.billingUnit ?? "bulan"),
     });
     setBillingError("");
+  };
+
+  const recalculateUnpaidInvoiceSchedule = async (nextBillingCycle) => {
+    if (!contract?.id || !contract?.startDate || !contract?.endDate) {
+      return;
+    }
+
+    const scheduleRows = buildInvoiceScheduleRows(
+      contract.startDate,
+      contract.endDate,
+      nextBillingCycle,
+    );
+    const unpaidRows = invoiceRows.filter((invoice) => !isInvoicePaid(invoice));
+    const paidRows = invoiceRows.filter(isInvoicePaid);
+    const paidPeriodKeys = new Set(
+      paidRows.map((invoice) => `${invoice.periodStartDate ?? ""}-${invoice.periodEndDate ?? ""}`),
+    );
+    const availableScheduleRows = scheduleRows.filter(
+      (row) => !paidPeriodKeys.has(`${row.periodStartDate}-${row.periodEndDate}`),
+    );
+
+    await Promise.all(
+      availableScheduleRows.map((row, index) => {
+        const existingInvoice = unpaidRows[index] ?? null;
+        const periodDate = new Date(`${row.periodStartDate}T00:00:00.000Z`);
+        const periodYear = Number.isFinite(periodDate.getTime())
+          ? periodDate.getUTCFullYear()
+          : null;
+        const periodMonth = Number.isFinite(periodDate.getTime())
+          ? periodDate.getUTCMonth() + 1
+          : null;
+        const payload = {
+          customerId: customer.id,
+          contractId: contract.id,
+          contractNumber: contract.contractNumber ?? null,
+          periodStartDate: row.periodStartDate,
+          periodEndDate: row.periodEndDate,
+          periodYear,
+          periodMonth,
+          scheduleStatus: "active",
+        };
+
+        if (existingInvoice) {
+          return api.invoices.update(existingInvoice.id, payload);
+        }
+
+        return api.invoices.create({
+          ...payload,
+          amount: 0,
+          status: "belum_ditagih",
+        });
+      }),
+    );
+
+    const surplusRows = unpaidRows.slice(availableScheduleRows.length);
+    await Promise.all(
+      surplusRows.map((invoice) =>
+        api.invoices.update(invoice.id, { scheduleStatus: "history" }),
+      ),
+    );
   };
 
   const handleSaveBillingCycle = async (event) => {
@@ -1158,10 +1761,14 @@ function TenantDetailPage({
         billingEvery,
         billingUnit: billingEditor.billingUnit,
       });
+      await recalculateUnpaidInvoiceSchedule({
+        every: billingEvery,
+        unit: billingEditor.billingUnit,
+      });
 
       setBillingEditor(null);
       setInvoiceFeedback(
-        "Periode tagihan berhasil diperbarui. Jadwal invoice aktif direstrukturisasi, sementara invoice lunas tetap tersimpan sebagai riwayat.",
+        "Periode tagihan berhasil diperbarui. Invoice aktif yang belum lunas disesuaikan otomatis; periksa ulang Jumlah Dibayar dan Tanggal Terakhir Pembayaran. Invoice yang sudah lunas tidak dihitung ulang.",
       );
       await Promise.all([loadDetail(), onRefreshAll?.()]);
     } catch (requestError) {
@@ -1175,15 +1782,56 @@ function TenantDetailPage({
     }
   };
 
-  const handleSaveContractNumber = async () => {
-    if (!contract?.id) {
+  const handleMarkActivationFeePaid = async () => {
+    setIsMarkingActivationFeePaid(true);
+    setError("");
+    setDocumentFeedback("");
+
+    try {
+      await api.customers.update(customer.id, {
+        activationFeePaidAt: new Date().toISOString(),
+      });
+      setDocumentFeedback("Biaya aktivasi berhasil ditandai sudah dibayar.");
+      await Promise.all([loadDetail(), onRefreshAll?.()]);
+    } catch (requestError) {
       setError(
-        "Kontrak beroperasi tidak ditemukan untuk update nomor kontrak.",
+        requestError instanceof Error
+          ? requestError.message
+          : "Gagal menandai biaya aktivasi sudah dibayar.",
       );
+    } finally {
+      setIsMarkingActivationFeePaid(false);
+    }
+  };
+
+  const handleRevertActivationFeePaid = async () => {
+    if (!window.confirm("Batalkan status lunas biaya aktivasi? To do pembayaran akan muncul kembali.")) {
       return;
     }
 
-    const normalizedContractNumber = contractNumberInput.trim();
+    setIsMarkingActivationFeePaid(true);
+    setError("");
+    setDocumentFeedback("");
+
+    try {
+      await api.customers.update(customer.id, {
+        activationFeePaidAt: null,
+      });
+      setDocumentFeedback("Status biaya aktivasi dikembalikan menjadi belum dibayar.");
+      await Promise.all([loadDetail(), onRefreshAll?.()]);
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Gagal membatalkan status lunas biaya aktivasi.",
+      );
+    } finally {
+      setIsMarkingActivationFeePaid(false);
+    }
+  };
+
+  const handleSaveContractNumber = async (row) => {
+    const normalizedContractNumber = String(contractNumberInputs[row.id] ?? "").trim();
     if (!normalizedContractNumber) {
       setError("Nomor kontrak wajib diisi sebelum disimpan.");
       return;
@@ -1193,11 +1841,25 @@ function TenantDetailPage({
     setError("");
 
     try {
-      await api.contracts.update(contract.id, {
-        contractNumber: normalizedContractNumber,
-      });
+      if (row.versionId) {
+        await api.contractVersions.update(row.versionId, {
+          contractNumber: normalizedContractNumber,
+        });
+      } else if (row.contractId) {
+        await api.contracts.update(row.contractId, {
+          contractNumber: normalizedContractNumber,
+        });
+      } else {
+        setError("Data kontrak tidak valid untuk update nomor kontrak.");
+        return;
+      }
 
-      setEmptyContractNumberRows({});
+      setEmptyContractNumberRows((previous) => ({ ...previous, [row.id]: false }));
+      setContractNumberInputs((previous) => {
+        const nextInputs = { ...previous };
+        delete nextInputs[row.id];
+        return nextInputs;
+      });
       await Promise.all([loadDetail(), onRefreshAll?.()]);
     } catch (requestError) {
       setError(
@@ -1212,12 +1874,18 @@ function TenantDetailPage({
 
   const openVersionEditor = () => {
     const latestVersion = versions[0];
+    const packageType = latestVersion?.sharedCoreRatio ?? contract?.sharingRatio ? "sharing_core" : "core";
+    const monthlyAmount = Number(latestVersion?.monthlyAmount ?? latestVersion?.monthly_amount ?? 0);
     setVersionEditor({
       reason: "ubah_paket",
       customReason: "",
-      startDate: todayIso,
-      endDate: latestVersion?.endDate ?? contract?.endDate ?? todayIso,
+      contractNumber: "",
+      requestedDate: todayIso,
+      packageType,
+      coreTotal: String(latestVersion?.coreTotal ?? latestVersion?.core_total ?? contract?.coreTotal ?? contract?.core_total ?? ""),
       ratio: latestVersion?.sharedCoreRatio ?? contract?.sharingRatio ?? "1:8",
+      monthlyAmount: monthlyAmount > 0 ? String(monthlyAmount) : "",
+      yearlyAmount: monthlyAmount > 0 ? String(monthlyAmount * 12) : "",
     });
     setVersionError("");
   };
@@ -1227,8 +1895,29 @@ function TenantDetailPage({
     if (!contract || !versionEditor) {
       return;
     }
-    if (!/^[1-9]\d*:[1-9]\d*$/.test(versionEditor.ratio.trim())) {
+    const isSharingPackage = versionEditor.packageType === "sharing_core";
+    const monthlyAmount = Number(versionEditor.monthlyAmount);
+    const yearlyAmount = Number(versionEditor.yearlyAmount || monthlyAmount * 12);
+    const coreTotal = Number(versionEditor.coreTotal);
+
+    if (!versionEditor.requestedDate) {
+      setVersionError("Tanggal perubahan paket wajib diisi.");
+      return;
+    }
+    if (contract.endDate && versionEditor.requestedDate > contract.endDate) {
+      setVersionError("Tanggal perubahan paket melewati akhir kontrak.");
+      return;
+    }
+    if (isSharingPackage && !/^[1-9]\d*:[1-9]\d*$/.test(String(versionEditor.ratio ?? "").trim())) {
       setVersionError("Rasio shared core tidak valid.");
+      return;
+    }
+    if (!isSharingPackage && (!Number.isFinite(coreTotal) || coreTotal <= 0)) {
+      setVersionError("Jumlah core wajib lebih dari 0.");
+      return;
+    }
+    if (!Number.isFinite(monthlyAmount) || monthlyAmount <= 0) {
+      setVersionError("Nominal bulanan wajib lebih dari 0.");
       return;
     }
     if (
@@ -1242,22 +1931,30 @@ function TenantDetailPage({
     setVersionError("");
     setDocumentFeedback("");
     try {
-      await api.contractVersions.create({
-        contract_id: contract.id,
-        start_date: versionEditor.startDate,
-        end_date: versionEditor.endDate,
-        shared_core_ratio: versionEditor.ratio.trim(),
+      const result = await api.contractVersions.changePackageMidPeriod({
+        contractId: contract.id,
+        requestedDate: versionEditor.requestedDate,
+        contractNumber: String(versionEditor.contractNumber ?? "").trim() || undefined,
+        coreType: versionEditor.packageType,
+        coreTotal: isSharingPackage ? 0 : coreTotal,
+        sharedCoreRatio: isSharingPackage ? String(versionEditor.ratio ?? "").trim() : null,
+        monthlyAmount,
+        yearlyAmount: Number.isFinite(yearlyAmount) && yearlyAmount > 0 ? yearlyAmount : monthlyAmount * 12,
+        remarks: (versionEditor.reason ?? "ubah_paket") === "lainnya"
+          ? String(versionEditor.customReason ?? "").trim()
+          : `Ubah paket efektif ${getFirstDayOfNextMonth(versionEditor.requestedDate)}.`,
       });
       setVersionEditor(null);
       setDocumentFeedback(
-        "Riwayat perubahan kontrak berhasil dibuat. Upload BAK untuk mengaktifkan versi baru.",
+        `Paket baru aktif mulai ${formatDate(result.newEffectiveStart)}. ${result.updatedInvoiceCount} invoice belum lunas diperbarui.`,
       );
+
       await Promise.all([loadDetail(), onRefreshAll?.()]);
     } catch (requestError) {
       setVersionError(
         requestError instanceof Error
           ? requestError.message
-          : "Terjadi kesalahan saat membuat versi kontrak.",
+          : "Terjadi kesalahan saat membuat perubahan paket.",
       );
     } finally {
       setIsSubmittingVersion(false);
@@ -1722,10 +2419,31 @@ function TenantDetailPage({
     }));
   };
 
+  const updateInvoiceFollowUpDraftField = (invoiceId, followUpKey, field, value) => {
+    setInvoiceDrafts((previousDrafts) => {
+      const currentDraft = previousDrafts[invoiceId] ?? {};
+      const currentFollowUps = currentDraft.followUps ?? {};
+      return {
+        ...previousDrafts,
+        [invoiceId]: {
+          ...currentDraft,
+          followUps: {
+            ...currentFollowUps,
+            [followUpKey]: {
+              ...(currentFollowUps[followUpKey] ?? {}),
+              [field]: value,
+            },
+          },
+        },
+      };
+    });
+  };
+
   const getInvoiceDraft = (invoice) => {
     const existingDraft = invoiceDrafts[invoice.id] ?? {};
 
     return {
+      invoiceNumber: String(existingDraft.invoiceNumber ?? invoice?.invoiceNumber ?? ""),
       dueDate: String(existingDraft.dueDate ?? invoice?.dueDate ?? ""),
       amount: String(
         existingDraft.amount ??
@@ -1733,6 +2451,7 @@ function TenantDetailPage({
           ? Math.max(0, Math.round(Number(invoice.amount)))
           : 0),
       ),
+      status: String(existingDraft.status ?? invoice?.status ?? "belum_ditagih"),
       followUps: existingDraft.followUps ?? {},
     };
   };
@@ -1740,9 +2459,11 @@ function TenantDetailPage({
   const getInvoiceFollowUpDraft = (invoice, followUp = null) => {
     const draft = getInvoiceDraft(invoice);
     const followUpKey = followUp?.id ? String(followUp.id) : "initial";
+    const fallbackKey = followUp?.splitOrder ? `warning-${followUp.splitOrder}` : followUpKey;
     return {
       invoiceNumber: String(
         draft.followUps?.[followUpKey]?.invoiceNumber ??
+        draft.followUps?.[fallbackKey]?.invoiceNumber ??
         followUp?.invoiceNumber ??
         "",
       ),
@@ -1756,12 +2477,14 @@ function TenantDetailPage({
         invoiceNumber: String(followUp?.invoiceNumber ?? ""),
       };
     });
-    nextFollowUpDrafts.initial = { invoiceNumber: "" };
+    nextFollowUpDrafts.initial = { invoiceNumber: String(invoice?.invoiceNumber ?? "") };
 
     setInvoiceDrafts((previousDrafts) => ({
       ...previousDrafts,
       [invoice.id]: {
+        invoiceNumber: String(invoice?.invoiceNumber ?? ""),
         dueDate: String(invoice?.dueDate ?? ""),
+        status: String(invoice?.status ?? "belum_ditagih"),
         amount: String(
           Number.isFinite(Number(invoice.amount))
             ? Math.max(0, Math.round(Number(invoice.amount)))
@@ -1793,6 +2516,126 @@ function TenantDetailPage({
     return validateInvoiceDraftBase(draft);
   };
 
+  const updateHistoricalArchiveDraftField = (field, value) => {
+    setHistoricalArchiveDraft((previousDraft) => ({
+      ...previousDraft,
+      [field]: value,
+    }));
+  };
+
+  const handleCreateHistoricalArchive = async (event) => {
+    event.preventDefault();
+    if (!contract?.id) {
+      setError("Kontrak utama tidak ditemukan untuk membuat arsip periode lama.");
+      return;
+    }
+
+    const isSharingPackage = historicalArchiveDraft.packageType === "sharing_core";
+    const amount = Number(historicalArchiveDraft.amount);
+    const coreTotal = Number(historicalArchiveDraft.coreTotal);
+    const periodStartDate = String(historicalArchiveDraft.periodStartDate ?? "").trim();
+    const periodEndDate = String(historicalArchiveDraft.periodEndDate ?? "").trim();
+    const invoiceNumber = String(historicalArchiveDraft.invoiceNumber ?? "").trim();
+    const contractNumber = String(historicalArchiveDraft.contractNumber ?? "").trim();
+    const dueDate = String(historicalArchiveDraft.dueDate || historicalArchiveDraft.periodEndDate || "").trim();
+    const paidAt = String(historicalArchiveDraft.paidAt || dueDate || "").trim();
+
+    if (!periodStartDate || !periodEndDate || periodStartDate > periodEndDate) {
+      setError("Periode arsip tidak valid.");
+      return;
+    }
+    if (!invoiceNumber) {
+      setError("Nomor invoice arsip wajib diisi.");
+      return;
+    }
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setError("Nominal invoice arsip wajib lebih dari 0.");
+      return;
+    }
+    if (isSharingPackage && !/^[1-9]\d*[:/][1-9]\d*$/.test(String(historicalArchiveDraft.ratio ?? "").trim())) {
+      setError("Rasio shared core arsip tidak valid.");
+      return;
+    }
+    if (!isSharingPackage && (!Number.isFinite(coreTotal) || coreTotal <= 0)) {
+      setError("Jumlah core arsip wajib lebih dari 0.");
+      return;
+    }
+
+    setIsSavingInvoice(true);
+    setError("");
+    setInvoiceFeedback("");
+    try {
+      const monthlyPeriods = getMonthlyPeriodsBetween(periodStartDate, periodEndDate);
+      if (monthlyPeriods.length === 0) {
+        throw new Error("Periode arsip tidak dapat dipecah menjadi invoice bulanan.");
+      }
+
+      const normalizedRatio = String(historicalArchiveDraft.ratio ?? "").trim().replace("/", ":");
+      const contractVersion = await api.contractVersions.create({
+        contractId: contract.id,
+        customerId: customer.id,
+        contractNumber: contractNumber || null,
+        startDate: periodStartDate,
+        endDate: periodEndDate,
+        coreType: historicalArchiveDraft.packageType,
+        coreTotal: isSharingPackage ? 0 : coreTotal,
+        sharedCoreRatio: isSharingPackage ? normalizedRatio : null,
+        monthlyAmount: amount,
+        yearlyAmount: amount * Math.max(monthlyPeriods.length, 1),
+        remarks: String(historicalArchiveDraft.remarks ?? "").trim() || "Arsip periode lama.",
+      });
+
+      const shouldAppendPeriodSuffix = monthlyPeriods.length > 1;
+      await Promise.all(
+        monthlyPeriods.map((period) => {
+          const periodDueDate = alignRecurringDateToPeriod(period, dueDate, period.periodEndDate);
+          const periodPaidAt = alignRecurringDateToPeriod(period, paidAt, periodDueDate);
+
+          return api.invoices.create({
+            customerId: customer.id,
+            contractId: contract.id,
+            contractVersionId: contractVersion?.id ?? null,
+            contractNumber: contractNumber || null,
+            invoiceNumber: buildHistoricalInvoiceNumber(invoiceNumber, period, shouldAppendPeriodSuffix),
+            periodStartDate: period.periodStartDate,
+            periodEndDate: period.periodEndDate,
+            periodYear: period.periodYear,
+            periodMonth: period.periodMonth,
+            dueDate: periodDueDate,
+            amount,
+            status: "lunas",
+            scheduleStatus: "history",
+            paidAt: periodPaidAt,
+          });
+        }),
+      );
+
+      setHistoricalArchiveDraft({
+        periodStartDate: "",
+        periodEndDate: "",
+        contractNumber: "",
+        invoiceNumber: "",
+        dueDate: "",
+        paidAt: "",
+        amount: "250000",
+        packageType: "sharing_core",
+        ratio: "1:32",
+        coreTotal: "",
+        remarks: "",
+      });
+      setInvoiceFeedback(`Arsip periode lama berhasil ditambahkan menjadi ${monthlyPeriods.length} invoice bulanan.`);
+      await Promise.all([loadDetail(), onRefreshAll?.()]);
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Gagal menambahkan arsip periode lama.",
+      );
+    } finally {
+      setIsSavingInvoice(false);
+    }
+  };
+
   const handleSaveInvoiceRow = async (invoice) => {
     const draft = getInvoiceDraft(invoice);
     const amount = Number(draft.amount);
@@ -1806,6 +2649,12 @@ function TenantDetailPage({
     setError("");
     setInvoiceFeedback("");
     try {
+      const selectedStatus = INVOICE_STATUS_OPTIONS.some((option) => option.value === draft.status)
+        ? draft.status
+        : "belum_ditagih";
+      const nextPaidAt = selectedStatus === "lunas"
+        ? (invoice.paidAt || new Date().toISOString())
+        : null;
       const followUpPayload = getInvoiceFollowUps(invoice).map((followUp) => ({
         id: followUp.id,
         invoiceNumber:
@@ -1814,8 +2663,11 @@ function TenantDetailPage({
       }));
 
       await api.invoices.update(invoice.id, {
+        invoice_number: String(draft.invoiceNumber ?? "").trim() || null,
         due_date: draft.dueDate || null,
         amount,
+        status: selectedStatus,
+        paid_at: nextPaidAt,
       });
       await Promise.all(
         followUpPayload.map((followUp) =>
@@ -1840,23 +2692,59 @@ function TenantDetailPage({
     }
   };
 
-  const handleUploadInvoiceFile = async (invoice, file, followUpId = null) => {
+  const getOrCreateInvoiceFollowUp = async (invoice, splitOrder) => {
+    const existingFollowUp = getInvoiceFollowUps(invoice).find(
+      (followUp) => Number(followUp?.splitOrder ?? 0) === splitOrder,
+    );
+
+    if (existingFollowUp) {
+      return existingFollowUp;
+    }
+
+    return api.invoiceFollowUps.create({
+      invoiceId: invoice.id,
+      splitOrder,
+      source: "manual",
+      triggerCode: splitOrder === 2 ? "h_minus_3" : "h_minus_7",
+      title: splitOrder === 2 ? "Peringatan H-3" : "Peringatan H-7",
+      description:
+        splitOrder === 2
+          ? "Invoice peringatan kedua sebelum tanggal terakhir pembayaran."
+          : "Invoice peringatan pertama sebelum tanggal terakhir pembayaran.",
+    });
+  };
+
+  const handleUploadInvoiceFile = async (invoice, file, splitOrder = null) => {
     if (!file) {
       return;
     }
 
+    const workflowMeta = invoice.workflowMeta ?? getInvoiceWorkflowMeta(invoice, workflowInvoiceRows);
     const draft = getInvoiceDraft(invoice);
-    const targetFollowUp =
-      getInvoiceFollowUps(invoice).find(
-        (followUp) => followUp.id === followUpId,
-      ) ?? null;
-    const followUpDraft = getInvoiceFollowUpDraft(invoice, targetFollowUp);
+    const targetFollowUp = splitOrder
+      ? getInvoiceFollowUps(invoice).find(
+        (followUp) => Number(followUp?.splitOrder ?? 0) === Number(splitOrder),
+      ) ?? { splitOrder }
+      : null;
+    const followUpDraft = splitOrder
+      ? getInvoiceFollowUpDraft(invoice, targetFollowUp)
+      : { invoiceNumber: draft.invoiceNumber };
     const validationMessage = validateInvoiceDraftForUpload(
       draft,
       followUpDraft,
     );
     if (validationMessage) {
       setError(validationMessage);
+      return;
+    }
+
+    if (splitOrder === 2 && !workflowMeta.canUploadSecondWarning) {
+      setError("Split upload peringatan kedua hanya tersedia pada tahap peringatan H-3.");
+      return;
+    }
+
+    if (!splitOrder && !workflowMeta.canUploadMainInvoice && !workflowMeta.canUploadFirstWarning) {
+      setError("Upload invoice belum tersedia untuk jadwal pembayaran ini.");
       return;
     }
 
@@ -1867,17 +2755,18 @@ function TenantDetailPage({
     setInvoiceFeedback("");
     try {
       const invoiceFileUrl = await uploadFileForRecord(file, ["customers", customer.id, "invoices"]);
-      if (followUpId) {
-        await api.invoiceFollowUps.update(followUpId, {
-          invoice_number: followUpDraft.invoiceNumber.trim(),
-          invoice_file_url: invoiceFileUrl,
+      if (splitOrder) {
+        const followUp = await getOrCreateInvoiceFollowUp(invoice, splitOrder);
+        await api.invoiceFollowUps.update(followUp.id, {
+          invoiceNumber: followUpDraft.invoiceNumber.trim(),
+          invoiceFileUrl,
         });
       } else {
         await api.invoices.update(invoice.id, {
-          invoice_number: followUpDraft.invoiceNumber.trim(),
-          due_date: draft.dueDate,
+          invoiceNumber: followUpDraft.invoiceNumber.trim(),
+          dueDate: draft.dueDate,
           amount,
-          invoice_file_url: invoiceFileUrl,
+          invoiceFileUrl,
         });
       }
       setInvoiceEditingId((current) =>
@@ -1901,7 +2790,7 @@ function TenantDetailPage({
       return;
     }
 
-    if (!hasUploadedInvoiceSplit(invoice)) {
+    if (!hasAnyUploadedInvoiceFile(invoice)) {
       setError("Upload invoice terlebih dahulu sebelum upload bukti bayar.");
       return;
     }
@@ -1919,7 +2808,9 @@ function TenantDetailPage({
     try {
       const paymentProofFileUrl = await uploadFileForRecord(file, ["customers", customer.id, "payment-proofs"]);
       await api.invoices.update(invoice.id, {
-        payment_proof_file_url: paymentProofFileUrl,
+        paymentProofFileUrl,
+        paidAt: new Date().toISOString(),
+        status: "lunas",
       });
       setInvoiceFeedback(
         `Bukti bayar invoice #${invoice.id} berhasil diunggah.`,
@@ -1930,6 +2821,31 @@ function TenantDetailPage({
         requestError instanceof Error
           ? requestError.message
           : "Gagal mengunggah bukti bayar.",
+      );
+    } finally {
+      setIsSavingInvoice(false);
+    }
+  };
+
+  const handleMarkInvoicePaid = async (invoice) => {
+    if (!hasAnyUploadedInvoiceFile(invoice)) {
+      setError("Upload invoice terlebih dahulu sebelum konfirmasi pembayaran.");
+      return;
+    }
+
+    setIsSavingInvoice(true);
+    setError("");
+    setInvoiceFeedback("");
+    try {
+      const paidAt = new Date().toISOString();
+      await api.invoices.update(invoice.id, { paidAt, status: "lunas" });
+      setInvoiceFeedback(`Invoice #${invoice.id} ditandai sudah bayar.`);
+      await Promise.all([loadDetail(), onRefreshAll?.()]);
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Gagal mengonfirmasi pembayaran.",
       );
     } finally {
       setIsSavingInvoice(false);
@@ -2765,16 +3681,16 @@ function TenantDetailPage({
                                                                     <div className="relative group/input flex-1 min-w-[200px]">
                                                                         <input
                                                                             className="w-full h-10 px-4 rounded-xl bg-black/40 border border-white/5 text-xs text-white focus:border-amber-500/50 focus:outline-none transition-all placeholder:text-white/10"
-                                                                            onChange={(event) => setContractNumberInput(event.target.value)}
+                                                                            onChange={(event) => setContractNumberInputs((previous) => ({ ...previous, overview: event.target.value }))}
                                                                             placeholder="Nomor kontrak..."
                                                                             type="text"
-                                                                            value={contractNumberInput}
+                                                                            value={contractNumberInputs.overview ?? ""}
                                                                         />
                                                                     </div>
                                                                     <button
                                                                         className="h-10 px-4 rounded-xl bg-amber-500 text-[#0f141e] text-[10px] font-black uppercase tracking-widest shadow-gold-glow hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
                                                                         disabled={isSavingContractNumber}
-                                                                        onClick={() => void handleSaveContractNumber()}
+                                                                        onClick={() => void handleSaveContractNumber({ id: "overview", contractId: contract?.id })}
                                                                     >
                                                                         {isSavingContractNumber ? "Saving..." : "Simpan"}
                                                                     </button>
@@ -2818,23 +3734,49 @@ function TenantDetailPage({
                                     <p className="text-[8px] font-bold text-white/20 uppercase tracking-[0.2em]">Administrasi penyambungan awal</p>
                                 </div>
                             </div>
-                            {detail?.activationFeePaidAt ? (
-                                <div className="flex items-center gap-4 p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/10 backdrop-blur-md">
-                                    <span className="material-symbols-outlined text-emerald-400 text-2xl shrink-0">verified_user</span>
-                                    <div>
-                                        <p className="text-[9px] font-black text-emerald-400 uppercase tracking-[0.2em]">Status: Selesai</p>
-                                        <p className="text-[10px] font-bold text-white/40 mt-0.5">Dibayar pada {formatDate(detail.activationFeePaidAt)}</p>
+                            {activationFeePaidAt ? (
+                                <div className="space-y-4 rounded-xl border border-emerald-500/10 bg-emerald-500/5 p-4 backdrop-blur-md">
+                                    <div className="flex items-center gap-4">
+                                        <span className="material-symbols-outlined text-emerald-400 text-2xl shrink-0">verified_user</span>
+                                        <div>
+                                            <p className="text-[9px] font-black text-emerald-400 uppercase tracking-[0.2em]">Status: Selesai</p>
+                                            <p className="text-[10px] font-bold text-white/40 mt-0.5">Dibayar pada {formatDate(activationFeePaidAt)}</p>
+                                        </div>
                                     </div>
+                                    {canEditTenant && (
+                                        <button
+                                            className="inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-rose-500/20 bg-rose-500/10 px-3 text-[9px] font-black uppercase tracking-widest text-rose-300 transition-all hover:bg-rose-500 hover:text-white disabled:opacity-50"
+                                            disabled={isMarkingActivationFeePaid}
+                                            onClick={() => void handleRevertActivationFeePaid()}
+                                            type="button"
+                                        >
+                                            <span className="material-symbols-outlined text-sm">undo</span>
+                                            {isMarkingActivationFeePaid ? "Menyimpan..." : "Batalkan Lunas"}
+                                        </button>
+                                    )}
                                 </div>
                             ) : (
-                                <div className="flex items-center gap-4 p-4 rounded-xl bg-amber-500/5 border border-amber-500/10">
-                                    <span className="material-symbols-outlined text-amber-400 text-2xl shrink-0">pending_actions</span>
-                                    <div>
-                                        <p className="text-[9px] font-black text-amber-400 uppercase tracking-[0.2em]">Menunggu Pembayaran</p>
-                                        <p className="text-lg font-black text-white tracking-tighter mt-0.5">
-                                            {formatCurrency(detail?.activationFeeAmount ?? customer.activationFeeAmount)}
-                                        </p>
+                                <div className="space-y-4 rounded-xl border border-amber-500/10 bg-amber-500/5 p-4">
+                                    <div className="flex items-center gap-4">
+                                        <span className="material-symbols-outlined text-amber-400 text-2xl shrink-0">pending_actions</span>
+                                        <div>
+                                            <p className="text-[9px] font-black text-amber-400 uppercase tracking-[0.2em]">Menunggu Pembayaran</p>
+                                            <p className="text-lg font-black text-white tracking-tighter mt-0.5">
+                                                {formatCurrency(activationFeeAmount)}
+                                            </p>
+                                        </div>
                                     </div>
+                                    {canEditTenant && (
+                                        <button
+                                            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 text-[10px] font-black uppercase tracking-widest text-[#0f141e] shadow-emerald-glow transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+                                            disabled={isMarkingActivationFeePaid}
+                                            onClick={() => void handleMarkActivationFeePaid()}
+                                            type="button"
+                                        >
+                                            <span className="material-symbols-outlined text-sm">price_check</span>
+                                            {isMarkingActivationFeePaid ? "Menyimpan..." : "Tandai Sudah Dibayar"}
+                                        </button>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -3247,8 +4189,8 @@ function TenantDetailPage({
                             onClick={openVersionEditor}
                             type="button"
                         >
-                            <span className="material-symbols-outlined text-lg">add_task</span>
-                            Tambah Kontrak Baru
+                            <span className="material-symbols-outlined text-lg">upgrade</span>
+                            Ubah / Upgrade Paket
                         </button>
                     </div>
 
@@ -3258,6 +4200,47 @@ function TenantDetailPage({
                             {documentFeedback}
                         </div>
                     )}
+
+                    {(() => {
+                        if (!contract?.endDate) return null;
+                        const endDate = new Date(contract.endDate);
+                        const today = new Date(todayIso);
+                        const daysUntilEnd = Math.floor((endDate - today) / (1000 * 60 * 60 * 24));
+
+                        const primaryContractRow = contractRowsForTable.find(row => row.contractId === contract.id);
+                        const renewalFollowUps = Array.isArray(primaryContractRow?.renewalFollowUps) ? primaryContractRow.renewalFollowUps : [];
+                        const hasRenewalUpload = renewalFollowUps.some((followUp) => followUp?.renewalFileUrl);
+                        const hasResponse = renewalFollowUps.some((followUp) => followUp?.responseFileUrl);
+
+                        let warningLevel = null;
+                        let warningMessage = null;
+
+                        if (daysUntilEnd <= 90 && daysUntilEnd > 60 && !hasRenewalUpload) {
+                            warningLevel = "h3";
+                            warningMessage = `Kontrak akan berakhir dalam ${daysUntilEnd} hari (H-3 bulan). Segera buat dan upload surat perpanjangan kontrak.`;
+                        } else if (daysUntilEnd <= 60 && daysUntilEnd > 30 && hasRenewalUpload && !hasResponse) {
+                            warningLevel = "h2";
+                            warningMessage = `Kontrak akan berakhir dalam ${daysUntilEnd} hari (H-2 bulan). Surat perpanjangan sudah diupload. Menunggu tanggapan dari lokasi.`;
+                        } else if (daysUntilEnd <= 30 && daysUntilEnd > 0 && !hasResponse) {
+                            warningLevel = "h1";
+                            warningMessage = `Kontrak akan berakhir dalam ${daysUntilEnd} hari (H-1 bulan). ${hasRenewalUpload ? 'Belum ada tanggapan perpanjangan. Segera follow up dengan lokasi.' : 'Segera upload surat perpanjangan kontrak!'}`;
+                        }
+
+                        if (!warningLevel) return null;
+
+                        const warningStyles = warningLevel === "h1"
+                            ? "bg-red-500/10 border-red-500/20 text-red-400"
+                            : warningLevel === "h2"
+                                ? "bg-amber-500/10 border-amber-500/20 text-amber-400"
+                                : "bg-blue-500/10 border-blue-500/20 text-blue-400";
+
+                        return (
+                            <div className={`mb-8 p-4 rounded-2xl border backdrop-blur-md ${warningStyles} text-[10px] font-black uppercase tracking-widest flex items-center gap-3 animate-in fade-in zoom-in-95`}>
+                                <span className="material-symbols-outlined text-lg">schedule</span>
+                                {warningMessage}
+                            </div>
+                        );
+                    })()}
 
                     <div className="overflow-x-auto no-scrollbar">
                         <table className="w-full text-left min-w-[1400px]">
@@ -3272,6 +4255,7 @@ function TenantDetailPage({
                                     <th className="px-5 py-4 text-[8px] font-black uppercase tracking-[0.2em] text-white/30">Periode Berjalan Akhir</th>
                                     <th className="px-5 py-4 text-[8px] font-black uppercase tracking-[0.2em] text-white/30">Paket</th>
                                     <th className="px-5 py-4 text-[8px] font-black uppercase tracking-[0.2em] text-white/30">Jumlah</th>
+                                    <th className="px-5 py-4 text-[8px] font-black uppercase tracking-[0.2em] text-white/30">Nominal/Bulan</th>
                                     <th className="px-5 py-4 text-[8px] font-black uppercase tracking-[0.2em] text-white/30">BAK</th>
                                     <th className="px-5 py-4 text-[8px] font-black uppercase tracking-[0.2em] text-white/30">Perpanjangan</th>
                                     <th className="px-5 py-4 text-[8px] font-black uppercase tracking-[0.2em] text-white/30">Tanggapan</th>
@@ -3281,7 +4265,7 @@ function TenantDetailPage({
                             <tbody className="divide-y divide-white/[0.04]">
                                 {contractRowsForTable.length === 0 && (
                                     <tr>
-                                        <td className="px-5 py-12 text-center text-[10px] text-white/20 italic uppercase tracking-[0.2em]" colSpan="13">Belum ada data kontrak.</td>
+                                        <td className="px-5 py-12 text-center text-[10px] text-white/20 italic uppercase tracking-[0.2em]" colSpan="14">Belum ada data kontrak.</td>
                                     </tr>
                                 )}
                                 {contractRowsForTable.map((row) => {
@@ -3300,8 +4284,14 @@ function TenantDetailPage({
                                         return "bg-blue-500/10 border-blue-500/20 text-blue-400";
                                     })();
 
+                                    const rowStateClass = row.isHistory
+                                        ? "bg-white/[0.01] opacity-55 hover:bg-white/[0.015]"
+                                        : row.isFuture
+                                            ? "bg-blue-500/[0.03] hover:bg-blue-500/[0.05]"
+                                            : "hover:bg-white/[0.02]";
+
                                     return (
-                                        <tr key={row.id} className="hover:bg-white/[0.02] transition-colors group/row">
+                                        <tr key={row.id} className={`${rowStateClass} transition-colors group/row`}>
 
                                             {/* No */}
                                             <td className="px-5 py-4 text-[10px] font-black text-white/20">{row.number}</td>
@@ -3316,15 +4306,15 @@ function TenantDetailPage({
                                                             <div className="flex items-center gap-1.5">
                                                                 <input
                                                                     className="h-8 w-36 rounded-lg border border-white/10 bg-white/5 px-3 text-[10px] font-bold text-white outline-none focus:border-gold-accent/50 transition-all placeholder:text-white/10 backdrop-blur-md"
-                                                                    onChange={(e) => setContractNumberInput(e.target.value)}
+                                                                    onChange={(e) => setContractNumberInputs((previous) => ({ ...previous, [row.id]: e.target.value }))}
                                                                     placeholder="No. kontrak..."
                                                                     type="text"
-                                                                    value={contractNumberInput}
+                                                                    value={contractNumberInputs[row.id] ?? ""}
                                                                 />
                                                                 <button
                                                                     className="h-8 px-3 rounded-lg border border-gold-accent/20 bg-gold-accent/10 text-gold-accent text-[8px] font-black uppercase tracking-widest hover:bg-gold-accent hover:text-[#0f141e] transition-all disabled:opacity-40 backdrop-blur-md"
                                                                     disabled={isSavingContractNumber}
-                                                                    onClick={() => void handleSaveContractNumber()}
+                                                                    onClick={() => void handleSaveContractNumber(row)}
                                                                 >
                                                                     Simpan
                                                                 </button>
@@ -3406,6 +4396,13 @@ function TenantDetailPage({
                                                 <span className="text-[11px] font-black text-white/80">{row.jumlahPaket ?? "—"}</span>
                                             </td>
 
+                                            {/* Nominal */}
+                                            <td className="px-5 py-4">
+                                                <span className="text-[11px] font-black text-white/70">
+                                                    {Number(row.monthlyAmount ?? 0) > 0 ? formatCurrency(Number(row.monthlyAmount)) : "—"}
+                                                </span>
+                                            </td>
+
                                             {/* BAK */}
                                             <td className="px-5 py-4">
                                                 {row.hasBak ? (
@@ -3453,7 +4450,9 @@ function TenantDetailPage({
                                             <td className="px-5 py-4 text-right">
                                                 <button
                                                     className="h-8 w-8 rounded-lg border border-white/10 bg-white/5 flex items-center justify-center text-white/20 hover:text-gold-accent hover:border-gold-accent/30 hover:bg-gold-accent/10 transition-all backdrop-blur-md"
+                                                    onClick={openVersionEditor}
                                                     title="Edit"
+                                                    type="button"
                                                 >
                                                     <span className="material-symbols-outlined text-base">edit_note</span>
                                                 </button>
@@ -3620,17 +4619,25 @@ function TenantDetailPage({
                                     const draft = getInvoiceDraft(invoice);
                                     const isEditingRow = invoiceEditingId === invoice.id;
                                     const isSetDateLockedByGlobal = invoiceSetDateMode === "fixed_day";
-                                    const statusMeta = invoice.statusMeta ?? resolveInvoiceStatusMeta(invoice);
+                                    const workflowMeta = invoice.workflowMeta ?? getInvoiceWorkflowMeta(invoice, workflowInvoiceRows);
+                                    const statusMeta = invoice.statusMeta ?? resolveInvoiceStatusMeta({ ...invoice, workflowMeta });
                                     const hasInvoiceFile = isOpenableFileUrl(invoice?.invoiceFileUrl);
                                     const hasPaymentProof = isOpenableFileUrl(invoice?.paymentProofFileUrl);
-                                    const isCurrentFollowUpRow = nextActionInvoice?.id === invoice.id;
-                                    const canUploadInvoiceFile = isSavingInvoice ? false : hasInvoiceFile || !nextActionInvoice || isCurrentFollowUpRow;
+                                    const hasAnyInvoiceFile = workflowMeta.hasAnyInvoiceFile;
+                                    const secondWarningDraftKey = String(workflowMeta.secondFollowUp?.id ?? "warning-2");
+                                    const secondWarningDraft = getInvoiceFollowUpDraft(invoice, workflowMeta.secondFollowUp ?? { id: secondWarningDraftKey, splitOrder: 2 });
+                                    const canUploadInvoiceFile = !isSavingInvoice && (workflowMeta.canUploadMainInvoice || workflowMeta.canUploadFirstWarning || hasInvoiceFile);
+                                    const canUploadSecondWarning = !isSavingInvoice && workflowMeta.canUploadSecondWarning;
+                                    const canUploadPaymentProof = !isSavingInvoice && hasAnyInvoiceFile;
+                                    const canMarkPaid = !isSavingInvoice && workflowMeta.canMarkPaid;
 
-                                    // Status badge style
                                     const statusStyle = (() => {
-                                        if (statusMeta.key === "paid")    return "bg-emerald-500/10 border-emerald-500/20 text-emerald-400";
-                                        if (statusMeta.key === "overdue") return "bg-[#ff2400]/10 border-[#ff2400]/20 text-[#ff2400]";
-                                        if (statusMeta.key === "unpaid")  return "bg-amber-500/10 border-amber-500/20 text-amber-400";
+                                        if (statusMeta.key === "paid") return "bg-emerald-500/10 border-emerald-500/20 text-emerald-400";
+                                        if (statusMeta.key === "warning_unpaid") return "bg-[#ff2400]/10 border-[#ff2400]/30 text-[#ff2400]";
+                                        if (statusMeta.key === "warning_required_h3") return "bg-orange-500/10 border-orange-500/20 text-orange-300";
+                                        if (statusMeta.key === "warning_required_h7") return "bg-amber-500/10 border-amber-500/20 text-amber-300";
+                                        if (statusMeta.key === "waiting_payment_confirmation") return "bg-blue-500/10 border-blue-500/20 text-blue-300";
+                                        if (statusMeta.key === "pending_setup") return "bg-rose-500/10 border-rose-500/20 text-rose-300";
                                         return "bg-white/5 border-white/10 text-white/30";
                                     })();
 
@@ -3654,7 +4661,7 @@ function TenantDetailPage({
                                                         onChange={(e) => updateInvoiceDraftField(invoice.id, "invoiceNumber", e.target.value)}
                                                         placeholder="No. Invoice..."
                                                         type="text"
-                                                        value={draft.invoiceNumber ?? ""}
+                                                        value={draft.invoiceNumber}
                                                     />
                                                 ) : (
                                                     <span className="text-[11px] font-black text-white/60">
@@ -3679,9 +4686,14 @@ function TenantDetailPage({
                                                         )}
                                                     </div>
                                                 ) : (
-                                                    <span className="text-[11px] font-black text-white/60">
-                                                        {draft.dueDate ? formatDate(draft.dueDate) : <span className="text-white/20 italic font-normal">Belum diset</span>}
-                                                    </span>
+                                                    <div className="space-y-1">
+                                                        <span className="text-[11px] font-black text-white/60">
+                                                            {draft.dueDate ? formatDate(draft.dueDate) : <span className="text-white/20 italic font-normal">Belum diset</span>}
+                                                        </span>
+                                                        {workflowMeta.setupWarnings.some((warning) => warning.code === "missing_due_date") && (
+                                                            <p className="text-[8px] font-black text-rose-300 uppercase tracking-widest">Segera mengatur tanggal terakhir pembayaran.</p>
+                                                        )}
+                                                    </div>
                                                 )}
                                             </td>
 
@@ -3699,18 +4711,38 @@ function TenantDetailPage({
                                                         />
                                                     </div>
                                                 ) : (
-                                                    <span className="text-[11px] font-black text-white/80">
-                                                        {Number(draft.amount) > 0 ? formatCurrency(Number(draft.amount)) : <span className="text-white/20 italic font-normal">—</span>}
-                                                    </span>
+                                                    <div className="space-y-1">
+                                                        <span className="text-[11px] font-black text-white/80">
+                                                            {Number(draft.amount) > 0 ? formatCurrency(Number(draft.amount)) : <span className="text-white/20 italic font-normal">—</span>}
+                                                        </span>
+                                                        {workflowMeta.setupWarnings.some((warning) => warning.code === "missing_amount") && (
+                                                            <p className="text-[8px] font-black text-rose-300 uppercase tracking-widest">Mengatur nominal jumlah pembayaran.</p>
+                                                        )}
+                                                    </div>
                                                 )}
                                             </td>
 
                                             {/* Status Pembayaran */}
                                             <td className="px-5 py-4">
-                                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border ${statusStyle}`}>
-                                                    <span className={`h-1.5 w-1.5 rounded-full ${statusMeta.key === "paid" ? "bg-emerald-400" : statusMeta.key === "overdue" ? "bg-[#ff2400]" : statusMeta.key === "unpaid" ? "bg-amber-400" : "bg-white/20"}`} />
-                                                    {statusMeta.label}
-                                                </span>
+                                                {isEditingRow ? (
+                                                    <select
+                                                        className="h-9 w-40 rounded-lg border border-white/20 bg-[#121824] px-3 text-[10px] font-black uppercase tracking-widest text-white outline-none focus:border-gold-accent/50 transition-all"
+                                                        disabled={isSavingInvoice}
+                                                        onChange={(e) => updateInvoiceDraftField(invoice.id, "status", e.target.value)}
+                                                        value={draft.status}
+                                                    >
+                                                        {INVOICE_STATUS_OPTIONS.map((option) => (
+                                                            <option key={option.value} value={option.value}>
+                                                                {option.label}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                ) : (
+                                                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border ${statusStyle}`}>
+                                                        <span className={`h-1.5 w-1.5 rounded-full ${statusMeta.key === "paid" ? "bg-emerald-400" : statusMeta.key === "warning_unpaid" ? "bg-[#ff2400]" : statusMeta.key === "warning_required_h3" ? "bg-orange-300" : statusMeta.key === "warning_required_h7" ? "bg-amber-300" : statusMeta.key === "waiting_payment_confirmation" ? "bg-blue-300" : "bg-white/20"}`} />
+                                                        {statusMeta.label}
+                                                    </span>
+                                                )}
                                             </td>
 
                                             {/* Waktu Terbayar */}
@@ -3743,18 +4775,40 @@ function TenantDetailPage({
                                                             Lihat
                                                         </a>
                                                     )}
+                                                    {canUploadSecondWarning && (
+                                                        <div className="mt-1 space-y-1 rounded-xl border border-orange-500/20 bg-orange-500/5 p-2">
+                                                            <input
+                                                                className="h-8 w-40 rounded-lg border border-orange-500/20 bg-black/20 px-2 text-[9px] font-bold text-white outline-none placeholder:text-white/10"
+                                                                disabled={isSavingInvoice}
+                                                                onChange={(e) => updateInvoiceFollowUpDraftField(invoice.id, secondWarningDraftKey, "invoiceNumber", e.target.value)}
+                                                                placeholder="No. invoice kedua"
+                                                                type="text"
+                                                                value={secondWarningDraft.invoiceNumber}
+                                                            />
+                                                            <label className="relative inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-orange-500/20 bg-orange-500/10 px-3 text-[8px] font-black uppercase tracking-widest text-orange-200 transition-all hover:border-orange-500/40">
+                                                                <span className="material-symbols-outlined text-[13px]">upload_file</span>
+                                                                Upload Peringatan 2
+                                                                <input
+                                                                    className="absolute inset-0 cursor-pointer opacity-0"
+                                                                    disabled={!canUploadSecondWarning}
+                                                                    onChange={(e) => void handleUploadInvoiceFile(invoice, e.target.files?.[0] ?? null, 2)}
+                                                                    type="file"
+                                                                />
+                                                            </label>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </td>
 
                                             {/* Bukti Bayar */}
                                             <td className="px-5 py-4">
                                                 <div className="flex flex-col gap-1.5">
-                                                    <label className={`relative inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border text-[8px] font-black uppercase tracking-widest transition-all cursor-pointer ${hasInvoiceFile && !isSavingInvoice ? 'border-white/10 bg-white/5 text-white/40 hover:border-white/20 hover:text-white' : 'border-white/5 bg-white/[0.02] text-white/10 cursor-not-allowed'}`}>
+                                                    <label className={`relative inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border text-[8px] font-black uppercase tracking-widest transition-all cursor-pointer ${canUploadPaymentProof ? 'border-white/10 bg-white/5 text-white/40 hover:border-white/20 hover:text-white' : 'border-white/5 bg-white/[0.02] text-white/10 cursor-not-allowed'}`}>
                                                         <span className="material-symbols-outlined text-[13px]">receipt_long</span>
                                                         {hasPaymentProof ? "Ganti" : "Upload"}
                                                         <input
                                                             className="absolute inset-0 opacity-0 cursor-pointer"
-                                                            disabled={!hasInvoiceFile || isSavingInvoice}
+                                                            disabled={!canUploadPaymentProof}
                                                             onChange={(e) => void handleUploadPaymentProof(invoice, e.target.files?.[0] ?? null)}
                                                             type="file"
                                                         />
@@ -3791,13 +4845,25 @@ function TenantDetailPage({
                                                         </button>
                                                     </div>
                                                 ) : (
-                                                    <button
-                                                        className="h-8 w-8 rounded-lg border border-white/10 bg-white/5 flex items-center justify-center text-white/20 hover:text-gold-accent hover:border-gold-accent/30 hover:bg-gold-accent/10 transition-all backdrop-blur-md"
-                                                        onClick={() => setInvoiceEditingId(invoice.id)}
-                                                        title="Edit"
-                                                    >
-                                                        <span className="material-symbols-outlined text-base">edit_note</span>
-                                                    </button>
+                                                    <div className="flex justify-end gap-2">
+                                                        {canMarkPaid && (
+                                                            <button
+                                                                className="h-8 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 text-[8px] font-black uppercase tracking-widest text-emerald-300 transition-all hover:border-emerald-500/40 hover:text-emerald-200 disabled:opacity-50"
+                                                                disabled={!canMarkPaid}
+                                                                onClick={() => void handleMarkInvoicePaid(invoice)}
+                                                                title="Sudah Bayar"
+                                                            >
+                                                                Sudah Bayar
+                                                            </button>
+                                                        )}
+                                                        <button
+                                                            className="h-8 w-8 rounded-lg border border-white/10 bg-white/5 flex items-center justify-center text-white/20 hover:text-gold-accent hover:border-gold-accent/30 hover:bg-gold-accent/10 transition-all backdrop-blur-md"
+                                                            onClick={() => setInvoiceEditingId(invoice.id)}
+                                                            title="Edit"
+                                                        >
+                                                            <span className="material-symbols-outlined text-base">edit_note</span>
+                                                        </button>
+                                                    </div>
                                                 )}
                                             </td>
                                         </tr>
@@ -3806,6 +4872,138 @@ function TenantDetailPage({
                             </tbody>
                         </table>
                     </div>
+                </section>
+
+                <section className="glass-card backdrop-blur-xl rounded-premium border-white/10 shadow-glass-depth overflow-hidden">
+                    <div className="px-8 py-6 border-b border-white/5 bg-white/[0.01] flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <span className="material-symbols-outlined text-gold-accent">archive</span>
+                            <div>
+                                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-white/60">Tambah Arsip Periode Lama</h3>
+                                <p className="mt-1 text-[9px] font-bold uppercase tracking-widest text-white/20">Satu rentang periode akan dipecah otomatis menjadi invoice settlement bulanan.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <form className="p-8 space-y-6" onSubmit={handleCreateHistoricalArchive}>
+                        <div className="rounded-2xl border border-gold-accent/10 bg-gold-accent/[0.05] px-4 py-3">
+                            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                                <div>
+                                    <p className="text-[9px] font-black uppercase tracking-widest text-gold-accent/80">Preview Arsip Bulanan</p>
+                                    <p className="mt-1 text-[10px] font-bold text-white/55">
+                                        {historicalArchiveMonthlyPeriods.length > 0
+                                            ? `${historicalArchiveMonthlyPeriods.length} invoice history akan dibuat dari rentang periode ini.`
+                                            : "Pilih tanggal mulai dan akhir periode untuk menghitung jumlah invoice bulanan yang akan dibuat."}
+                                    </p>
+                                </div>
+                                <div className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-[9px] font-black uppercase tracking-widest text-white/50">
+                                    {historicalArchiveMonthlyPeriods.length > 0
+                                        ? `${historicalArchiveMonthlyPeriods.length} Bulan`
+                                        : "0 Bulan"}
+                                </div>
+                            </div>
+                            {historicalArchiveInvoicePreview && (
+                                <p className="mt-3 text-[9px] font-bold text-white/35">
+                                    Nomor invoice hasil pecah otomatis: {historicalArchiveInvoicePreview}
+                                </p>
+                            )}
+                        </div>
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+                            <GlassInput
+                                label="Mulai Periode"
+                                icon="event"
+                                type="date"
+                                value={historicalArchiveDraft.periodStartDate}
+                                onChange={(event) => updateHistoricalArchiveDraftField("periodStartDate", event.target.value)}
+                            />
+                            <GlassInput
+                                label="Akhir Periode"
+                                icon="event_available"
+                                type="date"
+                                value={historicalArchiveDraft.periodEndDate}
+                                onChange={(event) => updateHistoricalArchiveDraftField("periodEndDate", event.target.value)}
+                            />
+                            <GlassInput
+                                label="Nomor Kontrak / BAK"
+                                icon="assignment"
+                                value={historicalArchiveDraft.contractNumber}
+                                onChange={(event) => updateHistoricalArchiveDraftField("contractNumber", event.target.value)}
+                                placeholder="KIMA.BAK-..."
+                            />
+                            <GlassInput
+                                label="Nomor Invoice"
+                                icon="receipt_long"
+                                value={historicalArchiveDraft.invoiceNumber}
+                                onChange={(event) => updateHistoricalArchiveDraftField("invoiceNumber", event.target.value)}
+                                placeholder="No. invoice arsip"
+                            />
+                            <GlassInput
+                                label="Jatuh Tempo"
+                                icon="event_busy"
+                                type="date"
+                                value={historicalArchiveDraft.dueDate}
+                                onChange={(event) => updateHistoricalArchiveDraftField("dueDate", event.target.value)}
+                            />
+                            <GlassInput
+                                label="Tanggal Bayar"
+                                icon="payments"
+                                type="date"
+                                value={historicalArchiveDraft.paidAt}
+                                onChange={(event) => updateHistoricalArchiveDraftField("paidAt", event.target.value)}
+                            />
+                            <GlassInput
+                                label="Nominal Invoice"
+                                icon="paid"
+                                type="number"
+                                value={historicalArchiveDraft.amount}
+                                onChange={(event) => updateHistoricalArchiveDraftField("amount", event.target.value)}
+                            />
+                            <GlassSelect
+                                label="Paket Arsip"
+                                value={historicalArchiveDraft.packageType}
+                                onChange={(value) => updateHistoricalArchiveDraftField("packageType", value)}
+                                options={[
+                                    { value: "sharing_core", label: "Sharing Core" },
+                                    { value: "core", label: "Dedicated Core" },
+                                ]}
+                            />
+                            {historicalArchiveDraft.packageType === "sharing_core" ? (
+                                <GlassInput
+                                    label="Rasio Sharing"
+                                    icon="hub"
+                                    value={historicalArchiveDraft.ratio}
+                                    onChange={(event) => updateHistoricalArchiveDraftField("ratio", event.target.value)}
+                                    placeholder="1:32"
+                                />
+                            ) : (
+                                <GlassInput
+                                    label="Jumlah Core"
+                                    icon="settings_ethernet"
+                                    type="number"
+                                    value={historicalArchiveDraft.coreTotal}
+                                    onChange={(event) => updateHistoricalArchiveDraftField("coreTotal", event.target.value)}
+                                />
+                            )}
+                            <div className="md:col-span-3">
+                                <GlassInput
+                                    label="Catatan"
+                                    icon="notes"
+                                    value={historicalArchiveDraft.remarks}
+                                    onChange={(event) => updateHistoricalArchiveDraftField("remarks", event.target.value)}
+                                    placeholder="Opsional"
+                                />
+                            </div>
+                        </div>
+                        <div className="flex flex-col gap-3 border-t border-white/5 pt-6 md:flex-row md:items-center md:justify-between">
+                            <p className="text-[9px] font-bold uppercase tracking-widest text-white/20">Status invoice otomatis Lunas, lalu setiap bulan masuk ke arsip riwayat settlement.</p>
+                            <button
+                                type="submit"
+                                disabled={isSavingInvoice}
+                                className="h-12 rounded-xl bg-gold-accent px-6 text-[10px] font-black uppercase tracking-widest text-[#0f141e] shadow-gold-glow transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+                            >
+                                {isSavingInvoice ? "Menyimpan Arsip..." : "Tambah Arsip"}
+                            </button>
+                        </div>
+                    </form>
                 </section>
 
                 {/* History Invoice Table */}
@@ -4180,18 +5378,17 @@ function TenantDetailPage({
 
         {versionEditor && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/20 px-4">
-            <div className="w-full max-w-lg rounded-2xl border border-slate-100 bg-white p-6 shadow-2xl">
+            <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-slate-100 bg-white p-6 shadow-2xl">
               <div className="mb-4 flex items-start justify-between gap-4">
                 <div>
                   <p className="text-xs font-black uppercase tracking-widest text-primary">
-                    Riwayat Perubahan
+                    Ubah / Upgrade Paket
                   </p>
                   <h3 className="text-xl font-bold text-on-surface">
                     {tenantName}
                   </h3>
                   <p className="text-xs text-on-surface-variant">
-                    Kontrak tetap satu baris, perubahan ratio dibuat sebagai
-                    version baru.
+                    Paket lama berlaku sampai akhir bulan berjalan. Paket baru aktif mulai bulan berikutnya.
                   </p>
                 </div>
                 <button
@@ -4224,44 +5421,97 @@ function TenantDetailPage({
                     value={versionEditor.customReason ?? ""}
                     onChange={(value) =>
                       setVersionEditor((previous) =>
-                        previous
-                          ? { ...previous, customReason: value }
-                          : previous,
+                        previous ? { ...previous, customReason: value } : previous,
                       )
                     }
                     placeholder="Tulis alasan perubahan kontrak"
                   />
                 )}
-                <FieldInput
-                  label="Shared Core Ratio Baru"
-                  value={versionEditor.ratio}
-                  onChange={(value) =>
-                    setVersionEditor((previous) =>
-                      previous ? { ...previous, ratio: value } : previous,
-                    )
-                  }
-                />
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <FieldInput
-                    label="Start Date (Periode Baru)"
+                    label="Tanggal Request Perubahan"
                     type="date"
-                    value={versionEditor.startDate}
+                    value={versionEditor.requestedDate ?? ""}
                     onChange={(value) =>
                       setVersionEditor((previous) =>
-                        previous ? { ...previous, startDate: value } : previous,
+                        previous ? { ...previous, requestedDate: value } : previous,
                       )
                     }
                   />
                   <FieldInput
-                    label="End Date"
-                    type="date"
-                    value={versionEditor.endDate}
+                    label="Nomor Kontrak / BAK Baru"
+                    value={versionEditor.contractNumber ?? ""}
                     onChange={(value) =>
                       setVersionEditor((previous) =>
-                        previous ? { ...previous, endDate: value } : previous,
+                        previous ? { ...previous, contractNumber: value } : previous,
                       )
                     }
+                    placeholder="Opsional"
                   />
+                </div>
+                <FieldSelect
+                  label="Paket Baru"
+                  value={versionEditor.packageType ?? "sharing_core"}
+                  onChange={(value) =>
+                    setVersionEditor((previous) =>
+                      previous ? { ...previous, packageType: value } : previous,
+                    )
+                  }
+                  options={[
+                    { value: "sharing_core", label: "Sharing Core" },
+                    { value: "core", label: "Core" },
+                  ]}
+                />
+                {(versionEditor.packageType ?? "sharing_core") === "sharing_core" ? (
+                  <FieldInput
+                    label="Shared Core Ratio Baru"
+                    value={versionEditor.ratio ?? ""}
+                    onChange={(value) =>
+                      setVersionEditor((previous) =>
+                        previous ? { ...previous, ratio: value } : previous,
+                      )
+                    }
+                    placeholder="Contoh: 1:32"
+                  />
+                ) : (
+                  <FieldInput
+                    label="Jumlah Core Baru"
+                    type="number"
+                    value={versionEditor.coreTotal ?? ""}
+                    onChange={(value) =>
+                      setVersionEditor((previous) =>
+                        previous ? { ...previous, coreTotal: value } : previous,
+                      )
+                    }
+                    placeholder="Contoh: 2"
+                  />
+                )}
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <FieldInput
+                    label="Nominal Bulanan Baru"
+                    type="number"
+                    value={versionEditor.monthlyAmount ?? ""}
+                    onChange={(value) =>
+                      setVersionEditor((previous) =>
+                        previous ? { ...previous, monthlyAmount: value, yearlyAmount: String(Number(value || 0) * 12 || "") } : previous,
+                      )
+                    }
+                    placeholder="Contoh: 350000"
+                  />
+                  <FieldInput
+                    label="Nominal Tahunan Baru"
+                    type="number"
+                    value={versionEditor.yearlyAmount ?? ""}
+                    onChange={(value) =>
+                      setVersionEditor((previous) =>
+                        previous ? { ...previous, yearlyAmount: value } : previous,
+                      )
+                    }
+                    placeholder="Contoh: 4200000"
+                  />
+                </div>
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-800">
+                  Paket lama berlaku sampai {formatDate(addDaysToIsoDate(getFirstDayOfNextMonth(versionEditor.requestedDate), -1))}. Paket baru aktif mulai {formatDate(getFirstDayOfNextMonth(versionEditor.requestedDate))}. Invoice belum lunas mulai bulan tersebut akan memakai nominal baru.
                 </div>
                 {versionError && (
                   <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
@@ -4281,7 +5531,7 @@ function TenantDetailPage({
                     disabled={isSubmittingVersion}
                     type="submit"
                   >
-                    {isSubmittingVersion ? "Menyimpan..." : "Simpan Perubahan"}
+                    {isSubmittingVersion ? "Menyimpan..." : "Simpan Perubahan Paket"}
                   </button>
                 </div>
               </form>

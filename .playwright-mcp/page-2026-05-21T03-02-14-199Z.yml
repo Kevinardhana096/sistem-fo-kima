@@ -1,0 +1,113 @@
+- generic [ref=e192]:
+  - navigation:
+    - generic [ref=e194]:
+      - button "notifications" [ref=e196]:
+        - generic [ref=e197]: notifications
+      - button "Profile Administrator Super Admin" [ref=e199]:
+        - img "Profile" [ref=e201]
+        - generic [ref=e202]:
+          - paragraph [ref=e203]: Administrator
+          - paragraph [ref=e204]: Super Admin
+  - complementary [ref=e205]:
+    - button "KIMA ARCHIVE" [ref=e206]:
+      - generic [ref=e209]:
+        - paragraph [ref=e210]: KIMA
+        - paragraph [ref=e211]: ARCHIVE
+    - navigation [ref=e212]:
+      - link "dashboard Dashboard" [ref=e213] [cursor=pointer]:
+        - /url: /dashboard
+        - generic [ref=e214]: dashboard
+        - generic [ref=e215]: Dashboard
+      - link "groups Pelanggan" [ref=e216] [cursor=pointer]:
+        - /url: /customers
+        - generic [ref=e217]: groups
+        - generic [ref=e218]: Pelanggan
+      - link "monitor_heart Monitoring" [ref=e219] [cursor=pointer]:
+        - /url: /monitoring
+        - generic [ref=e220]: monitor_heart
+        - generic [ref=e221]: Monitoring
+      - link "task_alt Tindak Lanjut" [ref=e222] [cursor=pointer]:
+        - /url: /todos
+        - generic [ref=e223]: task_alt
+        - generic [ref=e224]: Tindak Lanjut
+      - link "manage_history Log Aktivitas" [ref=e225] [cursor=pointer]:
+        - /url: /activity-log
+        - generic [ref=e226]: manage_history
+        - generic [ref=e227]: Log Aktivitas
+      - link "delete Tempat Sampah" [ref=e228] [cursor=pointer]:
+        - /url: /trash
+        - generic [ref=e229]: delete
+        - generic [ref=e230]: Tempat Sampah
+  - main [ref=e231]:
+    - generic [ref=e233]:
+      - generic [ref=e234]:
+        - generic [ref=e235]:
+          - button "arrow_back KEMBALI KE WORKSPACE" [ref=e237]:
+            - generic [ref=e238]: arrow_back
+            - text: KEMBALI KE WORKSPACE
+          - generic [ref=e239]:
+            - button "sync Refresh" [ref=e240]:
+              - generic [ref=e241]: sync
+              - text: Refresh
+            - button "manage_accounts Akun Akses" [ref=e242]:
+              - generic [ref=e243]: manage_accounts
+              - text: Akun Akses
+            - button "edit_note Edit ISP" [ref=e244]:
+              - generic [ref=e245]: edit_note
+              - text: Edit ISP
+            - button "delete_forever Hapus ISP" [ref=e246]:
+              - generic [ref=e247]: delete_forever
+              - text: Hapus ISP
+        - generic [ref=e250]:
+          - generic [ref=e251]:
+            - generic [ref=e252]:
+              - generic [ref=e253]:
+                - generic [ref=e255]: corporate_fare
+                - paragraph [ref=e257]: Internet Service Provider
+              - heading "PT Test ISP Boundary & Special !@#$%^&*()_+ 20260521 Nama Sangat Panjang Untuk Uji Input Formulir Mitra ISP KIMA" [level=1] [ref=e258]
+            - generic [ref=e260]:
+              - generic [ref=e261]: check_circle
+              - generic [ref=e262]:
+                - paragraph [ref=e263]: Status
+                - paragraph [ref=e264]: Beroperasi
+          - generic [ref=e267]:
+            - generic [ref=e268]:
+              - paragraph [ref=e269]: Nomor Kontrak
+              - generic [ref=e270]:
+                - generic [ref=e271]: description
+                - paragraph [ref=e272]: SPC/!@#/2026
+            - generic [ref=e273]:
+              - paragraph [ref=e274]: Periode Awal Kontrak
+              - generic [ref=e275]:
+                - generic [ref=e276]: event_available
+                - paragraph [ref=e277]: —
+            - generic [ref=e278]:
+              - paragraph [ref=e279]: Periode Berjalan
+              - generic [ref=e280]:
+                - generic [ref=e281]: date_range
+                - paragraph [ref=e282]: —
+            - generic [ref=e283]:
+              - paragraph [ref=e284]: Paket
+              - generic [ref=e285]:
+                - generic [ref=e286]: hub
+                - paragraph [ref=e287]: Core -
+      - navigation [ref=e290]:
+        - button "dashboard Ringkasan" [ref=e291]:
+          - generic [ref=e292]: dashboard
+          - generic [ref=e293]: Ringkasan
+        - button "groups Daftar Lokasi" [ref=e294]:
+          - generic [ref=e295]: groups
+          - generic [ref=e296]: Daftar Lokasi
+        - button "map Peta Jalur" [ref=e297]:
+          - generic [ref=e298]: map
+          - generic [ref=e299]: Peta Jalur
+        - button "description Kontrak" [ref=e300]:
+          - generic [ref=e301]: description
+          - generic [ref=e302]: Kontrak
+        - button "inventory_2 Dokumen" [ref=e303]:
+          - generic [ref=e304]: inventory_2
+          - generic [ref=e305]: Dokumen
+        - button "history Timeline" [ref=e306]:
+          - generic [ref=e307]: history
+          - generic [ref=e308]: Timeline
+      - paragraph [ref=e313]: Menyelaraskan Detail ISP

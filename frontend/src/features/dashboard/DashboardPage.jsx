@@ -348,8 +348,8 @@ export default function DashboardPage({
                                 </div>
                             </div>
                         </div>
-                        <div ref={coreTrendChartRef} className="flex-1 w-full min-h-[100px]">
-                            <ResponsiveContainer width="100%" height="100%">
+                        <div ref={coreTrendChartRef} className="h-[220px] w-full min-w-0 md:h-[240px]">
+                            <ResponsiveContainer width="100%" height={220}>
                                 <LineChart data={coreChartType === "sharing" ? visibleSharingTrendData : visibleCoreTrendData} margin={{ top: 5, right: 5, bottom: 5, left: -25 }}>
                                     <CartesianGrid strokeDasharray="0" vertical={false} stroke="rgba(255,255,255,0.08)" />
                                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 8, fontWeight: 900, fill: 'rgba(255,255,255,0.6)' }} dy={10} />
@@ -450,8 +450,8 @@ export default function DashboardPage({
                                 </div>
                             </div>
                         </div>
-                        <div className="flex-1 min-h-[160px] md:min-h-[200px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
+                        <div className="h-[220px] w-full min-w-0 md:h-[250px]">
+                            <ResponsiveContainer width="100%" height={220}>
                                 <LineChart data={growthData[growthType]}>
                                     <CartesianGrid strokeDasharray="0" vertical={false} stroke="rgba(255,255,255,0.08)" />
                                     <XAxis dataKey="year" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 900, fill: 'rgba(255,255,255,0.6)' }} dy={15} />

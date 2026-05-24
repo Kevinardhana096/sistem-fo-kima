@@ -1,0 +1,327 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e1187]:
+    - navigation:
+      - generic [ref=e1189]:
+        - button "notifications 9+" [ref=e1191]:
+          - generic [ref=e1192]: notifications
+          - generic [ref=e1193]: 9+
+        - button "Profile Administrator Super Admin" [ref=e1195]:
+          - img "Profile" [ref=e1197]
+          - generic [ref=e1198]:
+            - paragraph [ref=e1199]: Administrator
+            - paragraph [ref=e1200]: Super Admin
+    - complementary [ref=e1201]:
+      - button "KIMA ARCHIVE" [ref=e1202]:
+        - generic [ref=e1205]:
+          - paragraph [ref=e1206]: KIMA
+          - paragraph [ref=e1207]: ARCHIVE
+      - navigation [ref=e1208]:
+        - link "dashboard Dashboard" [ref=e1209] [cursor=pointer]:
+          - /url: /dashboard
+          - generic [ref=e1210]: dashboard
+          - generic [ref=e1211]: Dashboard
+        - link "groups Pelanggan" [ref=e1212] [cursor=pointer]:
+          - /url: /customers
+          - generic [ref=e1213]: groups
+          - generic [ref=e1214]: Pelanggan
+        - link "monitor_heart Monitoring" [ref=e1215] [cursor=pointer]:
+          - /url: /monitoring
+          - generic [ref=e1216]: monitor_heart
+          - generic [ref=e1217]: Monitoring
+        - link "task_alt Tindak Lanjut" [ref=e1218] [cursor=pointer]:
+          - /url: /todos
+          - generic [ref=e1219]: task_alt
+          - generic [ref=e1220]: Tindak Lanjut
+        - link "manage_history Log Aktivitas" [ref=e1221] [cursor=pointer]:
+          - /url: /activity-log
+          - generic [ref=e1222]: manage_history
+          - generic [ref=e1223]: Log Aktivitas
+        - link "delete Tempat Sampah" [ref=e1224] [cursor=pointer]:
+          - /url: /trash
+          - generic [ref=e1225]: delete
+          - generic [ref=e1226]: Tempat Sampah
+    - main [ref=e1227]:
+      - generic [ref=e1229]:
+        - generic [ref=e1230]:
+          - generic [ref=e1231]:
+            - paragraph [ref=e1234]: Pusat Tindakan
+            - heading "Tindak Lanjut" [level=1] [ref=e1235]
+            - paragraph [ref=e1236]: Kelola semua notifikasi operasional yang perlu dibaca atau ditindaklanjuti.
+          - button "sync" [ref=e1237]:
+            - generic [ref=e1238]: sync
+        - generic [ref=e1239]:
+          - generic [ref=e1240]:
+            - generic [ref=e1241]:
+              - paragraph [ref=e1242]: Aktif
+              - generic [ref=e1244]: task_alt
+            - paragraph [ref=e1245]: "200"
+          - generic [ref=e1246]:
+            - generic [ref=e1247]:
+              - paragraph [ref=e1248]: Belum Dibaca
+              - generic [ref=e1250]: mark_email_unread
+            - paragraph [ref=e1251]: "200"
+          - generic [ref=e1252]:
+            - generic [ref=e1253]:
+              - paragraph [ref=e1254]: Dibaca
+              - generic [ref=e1256]: drafts
+            - paragraph [ref=e1257]: "0"
+          - generic [ref=e1258]:
+            - generic [ref=e1259]:
+              - paragraph [ref=e1260]: Selesai
+              - generic [ref=e1262]: check_circle
+            - paragraph [ref=e1263]: "0"
+        - generic [ref=e1264]:
+          - generic [ref=e1265]:
+            - generic: search
+            - textbox "Cari pelanggan, pesan, atau kode..." [ref=e1266]
+          - generic [ref=e1267]:
+            - generic [ref=e1268]:
+              - generic [ref=e1270]:
+                - generic: category
+                - button "Semua Tipe expand_more" [ref=e1272]:
+                  - generic [ref=e1273]: Semua Tipe
+                  - generic [ref=e1274]: expand_more
+              - generic [ref=e1276]:
+                - generic: warning
+                - button "Semua Severity expand_more" [ref=e1278]:
+                  - generic [ref=e1279]: Semua Severity
+                  - generic [ref=e1280]: expand_more
+              - generic [ref=e1282]:
+                - generic: flag
+                - button "Aktif expand_more" [ref=e1284]:
+                  - generic [ref=e1285]: Aktif
+                  - generic [ref=e1286]: expand_more
+            - button "filter_alt_off Reset" [disabled] [ref=e1287]:
+              - generic [ref=e1288]: filter_alt_off
+              - generic [ref=e1289]: Reset
+        - generic [ref=e1290]:
+          - generic [ref=e1291]:
+            - heading "Daftar Tindakan" [level=2] [ref=e1294]
+            - generic [ref=e1295]:
+              - generic [ref=e1296]: "Total:"
+              - generic [ref=e1297]: "200"
+          - generic [ref=e1298]:
+            - generic [ref=e1299]:
+              - generic [ref=e1300]:
+                - generic [ref=e1302]: notification_important
+                - generic [ref=e1303]:
+                  - generic [ref=e1304]:
+                    - heading "Peringatan H-7 pembayaran" [level=3] [ref=e1305]
+                    - generic [ref=e1307]: Warning
+                    - generic [ref=e1308]: Belum Dibaca
+                  - paragraph [ref=e1309]: 1 Core mendekati jatuh tempo. Upload invoice pembayaran diperlukan.
+                  - generic [ref=e1310]:
+                    - generic [ref=e1311]: Invoice
+                    - generic [ref=e1312]: 1 Core
+                    - generic [ref=e1313]: "Dibuat: 21 Mei 2026, 14.25"
+              - generic [ref=e1314]:
+                - button "open_in_new Buka Invoice" [ref=e1315]:
+                  - generic [ref=e1316]: open_in_new
+                  - text: Buka Invoice
+                - button "Dibaca" [ref=e1317]
+                - button "Selesai" [ref=e1318]
+            - generic [ref=e1319]:
+              - generic [ref=e1320]:
+                - generic [ref=e1322]: payments
+                - generic [ref=e1323]:
+                  - generic [ref=e1324]:
+                    - heading "Biaya aktivasi belum dibayar" [level=3] [ref=e1325]
+                    - generic [ref=e1327]: Warning
+                    - generic [ref=e1328]: Belum Dibaca
+                  - paragraph [ref=e1329]: 12 Core masih memiliki biaya aktivasi outstanding.
+                  - generic [ref=e1330]:
+                    - generic [ref=e1331]: Aktivasi
+                    - generic [ref=e1332]: 12 Core
+                    - generic [ref=e1333]: "Dibuat: 21 Mei 2026, 14.25"
+              - generic [ref=e1334]:
+                - button "open_in_new Buka Detail" [ref=e1335]:
+                  - generic [ref=e1336]: open_in_new
+                  - text: Buka Detail
+                - button "Dibaca" [ref=e1337]
+                - button "Selesai" [ref=e1338]
+            - generic [ref=e1339]:
+              - generic [ref=e1340]:
+                - generic [ref=e1342]: add_road
+                - generic [ref=e1343]:
+                  - generic [ref=e1344]:
+                    - heading "Data jalur belum lengkap" [level=3] [ref=e1345]
+                    - generic [ref=e1347]: Warning
+                    - generic [ref=e1348]: Belum Dibaca
+                  - paragraph [ref=e1349]: 12 Core belum memiliki data jalur aktif.
+                  - generic [ref=e1350]:
+                    - generic [ref=e1351]: Jalur
+                    - generic [ref=e1352]: 12 Core
+                    - generic [ref=e1353]: "Dibuat: 21 Mei 2026, 14.25"
+              - generic [ref=e1354]:
+                - button "open_in_new Buka Jalur" [ref=e1355]:
+                  - generic [ref=e1356]: open_in_new
+                  - text: Buka Jalur
+                - button "Dibaca" [ref=e1357]
+                - button "Selesai" [ref=e1358]
+            - generic [ref=e1359]:
+              - generic [ref=e1360]:
+                - generic [ref=e1362]: notification_important
+                - generic [ref=e1363]:
+                  - generic [ref=e1364]:
+                    - heading "Peringatan H-7 pembayaran" [level=3] [ref=e1365]
+                    - generic [ref=e1367]: Warning
+                    - generic [ref=e1368]: Belum Dibaca
+                  - paragraph [ref=e1369]: 12 Core mendekati jatuh tempo. Upload invoice pembayaran diperlukan.
+                  - generic [ref=e1370]:
+                    - generic [ref=e1371]: Invoice
+                    - generic [ref=e1372]: 12 Core
+                    - generic [ref=e1373]: "Dibuat: 21 Mei 2026, 14.25"
+              - generic [ref=e1374]:
+                - button "open_in_new Buka Invoice" [ref=e1375]:
+                  - generic [ref=e1376]: open_in_new
+                  - text: Buka Invoice
+                - button "Dibaca" [ref=e1377]
+                - button "Selesai" [ref=e1378]
+            - generic [ref=e1379]:
+              - generic [ref=e1380]:
+                - generic [ref=e1382]: notification_important
+                - generic [ref=e1383]:
+                  - generic [ref=e1384]:
+                    - heading "Peringatan H-7 pembayaran" [level=3] [ref=e1385]
+                    - generic [ref=e1387]: Warning
+                    - generic [ref=e1388]: Belum Dibaca
+                  - paragraph [ref=e1389]: 12 Core mendekati jatuh tempo. Upload invoice pembayaran diperlukan.
+                  - generic [ref=e1390]:
+                    - generic [ref=e1391]: Invoice
+                    - generic [ref=e1392]: 12 Core
+                    - generic [ref=e1393]: "Dibuat: 21 Mei 2026, 14.25"
+              - generic [ref=e1394]:
+                - button "open_in_new Buka Invoice" [ref=e1395]:
+                  - generic [ref=e1396]: open_in_new
+                  - text: Buka Invoice
+                - button "Dibaca" [ref=e1397]
+                - button "Selesai" [ref=e1398]
+            - generic [ref=e1399]:
+              - generic [ref=e1400]:
+                - generic [ref=e1402]: notification_important
+                - generic [ref=e1403]:
+                  - generic [ref=e1404]:
+                    - heading "Peringatan H-7 pembayaran" [level=3] [ref=e1405]
+                    - generic [ref=e1407]: Warning
+                    - generic [ref=e1408]: Belum Dibaca
+                  - paragraph [ref=e1409]: 12 Core mendekati jatuh tempo. Upload invoice pembayaran diperlukan.
+                  - generic [ref=e1410]:
+                    - generic [ref=e1411]: Invoice
+                    - generic [ref=e1412]: 12 Core
+                    - generic [ref=e1413]: "Dibuat: 21 Mei 2026, 14.25"
+              - generic [ref=e1414]:
+                - button "open_in_new Buka Invoice" [ref=e1415]:
+                  - generic [ref=e1416]: open_in_new
+                  - text: Buka Invoice
+                - button "Dibaca" [ref=e1417]
+                - button "Selesai" [ref=e1418]
+            - generic [ref=e1419]:
+              - generic [ref=e1420]:
+                - generic [ref=e1422]: notification_important
+                - generic [ref=e1423]:
+                  - generic [ref=e1424]:
+                    - heading "Peringatan H-7 pembayaran" [level=3] [ref=e1425]
+                    - generic [ref=e1427]: Warning
+                    - generic [ref=e1428]: Belum Dibaca
+                  - paragraph [ref=e1429]: 12 Core mendekati jatuh tempo. Upload invoice pembayaran diperlukan.
+                  - generic [ref=e1430]:
+                    - generic [ref=e1431]: Invoice
+                    - generic [ref=e1432]: 12 Core
+                    - generic [ref=e1433]: "Dibuat: 21 Mei 2026, 14.25"
+              - generic [ref=e1434]:
+                - button "open_in_new Buka Invoice" [ref=e1435]:
+                  - generic [ref=e1436]: open_in_new
+                  - text: Buka Invoice
+                - button "Dibaca" [ref=e1437]
+                - button "Selesai" [ref=e1438]
+            - generic [ref=e1439]:
+              - generic [ref=e1440]:
+                - generic [ref=e1442]: notification_important
+                - generic [ref=e1443]:
+                  - generic [ref=e1444]:
+                    - heading "Peringatan H-7 pembayaran" [level=3] [ref=e1445]
+                    - generic [ref=e1447]: Warning
+                    - generic [ref=e1448]: Belum Dibaca
+                  - paragraph [ref=e1449]: 12 Core mendekati jatuh tempo. Upload invoice pembayaran diperlukan.
+                  - generic [ref=e1450]:
+                    - generic [ref=e1451]: Invoice
+                    - generic [ref=e1452]: 12 Core
+                    - generic [ref=e1453]: "Dibuat: 21 Mei 2026, 14.25"
+              - generic [ref=e1454]:
+                - button "open_in_new Buka Invoice" [ref=e1455]:
+                  - generic [ref=e1456]: open_in_new
+                  - text: Buka Invoice
+                - button "Dibaca" [ref=e1457]
+                - button "Selesai" [ref=e1458]
+            - generic [ref=e1459]:
+              - generic [ref=e1460]:
+                - generic [ref=e1462]: notification_important
+                - generic [ref=e1463]:
+                  - generic [ref=e1464]:
+                    - heading "Peringatan H-7 pembayaran" [level=3] [ref=e1465]
+                    - generic [ref=e1467]: Warning
+                    - generic [ref=e1468]: Belum Dibaca
+                  - paragraph [ref=e1469]: 12 Core mendekati jatuh tempo. Upload invoice pembayaran diperlukan.
+                  - generic [ref=e1470]:
+                    - generic [ref=e1471]: Invoice
+                    - generic [ref=e1472]: 12 Core
+                    - generic [ref=e1473]: "Dibuat: 21 Mei 2026, 14.25"
+              - generic [ref=e1474]:
+                - button "open_in_new Buka Invoice" [ref=e1475]:
+                  - generic [ref=e1476]: open_in_new
+                  - text: Buka Invoice
+                - button "Dibaca" [ref=e1477]
+                - button "Selesai" [ref=e1478]
+            - generic [ref=e1479]:
+              - generic [ref=e1480]:
+                - generic [ref=e1482]: notification_important
+                - generic [ref=e1483]:
+                  - generic [ref=e1484]:
+                    - heading "Peringatan H-7 pembayaran" [level=3] [ref=e1485]
+                    - generic [ref=e1487]: Warning
+                    - generic [ref=e1488]: Belum Dibaca
+                  - paragraph [ref=e1489]: 12 Core mendekati jatuh tempo. Upload invoice pembayaran diperlukan.
+                  - generic [ref=e1490]:
+                    - generic [ref=e1491]: Invoice
+                    - generic [ref=e1492]: 12 Core
+                    - generic [ref=e1493]: "Dibuat: 21 Mei 2026, 14.25"
+              - generic [ref=e1494]:
+                - button "open_in_new Buka Invoice" [ref=e1495]:
+                  - generic [ref=e1496]: open_in_new
+                  - text: Buka Invoice
+                - button "Dibaca" [ref=e1497]
+                - button "Selesai" [ref=e1498]
+            - generic [ref=e1499]:
+              - generic [ref=e1500]:
+                - button "10" [ref=e1504]:
+                  - generic [ref=e1505]: "10"
+                - paragraph [ref=e1506]: 1–10 dari 200
+              - generic [ref=e1507]:
+                - button "chevron_left Prev" [disabled] [ref=e1508]:
+                  - generic [ref=e1509]: chevron_left
+                  - text: Prev
+                - generic [ref=e1510]:
+                  - button "1" [ref=e1511]
+                  - button "2" [ref=e1512]
+                  - button "3" [ref=e1513]
+                  - button "4" [ref=e1514]
+                  - button "5" [ref=e1515]
+                  - button "6" [ref=e1516]
+                  - button "7" [ref=e1517]
+                  - button "8" [ref=e1518]
+                  - button "9" [ref=e1519]
+                  - button "10" [ref=e1520]
+                  - button "11" [ref=e1521]
+                  - button "12" [ref=e1522]
+                  - button "13" [ref=e1523]
+                  - button "14" [ref=e1524]
+                  - button "15" [ref=e1525]
+                  - button "16" [ref=e1526]
+                  - button "17" [ref=e1527]
+                  - button "18" [ref=e1528]
+                  - button "19" [ref=e1529]
+                  - button "20" [ref=e1530]
+                - button "Next chevron_right" [ref=e1531]:
+                  - text: Next
+                  - generic [ref=e1532]: chevron_right
+  - generic [ref=e525]: "0"

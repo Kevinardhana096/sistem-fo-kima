@@ -170,8 +170,7 @@ function TopNav({ isSidebarCollapsed, onToggleMenu, onLogout, roleConfig, onEdit
         try {
             const data = await api.notifications.list({ limit: 20 });
             setNotifications(Array.isArray(data) ? data : []);
-        } catch (error) {
-            console.error("Failed to load notifications:", error);
+        } catch {
             setNotifications([]);
         } finally {
             setIsLoadingNotifications(false);

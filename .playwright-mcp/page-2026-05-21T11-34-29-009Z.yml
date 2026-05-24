@@ -1,0 +1,193 @@
+- generic [ref=e1]:
+  - generic [ref=e1146]:
+    - navigation:
+      - generic [ref=e1148]:
+        - button "notifications 9+" [ref=e1150]:
+          - generic [ref=e1151]: notifications
+          - generic [ref=e1152]: 9+
+        - button "Profile Administrator Super Admin" [ref=e1154]:
+          - img "Profile" [ref=e1156]
+          - generic [ref=e1157]:
+            - paragraph [ref=e1158]: Administrator
+            - paragraph [ref=e1159]: Super Admin
+    - complementary [ref=e1160]:
+      - button "KIMA ARCHIVE" [ref=e1161]:
+        - generic [ref=e1164]:
+          - paragraph [ref=e1165]: KIMA
+          - paragraph [ref=e1166]: ARCHIVE
+      - navigation [ref=e1167]:
+        - link "dashboard Dashboard" [ref=e1168] [cursor=pointer]:
+          - /url: /dashboard
+          - generic [ref=e1169]: dashboard
+          - generic [ref=e1170]: Dashboard
+        - link "groups Pelanggan" [ref=e1171] [cursor=pointer]:
+          - /url: /customers
+          - generic [ref=e1172]: groups
+          - generic [ref=e1173]: Pelanggan
+        - link "monitor_heart Monitoring" [ref=e1174] [cursor=pointer]:
+          - /url: /monitoring
+          - generic [ref=e1175]: monitor_heart
+          - generic [ref=e1176]: Monitoring
+        - link "task_alt Tindak Lanjut" [ref=e1177] [cursor=pointer]:
+          - /url: /todos
+          - generic [ref=e1178]: task_alt
+          - generic [ref=e1179]: Tindak Lanjut
+        - link "manage_history Log Aktivitas" [ref=e1180] [cursor=pointer]:
+          - /url: /activity-log
+          - generic [ref=e1181]: manage_history
+          - generic [ref=e1182]: Log Aktivitas
+        - link "delete Tempat Sampah" [ref=e1183] [cursor=pointer]:
+          - /url: /trash
+          - generic [ref=e1184]: delete
+          - generic [ref=e1185]: Tempat Sampah
+    - main [ref=e999]:
+      - generic [ref=e1001]:
+        - generic [ref=e1002]:
+          - button "arrow_back Kembali ke Workspace" [ref=e1004]:
+            - generic [ref=e1005]: arrow_back
+            - text: Kembali ke Workspace
+          - generic [ref=e1006]:
+            - button "sync Refresh" [ref=e1007]:
+              - generic [ref=e1008]: sync
+              - text: Refresh
+            - button "edit_note Edit Lokasi" [ref=e1009]:
+              - generic [ref=e1010]: edit_note
+              - text: Edit Lokasi
+            - button "delete_forever Hapus Lokasi" [ref=e1011]:
+              - generic [ref=e1012]: delete_forever
+              - text: Hapus Lokasi
+        - generic [ref=e1015]:
+          - generic [ref=e1016]:
+            - generic [ref=e1017]:
+              - generic [ref=e1018]:
+                - generic [ref=e1020]: location_on
+                - generic [ref=e1021]:
+                  - paragraph [ref=e1022]: Lokasi Operasional
+                  - paragraph [ref=e1023]: "#CUST-20260521113308"
+              - heading "Lokasi Uji Kelengkapan Berkas 210526" [level=1] [ref=e1024]
+              - generic [ref=e1025]:
+                - generic [ref=e1026]: corporate_fare
+                - generic [ref=e1027]: ISP Test Kelengkapan Berkas
+            - generic [ref=e1028]:
+              - generic [ref=e1029]:
+                - generic [ref=e1030]: check_circle
+                - generic [ref=e1031]:
+                  - paragraph [ref=e1032]: Kontrak
+                  - paragraph [ref=e1033]: Beroperasi
+              - generic [ref=e1035]:
+                - generic [ref=e1036]: cable
+                - generic [ref=e1037]:
+                  - paragraph [ref=e1038]: Jalur FO
+                  - paragraph [ref=e1039]: Jalur Aktif
+          - generic [ref=e1042]:
+            - generic [ref=e1043]:
+              - paragraph [ref=e1044]: Paket
+              - generic [ref=e1045]:
+                - generic [ref=e1046]: package_2
+                - paragraph [ref=e1047]: CORE
+            - generic [ref=e1048]:
+              - paragraph [ref=e1049]: Jumlah
+              - generic [ref=e1050]:
+                - generic [ref=e1051]: speed
+                - paragraph [ref=e1052]: "1"
+            - generic [ref=e1053]:
+              - paragraph [ref=e1054]: Periode Awal Kontrak
+              - generic [ref=e1055]:
+                - generic [ref=e1056]: event_available
+                - paragraph [ref=e1057]: 21 Mei 2026
+            - generic [ref=e1058]:
+              - paragraph [ref=e1059]: Periode Berjalan
+              - generic [ref=e1060]:
+                - generic [ref=e1061]: date_range
+                - paragraph [ref=e1062]: 21 Mei 2026—21 Mei 2027
+        - generic [ref=e1064]:
+          - button "Ringkasan" [ref=e1065]
+          - button "Jalur" [ref=e1066]
+          - button "Kontrak" [ref=e1067]
+          - button "Invoice" [active] [ref=e1068]
+          - button "Dokumen" [ref=e1069]
+          - button "Timeline" [ref=e1070]
+        - generic [ref=e1275]:
+          - generic [ref=e1276]:
+            - generic [ref=e1278]:
+              - generic [ref=e1279]:
+                - heading "Manajemen Tagihan Bulanan" [level=2] [ref=e1280]
+                - paragraph [ref=e1281]: Monitoring siklus invoice dan rekonsiliasi bayar
+              - generic [ref=e1282]:
+                - generic [ref=e1283]:
+                  - paragraph [ref=e1284]: Urutan Bayar
+                  - generic [ref=e1285]:
+                    - button "arrow_downward Awal ke Akhir" [ref=e1286]:
+                      - generic [ref=e1287]: arrow_downward
+                      - text: Awal ke Akhir
+                    - button "arrow_upward Akhir ke Awal" [ref=e1288]:
+                      - generic [ref=e1289]: arrow_upward
+                      - text: Akhir ke Awal
+                - generic [ref=e1290]:
+                  - paragraph [ref=e1291]: Mode Set Tanggal
+                  - generic [ref=e1292]:
+                    - button "edit_note Satuan" [ref=e1293]:
+                      - generic [ref=e1294]: edit_note
+                      - text: Satuan
+                    - button "calendar_month Semua" [ref=e1295]:
+                      - generic [ref=e1296]: calendar_month
+                      - text: Semua
+                - button "tune Rekonfigurasi Periode" [ref=e1297]:
+                  - generic [ref=e1298]: tune
+                  - text: Rekonfigurasi Periode
+            - generic [ref=e1299]:
+              - generic [ref=e1300]:
+                - generic [ref=e1301]: Pending Approval
+                - generic [ref=e1302]: "0"
+              - generic [ref=e1303]:
+                - generic [ref=e1304]: Unpaid / Overdue
+                - generic [ref=e1305]: "0"
+              - generic [ref=e1306]:
+                - generic [ref=e1307]: Settled / Paid
+                - generic [ref=e1308]: "0"
+              - generic [ref=e1309]:
+                - generic [ref=e1310]: Next Sequence
+                - generic [ref=e1311]: None
+          - generic [ref=e1312]:
+            - generic [ref=e1313]:
+              - generic [ref=e1314]:
+                - generic [ref=e1315]: payments
+                - heading "Siklus Pembayaran Aktif" [level=3] [ref=e1316]
+              - generic [ref=e1317]: 0 Sequence
+            - table [ref=e1319]:
+              - rowgroup [ref=e1320]:
+                - row "No Pembayaran Ke Nomor Invoice Terakhir Bayar Jumlah Dibayar Status Pembayaran Waktu Terbayar Upload Invoice Bukti Bayar Aksi" [ref=e1321]:
+                  - columnheader "No" [ref=e1322]
+                  - columnheader "Pembayaran Ke" [ref=e1323]
+                  - columnheader "Nomor Invoice" [ref=e1324]
+                  - columnheader "Terakhir Bayar" [ref=e1325]
+                  - columnheader "Jumlah Dibayar" [ref=e1326]
+                  - columnheader "Status Pembayaran" [ref=e1327]
+                  - columnheader "Waktu Terbayar" [ref=e1328]
+                  - columnheader "Upload Invoice" [ref=e1329]
+                  - columnheader "Bukti Bayar" [ref=e1330]
+                  - columnheader "Aksi" [ref=e1331]
+              - rowgroup [ref=e1332]:
+                - row "Belum ada invoice aktif." [ref=e1333]:
+                  - cell "Belum ada invoice aktif." [ref=e1334]
+          - generic [ref=e1335]:
+            - generic [ref=e1336]:
+              - generic [ref=e1337]:
+                - generic [ref=e1338]: history
+                - heading "Arsip & Riwayat Settlement" [level=3] [ref=e1339]
+              - generic [ref=e1340]: 0 Logged
+            - table [ref=e1342]:
+              - rowgroup [ref=e1343]:
+                - row "# Urutan Identitas Masa Periode Settlement Status Akhir Waktu Bayar Versi Log" [ref=e1344]:
+                  - columnheader "#" [ref=e1345]
+                  - columnheader "Urutan" [ref=e1346]
+                  - columnheader "Identitas" [ref=e1347]
+                  - columnheader "Masa Periode" [ref=e1348]
+                  - columnheader "Settlement" [ref=e1349]
+                  - columnheader "Status Akhir" [ref=e1350]
+                  - columnheader "Waktu Bayar" [ref=e1351]
+                  - columnheader "Versi Log" [ref=e1352]
+              - rowgroup [ref=e1353]:
+                - row "Arsip riwayat settlement kosong." [ref=e1354]:
+                  - cell "Arsip riwayat settlement kosong." [ref=e1355]
+  - generic [ref=e526]: "0"

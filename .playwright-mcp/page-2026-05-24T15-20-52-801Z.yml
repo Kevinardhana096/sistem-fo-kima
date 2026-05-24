@@ -1,0 +1,913 @@
+- generic [ref=e46]:
+  - navigation:
+    - generic [ref=e48]:
+      - button "notifications 9+" [ref=e50]:
+        - generic [ref=e51]: notifications
+        - generic [ref=e52]: 9+
+      - button "Profile Administrator Super Admin" [ref=e54]:
+        - img "Profile" [ref=e56]
+        - generic [ref=e57]:
+          - paragraph [ref=e58]: Administrator
+          - paragraph [ref=e59]: Super Admin
+  - complementary [ref=e60]:
+    - button "KIMA ARCHIVE" [ref=e61]:
+      - generic [ref=e64]:
+        - paragraph [ref=e65]: KIMA
+        - paragraph [ref=e66]: ARCHIVE
+    - navigation [ref=e67]:
+      - link "dashboard Dashboard" [ref=e68] [cursor=pointer]:
+        - /url: /dashboard
+        - generic [ref=e69]: dashboard
+        - generic [ref=e70]: Dashboard
+      - link "groups Pelanggan" [ref=e71] [cursor=pointer]:
+        - /url: /customers
+        - generic [ref=e72]: groups
+        - generic [ref=e73]: Pelanggan
+      - link "monitor_heart Monitoring" [ref=e74] [cursor=pointer]:
+        - /url: /monitoring
+        - generic [ref=e75]: monitor_heart
+        - generic [ref=e76]: Monitoring
+      - link "task_alt Tindak Lanjut" [ref=e77] [cursor=pointer]:
+        - /url: /todos
+        - generic [ref=e78]: task_alt
+        - generic [ref=e79]: Tindak Lanjut
+      - link "manage_history Log Aktivitas" [ref=e80] [cursor=pointer]:
+        - /url: /activity-log
+        - generic [ref=e81]: manage_history
+        - generic [ref=e82]: Log Aktivitas
+      - link "delete Tempat Sampah" [ref=e83] [cursor=pointer]:
+        - /url: /trash
+        - generic [ref=e84]: delete
+        - generic [ref=e85]: Tempat Sampah
+  - main [ref=e86]:
+    - generic [ref=e88]:
+      - generic [ref=e89]:
+        - button "arrow_back Kembali ke Workspace" [ref=e91]:
+          - generic [ref=e92]: arrow_back
+          - text: Kembali ke Workspace
+        - generic [ref=e93]:
+          - button "sync Refresh" [ref=e94]:
+            - generic [ref=e95]: sync
+            - text: Refresh
+          - button "edit_note Edit Lokasi" [ref=e96]:
+            - generic [ref=e97]: edit_note
+            - text: Edit Lokasi
+          - button "delete_forever Hapus Lokasi" [ref=e98]:
+            - generic [ref=e99]: delete_forever
+            - text: Hapus Lokasi
+      - generic [ref=e102]:
+        - generic [ref=e103]:
+          - generic [ref=e104]:
+            - generic [ref=e105]:
+              - generic [ref=e107]: location_on
+              - generic [ref=e108]:
+                - paragraph [ref=e109]: Lokasi Operasional
+                - paragraph [ref=e110]: "#CUST-20260524145236"
+            - heading "PT Indomarco Prismatama (Kima 10)" [level=1] [ref=e111]
+            - generic [ref=e112]:
+              - generic [ref=e113]: corporate_fare
+              - generic [ref=e114]: PT Cendikia Global Solusi
+          - generic [ref=e115]:
+            - generic [ref=e116]:
+              - generic [ref=e117]: check_circle
+              - generic [ref=e118]:
+                - paragraph [ref=e119]: Kontrak
+                - paragraph [ref=e120]: Beroperasi
+            - generic [ref=e122]:
+              - generic [ref=e123]: cable
+              - generic [ref=e124]:
+                - paragraph [ref=e125]: Jalur FO
+                - paragraph [ref=e126]: Jalur Aktif
+        - generic [ref=e129]:
+          - generic [ref=e130]:
+            - paragraph [ref=e131]: Paket
+            - generic [ref=e132]:
+              - generic [ref=e133]: package_2
+              - paragraph [ref=e134]: SHARING CORE
+          - generic [ref=e135]:
+            - paragraph [ref=e136]: Jumlah
+            - generic [ref=e137]:
+              - generic [ref=e138]: speed
+              - paragraph [ref=e139]: 1/32
+          - generic [ref=e140]:
+            - paragraph [ref=e141]: Periode Awal Kontrak
+            - generic [ref=e142]:
+              - generic [ref=e143]: event_available
+              - paragraph [ref=e144]: 22 Okt 2022
+          - generic [ref=e145]:
+            - paragraph [ref=e146]: Periode Berjalan
+            - generic [ref=e147]:
+              - generic [ref=e148]: date_range
+              - paragraph [ref=e149]: 22 Okt 2025—21 Okt 2026
+      - generic [ref=e151]:
+        - button "Ringkasan" [ref=e152]
+        - button "Jalur" [ref=e153]
+        - button "Kontrak" [ref=e154]
+        - button "Invoice" [active] [ref=e155]
+        - button "Dokumen" [ref=e156]
+        - button "Timeline" [ref=e157]
+      - generic [ref=e249]:
+        - generic [ref=e250]:
+          - generic [ref=e252]:
+            - generic [ref=e253]:
+              - heading "Manajemen Tagihan Bulanan" [level=2] [ref=e254]
+              - paragraph [ref=e255]: Monitoring siklus invoice dan rekonsiliasi bayar
+            - generic [ref=e256]:
+              - generic [ref=e257]:
+                - paragraph [ref=e258]: Urutan Bayar
+                - generic [ref=e259]:
+                  - button "arrow_downward Awal ke Akhir" [ref=e260]:
+                    - generic [ref=e261]: arrow_downward
+                    - text: Awal ke Akhir
+                  - button "arrow_upward Akhir ke Awal" [ref=e262]:
+                    - generic [ref=e263]: arrow_upward
+                    - text: Akhir ke Awal
+              - generic [ref=e264]:
+                - paragraph [ref=e265]: Mode Set Tanggal
+                - generic [ref=e266]:
+                  - button "edit_note Satuan" [ref=e267]:
+                    - generic [ref=e268]: edit_note
+                    - text: Satuan
+                  - button "calendar_month Semua" [ref=e269]:
+                    - generic [ref=e270]: calendar_month
+                    - text: Semua
+              - button "tune Rekonfigurasi Periode" [ref=e271]:
+                - generic [ref=e272]: tune
+                - text: Rekonfigurasi Periode
+          - generic [ref=e273]:
+            - generic [ref=e274]:
+              - generic [ref=e275]: Pending Approval
+              - generic [ref=e276]: "0"
+            - generic [ref=e277]:
+              - generic [ref=e278]: Unpaid / Overdue
+              - generic [ref=e279]: "0"
+            - generic [ref=e280]:
+              - generic [ref=e281]: Settled / Paid
+              - generic [ref=e282]: "12"
+            - generic [ref=e283]:
+              - generic [ref=e284]: Next Sequence
+              - generic [ref=e285]: None
+        - generic [ref=e286]:
+          - generic [ref=e287]:
+            - generic [ref=e288]:
+              - generic [ref=e289]: payments
+              - heading "Siklus Pembayaran Aktif" [level=3] [ref=e290]
+            - generic [ref=e291]: 12 Sequence
+          - table [ref=e293]:
+            - rowgroup [ref=e294]:
+              - row "No Pembayaran Ke Nomor Invoice Terakhir Bayar Jumlah Dibayar Status Pembayaran Waktu Terbayar Upload Invoice Bukti Bayar Aksi" [ref=e295]:
+                - columnheader "No" [ref=e296]
+                - columnheader "Pembayaran Ke" [ref=e297]
+                - columnheader "Nomor Invoice" [ref=e298]
+                - columnheader "Terakhir Bayar" [ref=e299]
+                - columnheader "Jumlah Dibayar" [ref=e300]
+                - columnheader "Status Pembayaran" [ref=e301]
+                - columnheader "Waktu Terbayar" [ref=e302]
+                - columnheader "Upload Invoice" [ref=e303]
+                - columnheader "Bukti Bayar" [ref=e304]
+                - columnheader "Aksi" [ref=e305]
+            - rowgroup [ref=e306]:
+              - 'row "1 #1 106/FO/11/25-202510 21 Nov 2025 Rp 250.000 Lunas 21 Nov 2025 upload_file Upload receipt_long Upload edit_note" [ref=e307]':
+                - cell "1" [ref=e308]
+                - cell "#1" [ref=e309]:
+                  - generic [ref=e310]: "#1"
+                - cell "106/FO/11/25-202510" [ref=e311]
+                - cell "21 Nov 2025" [ref=e312]:
+                  - generic [ref=e313]: 21 Nov 2025
+                - cell "Rp 250.000" [ref=e314]:
+                  - generic [ref=e315]: Rp 250.000
+                - cell "Lunas" [ref=e316]:
+                  - generic [ref=e317]: Lunas
+                - cell "21 Nov 2025" [ref=e319]
+                - cell "upload_file Upload" [ref=e320]:
+                  - generic [ref=e322] [cursor=pointer]:
+                    - generic [ref=e323]: upload_file
+                    - text: Upload
+                    - button "upload_file Upload" [disabled] [ref=e324]
+                - cell "receipt_long Upload" [ref=e325]:
+                  - generic [ref=e327] [cursor=pointer]:
+                    - generic [ref=e328]: receipt_long
+                    - text: Upload
+                    - button "receipt_long Upload" [disabled] [ref=e329]
+                - cell "edit_note" [ref=e330]:
+                  - button "edit_note" [ref=e332]:
+                    - generic [ref=e333]: edit_note
+              - 'row "2 #2 106/FO/11/25-202511 21 Des 2025 Rp 250.000 Lunas 21 Des 2025 upload_file Upload receipt_long Upload edit_note" [ref=e334]':
+                - cell "2" [ref=e335]
+                - cell "#2" [ref=e336]:
+                  - generic [ref=e337]: "#2"
+                - cell "106/FO/11/25-202511" [ref=e338]
+                - cell "21 Des 2025" [ref=e339]:
+                  - generic [ref=e340]: 21 Des 2025
+                - cell "Rp 250.000" [ref=e341]:
+                  - generic [ref=e342]: Rp 250.000
+                - cell "Lunas" [ref=e343]:
+                  - generic [ref=e344]: Lunas
+                - cell "21 Des 2025" [ref=e346]
+                - cell "upload_file Upload" [ref=e347]:
+                  - generic [ref=e349] [cursor=pointer]:
+                    - generic [ref=e350]: upload_file
+                    - text: Upload
+                    - button "upload_file Upload" [disabled] [ref=e351]
+                - cell "receipt_long Upload" [ref=e352]:
+                  - generic [ref=e354] [cursor=pointer]:
+                    - generic [ref=e355]: receipt_long
+                    - text: Upload
+                    - button "receipt_long Upload" [disabled] [ref=e356]
+                - cell "edit_note" [ref=e357]:
+                  - button "edit_note" [ref=e359]:
+                    - generic [ref=e360]: edit_note
+              - 'row "3 #3 106/FO/11/25-202512 21 Jan 2026 Rp 250.000 Lunas 21 Jan 2026 upload_file Upload receipt_long Upload edit_note" [ref=e361]':
+                - cell "3" [ref=e362]
+                - cell "#3" [ref=e363]:
+                  - generic [ref=e364]: "#3"
+                - cell "106/FO/11/25-202512" [ref=e365]
+                - cell "21 Jan 2026" [ref=e366]:
+                  - generic [ref=e367]: 21 Jan 2026
+                - cell "Rp 250.000" [ref=e368]:
+                  - generic [ref=e369]: Rp 250.000
+                - cell "Lunas" [ref=e370]:
+                  - generic [ref=e371]: Lunas
+                - cell "21 Jan 2026" [ref=e373]
+                - cell "upload_file Upload" [ref=e374]:
+                  - generic [ref=e376] [cursor=pointer]:
+                    - generic [ref=e377]: upload_file
+                    - text: Upload
+                    - button "upload_file Upload" [disabled] [ref=e378]
+                - cell "receipt_long Upload" [ref=e379]:
+                  - generic [ref=e381] [cursor=pointer]:
+                    - generic [ref=e382]: receipt_long
+                    - text: Upload
+                    - button "receipt_long Upload" [disabled] [ref=e383]
+                - cell "edit_note" [ref=e384]:
+                  - button "edit_note" [ref=e386]:
+                    - generic [ref=e387]: edit_note
+              - 'row "4 #4 106/FO/11/25-202601 21 Feb 2026 Rp 250.000 Lunas 21 Feb 2026 upload_file Upload receipt_long Upload edit_note" [ref=e388]':
+                - cell "4" [ref=e389]
+                - cell "#4" [ref=e390]:
+                  - generic [ref=e391]: "#4"
+                - cell "106/FO/11/25-202601" [ref=e392]
+                - cell "21 Feb 2026" [ref=e393]:
+                  - generic [ref=e394]: 21 Feb 2026
+                - cell "Rp 250.000" [ref=e395]:
+                  - generic [ref=e396]: Rp 250.000
+                - cell "Lunas" [ref=e397]:
+                  - generic [ref=e398]: Lunas
+                - cell "21 Feb 2026" [ref=e400]
+                - cell "upload_file Upload" [ref=e401]:
+                  - generic [ref=e403] [cursor=pointer]:
+                    - generic [ref=e404]: upload_file
+                    - text: Upload
+                    - button "upload_file Upload" [disabled] [ref=e405]
+                - cell "receipt_long Upload" [ref=e406]:
+                  - generic [ref=e408] [cursor=pointer]:
+                    - generic [ref=e409]: receipt_long
+                    - text: Upload
+                    - button "receipt_long Upload" [disabled] [ref=e410]
+                - cell "edit_note" [ref=e411]:
+                  - button "edit_note" [ref=e413]:
+                    - generic [ref=e414]: edit_note
+              - 'row "5 #5 106/FO/11/25-202602 21 Mar 2026 Rp 250.000 Lunas 21 Mar 2026 upload_file Upload receipt_long Upload edit_note" [ref=e415]':
+                - cell "5" [ref=e416]
+                - cell "#5" [ref=e417]:
+                  - generic [ref=e418]: "#5"
+                - cell "106/FO/11/25-202602" [ref=e419]
+                - cell "21 Mar 2026" [ref=e420]:
+                  - generic [ref=e421]: 21 Mar 2026
+                - cell "Rp 250.000" [ref=e422]:
+                  - generic [ref=e423]: Rp 250.000
+                - cell "Lunas" [ref=e424]:
+                  - generic [ref=e425]: Lunas
+                - cell "21 Mar 2026" [ref=e427]
+                - cell "upload_file Upload" [ref=e428]:
+                  - generic [ref=e430] [cursor=pointer]:
+                    - generic [ref=e431]: upload_file
+                    - text: Upload
+                    - button "upload_file Upload" [disabled] [ref=e432]
+                - cell "receipt_long Upload" [ref=e433]:
+                  - generic [ref=e435] [cursor=pointer]:
+                    - generic [ref=e436]: receipt_long
+                    - text: Upload
+                    - button "receipt_long Upload" [disabled] [ref=e437]
+                - cell "edit_note" [ref=e438]:
+                  - button "edit_note" [ref=e440]:
+                    - generic [ref=e441]: edit_note
+              - 'row "6 #6 106/FO/11/25-202603 21 Apr 2026 Rp 250.000 Lunas 21 Apr 2026 upload_file Upload receipt_long Upload edit_note" [ref=e442]':
+                - cell "6" [ref=e443]
+                - cell "#6" [ref=e444]:
+                  - generic [ref=e445]: "#6"
+                - cell "106/FO/11/25-202603" [ref=e446]
+                - cell "21 Apr 2026" [ref=e447]:
+                  - generic [ref=e448]: 21 Apr 2026
+                - cell "Rp 250.000" [ref=e449]:
+                  - generic [ref=e450]: Rp 250.000
+                - cell "Lunas" [ref=e451]:
+                  - generic [ref=e452]: Lunas
+                - cell "21 Apr 2026" [ref=e454]
+                - cell "upload_file Upload" [ref=e455]:
+                  - generic [ref=e457] [cursor=pointer]:
+                    - generic [ref=e458]: upload_file
+                    - text: Upload
+                    - button "upload_file Upload" [disabled] [ref=e459]
+                - cell "receipt_long Upload" [ref=e460]:
+                  - generic [ref=e462] [cursor=pointer]:
+                    - generic [ref=e463]: receipt_long
+                    - text: Upload
+                    - button "receipt_long Upload" [disabled] [ref=e464]
+                - cell "edit_note" [ref=e465]:
+                  - button "edit_note" [ref=e467]:
+                    - generic [ref=e468]: edit_note
+              - 'row "7 #7 106/FO/11/25-202604 21 Mei 2026 Rp 250.000 Lunas 21 Mei 2026 upload_file Upload receipt_long Upload edit_note" [ref=e469]':
+                - cell "7" [ref=e470]
+                - cell "#7" [ref=e471]:
+                  - generic [ref=e472]: "#7"
+                - cell "106/FO/11/25-202604" [ref=e473]
+                - cell "21 Mei 2026" [ref=e474]:
+                  - generic [ref=e475]: 21 Mei 2026
+                - cell "Rp 250.000" [ref=e476]:
+                  - generic [ref=e477]: Rp 250.000
+                - cell "Lunas" [ref=e478]:
+                  - generic [ref=e479]: Lunas
+                - cell "21 Mei 2026" [ref=e481]
+                - cell "upload_file Upload" [ref=e482]:
+                  - generic [ref=e484] [cursor=pointer]:
+                    - generic [ref=e485]: upload_file
+                    - text: Upload
+                    - button "upload_file Upload" [disabled] [ref=e486]
+                - cell "receipt_long Upload" [ref=e487]:
+                  - generic [ref=e489] [cursor=pointer]:
+                    - generic [ref=e490]: receipt_long
+                    - text: Upload
+                    - button "receipt_long Upload" [disabled] [ref=e491]
+                - cell "edit_note" [ref=e492]:
+                  - button "edit_note" [ref=e494]:
+                    - generic [ref=e495]: edit_note
+              - 'row "8 #8 106/FO/11/25-202605 21 Jun 2026 Rp 250.000 Lunas 21 Jun 2026 upload_file Upload receipt_long Upload edit_note" [ref=e496]':
+                - cell "8" [ref=e497]
+                - cell "#8" [ref=e498]:
+                  - generic [ref=e499]: "#8"
+                - cell "106/FO/11/25-202605" [ref=e500]
+                - cell "21 Jun 2026" [ref=e501]:
+                  - generic [ref=e502]: 21 Jun 2026
+                - cell "Rp 250.000" [ref=e503]:
+                  - generic [ref=e504]: Rp 250.000
+                - cell "Lunas" [ref=e505]:
+                  - generic [ref=e506]: Lunas
+                - cell "21 Jun 2026" [ref=e508]
+                - cell "upload_file Upload" [ref=e509]:
+                  - generic [ref=e511] [cursor=pointer]:
+                    - generic [ref=e512]: upload_file
+                    - text: Upload
+                    - button "upload_file Upload" [disabled] [ref=e513]
+                - cell "receipt_long Upload" [ref=e514]:
+                  - generic [ref=e516] [cursor=pointer]:
+                    - generic [ref=e517]: receipt_long
+                    - text: Upload
+                    - button "receipt_long Upload" [disabled] [ref=e518]
+                - cell "edit_note" [ref=e519]:
+                  - button "edit_note" [ref=e521]:
+                    - generic [ref=e522]: edit_note
+              - 'row "9 #9 106/FO/11/25-202606 21 Jul 2026 Rp 250.000 Lunas 21 Jul 2026 upload_file Upload receipt_long Upload edit_note" [ref=e523]':
+                - cell "9" [ref=e524]
+                - cell "#9" [ref=e525]:
+                  - generic [ref=e526]: "#9"
+                - cell "106/FO/11/25-202606" [ref=e527]
+                - cell "21 Jul 2026" [ref=e528]:
+                  - generic [ref=e529]: 21 Jul 2026
+                - cell "Rp 250.000" [ref=e530]:
+                  - generic [ref=e531]: Rp 250.000
+                - cell "Lunas" [ref=e532]:
+                  - generic [ref=e533]: Lunas
+                - cell "21 Jul 2026" [ref=e535]
+                - cell "upload_file Upload" [ref=e536]:
+                  - generic [ref=e538] [cursor=pointer]:
+                    - generic [ref=e539]: upload_file
+                    - text: Upload
+                    - button "upload_file Upload" [disabled] [ref=e540]
+                - cell "receipt_long Upload" [ref=e541]:
+                  - generic [ref=e543] [cursor=pointer]:
+                    - generic [ref=e544]: receipt_long
+                    - text: Upload
+                    - button "receipt_long Upload" [disabled] [ref=e545]
+                - cell "edit_note" [ref=e546]:
+                  - button "edit_note" [ref=e548]:
+                    - generic [ref=e549]: edit_note
+              - 'row "10 #10 106/FO/11/25-202607 21 Agu 2026 Rp 250.000 Lunas 21 Agu 2026 upload_file Upload receipt_long Upload edit_note" [ref=e550]':
+                - cell "10" [ref=e551]
+                - cell "#10" [ref=e552]:
+                  - generic [ref=e553]: "#10"
+                - cell "106/FO/11/25-202607" [ref=e554]
+                - cell "21 Agu 2026" [ref=e555]:
+                  - generic [ref=e556]: 21 Agu 2026
+                - cell "Rp 250.000" [ref=e557]:
+                  - generic [ref=e558]: Rp 250.000
+                - cell "Lunas" [ref=e559]:
+                  - generic [ref=e560]: Lunas
+                - cell "21 Agu 2026" [ref=e562]
+                - cell "upload_file Upload" [ref=e563]:
+                  - generic [ref=e565] [cursor=pointer]:
+                    - generic [ref=e566]: upload_file
+                    - text: Upload
+                    - button "upload_file Upload" [disabled] [ref=e567]
+                - cell "receipt_long Upload" [ref=e568]:
+                  - generic [ref=e570] [cursor=pointer]:
+                    - generic [ref=e571]: receipt_long
+                    - text: Upload
+                    - button "receipt_long Upload" [disabled] [ref=e572]
+                - cell "edit_note" [ref=e573]:
+                  - button "edit_note" [ref=e575]:
+                    - generic [ref=e576]: edit_note
+              - 'row "11 #11 106/FO/11/25-202608 21 Sep 2026 Rp 250.000 Lunas 21 Sep 2026 upload_file Upload receipt_long Upload edit_note" [ref=e577]':
+                - cell "11" [ref=e578]
+                - cell "#11" [ref=e579]:
+                  - generic [ref=e580]: "#11"
+                - cell "106/FO/11/25-202608" [ref=e581]
+                - cell "21 Sep 2026" [ref=e582]:
+                  - generic [ref=e583]: 21 Sep 2026
+                - cell "Rp 250.000" [ref=e584]:
+                  - generic [ref=e585]: Rp 250.000
+                - cell "Lunas" [ref=e586]:
+                  - generic [ref=e587]: Lunas
+                - cell "21 Sep 2026" [ref=e589]
+                - cell "upload_file Upload" [ref=e590]:
+                  - generic [ref=e592] [cursor=pointer]:
+                    - generic [ref=e593]: upload_file
+                    - text: Upload
+                    - button "upload_file Upload" [disabled] [ref=e594]
+                - cell "receipt_long Upload" [ref=e595]:
+                  - generic [ref=e597] [cursor=pointer]:
+                    - generic [ref=e598]: receipt_long
+                    - text: Upload
+                    - button "receipt_long Upload" [disabled] [ref=e599]
+                - cell "edit_note" [ref=e600]:
+                  - button "edit_note" [ref=e602]:
+                    - generic [ref=e603]: edit_note
+              - 'row "12 #12 106/FO/11/25-202609 21 Okt 2026 Rp 250.000 Lunas 21 Okt 2026 upload_file Upload receipt_long Upload edit_note" [ref=e604]':
+                - cell "12" [ref=e605]
+                - cell "#12" [ref=e606]:
+                  - generic [ref=e607]: "#12"
+                - cell "106/FO/11/25-202609" [ref=e608]
+                - cell "21 Okt 2026" [ref=e609]:
+                  - generic [ref=e610]: 21 Okt 2026
+                - cell "Rp 250.000" [ref=e611]:
+                  - generic [ref=e612]: Rp 250.000
+                - cell "Lunas" [ref=e613]:
+                  - generic [ref=e614]: Lunas
+                - cell "21 Okt 2026" [ref=e616]
+                - cell "upload_file Upload" [ref=e617]:
+                  - generic [ref=e619] [cursor=pointer]:
+                    - generic [ref=e620]: upload_file
+                    - text: Upload
+                    - button "upload_file Upload" [disabled] [ref=e621]
+                - cell "receipt_long Upload" [ref=e622]:
+                  - generic [ref=e624] [cursor=pointer]:
+                    - generic [ref=e625]: receipt_long
+                    - text: Upload
+                    - button "receipt_long Upload" [disabled] [ref=e626]
+                - cell "edit_note" [ref=e627]:
+                  - button "edit_note" [ref=e629]:
+                    - generic [ref=e630]: edit_note
+        - generic [ref=e631]:
+          - generic [ref=e633]:
+            - generic [ref=e634]: archive
+            - generic [ref=e635]:
+              - heading "Tambah Arsip Periode Lama" [level=3] [ref=e636]
+              - paragraph [ref=e637]: Satu rentang periode akan dipecah otomatis menjadi invoice settlement bulanan.
+          - generic [ref=e638]:
+            - generic [ref=e640]:
+              - generic [ref=e641]:
+                - paragraph [ref=e642]: Preview Arsip Bulanan
+                - paragraph [ref=e643]: Pilih tanggal mulai dan akhir periode untuk menghitung jumlah invoice bulanan yang akan dibuat.
+              - generic [ref=e644]: 0 Bulan
+            - generic [ref=e645]:
+              - generic [ref=e646]:
+                - text: Mulai Periode
+                - generic [ref=e647]:
+                  - textbox [ref=e648]
+                  - generic: event
+              - generic [ref=e649]:
+                - text: Akhir Periode
+                - generic [ref=e650]:
+                  - textbox [ref=e651]
+                  - generic: event_available
+              - generic [ref=e652]:
+                - text: Nomor Kontrak / BAK
+                - generic [ref=e653]:
+                  - textbox "KIMA.BAK-..." [ref=e654]
+                  - generic: assignment
+              - generic [ref=e655]:
+                - text: Nomor Invoice
+                - generic [ref=e656]:
+                  - textbox "No. invoice arsip" [ref=e657]
+                  - generic: receipt_long
+              - generic [ref=e658]:
+                - text: Jatuh Tempo
+                - generic [ref=e659]:
+                  - textbox [ref=e660]
+                  - generic: event_busy
+              - generic [ref=e661]:
+                - text: Tanggal Bayar
+                - generic [ref=e662]:
+                  - textbox [ref=e663]
+                  - generic: payments
+              - generic [ref=e664]:
+                - text: Nominal Invoice
+                - generic [ref=e665]:
+                  - spinbutton [ref=e666]: "250000"
+                  - generic: paid
+              - generic [ref=e667]:
+                - text: Paket Arsip
+                - button "Sharing Core expand_more" [ref=e669]:
+                  - generic [ref=e670]: Sharing Core
+                  - generic [ref=e671]: expand_more
+              - generic [ref=e672]:
+                - text: Rasio Sharing
+                - generic [ref=e673]:
+                  - textbox "1:32" [ref=e674]
+                  - generic: hub
+              - generic [ref=e676]:
+                - text: Catatan
+                - generic [ref=e677]:
+                  - textbox "Opsional" [ref=e678]
+                  - generic: notes
+            - generic [ref=e679]:
+              - paragraph [ref=e680]: Status invoice otomatis Lunas, lalu setiap bulan masuk ke arsip riwayat settlement.
+              - button "Tambah Arsip" [ref=e681]
+        - generic [ref=e682]:
+          - generic [ref=e683]:
+            - generic [ref=e684]:
+              - generic [ref=e685]: history
+              - heading "Arsip & Riwayat Settlement" [level=3] [ref=e686]
+            - generic [ref=e687]: 36 Logged
+          - table [ref=e689]:
+            - rowgroup [ref=e690]:
+              - row "# Urutan Identitas Masa Periode Settlement Status Akhir Waktu Bayar Versi Log" [ref=e691]:
+                - columnheader "#" [ref=e692]
+                - columnheader "Urutan" [ref=e693]
+                - columnheader "Identitas" [ref=e694]
+                - columnheader "Masa Periode" [ref=e695]
+                - columnheader "Settlement" [ref=e696]
+                - columnheader "Status Akhir" [ref=e697]
+                - columnheader "Waktu Bayar" [ref=e698]
+                - columnheader "Versi Log" [ref=e699]
+            - rowgroup [ref=e700]:
+              - 'row "1 Sequence #36 INV-021/KIMA/FO/I/2025-202509 22 Sep 2025 - 21 Okt 2025 Rp 250.000 Lunas 21 Okt 2025 v1 Archive" [ref=e701]':
+                - cell "1" [ref=e702]
+                - 'cell "Sequence #36" [ref=e703]'
+                - cell "INV-021/KIMA/FO/I/2025-202509" [ref=e704]
+                - cell "22 Sep 2025 - 21 Okt 2025" [ref=e705]
+                - cell "Rp 250.000" [ref=e706]
+                - cell "Lunas" [ref=e707]
+                - cell "21 Okt 2025" [ref=e708]
+                - cell "v1 Archive" [ref=e709]:
+                  - generic [ref=e710]: v1 Archive
+              - 'row "2 Sequence #35 INV-021/KIMA/FO/I/2025-202508 22 Agu 2025 - 21 Sep 2025 Rp 250.000 Lunas 21 Sep 2025 v1 Archive" [ref=e711]':
+                - cell "2" [ref=e712]
+                - 'cell "Sequence #35" [ref=e713]'
+                - cell "INV-021/KIMA/FO/I/2025-202508" [ref=e714]
+                - cell "22 Agu 2025 - 21 Sep 2025" [ref=e715]
+                - cell "Rp 250.000" [ref=e716]
+                - cell "Lunas" [ref=e717]
+                - cell "21 Sep 2025" [ref=e718]
+                - cell "v1 Archive" [ref=e719]:
+                  - generic [ref=e720]: v1 Archive
+              - 'row "3 Sequence #34 INV-021/KIMA/FO/I/2025-202507 22 Jul 2025 - 21 Agu 2025 Rp 250.000 Lunas 21 Agu 2025 v1 Archive" [ref=e721]':
+                - cell "3" [ref=e722]
+                - 'cell "Sequence #34" [ref=e723]'
+                - cell "INV-021/KIMA/FO/I/2025-202507" [ref=e724]
+                - cell "22 Jul 2025 - 21 Agu 2025" [ref=e725]
+                - cell "Rp 250.000" [ref=e726]
+                - cell "Lunas" [ref=e727]
+                - cell "21 Agu 2025" [ref=e728]
+                - cell "v1 Archive" [ref=e729]:
+                  - generic [ref=e730]: v1 Archive
+              - 'row "4 Sequence #33 INV-021/KIMA/FO/I/2025-202506 22 Jun 2025 - 21 Jul 2025 Rp 250.000 Lunas 21 Jul 2025 v1 Archive" [ref=e731]':
+                - cell "4" [ref=e732]
+                - 'cell "Sequence #33" [ref=e733]'
+                - cell "INV-021/KIMA/FO/I/2025-202506" [ref=e734]
+                - cell "22 Jun 2025 - 21 Jul 2025" [ref=e735]
+                - cell "Rp 250.000" [ref=e736]
+                - cell "Lunas" [ref=e737]
+                - cell "21 Jul 2025" [ref=e738]
+                - cell "v1 Archive" [ref=e739]:
+                  - generic [ref=e740]: v1 Archive
+              - 'row "5 Sequence #32 INV-021/KIMA/FO/I/2025-202505 22 Mei 2025 - 21 Jun 2025 Rp 250.000 Lunas 21 Jun 2025 v1 Archive" [ref=e741]':
+                - cell "5" [ref=e742]
+                - 'cell "Sequence #32" [ref=e743]'
+                - cell "INV-021/KIMA/FO/I/2025-202505" [ref=e744]
+                - cell "22 Mei 2025 - 21 Jun 2025" [ref=e745]
+                - cell "Rp 250.000" [ref=e746]
+                - cell "Lunas" [ref=e747]
+                - cell "21 Jun 2025" [ref=e748]
+                - cell "v1 Archive" [ref=e749]:
+                  - generic [ref=e750]: v1 Archive
+              - 'row "6 Sequence #31 INV-021/KIMA/FO/I/2025-202504 22 Apr 2025 - 21 Mei 2025 Rp 250.000 Lunas 21 Mei 2025 v1 Archive" [ref=e751]':
+                - cell "6" [ref=e752]
+                - 'cell "Sequence #31" [ref=e753]'
+                - cell "INV-021/KIMA/FO/I/2025-202504" [ref=e754]
+                - cell "22 Apr 2025 - 21 Mei 2025" [ref=e755]
+                - cell "Rp 250.000" [ref=e756]
+                - cell "Lunas" [ref=e757]
+                - cell "21 Mei 2025" [ref=e758]
+                - cell "v1 Archive" [ref=e759]:
+                  - generic [ref=e760]: v1 Archive
+              - 'row "7 Sequence #30 INV-021/KIMA/FO/I/2025-202503 22 Mar 2025 - 21 Apr 2025 Rp 250.000 Lunas 21 Apr 2025 v1 Archive" [ref=e761]':
+                - cell "7" [ref=e762]
+                - 'cell "Sequence #30" [ref=e763]'
+                - cell "INV-021/KIMA/FO/I/2025-202503" [ref=e764]
+                - cell "22 Mar 2025 - 21 Apr 2025" [ref=e765]
+                - cell "Rp 250.000" [ref=e766]
+                - cell "Lunas" [ref=e767]
+                - cell "21 Apr 2025" [ref=e768]
+                - cell "v1 Archive" [ref=e769]:
+                  - generic [ref=e770]: v1 Archive
+              - 'row "8 Sequence #29 INV-021/KIMA/FO/I/2025-202502 22 Feb 2025 - 21 Mar 2025 Rp 250.000 Lunas 21 Mar 2025 v1 Archive" [ref=e771]':
+                - cell "8" [ref=e772]
+                - 'cell "Sequence #29" [ref=e773]'
+                - cell "INV-021/KIMA/FO/I/2025-202502" [ref=e774]
+                - cell "22 Feb 2025 - 21 Mar 2025" [ref=e775]
+                - cell "Rp 250.000" [ref=e776]
+                - cell "Lunas" [ref=e777]
+                - cell "21 Mar 2025" [ref=e778]
+                - cell "v1 Archive" [ref=e779]:
+                  - generic [ref=e780]: v1 Archive
+              - 'row "9 Sequence #28 INV-021/KIMA/FO/I/2025-202501 22 Jan 2025 - 21 Feb 2025 Rp 250.000 Lunas 21 Feb 2025 v1 Archive" [ref=e781]':
+                - cell "9" [ref=e782]
+                - 'cell "Sequence #28" [ref=e783]'
+                - cell "INV-021/KIMA/FO/I/2025-202501" [ref=e784]
+                - cell "22 Jan 2025 - 21 Feb 2025" [ref=e785]
+                - cell "Rp 250.000" [ref=e786]
+                - cell "Lunas" [ref=e787]
+                - cell "21 Feb 2025" [ref=e788]
+                - cell "v1 Archive" [ref=e789]:
+                  - generic [ref=e790]: v1 Archive
+              - 'row "10 Sequence #27 INV-021/KIMA/FO/I/2025-202412 22 Des 2024 - 21 Jan 2025 Rp 250.000 Lunas 21 Jan 2025 v1 Archive" [ref=e791]':
+                - cell "10" [ref=e792]
+                - 'cell "Sequence #27" [ref=e793]'
+                - cell "INV-021/KIMA/FO/I/2025-202412" [ref=e794]
+                - cell "22 Des 2024 - 21 Jan 2025" [ref=e795]
+                - cell "Rp 250.000" [ref=e796]
+                - cell "Lunas" [ref=e797]
+                - cell "21 Jan 2025" [ref=e798]
+                - cell "v1 Archive" [ref=e799]:
+                  - generic [ref=e800]: v1 Archive
+              - 'row "11 Sequence #26 INV-021/KIMA/FO/I/2025-202411 22 Nov 2024 - 21 Des 2024 Rp 250.000 Lunas 21 Des 2024 v1 Archive" [ref=e801]':
+                - cell "11" [ref=e802]
+                - 'cell "Sequence #26" [ref=e803]'
+                - cell "INV-021/KIMA/FO/I/2025-202411" [ref=e804]
+                - cell "22 Nov 2024 - 21 Des 2024" [ref=e805]
+                - cell "Rp 250.000" [ref=e806]
+                - cell "Lunas" [ref=e807]
+                - cell "21 Des 2024" [ref=e808]
+                - cell "v1 Archive" [ref=e809]:
+                  - generic [ref=e810]: v1 Archive
+              - 'row "12 Sequence #25 INV-021/KIMA/FO/I/2025-202410 22 Okt 2024 - 21 Nov 2024 Rp 250.000 Lunas 21 Nov 2024 v1 Archive" [ref=e811]':
+                - cell "12" [ref=e812]
+                - 'cell "Sequence #25" [ref=e813]'
+                - cell "INV-021/KIMA/FO/I/2025-202410" [ref=e814]
+                - cell "22 Okt 2024 - 21 Nov 2024" [ref=e815]
+                - cell "Rp 250.000" [ref=e816]
+                - cell "Lunas" [ref=e817]
+                - cell "21 Nov 2024" [ref=e818]
+                - cell "v1 Archive" [ref=e819]:
+                  - generic [ref=e820]: v1 Archive
+              - 'row "13 Sequence #24 INV-020/KIMA/FO/VI/2024-202409 22 Sep 2024 - 21 Okt 2024 Rp 250.000 Lunas 21 Okt 2024 v1 Archive" [ref=e821]':
+                - cell "13" [ref=e822]
+                - 'cell "Sequence #24" [ref=e823]'
+                - cell "INV-020/KIMA/FO/VI/2024-202409" [ref=e824]
+                - cell "22 Sep 2024 - 21 Okt 2024" [ref=e825]
+                - cell "Rp 250.000" [ref=e826]
+                - cell "Lunas" [ref=e827]
+                - cell "21 Okt 2024" [ref=e828]
+                - cell "v1 Archive" [ref=e829]:
+                  - generic [ref=e830]: v1 Archive
+              - 'row "14 Sequence #23 INV-020/KIMA/FO/VI/2024-202408 22 Agu 2024 - 21 Sep 2024 Rp 250.000 Lunas 21 Sep 2024 v1 Archive" [ref=e831]':
+                - cell "14" [ref=e832]
+                - 'cell "Sequence #23" [ref=e833]'
+                - cell "INV-020/KIMA/FO/VI/2024-202408" [ref=e834]
+                - cell "22 Agu 2024 - 21 Sep 2024" [ref=e835]
+                - cell "Rp 250.000" [ref=e836]
+                - cell "Lunas" [ref=e837]
+                - cell "21 Sep 2024" [ref=e838]
+                - cell "v1 Archive" [ref=e839]:
+                  - generic [ref=e840]: v1 Archive
+              - 'row "15 Sequence #22 INV-020/KIMA/FO/VI/2024-202407 22 Jul 2024 - 21 Agu 2024 Rp 250.000 Lunas 21 Agu 2024 v1 Archive" [ref=e841]':
+                - cell "15" [ref=e842]
+                - 'cell "Sequence #22" [ref=e843]'
+                - cell "INV-020/KIMA/FO/VI/2024-202407" [ref=e844]
+                - cell "22 Jul 2024 - 21 Agu 2024" [ref=e845]
+                - cell "Rp 250.000" [ref=e846]
+                - cell "Lunas" [ref=e847]
+                - cell "21 Agu 2024" [ref=e848]
+                - cell "v1 Archive" [ref=e849]:
+                  - generic [ref=e850]: v1 Archive
+              - 'row "16 Sequence #21 INV-020/KIMA/FO/VI/2024-202406 22 Jun 2024 - 21 Jul 2024 Rp 250.000 Lunas 21 Jul 2024 v1 Archive" [ref=e851]':
+                - cell "16" [ref=e852]
+                - 'cell "Sequence #21" [ref=e853]'
+                - cell "INV-020/KIMA/FO/VI/2024-202406" [ref=e854]
+                - cell "22 Jun 2024 - 21 Jul 2024" [ref=e855]
+                - cell "Rp 250.000" [ref=e856]
+                - cell "Lunas" [ref=e857]
+                - cell "21 Jul 2024" [ref=e858]
+                - cell "v1 Archive" [ref=e859]:
+                  - generic [ref=e860]: v1 Archive
+              - 'row "17 Sequence #20 INV-020/KIMA/FO/VI/2024-202405 22 Mei 2024 - 21 Jun 2024 Rp 250.000 Lunas 21 Jun 2024 v1 Archive" [ref=e861]':
+                - cell "17" [ref=e862]
+                - 'cell "Sequence #20" [ref=e863]'
+                - cell "INV-020/KIMA/FO/VI/2024-202405" [ref=e864]
+                - cell "22 Mei 2024 - 21 Jun 2024" [ref=e865]
+                - cell "Rp 250.000" [ref=e866]
+                - cell "Lunas" [ref=e867]
+                - cell "21 Jun 2024" [ref=e868]
+                - cell "v1 Archive" [ref=e869]:
+                  - generic [ref=e870]: v1 Archive
+              - 'row "18 Sequence #19 INV-020/KIMA/FO/VI/2024-202404 22 Apr 2024 - 21 Mei 2024 Rp 250.000 Lunas 21 Mei 2024 v1 Archive" [ref=e871]':
+                - cell "18" [ref=e872]
+                - 'cell "Sequence #19" [ref=e873]'
+                - cell "INV-020/KIMA/FO/VI/2024-202404" [ref=e874]
+                - cell "22 Apr 2024 - 21 Mei 2024" [ref=e875]
+                - cell "Rp 250.000" [ref=e876]
+                - cell "Lunas" [ref=e877]
+                - cell "21 Mei 2024" [ref=e878]
+                - cell "v1 Archive" [ref=e879]:
+                  - generic [ref=e880]: v1 Archive
+              - 'row "19 Sequence #18 INV-020/KIMA/FO/VI/2024-202403 22 Mar 2024 - 21 Apr 2024 Rp 250.000 Lunas 21 Apr 2024 v1 Archive" [ref=e881]':
+                - cell "19" [ref=e882]
+                - 'cell "Sequence #18" [ref=e883]'
+                - cell "INV-020/KIMA/FO/VI/2024-202403" [ref=e884]
+                - cell "22 Mar 2024 - 21 Apr 2024" [ref=e885]
+                - cell "Rp 250.000" [ref=e886]
+                - cell "Lunas" [ref=e887]
+                - cell "21 Apr 2024" [ref=e888]
+                - cell "v1 Archive" [ref=e889]:
+                  - generic [ref=e890]: v1 Archive
+              - 'row "20 Sequence #17 INV-020/KIMA/FO/VI/2024-202402 22 Feb 2024 - 21 Mar 2024 Rp 250.000 Lunas 21 Mar 2024 v1 Archive" [ref=e891]':
+                - cell "20" [ref=e892]
+                - 'cell "Sequence #17" [ref=e893]'
+                - cell "INV-020/KIMA/FO/VI/2024-202402" [ref=e894]
+                - cell "22 Feb 2024 - 21 Mar 2024" [ref=e895]
+                - cell "Rp 250.000" [ref=e896]
+                - cell "Lunas" [ref=e897]
+                - cell "21 Mar 2024" [ref=e898]
+                - cell "v1 Archive" [ref=e899]:
+                  - generic [ref=e900]: v1 Archive
+              - 'row "21 Sequence #16 INV-020/KIMA/FO/VI/2024-202401 22 Jan 2024 - 21 Feb 2024 Rp 250.000 Lunas 21 Feb 2024 v1 Archive" [ref=e901]':
+                - cell "21" [ref=e902]
+                - 'cell "Sequence #16" [ref=e903]'
+                - cell "INV-020/KIMA/FO/VI/2024-202401" [ref=e904]
+                - cell "22 Jan 2024 - 21 Feb 2024" [ref=e905]
+                - cell "Rp 250.000" [ref=e906]
+                - cell "Lunas" [ref=e907]
+                - cell "21 Feb 2024" [ref=e908]
+                - cell "v1 Archive" [ref=e909]:
+                  - generic [ref=e910]: v1 Archive
+              - 'row "22 Sequence #15 INV-020/KIMA/FO/VI/2024-202312 22 Des 2023 - 21 Jan 2024 Rp 250.000 Lunas 21 Jan 2024 v1 Archive" [ref=e911]':
+                - cell "22" [ref=e912]
+                - 'cell "Sequence #15" [ref=e913]'
+                - cell "INV-020/KIMA/FO/VI/2024-202312" [ref=e914]
+                - cell "22 Des 2023 - 21 Jan 2024" [ref=e915]
+                - cell "Rp 250.000" [ref=e916]
+                - cell "Lunas" [ref=e917]
+                - cell "21 Jan 2024" [ref=e918]
+                - cell "v1 Archive" [ref=e919]:
+                  - generic [ref=e920]: v1 Archive
+              - 'row "23 Sequence #14 INV-020/KIMA/FO/VI/2024-202311 22 Nov 2023 - 21 Des 2023 Rp 250.000 Lunas 21 Des 2023 v1 Archive" [ref=e921]':
+                - cell "23" [ref=e922]
+                - 'cell "Sequence #14" [ref=e923]'
+                - cell "INV-020/KIMA/FO/VI/2024-202311" [ref=e924]
+                - cell "22 Nov 2023 - 21 Des 2023" [ref=e925]
+                - cell "Rp 250.000" [ref=e926]
+                - cell "Lunas" [ref=e927]
+                - cell "21 Des 2023" [ref=e928]
+                - cell "v1 Archive" [ref=e929]:
+                  - generic [ref=e930]: v1 Archive
+              - 'row "24 Sequence #13 INV-020/KIMA/FO/VI/2024-202310 22 Okt 2023 - 21 Nov 2023 Rp 250.000 Lunas 21 Nov 2023 v1 Archive" [ref=e931]':
+                - cell "24" [ref=e932]
+                - 'cell "Sequence #13" [ref=e933]'
+                - cell "INV-020/KIMA/FO/VI/2024-202310" [ref=e934]
+                - cell "22 Okt 2023 - 21 Nov 2023" [ref=e935]
+                - cell "Rp 250.000" [ref=e936]
+                - cell "Lunas" [ref=e937]
+                - cell "21 Nov 2023" [ref=e938]
+                - cell "v1 Archive" [ref=e939]:
+                  - generic [ref=e940]: v1 Archive
+              - 'row "25 Sequence #12 079/INV.FO/XII/2022-202309 22 Sep 2023 - 21 Okt 2023 Rp 250.000 Lunas 21 Okt 2023 v1 Archive" [ref=e941]':
+                - cell "25" [ref=e942]
+                - 'cell "Sequence #12" [ref=e943]'
+                - cell "079/INV.FO/XII/2022-202309" [ref=e944]
+                - cell "22 Sep 2023 - 21 Okt 2023" [ref=e945]
+                - cell "Rp 250.000" [ref=e946]
+                - cell "Lunas" [ref=e947]
+                - cell "21 Okt 2023" [ref=e948]
+                - cell "v1 Archive" [ref=e949]:
+                  - generic [ref=e950]: v1 Archive
+              - 'row "26 Sequence #11 079/INV.FO/XII/2022-202308 22 Agu 2023 - 21 Sep 2023 Rp 250.000 Lunas 21 Sep 2023 v1 Archive" [ref=e951]':
+                - cell "26" [ref=e952]
+                - 'cell "Sequence #11" [ref=e953]'
+                - cell "079/INV.FO/XII/2022-202308" [ref=e954]
+                - cell "22 Agu 2023 - 21 Sep 2023" [ref=e955]
+                - cell "Rp 250.000" [ref=e956]
+                - cell "Lunas" [ref=e957]
+                - cell "21 Sep 2023" [ref=e958]
+                - cell "v1 Archive" [ref=e959]:
+                  - generic [ref=e960]: v1 Archive
+              - 'row "27 Sequence #10 079/INV.FO/XII/2022-202307 22 Jul 2023 - 21 Agu 2023 Rp 250.000 Lunas 21 Agu 2023 v1 Archive" [ref=e961]':
+                - cell "27" [ref=e962]
+                - 'cell "Sequence #10" [ref=e963]'
+                - cell "079/INV.FO/XII/2022-202307" [ref=e964]
+                - cell "22 Jul 2023 - 21 Agu 2023" [ref=e965]
+                - cell "Rp 250.000" [ref=e966]
+                - cell "Lunas" [ref=e967]
+                - cell "21 Agu 2023" [ref=e968]
+                - cell "v1 Archive" [ref=e969]:
+                  - generic [ref=e970]: v1 Archive
+              - 'row "28 Sequence #9 079/INV.FO/XII/2022-202306 22 Jun 2023 - 21 Jul 2023 Rp 250.000 Lunas 21 Jul 2023 v1 Archive" [ref=e971]':
+                - cell "28" [ref=e972]
+                - 'cell "Sequence #9" [ref=e973]'
+                - cell "079/INV.FO/XII/2022-202306" [ref=e974]
+                - cell "22 Jun 2023 - 21 Jul 2023" [ref=e975]
+                - cell "Rp 250.000" [ref=e976]
+                - cell "Lunas" [ref=e977]
+                - cell "21 Jul 2023" [ref=e978]
+                - cell "v1 Archive" [ref=e979]:
+                  - generic [ref=e980]: v1 Archive
+              - 'row "29 Sequence #8 079/INV.FO/XII/2022-202305 22 Mei 2023 - 21 Jun 2023 Rp 250.000 Lunas 21 Jun 2023 v1 Archive" [ref=e981]':
+                - cell "29" [ref=e982]
+                - 'cell "Sequence #8" [ref=e983]'
+                - cell "079/INV.FO/XII/2022-202305" [ref=e984]
+                - cell "22 Mei 2023 - 21 Jun 2023" [ref=e985]
+                - cell "Rp 250.000" [ref=e986]
+                - cell "Lunas" [ref=e987]
+                - cell "21 Jun 2023" [ref=e988]
+                - cell "v1 Archive" [ref=e989]:
+                  - generic [ref=e990]: v1 Archive
+              - 'row "30 Sequence #7 079/INV.FO/XII/2022-202304 22 Apr 2023 - 21 Mei 2023 Rp 250.000 Lunas 21 Mei 2023 v1 Archive" [ref=e991]':
+                - cell "30" [ref=e992]
+                - 'cell "Sequence #7" [ref=e993]'
+                - cell "079/INV.FO/XII/2022-202304" [ref=e994]
+                - cell "22 Apr 2023 - 21 Mei 2023" [ref=e995]
+                - cell "Rp 250.000" [ref=e996]
+                - cell "Lunas" [ref=e997]
+                - cell "21 Mei 2023" [ref=e998]
+                - cell "v1 Archive" [ref=e999]:
+                  - generic [ref=e1000]: v1 Archive
+              - 'row "31 Sequence #6 079/INV.FO/XII/2022-202303 22 Mar 2023 - 21 Apr 2023 Rp 250.000 Lunas 21 Apr 2023 v1 Archive" [ref=e1001]':
+                - cell "31" [ref=e1002]
+                - 'cell "Sequence #6" [ref=e1003]'
+                - cell "079/INV.FO/XII/2022-202303" [ref=e1004]
+                - cell "22 Mar 2023 - 21 Apr 2023" [ref=e1005]
+                - cell "Rp 250.000" [ref=e1006]
+                - cell "Lunas" [ref=e1007]
+                - cell "21 Apr 2023" [ref=e1008]
+                - cell "v1 Archive" [ref=e1009]:
+                  - generic [ref=e1010]: v1 Archive
+              - 'row "32 Sequence #5 079/INV.FO/XII/2022-202302 22 Feb 2023 - 21 Mar 2023 Rp 250.000 Lunas 21 Mar 2023 v1 Archive" [ref=e1011]':
+                - cell "32" [ref=e1012]
+                - 'cell "Sequence #5" [ref=e1013]'
+                - cell "079/INV.FO/XII/2022-202302" [ref=e1014]
+                - cell "22 Feb 2023 - 21 Mar 2023" [ref=e1015]
+                - cell "Rp 250.000" [ref=e1016]
+                - cell "Lunas" [ref=e1017]
+                - cell "21 Mar 2023" [ref=e1018]
+                - cell "v1 Archive" [ref=e1019]:
+                  - generic [ref=e1020]: v1 Archive
+              - 'row "33 Sequence #4 079/INV.FO/XII/2022-202301 22 Jan 2023 - 21 Feb 2023 Rp 250.000 Lunas 21 Feb 2023 v1 Archive" [ref=e1021]':
+                - cell "33" [ref=e1022]
+                - 'cell "Sequence #4" [ref=e1023]'
+                - cell "079/INV.FO/XII/2022-202301" [ref=e1024]
+                - cell "22 Jan 2023 - 21 Feb 2023" [ref=e1025]
+                - cell "Rp 250.000" [ref=e1026]
+                - cell "Lunas" [ref=e1027]
+                - cell "21 Feb 2023" [ref=e1028]
+                - cell "v1 Archive" [ref=e1029]:
+                  - generic [ref=e1030]: v1 Archive
+              - 'row "34 Sequence #3 079/INV.FO/XII/2022-202212 22 Des 2022 - 21 Jan 2023 Rp 250.000 Lunas 21 Jan 2023 v1 Archive" [ref=e1031]':
+                - cell "34" [ref=e1032]
+                - 'cell "Sequence #3" [ref=e1033]'
+                - cell "079/INV.FO/XII/2022-202212" [ref=e1034]
+                - cell "22 Des 2022 - 21 Jan 2023" [ref=e1035]
+                - cell "Rp 250.000" [ref=e1036]
+                - cell "Lunas" [ref=e1037]
+                - cell "21 Jan 2023" [ref=e1038]
+                - cell "v1 Archive" [ref=e1039]:
+                  - generic [ref=e1040]: v1 Archive
+              - 'row "35 Sequence #2 079/INV.FO/XII/2022-202211 22 Nov 2022 - 21 Des 2022 Rp 250.000 Lunas 21 Des 2022 v1 Archive" [ref=e1041]':
+                - cell "35" [ref=e1042]
+                - 'cell "Sequence #2" [ref=e1043]'
+                - cell "079/INV.FO/XII/2022-202211" [ref=e1044]
+                - cell "22 Nov 2022 - 21 Des 2022" [ref=e1045]
+                - cell "Rp 250.000" [ref=e1046]
+                - cell "Lunas" [ref=e1047]
+                - cell "21 Des 2022" [ref=e1048]
+                - cell "v1 Archive" [ref=e1049]:
+                  - generic [ref=e1050]: v1 Archive
+              - 'row "36 Sequence #1 079/INV.FO/XII/2022-202210 22 Okt 2022 - 21 Nov 2022 Rp 250.000 Lunas 21 Nov 2022 v1 Archive" [ref=e1051]':
+                - cell "36" [ref=e1052]
+                - 'cell "Sequence #1" [ref=e1053]'
+                - cell "079/INV.FO/XII/2022-202210" [ref=e1054]
+                - cell "22 Okt 2022 - 21 Nov 2022" [ref=e1055]
+                - cell "Rp 250.000" [ref=e1056]
+                - cell "Lunas" [ref=e1057]
+                - cell "21 Nov 2022" [ref=e1058]
+                - cell "v1 Archive" [ref=e1059]:
+                  - generic [ref=e1060]: v1 Archive

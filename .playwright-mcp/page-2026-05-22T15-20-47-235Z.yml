@@ -1,0 +1,143 @@
+- generic [ref=e353]:
+  - navigation:
+    - generic [ref=e355]:
+      - button "notifications 4" [ref=e357]:
+        - generic [ref=e358]: notifications
+        - generic [ref=e359]: "4"
+      - button "Profile Administrator Super Admin" [ref=e361]:
+        - img "Profile" [ref=e363]
+        - generic [ref=e364]:
+          - paragraph [ref=e365]: Administrator
+          - paragraph [ref=e366]: Super Admin
+  - complementary [ref=e367]:
+    - button "KIMA ARCHIVE" [ref=e368]:
+      - generic [ref=e371]:
+        - paragraph [ref=e372]: KIMA
+        - paragraph [ref=e373]: ARCHIVE
+    - navigation [ref=e374]:
+      - link "dashboard Dashboard" [ref=e375] [cursor=pointer]:
+        - /url: /dashboard
+        - generic [ref=e376]: dashboard
+        - generic [ref=e377]: Dashboard
+      - link "groups Pelanggan" [ref=e378] [cursor=pointer]:
+        - /url: /customers
+        - generic [ref=e379]: groups
+        - generic [ref=e380]: Pelanggan
+      - link "monitor_heart Monitoring" [ref=e381] [cursor=pointer]:
+        - /url: /monitoring
+        - generic [ref=e382]: monitor_heart
+        - generic [ref=e383]: Monitoring
+      - link "task_alt Tindak Lanjut" [ref=e384] [cursor=pointer]:
+        - /url: /todos
+        - generic [ref=e385]: task_alt
+        - generic [ref=e386]: Tindak Lanjut
+      - link "manage_history Log Aktivitas" [ref=e387] [cursor=pointer]:
+        - /url: /activity-log
+        - generic [ref=e388]: manage_history
+        - generic [ref=e389]: Log Aktivitas
+      - link "delete Tempat Sampah" [ref=e390] [cursor=pointer]:
+        - /url: /trash
+        - generic [ref=e391]: delete
+        - generic [ref=e392]: Tempat Sampah
+  - main [ref=e393]:
+    - generic [ref=e395]:
+      - generic [ref=e396]:
+        - generic [ref=e397]:
+          - generic [ref=e400]: Workspace Utama
+          - heading "ISP & Lokasi" [level=1] [ref=e401]
+          - paragraph [ref=e402]: Panel integrasi layer grouping ISP dan entitas operasional lokasi.
+        - generic [ref=e403]:
+          - button "add_link ISP Baru" [ref=e404]:
+            - generic [ref=e405]: add_link
+            - text: ISP Baru
+          - button "person_add Lokasi Baru" [ref=e406]:
+            - generic [ref=e407]: person_add
+            - text: Lokasi Baru
+          - button "sync" [ref=e408]:
+            - generic [ref=e409]: sync
+      - generic [ref=e410]:
+        - generic [ref=e411]:
+          - generic [ref=e412]:
+            - paragraph [ref=e413]: Total ISP
+            - generic [ref=e415]: hub
+          - heading "1" [level=3] [ref=e416]
+        - generic [ref=e417]:
+          - generic [ref=e418]:
+            - paragraph [ref=e419]: Total Lokasi
+            - generic [ref=e421]: groups
+          - heading "0" [level=3] [ref=e422]
+        - generic [ref=e423]:
+          - generic [ref=e424]:
+            - paragraph [ref=e425]: Lokasi Beroperasi
+            - generic [ref=e427]: check_circle
+          - heading "0" [level=3] [ref=e428]
+        - generic [ref=e429]:
+          - generic [ref=e430]:
+            - paragraph [ref=e431]: Belum Diperpanjang
+            - generic [ref=e433]: event_busy
+          - heading "0" [level=3] [ref=e434]
+        - generic [ref=e435]:
+          - generic [ref=e436]:
+            - paragraph [ref=e437]: Lokasi Berhenti
+            - generic [ref=e439]: cancel
+          - heading "0" [level=3] [ref=e440]
+      - generic [ref=e442]:
+        - generic [ref=e443]:
+          - generic [ref=e444]:
+            - button "Saat Ini" [ref=e445]: Saat Ini
+            - button "Riwayat" [ref=e447]
+          - generic [ref=e448]:
+            - generic [ref=e449]: search
+            - textbox "Cari ID, ISP, atau nama lokasi..." [ref=e450]
+          - button "restart_alt Reset Filter" [disabled] [ref=e452]:
+            - generic [ref=e453]: restart_alt
+            - text: Reset Filter
+        - generic [ref=e454]:
+          - generic [ref=e455]:
+            - paragraph [ref=e456]: Status Kontrak
+            - generic [ref=e458] [cursor=pointer]:
+              - generic [ref=e459]: description
+              - generic [ref=e460]: Semua Status
+              - generic [ref=e462]: expand_more
+          - generic [ref=e463]:
+            - paragraph [ref=e464]: Status Jalur
+            - generic [ref=e466] [cursor=pointer]:
+              - generic [ref=e467]: lan
+              - generic [ref=e468]: Semua Jalur
+              - generic [ref=e470]: expand_more
+          - generic [ref=e471]:
+            - paragraph [ref=e472]: Status Tindakan
+            - generic [ref=e474] [cursor=pointer]:
+              - generic [ref=e475]: task_alt
+              - generic [ref=e476]: Semua Tindakan
+              - generic [ref=e478]: expand_more
+          - generic [ref=e479]:
+            - paragraph [ref=e480]: Urutan Tampilan
+            - generic [ref=e482] [cursor=pointer]:
+              - generic [ref=e483]: sort
+              - generic [ref=e484]: ISP Terbaru
+              - generic [ref=e486]: expand_more
+        - generic [ref=e487]:
+          - generic [ref=e488]:
+            - generic [ref=e489]: location_on
+            - generic [ref=e490]: 0 Lokasi Terpilih
+          - generic [ref=e491]:
+            - generic [ref=e492]: hub
+            - generic [ref=e493]: 1 ISP Terkait
+      - generic [ref=e497]:
+        - button "router ISP MITRA PT Cendikia Global Solusi KIMA.BAK-42/DBO/FO/IX/2023" [ref=e499]:
+          - generic [ref=e501]: router
+          - generic [ref=e502]:
+            - paragraph [ref=e504]: ISP MITRA
+            - heading "PT Cendikia Global Solusi" [level=3] [ref=e505]
+            - paragraph [ref=e506]: KIMA.BAK-42/DBO/FO/IX/2023
+        - generic [ref=e507]:
+          - button "expand_more" [ref=e508]:
+            - generic [ref=e509]: expand_more
+          - generic [ref=e510]: 0 LOKASI
+          - generic [ref=e511]: 4 TINDAKAN
+          - button "visibility Detail ISP" [ref=e512]:
+            - generic [ref=e513]: visibility
+            - text: Detail ISP
+          - button "delete" [ref=e514]:
+            - generic [ref=e515]: delete

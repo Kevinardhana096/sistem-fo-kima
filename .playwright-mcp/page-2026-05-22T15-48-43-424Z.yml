@@ -1,0 +1,245 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e613]:
+    - navigation:
+      - generic [ref=e615]:
+        - button "notifications 5" [ref=e617]:
+          - generic [ref=e618]: notifications
+          - generic [ref=e619]: "5"
+        - button "Profile Administrator Super Admin" [ref=e621]:
+          - img "Profile" [ref=e623]
+          - generic [ref=e624]:
+            - paragraph [ref=e625]: Administrator
+            - paragraph [ref=e626]: Super Admin
+    - complementary [ref=e627]:
+      - button "KIMA ARCHIVE" [ref=e628]:
+        - generic [ref=e631]:
+          - paragraph [ref=e632]: KIMA
+          - paragraph [ref=e633]: ARCHIVE
+      - navigation [ref=e634]:
+        - link "dashboard Dashboard" [ref=e635] [cursor=pointer]:
+          - /url: /dashboard
+          - generic [ref=e636]: dashboard
+          - generic [ref=e637]: Dashboard
+        - link "groups Pelanggan" [ref=e638] [cursor=pointer]:
+          - /url: /customers
+          - generic [ref=e639]: groups
+          - generic [ref=e640]: Pelanggan
+        - link "monitor_heart Monitoring" [ref=e641] [cursor=pointer]:
+          - /url: /monitoring
+          - generic [ref=e642]: monitor_heart
+          - generic [ref=e643]: Monitoring
+        - link "task_alt Tindak Lanjut" [ref=e644] [cursor=pointer]:
+          - /url: /todos
+          - generic [ref=e645]: task_alt
+          - generic [ref=e646]: Tindak Lanjut
+        - link "manage_history Log Aktivitas" [ref=e647] [cursor=pointer]:
+          - /url: /activity-log
+          - generic [ref=e648]: manage_history
+          - generic [ref=e649]: Log Aktivitas
+        - link "delete Tempat Sampah" [ref=e650] [cursor=pointer]:
+          - /url: /trash
+          - generic [ref=e651]: delete
+          - generic [ref=e652]: Tempat Sampah
+    - main [ref=e653]:
+      - generic [ref=e655]:
+        - generic [ref=e656]:
+          - generic [ref=e657]:
+            - button "arrow_back KEMBALI KE WORKSPACE" [ref=e659]:
+              - generic [ref=e660]: arrow_back
+              - text: KEMBALI KE WORKSPACE
+            - generic [ref=e661]:
+              - button "sync Refresh" [ref=e662]:
+                - generic [ref=e663]: sync
+                - text: Refresh
+              - button "manage_accounts Akun Akses" [ref=e664]:
+                - generic [ref=e665]: manage_accounts
+                - text: Akun Akses
+              - button "edit_note Edit ISP" [ref=e666]:
+                - generic [ref=e667]: edit_note
+                - text: Edit ISP
+              - button "delete_forever Hapus ISP" [ref=e668]:
+                - generic [ref=e669]: delete_forever
+                - text: Hapus ISP
+          - generic [ref=e672]:
+            - generic [ref=e673]:
+              - generic [ref=e674]:
+                - generic [ref=e675]:
+                  - generic [ref=e677]: corporate_fare
+                  - paragraph [ref=e679]: Internet Service Provider
+                - heading "PT Cendikia Global Solusi" [level=1] [ref=e680]
+              - generic [ref=e682]:
+                - generic [ref=e683]: check_circle
+                - generic [ref=e684]:
+                  - paragraph [ref=e685]: Status
+                  - paragraph [ref=e686]: Beroperasi
+            - generic [ref=e689]:
+              - generic [ref=e690]:
+                - paragraph [ref=e691]: Nomor Kontrak
+                - generic [ref=e692]:
+                  - generic [ref=e693]: description
+                  - paragraph [ref=e694]: "-"
+              - generic [ref=e695]:
+                - paragraph [ref=e696]: Periode Awal Kontrak
+                - generic [ref=e697]:
+                  - generic [ref=e698]: event_available
+                  - paragraph [ref=e699]: —
+              - generic [ref=e700]:
+                - paragraph [ref=e701]: Periode Berjalan
+                - generic [ref=e702]:
+                  - generic [ref=e703]: date_range
+                  - paragraph [ref=e704]: —
+              - generic [ref=e705]:
+                - paragraph [ref=e706]: Paket
+                - generic [ref=e707]:
+                  - generic [ref=e708]: hub
+                  - paragraph [ref=e709]: Core -
+        - navigation [ref=e712]:
+          - button "dashboard Ringkasan" [ref=e713]:
+            - generic [ref=e714]: dashboard
+            - generic [ref=e715]: Ringkasan
+          - button "groups Daftar Lokasi" [ref=e716]:
+            - generic [ref=e717]: groups
+            - generic [ref=e718]: Daftar Lokasi
+          - button "map Peta Jalur" [ref=e719]:
+            - generic [ref=e720]: map
+            - generic [ref=e721]: Peta Jalur
+          - button "description Kontrak" [ref=e722]:
+            - generic [ref=e723]: description
+            - generic [ref=e724]: Kontrak
+          - button "inventory_2 Dokumen" [ref=e725]:
+            - generic [ref=e726]: inventory_2
+            - generic [ref=e727]: Dokumen
+          - button "history Timeline" [ref=e728]:
+            - generic [ref=e729]: history
+            - generic [ref=e730]: Timeline
+        - generic [ref=e732]:
+          - generic [ref=e733]:
+            - generic [ref=e734]:
+              - generic [ref=e735]:
+                - generic [ref=e736]:
+                  - paragraph [ref=e737]: Total Lokasi
+                  - paragraph [ref=e738]: Seluruh lokasi terdaftar
+                - generic [ref=e740]: groups
+              - generic [ref=e741]:
+                - generic [ref=e742]: "0"
+                - generic [ref=e743]: Titik Layanan
+            - generic [ref=e744]:
+              - generic [ref=e745]:
+                - generic [ref=e746]:
+                  - paragraph [ref=e747]: Status Lokasi
+                  - paragraph [ref=e748]: Rincian status operasional
+                - generic [ref=e750]: check_circle
+              - generic [ref=e751]:
+                - generic [ref=e752]:
+                  - paragraph [ref=e753]: Beroperasi
+                  - paragraph [ref=e754]: "0"
+                - generic [ref=e755]:
+                  - paragraph [ref=e756]: Belum Beroperasi
+                  - paragraph [ref=e757]: "0"
+                - generic [ref=e758]:
+                  - paragraph [ref=e759]: Belum Diperpanjang
+                  - paragraph [ref=e760]: "0"
+                - generic [ref=e761]:
+                  - paragraph [ref=e762]: Berhenti
+                  - paragraph [ref=e763]: "0"
+            - generic [ref=e764]:
+              - generic [ref=e765]:
+                - generic [ref=e766]:
+                  - paragraph [ref=e767]: Informasi Jalur
+                  - paragraph [ref=e768]: Rincian status jalur FO
+                - generic [ref=e770]: lan
+              - generic [ref=e771]:
+                - generic [ref=e772]:
+                  - paragraph [ref=e773]: Aktif
+                  - paragraph [ref=e774]: "0"
+                - generic [ref=e775]:
+                  - paragraph [ref=e776]: Gangguan
+                  - paragraph [ref=e777]: "0"
+                - generic [ref=e778]:
+                  - paragraph [ref=e779]: Perbaikan
+                  - paragraph [ref=e780]: "0"
+                - generic [ref=e781]:
+                  - paragraph [ref=e782]: Nonaktif
+                  - paragraph [ref=e783]: "0"
+          - generic [ref=e784]:
+            - generic [ref=e785]:
+              - generic [ref=e786]:
+                - heading "admin_panel_settings Tindak Lanjut ISP" [level=3] [ref=e788]:
+                  - generic [ref=e789]: admin_panel_settings
+                  - text: Tindak Lanjut ISP
+                - generic [ref=e790]:
+                  - generic [ref=e791]:
+                    - generic [ref=e792]:
+                      - generic [ref=e793]:
+                        - generic [ref=e794]: contract_edit
+                        - heading "Nomor kontrak ISP belum diisi" [level=4] [ref=e795]
+                        - generic "Belum Dibaca" [ref=e796]
+                      - paragraph [ref=e797]: PT Cendikia Global Solusi belum memiliki nomor kontrak/referensi kontrak.
+                    - generic [ref=e798]: Buka ISP
+                  - generic [ref=e799]:
+                    - generic [ref=e800]:
+                      - generic [ref=e801]:
+                        - generic [ref=e802]: contract_edit
+                        - heading "Awal kontrak ISP belum diisi" [level=4] [ref=e803]
+                        - generic "Belum Dibaca" [ref=e804]
+                      - paragraph [ref=e805]: PT Cendikia Global Solusi belum memiliki tanggal awal kontrak.
+                    - generic [ref=e806]: Buka ISP
+                  - generic [ref=e807]:
+                    - generic [ref=e808]:
+                      - generic [ref=e809]:
+                        - generic [ref=e810]: contract_edit
+                        - heading "Periode berjalan ISP belum lengkap" [level=4] [ref=e811]
+                        - generic "Belum Dibaca" [ref=e812]
+                      - paragraph [ref=e813]: PT Cendikia Global Solusi belum memiliki periode berjalan awal dan akhir yang lengkap.
+                    - generic [ref=e814]: Buka ISP
+                  - generic [ref=e815]:
+                    - generic [ref=e816]:
+                      - generic [ref=e817]:
+                        - generic [ref=e818]: contract_edit
+                        - heading "BAK ISP belum diupload" [level=4] [ref=e819]
+                        - generic "Belum Dibaca" [ref=e820]
+                      - paragraph [ref=e821]: PT Cendikia Global Solusi belum memiliki file BAK.
+                    - generic [ref=e822]: Buka Dokumen
+                  - generic [ref=e823]:
+                    - generic [ref=e824]:
+                      - generic [ref=e825]:
+                        - generic [ref=e826]: contract_edit
+                        - heading "File kontrak ISP belum diupload" [level=4] [ref=e827]
+                        - generic "Belum Dibaca" [ref=e828]
+                      - paragraph [ref=e829]: PT Cendikia Global Solusi belum memiliki file kontrak.
+                    - generic [ref=e830]: Buka Dokumen
+              - generic [ref=e831]:
+                - heading "location_away Tindak Lanjut Lokasi" [level=3] [ref=e833]:
+                  - generic [ref=e834]: location_away
+                  - text: Tindak Lanjut Lokasi
+                - paragraph [ref=e836]: Seluruh lokasi terpantau normal.
+            - generic [ref=e837]:
+              - generic [ref=e838]:
+                - heading "Ringkasan Tindak Lanjut" [level=3] [ref=e839]
+                - generic [ref=e840]:
+                  - generic [ref=e841]:
+                    - generic [ref=e842]:
+                      - paragraph [ref=e843]: Tindak Lanjut ISP
+                      - paragraph [ref=e844]: "5"
+                    - generic [ref=e845]: admin_panel_settings
+                  - generic [ref=e846]:
+                    - generic [ref=e847]:
+                      - paragraph [ref=e848]: Tindak Lanjut Lokasi
+                      - paragraph [ref=e849]: "0"
+                    - generic [ref=e850]: location_on
+              - generic [ref=e851]:
+                - heading "history Aktivitas Terkini" [level=3] [ref=e852]:
+                  - generic [ref=e853]: history
+                  - text: Aktivitas Terkini
+                - generic [ref=e854]:
+                  - generic [ref=e855]:
+                    - generic [ref=e857]: how_to_reg
+                    - generic [ref=e858]:
+                      - paragraph [ref=e859]: Registrasi ISP
+                      - paragraph [ref=e860]: Entitas ISP berhasil didaftarkan ke dalam repositori sistem arsip KIMA.
+                  - generic [ref=e861]:
+                    - generic [ref=e863]: assignment_ind
+                    - generic [ref=e864]:
+                      - paragraph [ref=e865]: Inisialisasi Kontrak
+                      - paragraph [ref=e866]: Struktur data kontrak awal telah diverifikasi dan siap untuk pengelolaan adendum.
+  - generic [ref=e449]: "0"

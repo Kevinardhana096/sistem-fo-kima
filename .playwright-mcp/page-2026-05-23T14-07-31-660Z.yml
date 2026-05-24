@@ -1,0 +1,208 @@
+- generic [ref=e1]:
+  - generic [ref=e1223]:
+    - navigation:
+      - generic [ref=e1225]:
+        - button "notifications 9+" [ref=e1227]:
+          - generic [ref=e1228]: notifications
+          - generic [ref=e1229]: 9+
+        - button "Profile Administrator Super Admin" [ref=e1231]:
+          - img "Profile" [ref=e1233]
+          - generic [ref=e1234]:
+            - paragraph [ref=e1235]: Administrator
+            - paragraph [ref=e1236]: Super Admin
+    - complementary [ref=e1237]:
+      - button "KIMA ARCHIVE" [ref=e1238]:
+        - generic [ref=e1241]:
+          - paragraph [ref=e1242]: KIMA
+          - paragraph [ref=e1243]: ARCHIVE
+      - navigation [ref=e1244]:
+        - link "dashboard Dashboard" [ref=e1245] [cursor=pointer]:
+          - /url: /dashboard
+          - generic [ref=e1246]: dashboard
+          - generic [ref=e1247]: Dashboard
+        - link "groups Pelanggan" [ref=e1248] [cursor=pointer]:
+          - /url: /customers
+          - generic [ref=e1249]: groups
+          - generic [ref=e1250]: Pelanggan
+        - link "monitor_heart Monitoring" [ref=e1251] [cursor=pointer]:
+          - /url: /monitoring
+          - generic [ref=e1252]: monitor_heart
+          - generic [ref=e1253]: Monitoring
+        - link "task_alt Tindak Lanjut" [ref=e1254] [cursor=pointer]:
+          - /url: /todos
+          - generic [ref=e1255]: task_alt
+          - generic [ref=e1256]: Tindak Lanjut
+        - link "manage_history Log Aktivitas" [ref=e1257] [cursor=pointer]:
+          - /url: /activity-log
+          - generic [ref=e1258]: manage_history
+          - generic [ref=e1259]: Log Aktivitas
+        - link "delete Tempat Sampah" [ref=e1260] [cursor=pointer]:
+          - /url: /trash
+          - generic [ref=e1261]: delete
+          - generic [ref=e1262]: Tempat Sampah
+    - main [ref=e1263]:
+      - generic [ref=e1265]:
+        - generic [ref=e1266]:
+          - button "arrow_back Kembali ke Workspace" [ref=e1268]:
+            - generic [ref=e1269]: arrow_back
+            - text: Kembali ke Workspace
+          - generic [ref=e1270]:
+            - button "sync Refresh" [ref=e1271]:
+              - generic [ref=e1272]: sync
+              - text: Refresh
+            - button "edit_note Edit Lokasi" [ref=e1273]:
+              - generic [ref=e1274]: edit_note
+              - text: Edit Lokasi
+            - button "delete_forever Hapus Lokasi" [ref=e1275]:
+              - generic [ref=e1276]: delete_forever
+              - text: Hapus Lokasi
+        - generic [ref=e1279]:
+          - generic [ref=e1280]:
+            - generic [ref=e1281]:
+              - generic [ref=e1282]:
+                - generic [ref=e1284]: location_on
+                - generic [ref=e1285]:
+                  - paragraph [ref=e1286]: Lokasi Operasional
+                  - paragraph [ref=e1287]: "#CUST-20260523135916"
+              - heading "PT Karya Teknik Mulia (PT Wastec International)" [level=1] [ref=e1288]
+              - generic [ref=e1289]:
+                - generic [ref=e1290]: corporate_fare
+                - generic [ref=e1291]: PT Cendikia Global Solusi
+            - generic [ref=e1292]:
+              - generic [ref=e1293]:
+                - generic [ref=e1294]: check_circle
+                - generic [ref=e1295]:
+                  - paragraph [ref=e1296]: Kontrak
+                  - paragraph [ref=e1297]: Beroperasi
+              - generic [ref=e1299]:
+                - generic [ref=e1300]: cable
+                - generic [ref=e1301]:
+                  - paragraph [ref=e1302]: Jalur FO
+                  - paragraph [ref=e1303]: Jalur Aktif
+          - generic [ref=e1306]:
+            - generic [ref=e1307]:
+              - paragraph [ref=e1308]: Paket
+              - generic [ref=e1309]:
+                - generic [ref=e1310]: package_2
+                - paragraph [ref=e1311]: SHARING CORE
+            - generic [ref=e1312]:
+              - paragraph [ref=e1313]: Jumlah
+              - generic [ref=e1314]:
+                - generic [ref=e1315]: speed
+                - paragraph [ref=e1316]: 1/32
+            - generic [ref=e1317]:
+              - paragraph [ref=e1318]: Periode Awal Kontrak
+              - generic [ref=e1319]:
+                - generic [ref=e1320]: event_available
+                - paragraph [ref=e1321]: 15 Agu 2022
+            - generic [ref=e1322]:
+              - paragraph [ref=e1323]: Periode Berjalan
+              - generic [ref=e1324]:
+                - generic [ref=e1325]: date_range
+                - paragraph [ref=e1326]: 18 Agu 2025—17 Agu 2026
+        - generic [ref=e1328]:
+          - button "Ringkasan" [ref=e1329]
+          - button "Jalur" [ref=e1330]
+          - button "Kontrak" [ref=e1331]
+          - button "Invoice" [ref=e1332]
+          - button "Dokumen" [ref=e1333]
+          - button "Timeline" [ref=e1334]
+        - generic [ref=e1451]:
+          - generic [ref=e1452]:
+            - generic [ref=e1453]:
+              - heading "Manajemen Kontrak Tenant" [level=2] [ref=e1454]
+              - paragraph [ref=e1455]: Arsip legal dan perpanjangan layanan
+            - button "upgrade Ubah / Upgrade Paket" [ref=e1456]:
+              - generic [ref=e1457]: upgrade
+              - text: Ubah / Upgrade Paket
+          - generic [ref=e1458]:
+            - generic [ref=e1459]: schedule
+            - text: Kontrak akan berakhir dalam 86 hari (H-3 bulan). Segera buat dan upload surat perpanjangan kontrak.
+          - table [ref=e1461]:
+            - rowgroup [ref=e1462]:
+              - row "No Nomor Kontrak Berkas Kontrak Keterangan Periode Awal Kontrak Periode Berjalan Awal Periode Berjalan Akhir Paket Jumlah Nominal/Bulan BAK Perpanjangan Tanggapan Aksi" [ref=e1463]:
+                - columnheader "No" [ref=e1464]
+                - columnheader "Nomor Kontrak" [ref=e1465]
+                - columnheader "Berkas Kontrak" [ref=e1466]
+                - columnheader "Keterangan" [ref=e1467]
+                - columnheader "Periode Awal Kontrak" [ref=e1468]
+                - columnheader "Periode Berjalan Awal" [ref=e1469]
+                - columnheader "Periode Berjalan Akhir" [ref=e1470]
+                - columnheader "Paket" [ref=e1471]
+                - columnheader "Jumlah" [ref=e1472]
+                - columnheader "Nominal/Bulan" [ref=e1473]
+                - columnheader "BAK" [ref=e1474]
+                - columnheader "Perpanjangan" [ref=e1475]
+                - columnheader "Tanggapan" [ref=e1476]
+                - columnheader "Aksi" [ref=e1477]
+            - rowgroup [ref=e1478]:
+              - row "1 NO-BAK-CUST-20260523135916-20250818 upload_file Upload Kontrak Beroperasi 15 Agu 2022 18 Agu 2025 17 Agu 2026 SHARING CORE 1/32 — Belum Ada Tandai Tidak Perlu upload_file Upload — edit_note" [ref=e1479]:
+                - cell "1" [ref=e1480]
+                - cell "NO-BAK-CUST-20260523135916-20250818" [ref=e1481]
+                - cell "upload_file Upload" [ref=e1482]:
+                  - generic [ref=e1484] [cursor=pointer]:
+                    - generic [ref=e1485]: upload_file
+                    - text: Upload
+                    - button "upload_file Upload" [ref=e1486]
+                - cell "Kontrak Beroperasi" [ref=e1487]:
+                  - generic [ref=e1488]: Kontrak Beroperasi
+                - cell "15 Agu 2022" [ref=e1490]
+                - cell "18 Agu 2025" [ref=e1491]
+                - cell "17 Agu 2026" [ref=e1492]
+                - cell "SHARING CORE" [ref=e1493]
+                - cell "1/32" [ref=e1494]
+                - cell "—" [ref=e1495]
+                - cell "Belum Ada Tandai Tidak Perlu" [ref=e1496]:
+                  - generic [ref=e1497]:
+                    - generic [ref=e1498]: Belum Ada
+                    - button "Tandai Tidak Perlu" [ref=e1499]
+                - cell "upload_file Upload" [ref=e1500]:
+                  - generic [ref=e1502] [cursor=pointer]:
+                    - generic [ref=e1503]: upload_file
+                    - text: Upload
+                    - button "upload_file Upload" [ref=e1504]
+                - cell "—" [ref=e1505]
+                - cell "edit_note" [ref=e1506]:
+                  - button "edit_note" [active] [ref=e1507]:
+                    - generic [ref=e1508]: edit_note
+        - generic [ref=e1510]:
+          - generic [ref=e1511]:
+            - generic [ref=e1512]:
+              - paragraph [ref=e1513]: Ubah / Upgrade Paket
+              - heading "PT Karya Teknik Mulia (PT Wastec International)" [level=3] [ref=e1514]
+              - paragraph [ref=e1515]: Paket lama berlaku sampai akhir bulan berjalan. Paket baru aktif mulai bulan berikutnya.
+            - button "close" [ref=e1516]:
+              - generic [ref=e1517]: close
+          - generic [ref=e1518]:
+            - generic [ref=e1519]:
+              - text: Alasan Kontrak
+              - button "Ubah Paket expand_more" [ref=e1521]:
+                - generic [ref=e1522]: Ubah Paket
+                - generic [ref=e1523]: expand_more
+            - generic [ref=e1524]:
+              - generic [ref=e1525]:
+                - generic [ref=e1526]: Tanggal Request Perubahan
+                - textbox [ref=e1527]: 2026-05-23
+              - generic [ref=e1528]:
+                - generic [ref=e1529]: Nomor Kontrak / BAK Baru
+                - textbox "Opsional" [ref=e1530]
+            - generic [ref=e1531]:
+              - generic [ref=e1532]: Paket Baru
+              - combobox [ref=e1533] [cursor=pointer]:
+                - option "Sharing Core" [selected]
+                - option "Core"
+            - generic [ref=e1534]:
+              - generic [ref=e1535]: Shared Core Ratio Baru
+              - 'textbox "Contoh: 1:32" [ref=e1536]': 1:32
+            - generic [ref=e1537]:
+              - generic [ref=e1538]:
+                - generic [ref=e1539]: Nominal Bulanan Baru
+                - spinbutton [ref=e1540]
+              - generic [ref=e1541]:
+                - generic [ref=e1542]: Nominal Tahunan Baru
+                - spinbutton [ref=e1543]
+            - generic [ref=e1544]: Paket lama berlaku sampai 31 Mei 2026. Paket baru aktif mulai 01 Jun 2026. Invoice belum lunas mulai bulan tersebut akan memakai nominal baru.
+            - generic [ref=e1545]:
+              - button "Batal" [ref=e1546]
+              - button "Simpan Perubahan Paket" [ref=e1547]
+  - generic [ref=e505]: "0"

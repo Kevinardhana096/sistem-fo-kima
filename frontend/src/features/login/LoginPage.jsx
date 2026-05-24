@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { signIn } from "@/lib/supabase";
 
 const devQuickAccounts = [
@@ -19,11 +19,29 @@ function buildWhatsAppLink(rawNumber) {
     return `https://wa.me/${normalized}`;
 }
 
+function getViewportWidth() {
+    return typeof window === "undefined" ? 1024 : window.innerWidth;
+}
+
 export default function LoginPage({ onLoginSuccess }) {
     const [activePanel, setActivePanel] = useState("login");
     const [form, setForm] = useState({ email: "", password: "" });
     const [error, setError] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [viewportWidth, setViewportWidth] = useState(getViewportWidth);
+
+    useEffect(() => {
+        const handleResize = () => setViewportWidth(getViewportWidth());
+        window.addEventListener("resize", handleResize);
+        return () => window.removeEventListener("resize", handleResize);
+    }, []);
+
+    const isMobile = viewportWidth < 640;
+    const isTablet = viewportWidth >= 640 && viewportWidth < 960;
+    const isStacked = viewportWidth < 860;
+    const panelPadding = isMobile ? "1.35rem" : isTablet ? "2rem" : "3.5rem";
+    const headingSize = isMobile ? "1.45rem" : "1.75rem";
+    const cardRadius = isMobile ? "1.25rem" : "2rem";
 
     const adminWhatsAppNumber = import.meta.env.VITE_ADMIN_WHATSAPP_NUMBER ?? "";
     const adminWhatsAppLink = useMemo(() => buildWhatsAppLink(adminWhatsAppNumber), [adminWhatsAppNumber]);
@@ -73,9 +91,11 @@ export default function LoginPage({ onLoginSuccess }) {
                 minHeight: "100vh",
                 width: "100%",
                 display: "flex",
-                alignItems: "center",
+                alignItems: isMobile ? "flex-start" : "center",
                 justifyContent: "center",
-                overflow: "hidden",
+                overflowX: "hidden",
+                overflowY: "auto",
+                padding: isMobile ? "1rem 0" : "1.5rem 0",
                 fontFamily: "'Inter', sans-serif",
                 background: "#0a0c12",
             }}
@@ -87,15 +107,15 @@ export default function LoginPage({ onLoginSuccess }) {
 
 
             {/* Card wrapper */}
-            <div style={{ position: "relative", zIndex: 10, width: "100%", maxWidth: 960, margin: "0 1.5rem" }}>
+            <div style={{ position: "relative", zIndex: 10, width: "100%", maxWidth: isStacked ? 560 : 960, margin: isMobile ? "0 1rem" : "0 1.5rem" }}>
                 <div
                     style={{
                         position: "relative",
                         display: "grid",
-                        gridTemplateColumns: "1fr 1fr",
-                        borderRadius: "2rem",
+                        gridTemplateColumns: isStacked ? "1fr" : "1fr 1fr",
+                        borderRadius: cardRadius,
                         overflow: "hidden",
-                        minHeight: 600,
+                        minHeight: isStacked ? "auto" : 600,
                         boxShadow: "0 32px 80px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.12)",
                         border: "1px solid rgba(255,255,255,0.12)",
                     }}
@@ -104,13 +124,15 @@ export default function LoginPage({ onLoginSuccess }) {
                     <div style={{
                         position: "absolute",
                         left: "50%",
-                        top: "25%",
-                        bottom: "25%",
-                        width: 5,
-                        background: "linear-gradient(180deg, transparent, #f0c040 20%, #f0c040 80%, transparent)",
+                        top: isStacked ? activePanel === "login" ? 178 : 128 : "25%",
+                        bottom: isStacked ? "auto" : "25%",
+                        width: isStacked ? "44%" : 5,
+                        height: isStacked ? 4 : "auto",
+                        display: isMobile ? "none" : "block",
+                        background: isStacked ? "linear-gradient(90deg, transparent, #f0c040 20%, #f0c040 80%, transparent)" : "linear-gradient(180deg, transparent, #f0c040 20%, #f0c040 80%, transparent)",
                         borderRadius: 999,
                         zIndex: 15,
-                        transform: "translateX(-50%)",
+                        transform: isStacked ? "translate(-50%, -50%)" : "translateX(-50%)",
                         boxShadow: "0 0 12px rgba(240,192,64,0.5)",
                         pointerEvents: "none",
                     }} />
@@ -118,17 +140,19 @@ export default function LoginPage({ onLoginSuccess }) {
                     {/* ─── LEFT: Bantuan Akses (always rendered, revealed when sliding panel moves away) ─── */}
                     <div
                         style={{
-                            padding: "3.5rem",
-                            display: "flex",
+                            padding: panelPadding,
+                            display: activePanel === "forgot" || !isStacked ? "flex" : "none",
                             flexDirection: "column",
                             justifyContent: "center",
                             background: "rgba(255,255,255,0.08)",
+                            minHeight: isStacked ? "auto" : "unset",
+                            order: isStacked ? 1 : 0,
                         }}
                     >
                         <div style={{ marginBottom: "2.5rem" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.75rem" }}>
                                 <div style={{ width: 4, height: 32, borderRadius: 4, background: "linear-gradient(180deg, #f0c040, rgba(212,169,55,0.3))" }} />
-                                <h3 style={{ fontSize: "1.75rem", fontWeight: 800, color: "#ffffff", margin: 0, letterSpacing: "-0.02em", textShadow: "0 2px 12px rgba(240,192,64,0.25)" }}>Bantuan Akses</h3>
+                                <h3 style={{ fontSize: headingSize, fontWeight: 800, color: "#ffffff", margin: 0, letterSpacing: "-0.02em", textShadow: "0 2px 12px rgba(240,192,64,0.25)" }}>Bantuan Akses</h3>
                             </div>
                             <p style={{ color: "rgba(255,255,255,0.9)", marginTop: "1rem", fontSize: "0.875rem", lineHeight: 1.7 }}>
                                 Pemulihan akun memerlukan verifikasi Administrator TI. Silakan hubungi unit terkait melalui tautan di bawah ini.
@@ -170,18 +194,19 @@ export default function LoginPage({ onLoginSuccess }) {
                     {/* ─── RIGHT: Login Form (always rendered, fixed size) ─── */}
                     <div
                         style={{
-                            padding: "3.5rem",
-                            display: "flex",
+                            padding: panelPadding,
+                            display: activePanel === "login" || !isStacked ? "flex" : "none",
                             flexDirection: "column",
                             justifyContent: "center",
                             background: "rgba(255,255,255,0.13)",
-                            borderLeft: "1px solid rgba(255,255,255,0.1)",
+                            borderLeft: isStacked ? "none" : "1px solid rgba(255,255,255,0.1)",
+                            order: isStacked ? 1 : 0,
                         }}
                     >
                         <div style={{ marginBottom: "2rem" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.75rem" }}>
                                 <div style={{ width: 4, height: 32, borderRadius: 4, background: "linear-gradient(180deg, #f0c040, rgba(212,169,55,0.3))" }} />
-                                <h3 style={{ fontSize: "1.75rem", fontWeight: 800, color: "#ffffff", margin: 0, letterSpacing: "-0.02em", textShadow: "0 2px 12px rgba(240,192,64,0.25)" }}>Sign In</h3>
+                                <h3 style={{ fontSize: headingSize, fontWeight: 800, color: "#ffffff", margin: 0, letterSpacing: "-0.02em", textShadow: "0 2px 12px rgba(240,192,64,0.25)" }}>Sign In</h3>
                             </div>
                         </div>
 
@@ -262,7 +287,7 @@ export default function LoginPage({ onLoginSuccess }) {
                                     </div>
                                     <span style={{ fontSize: "0.65rem", fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.1em", color: "#f0c040", background: "rgba(240,192,64,0.12)", border: "1px solid rgba(240,192,64,0.22)", borderRadius: "999px", padding: "0.2rem 0.6rem" }}>Dev</span>
                                 </div>
-                                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.5rem" }}>
+                                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : isTablet ? "repeat(3, minmax(0, 1fr))" : "repeat(3, 1fr)", gap: "0.5rem" }}>
                                     {devQuickAccounts.map(account => (
                                         <button
                                             key={account.key}
@@ -308,36 +333,39 @@ export default function LoginPage({ onLoginSuccess }) {
                     {/* ─── BRANDING PANEL: Absolute, slides left→right ─── */}
                     <div
                         style={{
-                            position: "absolute",
+                            position: isStacked ? "relative" : "absolute",
                             top: 0,
                             left: 0,
-                            height: "100%",
-                            width: "50%",
+                            height: isStacked ? "auto" : "100%",
+                            width: isStacked ? "100%" : "50%",
                             zIndex: 20,
                             display: "flex",
                             flexDirection: "column",
                             justifyContent: "space-between",
-                            padding: "3.5rem",
+                            gap: isStacked ? "1.5rem" : 0,
+                            padding: panelPadding,
                             overflow: "hidden",
                             background: "rgba(10,12,18,0.97)",
-                            borderRight: "1px solid rgba(255,255,255,0.08)",
-                            transition: "transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)",
-                            transform: activePanel === "login" ? "translateX(0%)" : "translateX(100%)",
-                            willChange: "transform",
+                            borderRight: isStacked ? "none" : "1px solid rgba(255,255,255,0.08)",
+                            borderBottom: isStacked ? "1px solid rgba(255,255,255,0.08)" : "none",
+                            transition: isStacked ? "none" : "transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+                            transform: isStacked ? "none" : activePanel === "login" ? "translateX(0%)" : "translateX(100%)",
+                            willChange: isStacked ? "auto" : "transform",
+                            order: isStacked ? 0 : 0,
                         }}
                     >
                         {/* Glow accent inside branding */}
                         <div style={{ position: "absolute", top: -60, right: -60, width: 200, height: 200, borderRadius: "50%", background: "radial-gradient(circle, rgba(212,169,55,0.12) 0%, transparent 70%)", pointerEvents: "none" }} />
 
                         <div style={{ position: "relative", zIndex: 1 }}>
-                            <img alt="Logo PT KIMA" style={{ height: 56, width: "auto", filter: "brightness(0) invert(1)" }} src="/logo-kima.png" />
-                            <div style={{ marginTop: "5rem" }}>
-                                <h2 style={{ fontSize: "2rem", fontWeight: 300, color: "#ffffff", lineHeight: 1.35, margin: 0 }}>
+                            <img alt="Logo PT KIMA" style={{ height: isMobile ? 44 : 56, width: "auto", filter: "brightness(0) invert(1)" }} src="/logo-kima.png" />
+                            <div style={{ marginTop: isStacked ? "1.75rem" : "5rem" }}>
+                                <h2 style={{ fontSize: isMobile ? "1.55rem" : "2rem", fontWeight: 300, color: "#ffffff", lineHeight: 1.35, margin: 0 }}>
                                     Selamat Datang di<br />
                                     <span style={{ fontWeight: 800, color: "#f0c040" }}>Digital Archive</span>
                                 </h2>
                                 <div style={{ height: 2, width: 48, background: "linear-gradient(90deg, #f0c040, transparent)", borderRadius: 2, marginTop: "1.5rem" }} />
-                                <p style={{ color: "rgba(255,255,255,0.9)", marginTop: "1.5rem", fontSize: "0.875rem", lineHeight: 1.75, maxWidth: 260 }}>
+                                <p style={{ color: "rgba(255,255,255,0.9)", marginTop: "1.5rem", fontSize: "0.875rem", lineHeight: 1.75, maxWidth: isStacked ? "100%" : 260 }}>
                                     Sistem manajemen arsip terintegrasi untuk efisiensi dan keamanan data PT Kawasan Industri Makassar.
                                 </p>
                             </div>
@@ -350,7 +378,7 @@ export default function LoginPage({ onLoginSuccess }) {
                 </div>
 
                 <div style={{ marginTop: "1.5rem", textAlign: "center" }}>
-                    <p style={{ fontSize: "0.6rem", fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.45em", color: "rgba(255,255,255,0.55)" }}>
+                    <p style={{ fontSize: "0.6rem", fontWeight: 900, textTransform: "uppercase", letterSpacing: isMobile ? "0.2em" : "0.45em", color: "rgba(255,255,255,0.55)" }}>
                         Powered by IT Support KIMA
                     </p>
                 </div>

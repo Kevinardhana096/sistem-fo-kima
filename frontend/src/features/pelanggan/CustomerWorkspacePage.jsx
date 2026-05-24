@@ -599,7 +599,7 @@ function CustomerWorkspacePage({
 
                 {/* 5. DATA LIST SECTION */}
                 <section className="space-y-10">
-                    {isLoading ? (
+                    {isLoading && allGroups.length === 0 ? (
                         <div className="rounded-premium bg-white/5 border border-white/10 p-24 text-center space-y-6 backdrop-blur-xl shadow-glass-depth">
                             <div className="relative w-20 h-20 mx-auto">
                                 <div className="absolute inset-0 border-4 border-gold-accent/20 rounded-full"></div>

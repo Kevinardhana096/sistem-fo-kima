@@ -1,0 +1,197 @@
+- generic [ref=e46]:
+  - navigation:
+    - generic [ref=e48]:
+      - button "notifications 9+" [ref=e50]:
+        - generic [ref=e51]: notifications
+        - generic [ref=e52]: 9+
+      - button "Profile Administrator Super Admin" [ref=e54]:
+        - img "Profile" [ref=e56]
+        - generic [ref=e57]:
+          - paragraph [ref=e58]: Administrator
+          - paragraph [ref=e59]: Super Admin
+  - complementary [ref=e60]:
+    - button "KIMA ARCHIVE" [ref=e61]:
+      - generic [ref=e64]:
+        - paragraph [ref=e65]: KIMA
+        - paragraph [ref=e66]: ARCHIVE
+    - navigation [ref=e67]:
+      - link "dashboard Dashboard" [ref=e68] [cursor=pointer]:
+        - /url: /dashboard
+        - generic [ref=e69]: dashboard
+        - generic [ref=e70]: Dashboard
+      - link "groups Pelanggan" [ref=e71] [cursor=pointer]:
+        - /url: /customers
+        - generic [ref=e72]: groups
+        - generic [ref=e73]: Pelanggan
+      - link "monitor_heart Monitoring" [ref=e74] [cursor=pointer]:
+        - /url: /monitoring
+        - generic [ref=e75]: monitor_heart
+        - generic [ref=e76]: Monitoring
+      - link "task_alt Tindak Lanjut" [ref=e77] [cursor=pointer]:
+        - /url: /todos
+        - generic [ref=e78]: task_alt
+        - generic [ref=e79]: Tindak Lanjut
+      - link "manage_history Log Aktivitas" [ref=e80] [cursor=pointer]:
+        - /url: /activity-log
+        - generic [ref=e81]: manage_history
+        - generic [ref=e82]: Log Aktivitas
+      - link "delete Tempat Sampah" [ref=e83] [cursor=pointer]:
+        - /url: /trash
+        - generic [ref=e84]: delete
+        - generic [ref=e85]: Tempat Sampah
+  - main [ref=e86]:
+    - generic [ref=e88]:
+      - generic [ref=e89]:
+        - button "arrow_back Kembali ke Workspace" [ref=e91]:
+          - generic [ref=e92]: arrow_back
+          - text: Kembali ke Workspace
+        - generic [ref=e93]:
+          - button "sync Refresh" [ref=e94]:
+            - generic [ref=e95]: sync
+            - text: Refresh
+          - button "edit_note Edit Lokasi" [ref=e96]:
+            - generic [ref=e97]: edit_note
+            - text: Edit Lokasi
+          - button "delete_forever Hapus Lokasi" [active] [ref=e98]:
+            - generic [ref=e99]: delete_forever
+            - text: Hapus Lokasi
+      - generic [ref=e102]:
+        - generic [ref=e103]:
+          - generic [ref=e104]:
+            - generic [ref=e105]:
+              - generic [ref=e107]: location_on
+              - generic [ref=e108]:
+                - paragraph [ref=e109]: Lokasi Operasional
+                - paragraph [ref=e110]: "#CUST-20260521033815"
+            - heading "Test Location" [level=1] [ref=e111]
+            - generic [ref=e112]:
+              - generic [ref=e113]: corporate_fare
+              - generic [ref=e114]: ninwgew
+          - generic [ref=e115]:
+            - generic [ref=e116]:
+              - generic [ref=e117]: check_circle
+              - generic [ref=e118]:
+                - paragraph [ref=e119]: Kontrak
+                - paragraph [ref=e120]: Beroperasi
+            - generic [ref=e122]:
+              - generic [ref=e123]: cable
+              - generic [ref=e124]:
+                - paragraph [ref=e125]: Jalur FO
+                - paragraph [ref=e126]: Jalur Aktif
+        - generic [ref=e129]:
+          - generic [ref=e130]:
+            - paragraph [ref=e131]: Paket
+            - generic [ref=e132]:
+              - generic [ref=e133]: package_2
+              - paragraph [ref=e134]: CORE
+          - generic [ref=e135]:
+            - paragraph [ref=e136]: Jumlah
+            - generic [ref=e137]:
+              - generic [ref=e138]: speed
+              - paragraph [ref=e139]: "1"
+          - generic [ref=e140]:
+            - paragraph [ref=e141]: Periode Awal Kontrak
+            - generic [ref=e142]:
+              - generic [ref=e143]: event_available
+              - paragraph [ref=e144]: 01 Jan 2026
+          - generic [ref=e145]:
+            - paragraph [ref=e146]: Periode Berjalan
+            - generic [ref=e147]:
+              - generic [ref=e148]: date_range
+              - paragraph [ref=e149]: 01 Jan 2026—31 Des 2026
+      - generic [ref=e151]:
+        - button "Ringkasan" [ref=e152]
+        - button "Jalur" [ref=e153]
+        - button "Kontrak" [ref=e154]
+        - button "Invoice" [ref=e155]
+        - button "Dokumen" [ref=e156]
+        - button "Timeline" [ref=e157]
+      - generic [ref=e158]:
+        - generic [ref=e159]:
+          - generic [ref=e160]:
+            - paragraph [ref=e161]: Invoice Bulanan
+            - generic [ref=e162]:
+              - generic [ref=e163]: "0"
+              - generic [ref=e164]: Total
+            - generic [ref=e166]:
+              - generic [ref=e167]: Selesai
+              - generic [ref=e168]: "0"
+          - generic [ref=e170]:
+            - paragraph [ref=e171]: Butuh Perhatian
+            - generic [ref=e172]:
+              - generic [ref=e174]: warning
+              - generic [ref=e175]:
+                - text: "1"
+                - paragraph [ref=e176]: Item Pending
+          - generic [ref=e177]:
+            - paragraph [ref=e178]: Fee Aktivasi
+            - generic [ref=e179]:
+              - generic [ref=e181]: pending
+              - generic [ref=e182]:
+                - text: Belum Lunas
+                - paragraph [ref=e183]: Rp 0
+          - generic [ref=e184]:
+            - paragraph [ref=e185]: Periode Tagihan
+            - generic [ref=e186]:
+              - generic [ref=e188]: calendar_today
+              - generic [ref=e189]:
+                - generic [ref=e190]: Setiap 1 Bulan
+                - paragraph [ref=e191]: Auto-generate H-7
+        - generic [ref=e192]:
+          - generic [ref=e193]:
+            - generic [ref=e194]:
+              - generic [ref=e196]: fact_check
+              - generic [ref=e197]:
+                - heading "Kelengkapan Berkas" [level=2] [ref=e198]
+                - paragraph [ref=e199]: Kepatuhan administrasi sistem
+            - generic [ref=e201]:
+              - generic [ref=e204]: Perlu Tindakan
+              - generic [ref=e206]:
+                - generic [ref=e207]: warning
+                - generic [ref=e208]:
+                  - paragraph [ref=e209]: Biaya aktivasi belum dibayar
+                  - paragraph [ref=e210]: Biaya aktivasi masih outstanding sebesar Rp 0.
+          - generic [ref=e211]:
+            - generic [ref=e212]:
+              - generic [ref=e213]:
+                - generic [ref=e215]: payments
+                - generic [ref=e216]:
+                  - heading "Biaya Aktivasi" [level=2] [ref=e217]
+                  - paragraph [ref=e218]: Administrasi penyambungan awal
+              - generic [ref=e219]:
+                - generic [ref=e220]: pending_actions
+                - generic [ref=e221]:
+                  - paragraph [ref=e222]: Menunggu Pembayaran
+                  - paragraph [ref=e223]: Rp 0
+            - generic [ref=e224]:
+              - generic [ref=e225]:
+                - generic [ref=e227]: history
+                - generic [ref=e228]:
+                  - heading "Jejak Aktivitas" [level=2] [ref=e229]
+                  - paragraph [ref=e230]: Riwayat operasional terakhir
+              - paragraph [ref=e232]: Belum ada aktivitas tercatat
+      - generic [ref=e234]:
+        - generic [ref=e235]:
+          - paragraph [ref=e236]: Delete Tenant Logic
+          - heading "Test Location" [level=3] [ref=e237]
+        - generic [ref=e238]:
+          - generic [ref=e239]:
+            - radio "Remove from this ISP only Hanya tersedia jika tenant dibuka dari detail ISP." [disabled] [ref=e240]
+            - generic [ref=e241]:
+              - paragraph [ref=e242]: Remove from this ISP only
+              - paragraph [ref=e243]: Hanya tersedia jika tenant dibuka dari detail ISP.
+          - generic [ref=e244]:
+            - radio "Remove from all ISP Lepas tenant dari seluruh grouping ISP." [ref=e245]
+            - generic [ref=e246]:
+              - paragraph [ref=e247]: Remove from all ISP
+              - paragraph [ref=e248]: Lepas tenant dari seluruh grouping ISP.
+          - generic [ref=e249]:
+            - radio "Select ISP(s) ninwgew" [checked] [ref=e250]
+            - generic [ref=e251]:
+              - paragraph [ref=e252]: Select ISP(s)
+              - generic [ref=e254]:
+                - checkbox "ninwgew" [ref=e255]
+                - text: ninwgew
+        - generic [ref=e256]:
+          - button "Batal" [ref=e257]
+          - button "Lanjutkan" [disabled] [ref=e258]

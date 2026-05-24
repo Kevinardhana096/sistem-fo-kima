@@ -1,0 +1,169 @@
+- generic [ref=e1]:
+  - generic [ref=e821]:
+    - navigation:
+      - generic [ref=e823]:
+        - button "notifications 9+" [ref=e825]:
+          - generic [ref=e826]: notifications
+          - generic [ref=e827]: 9+
+        - button "Profile Administrator Super Admin" [ref=e829]:
+          - img "Profile" [ref=e831]
+          - generic [ref=e832]:
+            - paragraph [ref=e833]: Administrator
+            - paragraph [ref=e834]: Super Admin
+    - complementary [ref=e835]:
+      - button "KIMA ARCHIVE" [ref=e836]:
+        - generic [ref=e839]:
+          - paragraph [ref=e840]: KIMA
+          - paragraph [ref=e841]: ARCHIVE
+      - navigation [ref=e842]:
+        - link "dashboard Dashboard" [ref=e843] [cursor=pointer]:
+          - /url: /dashboard
+          - generic [ref=e844]: dashboard
+          - generic [ref=e845]: Dashboard
+        - link "groups Pelanggan" [ref=e846] [cursor=pointer]:
+          - /url: /customers
+          - generic [ref=e847]: groups
+          - generic [ref=e848]: Pelanggan
+        - link "monitor_heart Monitoring" [ref=e849] [cursor=pointer]:
+          - /url: /monitoring
+          - generic [ref=e850]: monitor_heart
+          - generic [ref=e851]: Monitoring
+        - link "task_alt Tindak Lanjut" [ref=e852] [cursor=pointer]:
+          - /url: /todos
+          - generic [ref=e853]: task_alt
+          - generic [ref=e854]: Tindak Lanjut
+        - link "manage_history Log Aktivitas" [ref=e855] [cursor=pointer]:
+          - /url: /activity-log
+          - generic [ref=e856]: manage_history
+          - generic [ref=e857]: Log Aktivitas
+        - link "delete Tempat Sampah" [ref=e858] [cursor=pointer]:
+          - /url: /trash
+          - generic [ref=e859]: delete
+          - generic [ref=e860]: Tempat Sampah
+    - main [ref=e861]:
+      - generic [ref=e863]:
+        - generic [ref=e864]:
+          - generic [ref=e865]:
+            - generic [ref=e868]: Modul Pendaftaran
+            - heading "Daftar Lokasi Baru" [level=1] [ref=e869]
+            - paragraph [ref=e870]: Silakan lengkapi data administratif dan konfigurasi layanan untuk mendaftarkan titik lokasi baru.
+          - generic [ref=e871]:
+            - button "Batal" [ref=e872]
+            - button "Tambah Lokasi" [active] [ref=e873]
+        - generic [ref=e1008]:
+          - generic [ref=e1009]: warning
+          - text: Nama lokasi wajib diisi.
+        - generic [ref=e874]:
+          - generic [ref=e875]:
+            - generic [ref=e876]:
+              - heading "Identitas Lokasi" [level=3] [ref=e879]
+              - generic [ref=e880]:
+                - generic [ref=e881]:
+                  - generic [ref=e882]: Nama Lokasi
+                  - generic [ref=e883]:
+                    - generic: location_on
+                    - 'textbox "Contoh: Gedung A - Lantai 2" [ref=e884]'
+                  - paragraph [ref=e1010]: Field ini wajib diisi.
+                - generic [ref=e885]:
+                  - generic [ref=e886]: Status Operasional
+                  - generic [ref=e888] [cursor=pointer]:
+                    - generic [ref=e889]: verified_user
+                    - generic [ref=e890]: BEROPERASI
+                    - generic [ref=e891]: expand_more
+            - generic [ref=e892]:
+              - heading "Layanan & Kontrak" [level=3] [ref=e895]
+              - generic [ref=e896]:
+                - generic [ref=e897]:
+                  - generic [ref=e898]:
+                    - generic [ref=e899]: Jenis Paket
+                    - generic [ref=e901] [cursor=pointer]:
+                      - generic [ref=e902]: inventory_2
+                      - generic [ref=e903]: CORE
+                      - generic [ref=e904]: expand_more
+                  - generic [ref=e905]:
+                    - generic [ref=e906]: Jumlah Core
+                    - generic [ref=e907]:
+                      - generic: hub
+                      - spinbutton [ref=e908]: "0"
+                - generic [ref=e909]:
+                  - generic [ref=e910]:
+                    - generic [ref=e911]: Awal Kontrak (Ops)
+                    - generic [ref=e912]:
+                      - generic: calendar_today
+                      - textbox [ref=e913]
+                  - generic [ref=e914]:
+                    - generic [ref=e915]: Mulai Periode
+                    - generic [ref=e916]:
+                      - generic: event_available
+                      - textbox [ref=e917]
+                  - generic [ref=e918]:
+                    - generic [ref=e919]: Akhir Periode
+                    - generic [ref=e920]:
+                      - generic: event_busy
+                      - textbox [ref=e921]
+            - generic [ref=e922]:
+              - generic [ref=e923]:
+                - heading "Pilih Mitra ISP" [level=3] [ref=e926]
+                - generic [ref=e927]:
+                  - generic [ref=e928]:
+                    - generic [ref=e929]: search
+                    - textbox "Cari ISP..." [ref=e930]
+                  - generic [ref=e935] [cursor=pointer]: sort
+              - generic [ref=e936]:
+                - generic [ref=e938] [cursor=pointer]:
+                  - generic [ref=e940]: corporate_fare
+                  - generic [ref=e941]:
+                    - paragraph [ref=e942]: ninwgew
+                    - paragraph [ref=e943]: 0uerj
+                - generic [ref=e945] [cursor=pointer]:
+                  - generic [ref=e947]: corporate_fare
+                  - generic [ref=e948]:
+                    - paragraph [ref=e949]: PT TELKOM INFRASTRUKTUR INDONESIA
+                    - paragraph [ref=e950]: bak 0001
+                - generic [ref=e952] [cursor=pointer]:
+                  - generic [ref=e954]: corporate_fare
+                  - generic [ref=e955]:
+                    - paragraph [ref=e956]: PT Inet Global
+                    - paragraph [ref=e957]: Tanpa referensi
+                - generic [ref=e959] [cursor=pointer]:
+                  - generic [ref=e961]: corporate_fare
+                  - generic [ref=e962]:
+                    - paragraph [ref=e963]: PT Citra Prima Media
+                    - paragraph [ref=e964]: Tanpa referensi
+                - generic [ref=e966] [cursor=pointer]:
+                  - generic [ref=e968]: corporate_fare
+                  - generic [ref=e969]:
+                    - paragraph [ref=e970]: PT Panca Karsa Sejahtera
+                    - paragraph [ref=e971]: Tanpa referensi
+                - generic [ref=e973] [cursor=pointer]:
+                  - generic [ref=e975]: corporate_fare
+                  - generic [ref=e976]:
+                    - paragraph [ref=e977]: PT Multitech Infomedia
+                    - paragraph [ref=e978]: Tanpa referensi
+              - generic [ref=e979]:
+                - paragraph [ref=e980]: Halaman 1 / 3
+                - generic [ref=e981]:
+                  - button "chevron_left" [disabled] [ref=e982]:
+                    - generic [ref=e983]: chevron_left
+                  - button "chevron_right" [ref=e984]:
+                    - generic [ref=e985]: chevron_right
+          - generic [ref=e987]:
+            - heading "Billing & Biaya" [level=3] [ref=e990]
+            - generic [ref=e991]:
+              - generic [ref=e992]:
+                - generic [ref=e993]: Siklus Penagihan
+                - generic [ref=e994]:
+                  - button "Bulan" [ref=e995]
+                  - button "3 Bln" [ref=e996]
+                  - button "Kustom" [ref=e997]
+              - generic [ref=e998]:
+                - generic [ref=e999]: Biaya Aktivasi (IDR)
+                - generic [ref=e1000]:
+                  - generic: payments
+                  - spinbutton [ref=e1001]: "0"
+              - generic [ref=e1002]:
+                - generic [ref=e1003]:
+                  - generic [ref=e1004]: info
+                  - paragraph [ref=e1005]: Informasi Sistem
+                - paragraph [ref=e1006]: Invoice dan kontrak pertama akan dibuat secara otomatis setelah data disimpan.
+  - generic [ref=e438]: "0"

@@ -1,0 +1,160 @@
+- generic [ref=e259]:
+  - navigation:
+    - generic [ref=e261]:
+      - button "notifications 9+" [ref=e263]:
+        - generic [ref=e264]: notifications
+        - generic [ref=e265]: 9+
+      - button "Profile Administrator Super Admin" [ref=e267]:
+        - img "Profile" [ref=e269]
+        - generic [ref=e270]:
+          - paragraph [ref=e271]: Administrator
+          - paragraph [ref=e272]: Super Admin
+  - complementary [ref=e273]:
+    - button "KIMA ARCHIVE" [ref=e274]:
+      - generic [ref=e277]:
+        - paragraph [ref=e278]: KIMA
+        - paragraph [ref=e279]: ARCHIVE
+    - navigation [ref=e280]:
+      - link "dashboard Dashboard" [ref=e281] [cursor=pointer]:
+        - /url: /dashboard
+        - generic [ref=e282]: dashboard
+        - generic [ref=e283]: Dashboard
+      - link "groups Pelanggan" [ref=e284] [cursor=pointer]:
+        - /url: /customers
+        - generic [ref=e285]: groups
+        - generic [ref=e286]: Pelanggan
+      - link "monitor_heart Monitoring" [ref=e287] [cursor=pointer]:
+        - /url: /monitoring
+        - generic [ref=e288]: monitor_heart
+        - generic [ref=e289]: Monitoring
+      - link "task_alt Tindak Lanjut" [ref=e290] [cursor=pointer]:
+        - /url: /todos
+        - generic [ref=e291]: task_alt
+        - generic [ref=e292]: Tindak Lanjut
+      - link "manage_history Log Aktivitas" [ref=e293] [cursor=pointer]:
+        - /url: /activity-log
+        - generic [ref=e294]: manage_history
+        - generic [ref=e295]: Log Aktivitas
+      - link "delete Tempat Sampah" [ref=e296] [cursor=pointer]:
+        - /url: /trash
+        - generic [ref=e297]: delete
+        - generic [ref=e298]: Tempat Sampah
+  - main [ref=e299]:
+    - generic [ref=e301]:
+      - generic [ref=e302]:
+        - generic [ref=e303]:
+          - paragraph [ref=e306]: Arsip Pembuangan
+          - heading "Tempat Sampah" [level=1] [ref=e307]
+        - generic [ref=e308]:
+          - button "delete_sweep Hapus Permanen" [ref=e309]:
+            - generic [ref=e310]: delete_sweep
+            - text: Hapus Permanen
+          - button "sync" [ref=e311]:
+            - generic [ref=e312]: sync
+      - generic [ref=e315]:
+        - generic [ref=e316]:
+          - generic [ref=e318]: auto_delete
+          - generic [ref=e319]:
+            - heading "Statistik Pembersihan" [level=2] [ref=e320]
+            - paragraph [ref=e321]: "Terakhir: 19 Mei 2026"
+        - generic [ref=e322]:
+          - generic [ref=e323]:
+            - paragraph [ref=e324]: ISP
+            - paragraph [ref=e325]: "2"
+          - generic [ref=e326]:
+            - paragraph [ref=e327]: Lokasi
+            - paragraph [ref=e328]: "1"
+          - generic [ref=e329]:
+            - paragraph [ref=e330]: Kontrak
+            - paragraph [ref=e331]: "0"
+          - generic [ref=e332]:
+            - paragraph [ref=e333]: Invoice
+            - paragraph [ref=e334]: "0"
+          - generic [ref=e335]:
+            - paragraph [ref=e336]: Dokumen
+            - paragraph [ref=e337]: "0"
+          - generic [ref=e338]:
+            - paragraph [ref=e339]: Jalur
+            - paragraph [ref=e340]: "0"
+      - generic [ref=e341]:
+        - generic [ref=e342]:
+          - generic: search
+          - textbox "Cari data yang dihapus..." [ref=e343]
+        - generic [ref=e345]:
+          - generic: filter_list
+          - button "Terbaru expand_more" [ref=e347]:
+            - generic [ref=e348]: Terbaru
+            - generic [ref=e349]: expand_more
+      - generic [ref=e350]:
+        - generic [ref=e351]:
+          - heading "Daftar Item Terhapus" [level=2] [ref=e354]
+          - generic [ref=e355]:
+            - generic [ref=e356]: "Total Sampah:"
+            - generic [ref=e357]: "3"
+        - generic [ref=e359]:
+          - generic [ref=e360]:
+            - generic [ref=e361]:
+              - generic [ref=e363]: corporate_fare
+              - generic [ref=e364]:
+                - generic [ref=e365]:
+                  - heading "Tes" [level=3] [ref=e366]
+                  - generic [ref=e367]: ISP
+                - generic [ref=e368]:
+                  - generic [ref=e369]:
+                    - paragraph [ref=e370]: "Asal:"
+                    - generic [ref=e371]:
+                      - generic [ref=e372]: Direktori
+                      - generic [ref=e373]: /
+                      - generic [ref=e374]: Mitra ISP
+                  - paragraph [ref=e376]:
+                    - generic [ref=e377]: 20 Mei 2026, 10.56
+            - generic [ref=e378]:
+              - button "restore_from_trash Pulihkan" [ref=e379]:
+                - generic [ref=e380]: restore_from_trash
+                - text: Pulihkan
+              - button "delete_forever" [ref=e381]:
+                - generic [ref=e382]: delete_forever
+          - generic [ref=e383]:
+            - generic [ref=e384]:
+              - generic [ref=e386]: corporate_fare
+              - generic [ref=e387]:
+                - generic [ref=e388]:
+                  - heading "axiora" [level=3] [ref=e389]
+                  - generic [ref=e390]: ISP
+                - generic [ref=e391]:
+                  - generic [ref=e392]:
+                    - paragraph [ref=e393]: "Asal:"
+                    - generic [ref=e394]:
+                      - generic [ref=e395]: Direktori
+                      - generic [ref=e396]: /
+                      - generic [ref=e397]: Mitra ISP
+                  - paragraph [ref=e399]:
+                    - generic [ref=e400]: 19 Mei 2026, 16.11
+            - generic [ref=e401]:
+              - button "restore_from_trash Pulihkan" [ref=e402]:
+                - generic [ref=e403]: restore_from_trash
+                - text: Pulihkan
+              - button "delete_forever" [ref=e404]:
+                - generic [ref=e405]: delete_forever
+          - generic [ref=e406]:
+            - generic [ref=e407]:
+              - generic [ref=e409]: location_on
+              - generic [ref=e410]:
+                - generic [ref=e411]:
+                  - heading "kjsbdf" [level=3] [ref=e412]
+                  - generic [ref=e413]: Lokasi
+                - generic [ref=e414]:
+                  - generic [ref=e415]:
+                    - paragraph [ref=e416]: "Asal:"
+                    - generic [ref=e417]:
+                      - generic [ref=e418]: axiora
+                      - generic [ref=e419]: /
+                      - generic [ref=e420]: CUST-20260518080339
+                  - paragraph [ref=e422]:
+                    - generic [ref=e423]: 19 Mei 2026, 16.11
+            - generic [ref=e424]:
+              - button "restore_from_trash Pulihkan" [ref=e425]:
+                - generic [ref=e426]: restore_from_trash
+                - text: Pulihkan
+              - button "delete_forever" [ref=e427]:
+                - generic [ref=e428]: delete_forever

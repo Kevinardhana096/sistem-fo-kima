@@ -421,7 +421,7 @@ export const getLatestContractVersion = (contract) => sortContractVersions(contr
 
 export const getEffectiveContractVersion = (contract, date = getTodayIso()) => (
     sortContractVersions(contract?.versions).find(version => isDateInPeriod(version, date))
-    ?? getLatestContractVersion(contract)
+    ?? null
 );
 
 const getContractLatestPeriodTimestamp = (contract) => {

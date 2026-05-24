@@ -1,0 +1,184 @@
+- generic [ref=e1]:
+  - generic [ref=e923]:
+    - navigation:
+      - generic [ref=e925]:
+        - button "notifications 9+" [ref=e1121]:
+          - generic [ref=e928]: notifications
+          - generic [ref=e1122]: 9+
+        - button "Profile Administrator Super Admin" [ref=e930]:
+          - img "Profile" [ref=e932]
+          - generic [ref=e933]:
+            - paragraph [ref=e934]: Administrator
+            - paragraph [ref=e935]: Super Admin
+    - complementary [ref=e936]:
+      - button "KIMA ARCHIVE" [ref=e937]:
+        - generic [ref=e940]:
+          - paragraph [ref=e941]: KIMA
+          - paragraph [ref=e942]: ARCHIVE
+      - navigation [ref=e943]:
+        - link "dashboard Dashboard" [ref=e944] [cursor=pointer]:
+          - /url: /dashboard
+          - generic [ref=e945]: dashboard
+          - generic [ref=e946]: Dashboard
+        - link "groups Pelanggan" [ref=e947] [cursor=pointer]:
+          - /url: /customers
+          - generic [ref=e948]: groups
+          - generic [ref=e949]: Pelanggan
+        - link "monitor_heart Monitoring" [ref=e950] [cursor=pointer]:
+          - /url: /monitoring
+          - generic [ref=e951]: monitor_heart
+          - generic [ref=e952]: Monitoring
+        - link "task_alt Tindak Lanjut" [ref=e953] [cursor=pointer]:
+          - /url: /todos
+          - generic [ref=e954]: task_alt
+          - generic [ref=e955]: Tindak Lanjut
+        - link "manage_history Log Aktivitas" [ref=e956] [cursor=pointer]:
+          - /url: /activity-log
+          - generic [ref=e957]: manage_history
+          - generic [ref=e958]: Log Aktivitas
+        - link "delete Tempat Sampah" [ref=e959] [cursor=pointer]:
+          - /url: /trash
+          - generic [ref=e960]: delete
+          - generic [ref=e961]: Tempat Sampah
+    - main [ref=e962]:
+      - generic [ref=e964]:
+        - generic [ref=e965]:
+          - button "arrow_back Kembali ke Workspace" [ref=e967]:
+            - generic [ref=e968]: arrow_back
+            - text: Kembali ke Workspace
+          - generic [ref=e969]:
+            - button "sync Refresh" [ref=e970]:
+              - generic [ref=e971]: sync
+              - text: Refresh
+            - button "edit_note Edit Lokasi" [ref=e972]:
+              - generic [ref=e973]: edit_note
+              - text: Edit Lokasi
+            - button "delete_forever Hapus Lokasi" [ref=e974]:
+              - generic [ref=e975]: delete_forever
+              - text: Hapus Lokasi
+        - generic [ref=e978]:
+          - generic [ref=e979]:
+            - generic [ref=e980]:
+              - generic [ref=e981]:
+                - generic [ref=e983]: location_on
+                - generic [ref=e984]:
+                  - paragraph [ref=e985]: Lokasi Operasional
+                  - paragraph [ref=e986]: "#CUST-20260521113308"
+              - heading "Lokasi Uji Kelengkapan Berkas 210526" [level=1] [ref=e987]
+              - generic [ref=e988]:
+                - generic [ref=e989]: corporate_fare
+                - generic [ref=e990]: ISP Test Kelengkapan Berkas
+            - generic [ref=e991]:
+              - generic [ref=e992]:
+                - generic [ref=e993]: check_circle
+                - generic [ref=e994]:
+                  - paragraph [ref=e995]: Kontrak
+                  - paragraph [ref=e996]: Beroperasi
+              - generic [ref=e998]:
+                - generic [ref=e999]: cable
+                - generic [ref=e1000]:
+                  - paragraph [ref=e1001]: Jalur FO
+                  - paragraph [ref=e1002]: Jalur Aktif
+          - generic [ref=e1005]:
+            - generic [ref=e1006]:
+              - paragraph [ref=e1007]: Paket
+              - generic [ref=e1008]:
+                - generic [ref=e1009]: package_2
+                - paragraph [ref=e1010]: SHARING CORE
+            - generic [ref=e1011]:
+              - paragraph [ref=e1012]: Jumlah
+              - generic [ref=e1013]:
+                - generic [ref=e1014]: speed
+                - paragraph [ref=e1015]: 1/8
+            - generic [ref=e1016]:
+              - paragraph [ref=e1017]: Periode Awal Kontrak
+              - generic [ref=e1018]:
+                - generic [ref=e1019]: event_available
+                - paragraph [ref=e1020]: 21 Mei 2026
+            - generic [ref=e1021]:
+              - paragraph [ref=e1022]: Periode Berjalan
+              - generic [ref=e1023]:
+                - generic [ref=e1024]: date_range
+                - paragraph [ref=e1025]: 21 Mei 2026—21 Mei 2027
+        - generic [ref=e1027]:
+          - button "Ringkasan" [active] [ref=e1028]
+          - button "Jalur" [ref=e1029]
+          - button "Kontrak" [ref=e1030]
+          - button "Invoice" [ref=e1031]
+          - button "Dokumen" [ref=e1032]
+          - button "Timeline" [ref=e1033]
+        - generic [ref=e1208]:
+          - generic [ref=e1209]:
+            - generic [ref=e1210]:
+              - paragraph [ref=e1211]: Invoice Bulanan
+              - generic [ref=e1212]:
+                - generic [ref=e1213]: "0"
+                - generic [ref=e1214]: Total
+              - generic [ref=e1216]:
+                - generic [ref=e1217]: Selesai
+                - generic [ref=e1218]: "0"
+            - generic [ref=e1220]:
+              - paragraph [ref=e1221]: Butuh Perhatian
+              - generic [ref=e1222]:
+                - generic [ref=e1224]: warning
+                - generic [ref=e1225]:
+                  - text: "3"
+                  - paragraph [ref=e1226]: Item Pending
+            - generic [ref=e1227]:
+              - paragraph [ref=e1228]: Fee Aktivasi
+              - generic [ref=e1229]:
+                - generic [ref=e1231]: pending
+                - generic [ref=e1232]:
+                  - text: Belum Lunas
+                  - paragraph [ref=e1233]: Rp 100.000
+            - generic [ref=e1234]:
+              - paragraph [ref=e1235]: Periode Tagihan
+              - generic [ref=e1236]:
+                - generic [ref=e1238]: calendar_today
+                - generic [ref=e1239]:
+                  - generic [ref=e1240]: Setiap 1 Bulan
+                  - paragraph [ref=e1241]: Auto-generate H-7
+          - generic [ref=e1242]:
+            - generic [ref=e1243]:
+              - generic [ref=e1244]:
+                - generic [ref=e1246]: fact_check
+                - generic [ref=e1247]:
+                  - heading "Kelengkapan Berkas" [level=2] [ref=e1248]
+                  - paragraph [ref=e1249]: Kepatuhan administrasi sistem
+              - generic [ref=e1251]:
+                - generic [ref=e1254]: Perlu Tindakan
+                - generic [ref=e1256]:
+                  - generic [ref=e1257]: warning
+                  - generic [ref=e1258]:
+                    - paragraph [ref=e1259]: Biaya aktivasi belum dibayar
+                    - paragraph [ref=e1260]: Biaya aktivasi masih outstanding sebesar Rp 100.000.
+                - generic [ref=e1262]:
+                  - generic [ref=e1263]: warning
+                  - generic [ref=e1264]:
+                    - paragraph [ref=e1265]: Berkas kontrak belum diunggah
+                    - paragraph [ref=e1266]: Upload berkas kontrak agar arsip legal lokasi lengkap.
+                - generic [ref=e1268]:
+                  - generic [ref=e1269]: warning
+                  - generic [ref=e1270]:
+                    - paragraph [ref=e1271]: BAK belum tersedia
+                    - paragraph [ref=e1272]: Upload Berita Acara Koneksi/BAK atau tandai tidak perlu jika tidak diwajibkan.
+            - generic [ref=e1273]:
+              - generic [ref=e1274]:
+                - generic [ref=e1275]:
+                  - generic [ref=e1277]: payments
+                  - generic [ref=e1278]:
+                    - heading "Biaya Aktivasi" [level=2] [ref=e1279]
+                    - paragraph [ref=e1280]: Administrasi penyambungan awal
+                - generic [ref=e1281]:
+                  - generic [ref=e1282]: pending_actions
+                  - generic [ref=e1283]:
+                    - paragraph [ref=e1284]: Menunggu Pembayaran
+                    - paragraph [ref=e1285]: Rp 100.000
+              - generic [ref=e1286]:
+                - generic [ref=e1287]:
+                  - generic [ref=e1289]: history
+                  - generic [ref=e1290]:
+                    - heading "Jejak Aktivitas" [level=2] [ref=e1291]
+                    - paragraph [ref=e1292]: Riwayat operasional terakhir
+                - paragraph [ref=e1294]: Belum ada aktivitas tercatat
+  - generic [ref=e439]: "0"

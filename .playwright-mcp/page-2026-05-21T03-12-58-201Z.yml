@@ -1,0 +1,165 @@
+- generic [ref=e197]:
+  - navigation:
+    - generic [ref=e199]:
+      - button "notifications 9+" [ref=e201]:
+        - generic [ref=e202]: notifications
+        - generic [ref=e203]: 9+
+      - button "Profile Administrator Super Admin" [ref=e205]:
+        - img "Profile" [ref=e207]
+        - generic [ref=e208]:
+          - paragraph [ref=e209]: Administrator
+          - paragraph [ref=e210]: Super Admin
+  - complementary [ref=e211]:
+    - button "KIMA ARCHIVE" [ref=e212]:
+      - generic [ref=e215]:
+        - paragraph [ref=e216]: KIMA
+        - paragraph [ref=e217]: ARCHIVE
+    - navigation [ref=e218]:
+      - link "dashboard Dashboard" [ref=e219] [cursor=pointer]:
+        - /url: /dashboard
+        - generic [ref=e220]: dashboard
+        - generic [ref=e221]: Dashboard
+      - link "groups Pelanggan" [ref=e222] [cursor=pointer]:
+        - /url: /customers
+        - generic [ref=e223]: groups
+        - generic [ref=e224]: Pelanggan
+      - link "monitor_heart Monitoring" [ref=e225] [cursor=pointer]:
+        - /url: /monitoring
+        - generic [ref=e226]: monitor_heart
+        - generic [ref=e227]: Monitoring
+      - link "task_alt Tindak Lanjut" [ref=e228] [cursor=pointer]:
+        - /url: /todos
+        - generic [ref=e229]: task_alt
+        - generic [ref=e230]: Tindak Lanjut
+      - link "manage_history Log Aktivitas" [ref=e231] [cursor=pointer]:
+        - /url: /activity-log
+        - generic [ref=e232]: manage_history
+        - generic [ref=e233]: Log Aktivitas
+      - link "delete Tempat Sampah" [ref=e234] [cursor=pointer]:
+        - /url: /trash
+        - generic [ref=e235]: delete
+        - generic [ref=e236]: Tempat Sampah
+  - main [ref=e237]:
+    - generic [ref=e239]:
+      - generic [ref=e240]:
+        - generic [ref=e241]:
+          - button "arrow_back KEMBALI KE WORKSPACE" [ref=e243]:
+            - generic [ref=e244]: arrow_back
+            - text: KEMBALI KE WORKSPACE
+          - generic [ref=e245]:
+            - button "sync Refresh" [ref=e246]:
+              - generic [ref=e247]: sync
+              - text: Refresh
+            - button "manage_accounts Akun Akses" [ref=e248]:
+              - generic [ref=e249]: manage_accounts
+              - text: Akun Akses
+            - button "edit_note Edit ISP" [ref=e250]:
+              - generic [ref=e251]: edit_note
+              - text: Edit ISP
+            - button "delete_forever Hapus ISP" [ref=e252]:
+              - generic [ref=e253]: delete_forever
+              - text: Hapus ISP
+        - generic [ref=e256]:
+          - generic [ref=e257]:
+            - generic [ref=e258]:
+              - generic [ref=e259]:
+                - generic [ref=e261]: corporate_fare
+                - paragraph [ref=e263]: Internet Service Provider
+              - heading "PT Test ISP Upload Files 20260521" [level=1] [ref=e264]
+            - generic [ref=e266]:
+              - generic [ref=e267]: check_circle
+              - generic [ref=e268]:
+                - paragraph [ref=e269]: Status
+                - paragraph [ref=e270]: Beroperasi
+          - generic [ref=e273]:
+            - generic [ref=e274]:
+              - paragraph [ref=e275]: Nomor Kontrak
+              - generic [ref=e276]:
+                - generic [ref=e277]: description
+                - paragraph [ref=e278]: UPLOAD/ISP/2026/0521
+            - generic [ref=e279]:
+              - paragraph [ref=e280]: Periode Awal Kontrak
+              - generic [ref=e281]:
+                - generic [ref=e282]: event_available
+                - paragraph [ref=e283]: —
+            - generic [ref=e284]:
+              - paragraph [ref=e285]: Periode Berjalan
+              - generic [ref=e286]:
+                - generic [ref=e287]: date_range
+                - paragraph [ref=e288]: —
+            - generic [ref=e289]:
+              - paragraph [ref=e290]: Paket
+              - generic [ref=e291]:
+                - generic [ref=e292]: hub
+                - paragraph [ref=e293]: Core -
+      - navigation [ref=e296]:
+        - button "dashboard Ringkasan" [ref=e297]:
+          - generic [ref=e298]: dashboard
+          - generic [ref=e299]: Ringkasan
+        - button "groups Daftar Lokasi" [ref=e300]:
+          - generic [ref=e301]: groups
+          - generic [ref=e302]: Daftar Lokasi
+        - button "map Peta Jalur" [ref=e303]:
+          - generic [ref=e304]: map
+          - generic [ref=e305]: Peta Jalur
+        - button "description Kontrak" [active] [ref=e306]:
+          - generic [ref=e307]: description
+          - generic [ref=e308]: Kontrak
+        - button "inventory_2 Dokumen" [ref=e309]:
+          - generic [ref=e310]: inventory_2
+          - generic [ref=e311]: Dokumen
+        - button "history Timeline" [ref=e312]:
+          - generic [ref=e313]: history
+          - generic [ref=e314]: Timeline
+      - generic [ref=e463]:
+        - generic [ref=e464]:
+          - generic [ref=e465]:
+            - heading "Rincian Kontrak & Adendum" [level=2] [ref=e466]
+            - paragraph [ref=e467]: Manajemen berkas legal dan amandemen layanan
+          - generic [ref=e468]:
+            - generic [ref=e469]:
+              - generic [ref=e470]: search
+              - textbox "Cari nomor kontrak..." [ref=e471]
+            - generic [ref=e475] [cursor=pointer]:
+              - generic [ref=e476]: sort
+              - generic [ref=e477]: Terbaru
+              - generic [ref=e478]: expand_more
+        - table [ref=e480]:
+          - rowgroup [ref=e481]:
+            - row "No Nomor Kontrak Berkas Kontrak Periode Awal Kontrak Periode Berjalan BAK Perpanjangan Tanggapan Aksi" [ref=e482]:
+              - columnheader "No" [ref=e483]
+              - columnheader "Nomor Kontrak" [ref=e484]
+              - columnheader "Berkas Kontrak" [ref=e485]
+              - columnheader "Periode Awal Kontrak" [ref=e486]
+              - columnheader "Periode Berjalan" [ref=e487]
+              - columnheader "BAK" [ref=e488]
+              - columnheader "Perpanjangan" [ref=e489]
+              - columnheader "Tanggapan" [ref=e490]
+              - columnheader "Aksi" [ref=e491]
+            - row "Awal Akhir" [ref=e492]:
+              - columnheader "Awal" [ref=e493]
+              - columnheader "Akhir" [ref=e494]
+          - rowgroup [ref=e495]:
+            - row "01 UPLOAD/ISP/2026/0521 description Buka - - - task_alt Buka BAK Baris utama ISP add_circle Baris utama ISP edit_note" [ref=e496]:
+              - cell "01" [ref=e497]
+              - cell "UPLOAD/ISP/2026/0521" [ref=e498]
+              - cell "description Buka" [ref=e499]:
+                - button "description Buka" [ref=e500]:
+                  - generic [ref=e501]: description
+                  - text: Buka
+              - cell "-" [ref=e502]
+              - cell "-" [ref=e503]
+              - cell "-" [ref=e504]
+              - cell "task_alt Buka BAK" [ref=e505]:
+                - button "task_alt Buka BAK" [ref=e506]:
+                  - generic [ref=e507]: task_alt
+                  - text: Buka BAK
+              - cell "Baris utama ISP add_circle" [ref=e508]:
+                - generic [ref=e509]:
+                  - generic [ref=e510]: Baris utama ISP
+                  - button "add_circle" [disabled] [ref=e511]:
+                    - generic [ref=e512]: add_circle
+              - cell "Baris utama ISP" [ref=e513]
+              - cell "edit_note" [ref=e514]:
+                - button "edit_note" [ref=e515]:
+                  - generic [ref=e516]: edit_note

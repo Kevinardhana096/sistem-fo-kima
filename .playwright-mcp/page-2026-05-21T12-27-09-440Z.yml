@@ -1,0 +1,292 @@
+- generic [ref=e267]:
+  - navigation:
+    - generic [ref=e269]:
+      - button "notifications" [ref=e271]:
+        - generic [ref=e272]: notifications
+      - button "Profile Administrator Super Admin" [ref=e274]:
+        - img "Profile" [ref=e276]
+        - generic [ref=e277]:
+          - paragraph [ref=e278]: Administrator
+          - paragraph [ref=e279]: Super Admin
+  - complementary [ref=e280]:
+    - button "KIMA ARCHIVE" [ref=e281]:
+      - generic [ref=e284]:
+        - paragraph [ref=e285]: KIMA
+        - paragraph [ref=e286]: ARCHIVE
+    - navigation [ref=e287]:
+      - link "dashboard Dashboard" [ref=e288] [cursor=pointer]:
+        - /url: /dashboard
+        - generic [ref=e289]: dashboard
+        - generic [ref=e290]: Dashboard
+      - link "groups Pelanggan" [ref=e291] [cursor=pointer]:
+        - /url: /customers
+        - generic [ref=e292]: groups
+        - generic [ref=e293]: Pelanggan
+      - link "monitor_heart Monitoring" [ref=e294] [cursor=pointer]:
+        - /url: /monitoring
+        - generic [ref=e295]: monitor_heart
+        - generic [ref=e296]: Monitoring
+      - link "task_alt Tindak Lanjut" [ref=e297] [cursor=pointer]:
+        - /url: /todos
+        - generic [ref=e298]: task_alt
+        - generic [ref=e299]: Tindak Lanjut
+      - link "manage_history Log Aktivitas" [ref=e300] [cursor=pointer]:
+        - /url: /activity-log
+        - generic [ref=e301]: manage_history
+        - generic [ref=e302]: Log Aktivitas
+      - link "delete Tempat Sampah" [ref=e303] [cursor=pointer]:
+        - /url: /trash
+        - generic [ref=e304]: delete
+        - generic [ref=e305]: Tempat Sampah
+  - main [ref=e46]:
+    - generic [ref=e48]:
+      - generic [ref=e49]:
+        - generic [ref=e50]:
+          - generic [ref=e53]: Workspace Utama
+          - heading "ISP & Lokasi" [level=1] [ref=e54]
+          - paragraph [ref=e55]: Panel integrasi layer grouping ISP dan entitas operasional lokasi.
+        - generic [ref=e56]:
+          - button "add_link ISP Baru" [ref=e57]:
+            - generic [ref=e58]: add_link
+            - text: ISP Baru
+          - button "person_add Lokasi Baru" [ref=e59]:
+            - generic [ref=e60]: person_add
+            - text: Lokasi Baru
+          - button "sync" [ref=e61]:
+            - generic [ref=e62]: sync
+      - generic [ref=e63]:
+        - generic [ref=e64]:
+          - generic [ref=e65]:
+            - paragraph [ref=e66]: Total ISP
+            - generic [ref=e68]: hub
+          - heading "19" [level=3] [ref=e69]
+        - generic [ref=e70]:
+          - generic [ref=e71]:
+            - paragraph [ref=e72]: Total Lokasi
+            - generic [ref=e74]: groups
+          - heading "87" [level=3] [ref=e75]
+        - generic [ref=e76]:
+          - generic [ref=e77]:
+            - paragraph [ref=e78]: Lokasi Beroperasi
+            - generic [ref=e80]: check_circle
+          - heading "71" [level=3] [ref=e81]
+        - generic [ref=e82]:
+          - generic [ref=e83]:
+            - paragraph [ref=e84]: Belum Diperpanjang
+            - generic [ref=e86]: event_busy
+          - heading "16" [level=3] [ref=e87]
+        - generic [ref=e88]:
+          - generic [ref=e89]:
+            - paragraph [ref=e90]: Lokasi Berhenti
+            - generic [ref=e92]: cancel
+          - heading "37" [level=3] [ref=e93]
+      - generic [ref=e95]:
+        - generic [ref=e96]:
+          - generic [ref=e97]:
+            - button "Saat Ini" [ref=e98]: Saat Ini
+            - button "Riwayat" [ref=e100]
+          - generic [ref=e101]:
+            - generic [ref=e102]: search
+            - textbox "Cari ID, ISP, atau nama lokasi..." [ref=e103]
+          - button "restart_alt Reset Filter" [disabled] [ref=e105]:
+            - generic [ref=e106]: restart_alt
+            - text: Reset Filter
+        - generic [ref=e107]:
+          - generic [ref=e108]:
+            - paragraph [ref=e109]: Status Kontrak
+            - generic [ref=e111] [cursor=pointer]:
+              - generic [ref=e112]: description
+              - generic [ref=e113]: Semua Status
+              - generic [ref=e115]: expand_more
+          - generic [ref=e116]:
+            - paragraph [ref=e117]: Status Jalur
+            - generic [ref=e119] [cursor=pointer]:
+              - generic [ref=e120]: lan
+              - generic [ref=e121]: Semua Jalur
+              - generic [ref=e123]: expand_more
+          - generic [ref=e124]:
+            - paragraph [ref=e125]: Status Tindakan
+            - generic [ref=e127] [cursor=pointer]:
+              - generic [ref=e128]: task_alt
+              - generic [ref=e129]: Semua Tindakan
+              - generic [ref=e131]: expand_more
+          - generic [ref=e132]:
+            - paragraph [ref=e133]: Urutan Tampilan
+            - generic [ref=e135] [cursor=pointer]:
+              - generic [ref=e136]: sort
+              - generic [ref=e137]: ISP Terbaru
+              - generic [ref=e139]: expand_more
+        - generic [ref=e140]:
+          - generic [ref=e141]:
+            - generic [ref=e142]: location_on
+            - generic [ref=e143]: 87 Lokasi Terpilih
+          - generic [ref=e144]:
+            - generic [ref=e145]: hub
+            - generic [ref=e146]: 19 ISP Terkait
+      - generic [ref=e147]:
+        - generic [ref=e149]:
+          - generic [ref=e150]:
+            - button "router ISP MITRA ISP Test Kelengkapan Berkas No reference index" [ref=e152]:
+              - generic [ref=e154]: router
+              - generic [ref=e155]:
+                - paragraph [ref=e157]: ISP MITRA
+                - heading "ISP Test Kelengkapan Berkas" [level=3] [ref=e158]
+                - paragraph [ref=e159]: No reference index
+            - generic [ref=e160]:
+              - button "expand_more" [active] [ref=e161]:
+                - generic [ref=e162]: expand_more
+              - generic [ref=e163]: 2 LOKASI
+              - generic [ref=e164]: 0 TINDAKAN
+              - button "visibility Detail ISP" [ref=e165]:
+                - generic [ref=e166]: visibility
+                - text: Detail ISP
+              - button "delete" [ref=e167]:
+                - generic [ref=e168]: delete
+          - table [ref=e308]:
+            - rowgroup [ref=e309]:
+              - row "Info Lokasi Paket Jumlah Status Operasional Tindakan Aksi" [ref=e310]:
+                - columnheader "Info Lokasi" [ref=e311]
+                - columnheader "Paket" [ref=e312]
+                - columnheader "Jumlah" [ref=e313]
+                - columnheader "Status Operasional" [ref=e314]
+                - columnheader "Tindakan" [ref=e315]
+                - columnheader "Aksi" [ref=e316]
+            - rowgroup [ref=e317]:
+              - row "Lokasi Uji Kelengkapan Berkas 210526 CUST-20260521113308 CORE 1 Beroperasi Jalur Aktif 0 Prioritas 0 Tindakan receipt_long Invoice open_in_new Detail delete" [ref=e318]:
+                - cell "Lokasi Uji Kelengkapan Berkas 210526 CUST-20260521113308" [ref=e319]:
+                  - paragraph [ref=e320]: Lokasi Uji Kelengkapan Berkas 210526
+                  - paragraph [ref=e321]: CUST-20260521113308
+                - cell "CORE" [ref=e322]:
+                  - generic [ref=e323]: CORE
+                - cell "1" [ref=e325]
+                - cell "Beroperasi Jalur Aktif" [ref=e326]:
+                  - generic [ref=e327]:
+                    - generic [ref=e328]: Beroperasi
+                    - generic [ref=e330]: Jalur Aktif
+                - cell "0 Prioritas 0 Tindakan" [ref=e331]:
+                  - generic [ref=e332]:
+                    - generic [ref=e333]:
+                      - generic [ref=e334]: "0"
+                      - generic [ref=e335]: Prioritas
+                    - generic [ref=e337]:
+                      - generic [ref=e338]: "0"
+                      - generic [ref=e339]: Tindakan
+                - cell "receipt_long Invoice open_in_new Detail delete" [ref=e340]:
+                  - generic [ref=e341]:
+                    - button "receipt_long Invoice" [ref=e342]:
+                      - generic [ref=e343]: receipt_long
+                      - text: Invoice
+                    - button "open_in_new Detail" [ref=e344]:
+                      - generic [ref=e345]: open_in_new
+                      - text: Detail
+                    - button "delete" [ref=e346]:
+                      - generic [ref=e347]: delete
+              - row "Lokasi Uji Validasi Core 0 CUST-20260521120816 CORE 1 Beroperasi Jalur Aktif 0 Prioritas 0 Tindakan receipt_long Invoice open_in_new Detail delete" [ref=e348]:
+                - cell "Lokasi Uji Validasi Core 0 CUST-20260521120816" [ref=e349]:
+                  - paragraph [ref=e350]: Lokasi Uji Validasi Core 0
+                  - paragraph [ref=e351]: CUST-20260521120816
+                - cell "CORE" [ref=e352]:
+                  - generic [ref=e353]: CORE
+                - cell "1" [ref=e355]
+                - cell "Beroperasi Jalur Aktif" [ref=e356]:
+                  - generic [ref=e357]:
+                    - generic [ref=e358]: Beroperasi
+                    - generic [ref=e360]: Jalur Aktif
+                - cell "0 Prioritas 0 Tindakan" [ref=e361]:
+                  - generic [ref=e362]:
+                    - generic [ref=e363]:
+                      - generic [ref=e364]: "0"
+                      - generic [ref=e365]: Prioritas
+                    - generic [ref=e367]:
+                      - generic [ref=e368]: "0"
+                      - generic [ref=e369]: Tindakan
+                - cell "receipt_long Invoice open_in_new Detail delete" [ref=e370]:
+                  - generic [ref=e371]:
+                    - button "receipt_long Invoice" [ref=e372]:
+                      - generic [ref=e373]: receipt_long
+                      - text: Invoice
+                    - button "open_in_new Detail" [ref=e374]:
+                      - generic [ref=e375]: open_in_new
+                      - text: Detail
+                    - button "delete" [ref=e376]:
+                      - generic [ref=e377]: delete
+        - generic [ref=e171]:
+          - button "router ISP MITRA ninwgew 0uerj" [ref=e173]:
+            - generic [ref=e175]: router
+            - generic [ref=e176]:
+              - paragraph [ref=e178]: ISP MITRA
+              - heading "ninwgew" [level=3] [ref=e179]
+              - paragraph [ref=e180]: 0uerj
+          - generic [ref=e181]:
+            - button "expand_more" [ref=e182]:
+              - generic [ref=e183]: expand_more
+            - generic [ref=e184]: 0 LOKASI
+            - generic [ref=e185]: 0 TINDAKAN
+            - button "visibility Detail ISP" [ref=e186]:
+              - generic [ref=e187]: visibility
+              - text: Detail ISP
+            - button "delete" [ref=e188]:
+              - generic [ref=e189]: delete
+        - generic [ref=e192]:
+          - button "router ISP MITRA PT TELKOM INFRASTRUKTUR INDONESIA bak 0001" [ref=e194]:
+            - generic [ref=e196]: router
+            - generic [ref=e197]:
+              - paragraph [ref=e199]: ISP MITRA
+              - heading "PT TELKOM INFRASTRUKTUR INDONESIA" [level=3] [ref=e200]
+              - paragraph [ref=e201]: bak 0001
+          - generic [ref=e202]:
+            - button "expand_more" [ref=e203]:
+              - generic [ref=e204]: expand_more
+            - generic [ref=e205]: 0 LOKASI
+            - generic [ref=e206]: 0 TINDAKAN
+            - button "visibility Detail ISP" [ref=e207]:
+              - generic [ref=e208]: visibility
+              - text: Detail ISP
+            - button "delete" [ref=e209]:
+              - generic [ref=e210]: delete
+        - generic [ref=e213]:
+          - button "router ISP MITRA PT Inet Global No reference index" [ref=e215]:
+            - generic [ref=e217]: router
+            - generic [ref=e218]:
+              - paragraph [ref=e220]: ISP MITRA
+              - heading "PT Inet Global" [level=3] [ref=e221]
+              - paragraph [ref=e222]: No reference index
+          - generic [ref=e223]:
+            - button "expand_more" [ref=e224]:
+              - generic [ref=e225]: expand_more
+            - generic [ref=e226]: 0 LOKASI
+            - generic [ref=e227]: 0 TINDAKAN
+            - button "visibility Detail ISP" [ref=e228]:
+              - generic [ref=e229]: visibility
+              - text: Detail ISP
+            - button "delete" [ref=e230]:
+              - generic [ref=e231]: delete
+        - generic [ref=e234]:
+          - button "router ISP MITRA PT Citra Prima Media No reference index" [ref=e236]:
+            - generic [ref=e238]: router
+            - generic [ref=e239]:
+              - paragraph [ref=e241]: ISP MITRA
+              - heading "PT Citra Prima Media" [level=3] [ref=e242]
+              - paragraph [ref=e243]: No reference index
+          - generic [ref=e244]:
+            - button "expand_more" [ref=e245]:
+              - generic [ref=e246]: expand_more
+            - generic [ref=e247]: 1 LOKASI
+            - generic [ref=e248]: 0 TINDAKAN
+            - button "visibility Detail ISP" [ref=e249]:
+              - generic [ref=e250]: visibility
+              - text: Detail ISP
+            - button "delete" [ref=e251]:
+              - generic [ref=e252]: delete
+        - generic [ref=e253]:
+          - paragraph [ref=e256]: HALAMAN 1 / 4
+          - generic [ref=e257]:
+            - button "chevron_left" [disabled] [ref=e258]:
+              - generic [ref=e259]: chevron_left
+            - generic [ref=e260]:
+              - button "1" [ref=e261]
+              - button "2" [ref=e262]
+              - button "3" [ref=e263]
+              - button "4" [ref=e264]
+            - button "chevron_right" [ref=e265]:
+              - generic [ref=e266]: chevron_right

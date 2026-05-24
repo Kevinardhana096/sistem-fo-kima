@@ -1,0 +1,163 @@
+- generic [ref=e1]:
+  - generic [ref=e1146]:
+    - navigation:
+      - generic [ref=e1148]:
+        - button "notifications 9+" [ref=e1150]:
+          - generic [ref=e1151]: notifications
+          - generic [ref=e1152]: 9+
+        - button "Profile Administrator Super Admin" [ref=e1154]:
+          - img "Profile" [ref=e1156]
+          - generic [ref=e1157]:
+            - paragraph [ref=e1158]: Administrator
+            - paragraph [ref=e1159]: Super Admin
+    - complementary [ref=e1160]:
+      - button "KIMA ARCHIVE" [ref=e1161]:
+        - generic [ref=e1164]:
+          - paragraph [ref=e1165]: KIMA
+          - paragraph [ref=e1166]: ARCHIVE
+      - navigation [ref=e1167]:
+        - link "dashboard Dashboard" [ref=e1168] [cursor=pointer]:
+          - /url: /dashboard
+          - generic [ref=e1169]: dashboard
+          - generic [ref=e1170]: Dashboard
+        - link "groups Pelanggan" [ref=e1171] [cursor=pointer]:
+          - /url: /customers
+          - generic [ref=e1172]: groups
+          - generic [ref=e1173]: Pelanggan
+        - link "monitor_heart Monitoring" [ref=e1174] [cursor=pointer]:
+          - /url: /monitoring
+          - generic [ref=e1175]: monitor_heart
+          - generic [ref=e1176]: Monitoring
+        - link "task_alt Tindak Lanjut" [ref=e1177] [cursor=pointer]:
+          - /url: /todos
+          - generic [ref=e1178]: task_alt
+          - generic [ref=e1179]: Tindak Lanjut
+        - link "manage_history Log Aktivitas" [ref=e1180] [cursor=pointer]:
+          - /url: /activity-log
+          - generic [ref=e1181]: manage_history
+          - generic [ref=e1182]: Log Aktivitas
+        - link "delete Tempat Sampah" [ref=e1183] [cursor=pointer]:
+          - /url: /trash
+          - generic [ref=e1184]: delete
+          - generic [ref=e1185]: Tempat Sampah
+    - main [ref=e999]:
+      - generic [ref=e1001]:
+        - generic [ref=e1002]:
+          - button "arrow_back Kembali ke Workspace" [ref=e1004]:
+            - generic [ref=e1005]: arrow_back
+            - text: Kembali ke Workspace
+          - generic [ref=e1006]:
+            - button "sync Refresh" [ref=e1007]:
+              - generic [ref=e1008]: sync
+              - text: Refresh
+            - button "edit_note Edit Lokasi" [ref=e1009]:
+              - generic [ref=e1010]: edit_note
+              - text: Edit Lokasi
+            - button "delete_forever Hapus Lokasi" [ref=e1011]:
+              - generic [ref=e1012]: delete_forever
+              - text: Hapus Lokasi
+        - generic [ref=e1015]:
+          - generic [ref=e1016]:
+            - generic [ref=e1017]:
+              - generic [ref=e1018]:
+                - generic [ref=e1020]: location_on
+                - generic [ref=e1021]:
+                  - paragraph [ref=e1022]: Lokasi Operasional
+                  - paragraph [ref=e1023]: "#CUST-20260521113308"
+              - heading "Lokasi Uji Kelengkapan Berkas 210526" [level=1] [ref=e1024]
+              - generic [ref=e1025]:
+                - generic [ref=e1026]: corporate_fare
+                - generic [ref=e1027]: ISP Test Kelengkapan Berkas
+            - generic [ref=e1028]:
+              - generic [ref=e1029]:
+                - generic [ref=e1030]: check_circle
+                - generic [ref=e1031]:
+                  - paragraph [ref=e1032]: Kontrak
+                  - paragraph [ref=e1033]: Beroperasi
+              - generic [ref=e1035]:
+                - generic [ref=e1036]: cable
+                - generic [ref=e1037]:
+                  - paragraph [ref=e1038]: Jalur FO
+                  - paragraph [ref=e1039]: Jalur Aktif
+          - generic [ref=e1042]:
+            - generic [ref=e1043]:
+              - paragraph [ref=e1044]: Paket
+              - generic [ref=e1045]:
+                - generic [ref=e1046]: package_2
+                - paragraph [ref=e1047]: CORE
+            - generic [ref=e1048]:
+              - paragraph [ref=e1049]: Jumlah
+              - generic [ref=e1050]:
+                - generic [ref=e1051]: speed
+                - paragraph [ref=e1052]: "1"
+            - generic [ref=e1053]:
+              - paragraph [ref=e1054]: Periode Awal Kontrak
+              - generic [ref=e1055]:
+                - generic [ref=e1056]: event_available
+                - paragraph [ref=e1057]: 21 Mei 2026
+            - generic [ref=e1058]:
+              - paragraph [ref=e1059]: Periode Berjalan
+              - generic [ref=e1060]:
+                - generic [ref=e1061]: date_range
+                - paragraph [ref=e1062]: 21 Mei 2026—21 Mei 2027
+        - generic [ref=e1064]:
+          - button "Ringkasan" [ref=e1065]
+          - button "Jalur" [ref=e1066]
+          - button "Kontrak" [active] [ref=e1067]
+          - button "Invoice" [ref=e1068]
+          - button "Dokumen" [ref=e1069]
+          - button "Timeline" [ref=e1070]
+        - generic [ref=e1187]:
+          - generic [ref=e1188]:
+            - generic [ref=e1189]:
+              - heading "Manajemen Kontrak Tenant" [level=2] [ref=e1190]
+              - paragraph [ref=e1191]: Arsip legal dan perpanjangan layanan
+            - button "add_task Tambah Kontrak Baru" [ref=e1192]:
+              - generic [ref=e1193]: add_task
+              - text: Tambah Kontrak Baru
+          - table [ref=e1195]:
+            - rowgroup [ref=e1196]:
+              - row "No Nomor Kontrak Berkas Kontrak Keterangan Periode Awal Kontrak Periode Berjalan Awal Periode Berjalan Akhir Paket Jumlah BAK Perpanjangan Tanggapan Aksi" [ref=e1197]:
+                - columnheader "No" [ref=e1198]
+                - columnheader "Nomor Kontrak" [ref=e1199]
+                - columnheader "Berkas Kontrak" [ref=e1200]
+                - columnheader "Keterangan" [ref=e1201]
+                - columnheader "Periode Awal Kontrak" [ref=e1202]
+                - columnheader "Periode Berjalan Awal" [ref=e1203]
+                - columnheader "Periode Berjalan Akhir" [ref=e1204]
+                - columnheader "Paket" [ref=e1205]
+                - columnheader "Jumlah" [ref=e1206]
+                - columnheader "BAK" [ref=e1207]
+                - columnheader "Perpanjangan" [ref=e1208]
+                - columnheader "Tanggapan" [ref=e1209]
+                - columnheader "Aksi" [ref=e1210]
+            - rowgroup [ref=e1211]:
+              - row "1 NO-BAK-CUST-20260521113308-20260521 upload_file Upload Kontrak Beroperasi 21 Mei 2026 21 Mei 2026 21 Mei 2027 CORE 1 Belum Ada Tandai Tidak Perlu upload_file Upload — edit_note" [ref=e1212]:
+                - cell "1" [ref=e1213]
+                - cell "NO-BAK-CUST-20260521113308-20260521" [ref=e1214]
+                - cell "upload_file Upload" [ref=e1215]:
+                  - generic [ref=e1217] [cursor=pointer]:
+                    - generic [ref=e1218]: upload_file
+                    - text: Upload
+                    - button "upload_file Upload" [ref=e1219]
+                - cell "Kontrak Beroperasi" [ref=e1220]:
+                  - generic [ref=e1221]: Kontrak Beroperasi
+                - cell "21 Mei 2026" [ref=e1223]
+                - cell "21 Mei 2026" [ref=e1224]
+                - cell "21 Mei 2027" [ref=e1225]
+                - cell "CORE" [ref=e1226]
+                - cell "1" [ref=e1227]
+                - cell "Belum Ada Tandai Tidak Perlu" [ref=e1228]:
+                  - generic [ref=e1229]:
+                    - generic [ref=e1230]: Belum Ada
+                    - button "Tandai Tidak Perlu" [ref=e1231]
+                - cell "upload_file Upload" [ref=e1232]:
+                  - generic [ref=e1234] [cursor=pointer]:
+                    - generic [ref=e1235]: upload_file
+                    - text: Upload
+                    - button "upload_file Upload" [ref=e1236]
+                - cell "—" [ref=e1237]
+                - cell "edit_note" [ref=e1238]:
+                  - button "edit_note" [ref=e1239]:
+                    - generic [ref=e1240]: edit_note
+  - generic [ref=e526]: "0"

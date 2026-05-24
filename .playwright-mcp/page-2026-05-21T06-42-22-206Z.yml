@@ -1,0 +1,243 @@
+- generic [ref=e321]:
+  - navigation:
+    - generic [ref=e323]:
+      - button "notifications 9+" [ref=e325]:
+        - generic [ref=e326]: notifications
+        - generic [ref=e327]: 9+
+      - button "Profile Administrator Super Admin" [ref=e329]:
+        - img "Profile" [ref=e331]
+        - generic [ref=e332]:
+          - paragraph [ref=e333]: Administrator
+          - paragraph [ref=e334]: Super Admin
+  - complementary [ref=e335]:
+    - button "KIMA ARCHIVE" [ref=e336]:
+      - generic [ref=e339]:
+        - paragraph [ref=e340]: KIMA
+        - paragraph [ref=e341]: ARCHIVE
+    - navigation [ref=e342]:
+      - link "dashboard Dashboard" [ref=e343] [cursor=pointer]:
+        - /url: /dashboard
+        - generic [ref=e344]: dashboard
+        - generic [ref=e345]: Dashboard
+      - link "groups Pelanggan" [ref=e346] [cursor=pointer]:
+        - /url: /customers
+        - generic [ref=e347]: groups
+        - generic [ref=e348]: Pelanggan
+      - link "monitor_heart Monitoring" [ref=e349] [cursor=pointer]:
+        - /url: /monitoring
+        - generic [ref=e350]: monitor_heart
+        - generic [ref=e351]: Monitoring
+      - link "task_alt Tindak Lanjut" [ref=e352] [cursor=pointer]:
+        - /url: /todos
+        - generic [ref=e353]: task_alt
+        - generic [ref=e354]: Tindak Lanjut
+      - link "manage_history Log Aktivitas" [ref=e355] [cursor=pointer]:
+        - /url: /activity-log
+        - generic [ref=e356]: manage_history
+        - generic [ref=e357]: Log Aktivitas
+      - link "delete Tempat Sampah" [ref=e358] [cursor=pointer]:
+        - /url: /trash
+        - generic [ref=e359]: delete
+        - generic [ref=e360]: Tempat Sampah
+  - main [ref=e361]:
+    - generic [ref=e363]:
+      - generic [ref=e364]:
+        - generic [ref=e365]:
+          - button "arrow_back KEMBALI KE WORKSPACE" [ref=e367]:
+            - generic [ref=e368]: arrow_back
+            - text: KEMBALI KE WORKSPACE
+          - generic [ref=e369]:
+            - button "sync Refresh" [ref=e370]:
+              - generic [ref=e371]: sync
+              - text: Refresh
+            - button "manage_accounts Akun Akses" [ref=e372]:
+              - generic [ref=e373]: manage_accounts
+              - text: Akun Akses
+            - button "edit_note Edit ISP" [ref=e374]:
+              - generic [ref=e375]: edit_note
+              - text: Edit ISP
+            - button "delete_forever Hapus ISP" [ref=e376]:
+              - generic [ref=e377]: delete_forever
+              - text: Hapus ISP
+        - generic [ref=e380]:
+          - generic [ref=e381]:
+            - generic [ref=e382]:
+              - generic [ref=e383]:
+                - generic [ref=e385]: corporate_fare
+                - paragraph [ref=e387]: Internet Service Provider
+              - heading "ISP Test Kelengkapan Berkas" [level=1] [ref=e388]
+            - generic [ref=e390]:
+              - generic [ref=e391]: check_circle
+              - generic [ref=e392]:
+                - paragraph [ref=e393]: Status
+                - paragraph [ref=e394]: Beroperasi
+          - generic [ref=e397]:
+            - generic [ref=e398]:
+              - paragraph [ref=e399]: Nomor Kontrak
+              - generic [ref=e400]:
+                - generic [ref=e401]: description
+                - paragraph [ref=e402]: "-"
+            - generic [ref=e403]:
+              - paragraph [ref=e404]: Periode Awal Kontrak
+              - generic [ref=e405]:
+                - generic [ref=e406]: event_available
+                - paragraph [ref=e407]: —
+            - generic [ref=e408]:
+              - paragraph [ref=e409]: Periode Berjalan
+              - generic [ref=e410]:
+                - generic [ref=e411]: date_range
+                - paragraph [ref=e412]: —
+            - generic [ref=e413]:
+              - paragraph [ref=e414]: Paket
+              - generic [ref=e415]:
+                - generic [ref=e416]: hub
+                - paragraph [ref=e417]: Core -
+      - navigation [ref=e420]:
+        - button "dashboard Ringkasan" [ref=e421]:
+          - generic [ref=e422]: dashboard
+          - generic [ref=e423]: Ringkasan
+        - button "groups Daftar Lokasi" [ref=e424]:
+          - generic [ref=e425]: groups
+          - generic [ref=e426]: Daftar Lokasi
+        - button "map Peta Jalur" [ref=e427]:
+          - generic [ref=e428]: map
+          - generic [ref=e429]: Peta Jalur
+        - button "description Kontrak" [ref=e430]:
+          - generic [ref=e431]: description
+          - generic [ref=e432]: Kontrak
+        - button "inventory_2 Dokumen" [ref=e433]:
+          - generic [ref=e434]: inventory_2
+          - generic [ref=e435]: Dokumen
+        - button "history Timeline" [ref=e436]:
+          - generic [ref=e437]: history
+          - generic [ref=e438]: Timeline
+      - generic [ref=e440]:
+        - generic [ref=e441]:
+          - generic [ref=e442]:
+            - generic [ref=e443]:
+              - generic [ref=e444]:
+                - paragraph [ref=e445]: Total Lokasi
+                - paragraph [ref=e446]: Seluruh lokasi terdaftar
+              - generic [ref=e448]: groups
+            - generic [ref=e449]:
+              - generic [ref=e450]: "0"
+              - generic [ref=e451]: Titik Layanan
+          - generic [ref=e452]:
+            - generic [ref=e453]:
+              - generic [ref=e454]:
+                - paragraph [ref=e455]: Status Lokasi
+                - paragraph [ref=e456]: Rincian status operasional
+              - generic [ref=e458]: check_circle
+            - generic [ref=e459]:
+              - generic [ref=e460]:
+                - paragraph [ref=e461]: Beroperasi
+                - paragraph [ref=e462]: "0"
+              - generic [ref=e463]:
+                - paragraph [ref=e464]: Belum Beroperasi
+                - paragraph [ref=e465]: "0"
+              - generic [ref=e466]:
+                - paragraph [ref=e467]: Belum Diperpanjang
+                - paragraph [ref=e468]: "0"
+              - generic [ref=e469]:
+                - paragraph [ref=e470]: Berhenti
+                - paragraph [ref=e471]: "0"
+          - generic [ref=e472]:
+            - generic [ref=e473]:
+              - generic [ref=e474]:
+                - paragraph [ref=e475]: Informasi Jalur
+                - paragraph [ref=e476]: Rincian status jalur FO
+              - generic [ref=e478]: lan
+            - generic [ref=e479]:
+              - generic [ref=e480]:
+                - paragraph [ref=e481]: Aktif
+                - paragraph [ref=e482]: "0"
+              - generic [ref=e483]:
+                - paragraph [ref=e484]: Gangguan
+                - paragraph [ref=e485]: "0"
+              - generic [ref=e486]:
+                - paragraph [ref=e487]: Perbaikan
+                - paragraph [ref=e488]: "0"
+              - generic [ref=e489]:
+                - paragraph [ref=e490]: Nonaktif
+                - paragraph [ref=e491]: "0"
+        - generic [ref=e492]:
+          - generic [ref=e493]:
+            - generic [ref=e494]:
+              - heading "admin_panel_settings Tindak Lanjut ISP" [level=3] [ref=e496]:
+                - generic [ref=e497]: admin_panel_settings
+                - text: Tindak Lanjut ISP
+              - generic [ref=e498]:
+                - generic [ref=e499]:
+                  - generic [ref=e500]:
+                    - generic [ref=e501]:
+                      - generic [ref=e502]: contract_edit
+                      - heading "Nomor kontrak ISP belum diisi" [level=4] [ref=e503]
+                      - generic "Belum Dibaca" [ref=e504]
+                    - paragraph [ref=e505]: ISP Test Kelengkapan Berkas belum memiliki nomor kontrak/referensi kontrak.
+                  - generic [ref=e506]: Buka ISP
+                - generic [ref=e507]:
+                  - generic [ref=e508]:
+                    - generic [ref=e509]:
+                      - generic [ref=e510]: contract_edit
+                      - heading "Awal kontrak ISP belum diisi" [level=4] [ref=e511]
+                      - generic "Belum Dibaca" [ref=e512]
+                    - paragraph [ref=e513]: ISP Test Kelengkapan Berkas belum memiliki tanggal awal kontrak.
+                  - generic [ref=e514]: Buka ISP
+                - generic [ref=e515]:
+                  - generic [ref=e516]:
+                    - generic [ref=e517]:
+                      - generic [ref=e518]: contract_edit
+                      - heading "Periode berjalan ISP belum lengkap" [level=4] [ref=e519]
+                      - generic "Belum Dibaca" [ref=e520]
+                    - paragraph [ref=e521]: ISP Test Kelengkapan Berkas belum memiliki periode berjalan awal dan akhir yang lengkap.
+                  - generic [ref=e522]: Buka ISP
+                - generic [ref=e523]:
+                  - generic [ref=e524]:
+                    - generic [ref=e525]:
+                      - generic [ref=e526]: contract_edit
+                      - heading "BAK ISP belum diupload" [level=4] [ref=e527]
+                      - generic "Belum Dibaca" [ref=e528]
+                    - paragraph [ref=e529]: ISP Test Kelengkapan Berkas belum memiliki file BAK.
+                  - generic [ref=e530]: Buka Dokumen
+                - generic [ref=e531]:
+                  - generic [ref=e532]:
+                    - generic [ref=e533]:
+                      - generic [ref=e534]: contract_edit
+                      - heading "File kontrak ISP belum diupload" [level=4] [ref=e535]
+                      - generic "Belum Dibaca" [ref=e536]
+                    - paragraph [ref=e537]: ISP Test Kelengkapan Berkas belum memiliki file kontrak.
+                  - generic [ref=e538]: Buka Dokumen
+            - generic [ref=e539]:
+              - heading "location_away Tindak Lanjut Lokasi" [level=3] [ref=e541]:
+                - generic [ref=e542]: location_away
+                - text: Tindak Lanjut Lokasi
+              - paragraph [ref=e544]: Seluruh lokasi terpantau normal.
+          - generic [ref=e545]:
+            - generic [ref=e546]:
+              - heading "Ringkasan Tindak Lanjut" [level=3] [ref=e547]
+              - generic [ref=e548]:
+                - generic [ref=e549]:
+                  - generic [ref=e550]:
+                    - paragraph [ref=e551]: Tindak Lanjut ISP
+                    - paragraph [ref=e552]: "5"
+                  - generic [ref=e553]: admin_panel_settings
+                - generic [ref=e554]:
+                  - generic [ref=e555]:
+                    - paragraph [ref=e556]: Tindak Lanjut Lokasi
+                    - paragraph [ref=e557]: "0"
+                  - generic [ref=e558]: location_on
+            - generic [ref=e559]:
+              - heading "history Aktivitas Terkini" [level=3] [ref=e560]:
+                - generic [ref=e561]: history
+                - text: Aktivitas Terkini
+              - generic [ref=e562]:
+                - generic [ref=e563]:
+                  - generic [ref=e565]: how_to_reg
+                  - generic [ref=e566]:
+                    - paragraph [ref=e567]: Registrasi ISP
+                    - paragraph [ref=e568]: Entitas ISP berhasil didaftarkan ke dalam repositori sistem arsip KIMA.
+                - generic [ref=e569]:
+                  - generic [ref=e571]: assignment_ind
+                  - generic [ref=e572]:
+                    - paragraph [ref=e573]: Inisialisasi Kontrak
+                    - paragraph [ref=e574]: Struktur data kontrak awal telah diverifikasi dan siap untuk pengelolaan adendum.

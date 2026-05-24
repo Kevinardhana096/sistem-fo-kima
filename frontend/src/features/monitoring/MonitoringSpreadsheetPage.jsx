@@ -546,6 +546,7 @@ function MonitoringSpreadsheetPage({
     }, [billingRows]);
 
     const yearOptions = [
+        String(Number(currentYear) - 2),
         String(Number(currentYear) - 1),
         currentYear,
         String(Number(currentYear) + 1),

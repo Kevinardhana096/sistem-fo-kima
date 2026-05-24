@@ -10,8 +10,47 @@
       "env": {}
     },
     "supabase": {
-      "type": "http",
-      "url": "https://mcp.supabase.com/mcp?project_ref=jkzjqzskrzcdmahrikwm&read_only=true&features=database,docs"
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "supabase-mcp-claude"
+      ],
+      "env": {
+        "SUPABASE_URL": "https://jkzjqzskrzcdmahrikwm.supabase.co",
+        "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImprempxenNrcnpjZG1haHJpa3dtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1MzE1NzIsImV4cCI6MjA5NDEwNzU3Mn0.hyvzRM5Fxk0ZKikabyy0uK08q6rf9hK61R9VSz3YzkU",
+        "SUPABASE_SERVICE_ROLE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImprempxenNrcnpjZG1haHJpa3dtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODUzMTU3MiwiZXhwIjoyMDk0MTA3NTcyfQ.5Quqs7E0ItDXISV8XvLNg0Nx23_ZM8izPYGnef4_pdc",
+        "MCP_API_KEY": "b02b53e859f7a8eba653837960a6a599b609e95465b9a22f06f3c5ec8e7ca494"
+      }
+    },
+    "playwright": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@playwright/mcp@latest",
+        "--browser=chrome",
+        "--headless"
+      ],
+      "env": {
+        "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD": "1"
+      }
+    },
+    "sequential-thinking": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-sequential-thinking"
+      ]
+    },
+    "depwire": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "depwire-cli",
+        "mcp"
+      ]
     }
   }
 }

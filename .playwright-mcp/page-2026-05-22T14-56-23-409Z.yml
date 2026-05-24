@@ -1,0 +1,143 @@
+- generic [ref=e1]:
+  - generic [ref=e610]:
+    - navigation:
+      - generic [ref=e612]:
+        - button "notifications" [ref=e614]:
+          - generic [ref=e615]: notifications
+        - button "Profile Administrator Super Admin" [ref=e617]:
+          - img "Profile" [ref=e619]
+          - generic [ref=e620]:
+            - paragraph [ref=e621]: Administrator
+            - paragraph [ref=e622]: Super Admin
+    - complementary [ref=e623]:
+      - button "KIMA ARCHIVE" [ref=e624]:
+        - generic [ref=e627]:
+          - paragraph [ref=e628]: KIMA
+          - paragraph [ref=e629]: ARCHIVE
+      - navigation [ref=e630]:
+        - link "dashboard Dashboard" [ref=e631] [cursor=pointer]:
+          - /url: /dashboard
+          - generic [ref=e632]: dashboard
+          - generic [ref=e633]: Dashboard
+        - link "groups Pelanggan" [ref=e634] [cursor=pointer]:
+          - /url: /customers
+          - generic [ref=e635]: groups
+          - generic [ref=e636]: Pelanggan
+        - link "monitor_heart Monitoring" [ref=e637] [cursor=pointer]:
+          - /url: /monitoring
+          - generic [ref=e638]: monitor_heart
+          - generic [ref=e639]: Monitoring
+        - link "task_alt Tindak Lanjut" [ref=e640] [cursor=pointer]:
+          - /url: /todos
+          - generic [ref=e641]: task_alt
+          - generic [ref=e642]: Tindak Lanjut
+        - link "manage_history Log Aktivitas" [ref=e643] [cursor=pointer]:
+          - /url: /activity-log
+          - generic [ref=e644]: manage_history
+          - generic [ref=e645]: Log Aktivitas
+        - link "delete Tempat Sampah" [ref=e646] [cursor=pointer]:
+          - /url: /trash
+          - generic [ref=e647]: delete
+          - generic [ref=e648]: Tempat Sampah
+    - main [ref=e649]:
+      - generic [ref=e651]:
+        - generic [ref=e652]:
+          - generic [ref=e653]:
+            - generic [ref=e656]: Modul Pendaftaran
+            - heading "Daftar Mitra ISP" [level=1] [ref=e657]
+            - paragraph [ref=e658]: Silakan lengkapi formulir di bawah ini untuk mendaftarkan mitra ISP baru ke dalam sistem.
+          - generic [ref=e659]:
+            - button "Batal" [ref=e660]
+            - button "Tambah ISP" [ref=e661]
+        - generic [ref=e663]:
+          - generic [ref=e664]:
+            - heading "Identitas ISP" [level=3] [ref=e667]
+            - generic [ref=e668]:
+              - generic [ref=e669]:
+                - generic [ref=e670]: Logo Perusahaan (Opsional)
+                - generic [ref=e671] [cursor=pointer]:
+                  - generic [ref=e672]:
+                    - generic [ref=e673]:
+                      - generic [ref=e674]: image
+                      - generic [ref=e675]: No Logo
+                    - button "Choose File" [ref=e676]
+                  - generic [ref=e677]:
+                    - paragraph [ref=e678]: Pilih Berkas Logo
+                    - paragraph [ref=e679]: "Format: PNG/JPG (Maks. 2MB). Gunakan latar transparan untuk hasil terbaik."
+              - generic [ref=e680]:
+                - generic [ref=e681]:
+                  - generic [ref=e682]: Nama Perusahaan ISP
+                  - generic [ref=e683]:
+                    - generic: corporate_fare
+                    - 'textbox "Contoh: PT. Internet Cepat Indonesia" [ref=e684]': PT Cendikia Global Solusi
+                - generic [ref=e685]:
+                  - generic [ref=e686]: Status Operasional
+                  - generic [ref=e688] [cursor=pointer]:
+                    - generic [ref=e689]: verified_user
+                    - generic [ref=e690]: BEROPERASI
+                    - generic [ref=e691]: expand_more
+                  - paragraph [ref=e692]: Isi Periode Berjalan Awal untuk menghitung otomatis
+              - generic [ref=e694]:
+                - generic [ref=e695]: Paket (Jumlah Core)
+                - generic [ref=e696]:
+                  - generic: hub
+                  - spinbutton [ref=e697]: "384"
+                  - generic: CORE
+          - generic [ref=e698]:
+            - heading "Kontrak ISP" [level=3] [ref=e701]
+            - generic [ref=e702]:
+              - generic [ref=e703]:
+                - generic [ref=e704]:
+                  - generic [ref=e705]: Awal Kontrak
+                  - generic [ref=e706]:
+                    - generic: calendar_today
+                    - textbox [ref=e707]
+                - generic [ref=e708]:
+                  - generic [ref=e709]: Nomor Kontrak (Opsional)
+                  - generic [ref=e710]:
+                    - generic: tag
+                    - 'textbox "Contoh: KTR/ISP/001/2026" [active] [ref=e711]'
+              - generic [ref=e712]:
+                - generic [ref=e713]:
+                  - generic [ref=e714]: Periode Berjalan Awal
+                  - generic [ref=e715]:
+                    - generic: event_available
+                    - textbox [ref=e716]
+                - generic [ref=e717]:
+                  - generic [ref=e718]: Periode Berjalan Akhir
+                  - generic [ref=e719]:
+                    - generic: event_busy
+                    - textbox [ref=e720]
+              - generic [ref=e721]:
+                - generic [ref=e722]:
+                  - generic [ref=e723]: Upload BAK (Opsional)
+                  - generic [ref=e724]:
+                    - button "Choose File" [ref=e725] [cursor=pointer]
+                    - generic [ref=e726]:
+                      - generic [ref=e728]: upload_file
+                      - generic [ref=e729]:
+                        - paragraph [ref=e730]: Pilih Berkas
+                        - paragraph [ref=e731]: Opsional. Klik area ini untuk upload atau mengganti file.
+                - generic [ref=e732]:
+                  - generic [ref=e733]: Upload Kontrak (Opsional)
+                  - generic [ref=e734]:
+                    - button "Choose File" [ref=e735] [cursor=pointer]
+                    - generic [ref=e736]:
+                      - generic [ref=e738]: upload_file
+                      - generic [ref=e739]:
+                        - paragraph [ref=e740]: Pilih Berkas
+                        - paragraph [ref=e741]: Opsional. Klik area ini untuk upload atau mengganti file.
+          - generic [ref=e742]:
+            - heading "Akun Akses ISP" [level=3] [ref=e745]
+            - generic [ref=e746]:
+              - generic [ref=e747]:
+                - generic [ref=e748]: Alamat Email Akses
+                - generic [ref=e749]:
+                  - generic: mail
+                  - 'textbox "Contoh: admin@ispmitra.com" [ref=e750]'
+              - generic [ref=e751]:
+                - generic [ref=e752]: Password Akses
+                - generic [ref=e753]:
+                  - generic: lock
+                  - textbox "••••••••" [ref=e754]
+  - generic [ref=e424]: "0"
