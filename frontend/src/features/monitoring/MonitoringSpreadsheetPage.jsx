@@ -672,7 +672,7 @@ function MonitoringSpreadsheetPage({
             )}
 
             <div className={`max-w-full overflow-auto custom-scrollbar ${tableOnly ? "flex-1 min-h-0" : ""}`}>
-                <table className="w-full min-w-[2000px] table-fixed border-separate border-spacing-0 text-[10px]">
+                <table className={`w-full min-w-[2000px] table-fixed border-separate border-spacing-0 text-[10px] ${tableOnly && (isLoading || filteredRows.length === 0) ? "h-full" : ""}`}>
                     <colgroup>
                         <col style={{ width: "64px" }} />
                         <col style={{ width: "180px" }} />
@@ -778,8 +778,8 @@ function MonitoringSpreadsheetPage({
                     <tbody className="divide-y divide-white/5">
                         {isLoading && (
                             <tr>
-                                <td className="px-6 py-20 text-center text-sm font-bold text-white/40 italic" colSpan="27">
-                                    <div className="flex flex-col items-center gap-4">
+                                <td className={`px-6 ${tableOnly ? "h-full" : "h-[400px] lg:h-[500px]"} text-center text-sm font-bold text-white/40 italic`} colSpan="27">
+                                    <div className="flex flex-col items-center justify-center gap-4">
                                         <div className="h-10 w-10 border-4 border-gold-accent border-t-transparent rounded-full animate-spin"></div>
                                         <span>Sinkronisasi data monitoring dari pusat...</span>
                                     </div>
@@ -789,33 +789,34 @@ function MonitoringSpreadsheetPage({
 
                         {!isLoading && filteredRows.length === 0 && (
                             <tr>
-                                <td className="px-6 py-24 text-center" colSpan="27">
-                                    <div className="flex flex-col items-center justify-center animate-in fade-in zoom-in duration-500">
-                                        {/* Icon Container with Glow */}
-                                        <div className="relative mb-6">
-                                            <div className="absolute inset-0 scale-150 bg-gold-accent/10 blur-[30px] rounded-full backdrop-blur-md" />
-                                            <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5 border border-white/10 shadow-xl backdrop-blur-xl">
-                                                <span className="material-symbols-outlined text-4xl text-gold-accent/40">data_alert</span>
+                                <td className={`px-6 ${tableOnly ? "h-full" : "h-[400px] lg:h-[500px]"} text-center`} colSpan="27">
+                                    {billingRows.length === 0 ? (
+                                        <div className="flex flex-col items-center justify-center animate-in fade-in zoom-in duration-500">
+                                            <div className="h-20 w-20 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center mb-6 shadow-glass-depth">
+                                                <span className="material-symbols-outlined text-4xl text-white/20">inbox</span>
                                             </div>
+                                            <h3 className="text-sm font-black text-white uppercase tracking-widest mb-2">Data Kosong</h3>
+                                            <p className="text-[11px] font-bold text-white/30 tracking-wide text-center max-w-[240px] leading-relaxed">Belum ada data monitoring lokasi yang terdaftar dalam sistem.</p>
                                         </div>
-
-                                        {/* Text Section */}
-                                        <div className="max-w-md mx-auto">
-                                            <h3 className="text-sm font-black text-white uppercase tracking-widest mb-6">Data Tidak Ditemukan</h3>
-
-                                            {/* Action Button */}
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center animate-in fade-in zoom-in duration-500">
+                                            <div className="h-20 w-20 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center mb-6 shadow-glass-depth">
+                                                <span className="material-symbols-outlined text-4xl text-white/20">filter_list_off</span>
+                                            </div>
+                                            <h3 className="text-sm font-black text-white uppercase tracking-widest mb-2">Data Tidak Ditemukan</h3>
+                                            <p className="text-[11px] font-bold text-white/30 tracking-wide text-center max-w-[240px] leading-relaxed mb-6">Tidak ada data yang cocok dengan filter pencarian Anda saat ini.</p>
                                             <button
-                                                className="inline-flex items-center gap-2 rounded-xl bg-white/5 border border-white/10 px-6 py-2.5 text-[9px] font-black uppercase tracking-[0.2em] text-white transition-all hover:bg-white/10 hover:border-gold-accent/30 hover:text-gold-accent shadow-lg group backdrop-blur-md"
+                                                className="inline-flex items-center gap-2 rounded-xl bg-white/5 border border-white/10 px-6 py-2.5 text-[9px] font-black uppercase tracking-[0.2em] text-white transition-all hover:bg-white/10 hover:border-gold-accent/30 hover:text-gold-accent shadow-glass-depth group backdrop-blur-md"
                                                 onClick={() => {
                                                     setFilters({ search: "", year: currentYear, contractStatus: "all", routeStatus: "all", todoStatus: "all", package: "all" });
                                                     setAppliedFilters({ year: currentYear, contractStatus: "all", routeStatus: "all", todoStatus: "all", package: "all" });
                                                 }}
                                             >
                                                 <span className="material-symbols-outlined text-[15px] group-hover:rotate-180 transition-transform duration-500">restart_alt</span>
-                                                Reset Semua Filter
+                                                Reset Filter
                                             </button>
                                         </div>
-                                    </div>
+                                    )}
                                 </td>
                             </tr>
                         )}
@@ -1057,7 +1058,7 @@ function MonitoringSpreadsheetPage({
     );
 
     const historyTableSection = (
-        <section className="glass-card monitoring-card backdrop-blur-xl rounded-premium border-white/40 overflow-hidden shadow-glass-depth max-w-full">
+        <section className={`glass-card monitoring-card backdrop-blur-xl rounded-premium border-white/40 shadow-glass-depth max-w-full ${tableOnly ? "flex h-full flex-col overflow-hidden" : ""}`}>
             <div className="flex flex-col gap-3 border-b border-white/10 bg-[#0f141e]/60 px-5 py-2.5 backdrop-blur-md md:flex-row md:items-center md:justify-between">
                 <div>
                     <p className="text-[9px] font-black uppercase tracking-[0.3em] text-gold-accent/70">Arsip Kontrak</p>
@@ -1070,8 +1071,8 @@ function MonitoringSpreadsheetPage({
                     {filteredHistoryRows.length} Riwayat
                 </div>
             </div>
-            <div className="max-w-full overflow-auto custom-scrollbar">
-                <table className="w-full min-w-[1580px] table-fixed border-separate border-spacing-0 text-[10px]">
+            <div className={`max-w-full overflow-auto custom-scrollbar ${tableOnly ? "flex-1 min-h-0" : ""}`}>
+                <table className={`w-full min-w-[1580px] table-fixed border-separate border-spacing-0 text-[10px] ${tableOnly && (isLoadingHistory || filteredHistoryRows.length === 0) ? "h-full" : ""}`}>
                     <colgroup>
                         <col style={{ width: "64px" }} />
                         <col style={{ width: "180px" }} />
@@ -1105,16 +1106,35 @@ function MonitoringSpreadsheetPage({
                     <tbody className="divide-y divide-white/5">
                         {isLoadingHistory && (
                             <tr>
-                                <td className="px-6 py-10 text-center text-sm font-bold italic text-white/35" colSpan="9">
-                                    Sinkronisasi riwayat kontrak...
+                                <td className={`px-6 ${tableOnly ? "h-full" : "h-[400px] lg:h-[500px]"} text-center text-sm font-bold italic text-white/35`} colSpan="9">
+                                    <div className="flex flex-col items-center justify-center gap-4">
+                                        <div className="h-10 w-10 border-4 border-gold-accent border-t-transparent rounded-full animate-spin"></div>
+                                        <span>Sinkronisasi riwayat kontrak dari pusat...</span>
+                                    </div>
                                 </td>
                             </tr>
                         )}
 
                         {!isLoadingHistory && filteredHistoryRows.length === 0 && (
                             <tr>
-                                <td className="px-6 py-10 text-center text-sm font-bold italic text-white/35" colSpan="9">
-                                    Riwayat kontrak tidak ditemukan untuk filter saat ini.
+                                <td className={`px-6 ${tableOnly ? "h-full" : "h-[400px] lg:h-[500px]"} text-center`} colSpan="9">
+                                    {historyRows.length === 0 ? (
+                                        <div className="flex flex-col items-center justify-center animate-in fade-in zoom-in duration-500">
+                                            <div className="h-20 w-20 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center mb-6 shadow-glass-depth">
+                                                <span className="material-symbols-outlined text-4xl text-white/20">inbox</span>
+                                            </div>
+                                            <h3 className="text-sm font-black text-white uppercase tracking-widest mb-2">Riwayat Kosong</h3>
+                                            <p className="text-[11px] font-bold text-white/30 tracking-wide text-center max-w-[240px] leading-relaxed">Belum ada riwayat kontrak yang terdaftar dalam sistem.</p>
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center animate-in fade-in zoom-in duration-500">
+                                            <div className="h-20 w-20 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center mb-6 shadow-glass-depth">
+                                                <span className="material-symbols-outlined text-4xl text-white/20">filter_list_off</span>
+                                            </div>
+                                            <h3 className="text-sm font-black text-white uppercase tracking-widest mb-2">Riwayat Tidak Ditemukan</h3>
+                                            <p className="text-[11px] font-bold text-white/30 tracking-wide text-center max-w-[240px] leading-relaxed">Tidak ada riwayat kontrak yang cocok dengan filter pencarian Anda saat ini.</p>
+                                        </div>
+                                    )}
                                 </td>
                             </tr>
                         )}
@@ -1509,11 +1529,9 @@ function MonitoringSpreadsheetPage({
                     {/* Result Indicators - Matched with Pelanggan */}
                     <div className="mt-4 flex flex-wrap items-center gap-3 pt-4 border-t border-white/5">
                         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-widest text-white/60 shadow-sm backdrop-blur-md">
-                            <span className="material-symbols-outlined text-[15px] text-gold-accent">location_on</span>
                             <span><span className="text-white font-black">{filteredRows.length}</span> Lokasi Terpilih</span>
                         </div>
                         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-widest text-white/60 shadow-sm backdrop-blur-md">
-                            <span className="material-symbols-outlined text-[15px] text-gold-accent">hub</span>
                             <span><span className="text-white font-black">{new Set(filteredRows.map(r => r.ispName)).size}</span> ISP Terkait</span>
                         </div>
                     </div>
