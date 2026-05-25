@@ -39,9 +39,9 @@ export default function LoginPage({ onLoginSuccess }) {
     const isMobile = viewportWidth < 640;
     const isTablet = viewportWidth >= 640 && viewportWidth < 960;
     const isStacked = viewportWidth < 860;
-    const panelPadding = isMobile ? "1.35rem" : isTablet ? "2rem" : "3.5rem";
-    const headingSize = isMobile ? "1.45rem" : "1.75rem";
-    const cardRadius = isMobile ? "1.25rem" : "2rem";
+    const panelPadding = isMobile ? "1.25rem" : isTablet ? "1.5rem" : "2rem";
+    const headingSize = isMobile ? "1.1rem" : "1.25rem";
+    const cardRadius = isMobile ? "1rem" : "1.25rem";
 
     const adminWhatsAppNumber = import.meta.env.VITE_ADMIN_WHATSAPP_NUMBER ?? "";
     const adminWhatsAppLink = useMemo(() => buildWhatsAppLink(adminWhatsAppNumber), [adminWhatsAppNumber]);
@@ -73,9 +73,9 @@ export default function LoginPage({ onLoginSuccess }) {
 
     const inputStyle = {
         width: "100%",
-        fontSize: "0.875rem",
-        padding: "0.75rem 1rem",
-        borderRadius: "0.75rem",
+        fontSize: "0.7rem",
+        padding: "0.5rem 0.75rem",
+        borderRadius: "0.5rem",
         outline: "none",
         background: "rgba(255,255,255,0.07)",
         border: "1px solid rgba(255,255,255,0.15)",
@@ -107,7 +107,7 @@ export default function LoginPage({ onLoginSuccess }) {
 
 
             {/* Card wrapper */}
-            <div style={{ position: "relative", zIndex: 10, width: "100%", maxWidth: isStacked ? 560 : 960, margin: isMobile ? "0 1rem" : "0 1.5rem" }}>
+            <div style={{ position: "relative", zIndex: 10, width: "100%", maxWidth: isStacked ? 480 : 720, margin: isMobile ? "0 1rem" : "0 1.5rem" }}>
                 <div
                     style={{
                         position: "relative",
@@ -115,7 +115,7 @@ export default function LoginPage({ onLoginSuccess }) {
                         gridTemplateColumns: isStacked ? "1fr" : "1fr 1fr",
                         borderRadius: cardRadius,
                         overflow: "hidden",
-                        minHeight: isStacked ? "auto" : 600,
+                        minHeight: isStacked ? "auto" : 440,
                         boxShadow: "0 32px 80px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.12)",
                         border: "1px solid rgba(255,255,255,0.12)",
                     }}
@@ -126,7 +126,7 @@ export default function LoginPage({ onLoginSuccess }) {
                         left: "50%",
                         top: isStacked ? activePanel === "login" ? 178 : 128 : "25%",
                         bottom: isStacked ? "auto" : "25%",
-                        width: isStacked ? "44%" : 5,
+                        width: isStacked ? "44%" : 4,
                         height: isStacked ? 4 : "auto",
                         display: isMobile ? "none" : "block",
                         background: isStacked ? "linear-gradient(90deg, transparent, #f0c040 20%, #f0c040 80%, transparent)" : "linear-gradient(180deg, transparent, #f0c040 20%, #f0c040 80%, transparent)",
@@ -149,12 +149,12 @@ export default function LoginPage({ onLoginSuccess }) {
                             order: isStacked ? 1 : 0,
                         }}
                     >
-                        <div style={{ marginBottom: "2.5rem" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.75rem" }}>
-                                <div style={{ width: 4, height: 32, borderRadius: 4, background: "linear-gradient(180deg, #f0c040, rgba(212,169,55,0.3))" }} />
+                        <div style={{ marginBottom: "2rem" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
+                                <div style={{ width: 4, height: 24, borderRadius: 4, background: "linear-gradient(180deg, #f0c040, rgba(212,169,55,0.3))" }} />
                                 <h3 style={{ fontSize: headingSize, fontWeight: 800, color: "#ffffff", margin: 0, letterSpacing: "-0.02em", textShadow: "0 2px 12px rgba(240,192,64,0.25)" }}>Bantuan Akses</h3>
                             </div>
-                            <p style={{ color: "rgba(255,255,255,0.9)", marginTop: "1rem", fontSize: "0.875rem", lineHeight: 1.7 }}>
+                            <p style={{ color: "rgba(255,255,255,0.9)", marginTop: "0.75rem", fontSize: "0.7rem", lineHeight: 1.6 }}>
                                 Pemulihan akun memerlukan verifikasi Administrator TI. Silakan hubungi unit terkait melalui tautan di bawah ini.
                             </p>
                         </div>
@@ -166,11 +166,11 @@ export default function LoginPage({ onLoginSuccess }) {
                                     display: "flex",
                                     alignItems: "center",
                                     justifyContent: "center",
-                                    padding: "1rem",
-                                    borderRadius: "0.875rem",
+                                    padding: "0.625rem",
+                                    borderRadius: "0.5rem",
                                     fontWeight: 700,
-                                    fontSize: "0.875rem",
-                                    color: "#1a1200",
+                                    fontSize: "0.7rem",
+                                    color: "#ffffff",
                                     background: "linear-gradient(135deg, rgba(240,192,64,0.9), rgba(212,169,55,0.95))",
                                     border: "1px solid rgba(240,192,64,0.4)",
                                     boxShadow: "0 8px 24px rgba(212,169,55,0.3)",
@@ -182,7 +182,7 @@ export default function LoginPage({ onLoginSuccess }) {
                             </a>
                             <button
                                 onClick={() => setActivePanel("login")}
-                                style={{ background: "none", border: "none", cursor: "pointer", fontSize: "0.75rem", fontWeight: 700, color: "rgba(255,255,255,0.82)", letterSpacing: "0.08em", textTransform: "uppercase", transition: "color 0.2s ease" }}
+                                style={{ background: "none", border: "none", cursor: "pointer", fontSize: "0.6rem", fontWeight: 700, color: "rgba(255,255,255,0.82)", letterSpacing: "0.08em", textTransform: "uppercase", transition: "color 0.2s ease" }}
                                 onMouseEnter={e => e.target.style.color = "#f0c040"}
                                 onMouseLeave={e => e.target.style.color = "rgba(255,255,255,0.82)"}
                             >
@@ -203,9 +203,9 @@ export default function LoginPage({ onLoginSuccess }) {
                             order: isStacked ? 1 : 0,
                         }}
                     >
-                        <div style={{ marginBottom: "2rem" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.75rem" }}>
-                                <div style={{ width: 4, height: 32, borderRadius: 4, background: "linear-gradient(180deg, #f0c040, rgba(212,169,55,0.3))" }} />
+                        <div style={{ marginBottom: "1.5rem" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
+                                <div style={{ width: 4, height: 24, borderRadius: 4, background: "linear-gradient(180deg, #f0c040, rgba(212,169,55,0.3))" }} />
                                 <h3 style={{ fontSize: headingSize, fontWeight: 800, color: "#ffffff", margin: 0, letterSpacing: "-0.02em", textShadow: "0 2px 12px rgba(240,192,64,0.25)" }}>Sign In</h3>
                             </div>
                         </div>
@@ -247,7 +247,7 @@ export default function LoginPage({ onLoginSuccess }) {
                                         type="button"
                                         disabled={isSubmitting}
                                         onClick={() => setActivePanel("forgot")}
-                                        style={{ background: "none", border: "none", cursor: "pointer", fontSize: "0.7rem", fontWeight: 700, color: "rgba(240,192,64,0.8)", textTransform: "uppercase", letterSpacing: "0.08em", transition: "color 0.2s" }}
+                                        style={{ background: "none", border: "none", cursor: "pointer", fontSize: "0.6rem", fontWeight: 700, color: "rgba(240,192,64,0.8)", textTransform: "uppercase", letterSpacing: "0.08em", transition: "color 0.2s" }}
                                         onMouseEnter={e => e.target.style.color = "#f0c040"}
                                         onMouseLeave={e => e.target.style.color = "rgba(240,192,64,0.8)"}
                                     >
@@ -261,20 +261,20 @@ export default function LoginPage({ onLoginSuccess }) {
                                 disabled={isSubmitting}
                                 style={{
                                     width: "100%",
-                                    padding: "0.875rem",
-                                    borderRadius: "0.75rem",
+                                    padding: "0.625rem",
+                                    borderRadius: "0.5rem",
                                     fontWeight: 700,
-                                    fontSize: "0.875rem",
+                                    fontSize: "0.7rem",
                                     border: "1px solid rgba(240,192,64,0.4)",
                                     background: isSubmitting ? "rgba(240,192,64,0.3)" : "linear-gradient(135deg, rgba(240,192,64,0.88), rgba(212,169,55,0.92))",
-                                    color: isSubmitting ? "rgba(255,255,255,0.5)" : "#1a1200",
+                                    color: "#ffffff",
                                     boxShadow: isSubmitting ? "none" : "0 8px 24px rgba(212,169,55,0.28)",
                                     cursor: isSubmitting ? "not-allowed" : "pointer",
                                     opacity: isSubmitting ? 0.6 : 1,
                                     transition: "opacity 0.2s ease",
                                 }}
                             >
-                                {isSubmitting ? "Memverifikasi..." : "Masuk ke Sistem"}
+                                {isSubmitting ? "Memverifikasi..." : "Masuk"}
                             </button>
                         </form>
 
@@ -310,8 +310,8 @@ export default function LoginPage({ onLoginSuccess }) {
                             </div>
                         )}
 
-                        <div style={{ marginTop: "1.5rem", display: "flex", alignItems: "center", gap: "1rem" }}>
-                            <span style={{ fontSize: "0.65rem", fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.2em", color: "rgba(255,255,255,0.65)", flexShrink: 0 }}>Connect</span>
+                        <div style={{ marginTop: "1.25rem", display: "flex", alignItems: "center", gap: "1rem" }}>
+                            <span style={{ fontSize: "0.55rem", fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.2em", color: "rgba(255,255,255,0.65)", flexShrink: 0 }}>Connect</span>
                             <div style={{ height: 1, flexGrow: 1, background: "rgba(255,255,255,0.2)" }} />
                             <div style={{ display: "flex", gap: "0.75rem", flexShrink: 0 }}>
                                 {[
@@ -323,7 +323,7 @@ export default function LoginPage({ onLoginSuccess }) {
                                         onMouseEnter={e => { e.currentTarget.style.color = "#f0c040"; e.currentTarget.style.transform = "scale(1.15)"; }}
                                         onMouseLeave={e => { e.currentTarget.style.color = "rgba(255,255,255,0.65)"; e.currentTarget.style.transform = "scale(1)"; }}
                                     >
-                                        <svg width={16} height={16} viewBox="0 0 24 24" fill="currentColor"><path d={d} /></svg>
+                                        <svg width={14} height={14} viewBox="0 0 24 24" fill="currentColor"><path d={d} /></svg>
                                     </a>
                                 ))}
                             </div>
@@ -358,14 +358,14 @@ export default function LoginPage({ onLoginSuccess }) {
                         <div style={{ position: "absolute", top: -60, right: -60, width: 200, height: 200, borderRadius: "50%", background: "radial-gradient(circle, rgba(212,169,55,0.12) 0%, transparent 70%)", pointerEvents: "none" }} />
 
                         <div style={{ position: "relative", zIndex: 1 }}>
-                            <img alt="Logo PT KIMA" style={{ height: isMobile ? 44 : 56, width: "auto", filter: "brightness(0) invert(1)" }} src="/logo-kima.png" />
-                            <div style={{ marginTop: isStacked ? "1.75rem" : "5rem" }}>
-                                <h2 style={{ fontSize: isMobile ? "1.55rem" : "2rem", fontWeight: 300, color: "#ffffff", lineHeight: 1.35, margin: 0 }}>
+                            <img alt="Logo PT KIMA" style={{ height: isMobile ? 32 : 40, width: "auto", filter: "brightness(0) invert(1)" }} src="/logo-kima.png" />
+                            <div style={{ marginTop: isStacked ? "1rem" : "2.5rem" }}>
+                                <h2 style={{ fontSize: isMobile ? "1.1rem" : "1.35rem", fontWeight: 300, color: "#ffffff", lineHeight: 1.35, margin: 0 }}>
                                     Selamat Datang di<br />
                                     <span style={{ fontWeight: 800, color: "#f0c040" }}>Digital Archive</span>
                                 </h2>
-                                <div style={{ height: 2, width: 48, background: "linear-gradient(90deg, #f0c040, transparent)", borderRadius: 2, marginTop: "1.5rem" }} />
-                                <p style={{ color: "rgba(255,255,255,0.9)", marginTop: "1.5rem", fontSize: "0.875rem", lineHeight: 1.75, maxWidth: isStacked ? "100%" : 260 }}>
+                                <div style={{ height: 2, width: 32, background: "linear-gradient(90deg, #f0c040, transparent)", borderRadius: 2, marginTop: "1rem" }} />
+                                <p style={{ color: "rgba(255,255,255,0.9)", marginTop: "0.75rem", fontSize: "0.7rem", lineHeight: 1.6, maxWidth: isStacked ? "100%" : 240 }}>
                                     Sistem manajemen arsip terintegrasi untuk efisiensi dan keamanan data PT Kawasan Industri Makassar.
                                 </p>
                             </div>

@@ -70,20 +70,21 @@ export function StatCard({ label, value, icon, accent, sub }) {
         gold: "text-gold-accent bg-gold-accent/10",
         red: "text-red-500 bg-red-500/10",
         emerald: "text-emerald-500 bg-emerald-500/10",
-        white: "text-on-surface-variant bg-white/10"
+        teal: "text-teal-400 bg-teal-400/10",
+        white: "text-white/50 bg-white/10"
     };
-    
+
     return (
-        <div className="glass-card rounded-premium p-6 group hover:border-gold-accent/40 transition-all duration-500"
+        <div className="glass-card rounded-premium p-6 group hover:border-gold-accent/40 transition-all duration-500 relative overflow-hidden"
             style={{ backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)" }}>
-            <div className="flex justify-between items-start mb-6">
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-on-surface-variant group-hover:text-gold-accent transition-colors">{label}</p>
+            <div className="flex justify-between items-start mb-6 relative z-10">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/50 group-hover:text-gold-accent transition-colors">{label}</p>
                 <div className={`h-12 w-12 flex items-center justify-center rounded-2xl ${accents[accent] || accents.white} shadow-sm group-hover:shadow-gold-glow transition-all`}>
                     <span className="material-symbols-outlined text-2xl">{icon}</span>
                 </div>
             </div>
-            <h3 className="text-4xl font-black text-on-surface tracking-tighter mb-2">{value}</h3>
-            {sub && <p className="text-[10px] font-bold text-on-surface-variant uppercase opacity-40 tracking-widest">{sub}</p>}
+            <h3 className="text-4xl font-black text-white tracking-tighter mb-2 relative z-10">{value}</h3>
+            {sub && <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest relative z-10">{sub}</p>}
         </div>
     );
 }

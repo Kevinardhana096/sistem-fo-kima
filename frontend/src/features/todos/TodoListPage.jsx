@@ -90,7 +90,6 @@ function CustomDropdown({ value, options, onChange, align = "left", position = "
 export default function TodoListPage({ activeSection, onNavigate, onLogout, currentRole = "admin" }) {
     const [notifications, setNotifications] = useState([]);
     const [search, setSearch] = useState("");
-    const [severity, setSeverity] = useState("all");
     const [type, setType] = useState("all");
     const [status, setStatus] = useState("active");
     const [currentPage, setCurrentPage] = useState(1);
@@ -137,23 +136,21 @@ export default function TodoListPage({ activeSection, onNavigate, onLogout, curr
             const matchesSearch = queryTokens.length === 0 || queryTokens.every((token) => haystack.includes(token));
             const sk = getStatusKey(n);
             return matchesSearch
-                && (severity === "all" || n.severity === severity)
                 && (type === "all" || n.type === type || n.code === type)
                 && (status === "all" || (status === "active" && !n.resolvedAt) || sk === status);
         });
-    }, [notifications, search, severity, status, type]);
+    }, [notifications, search, status, type]);
 
-    useEffect(() => { setCurrentPage(1); }, [search, severity, status, type, itemsPerPage]);
+    useEffect(() => { setCurrentPage(1); }, [search, status, type, itemsPerPage]);
 
     const totalPages = Math.max(1, Math.ceil(filteredNotifications.length / itemsPerPage));
     const startIndex = (currentPage - 1) * itemsPerPage;
     const paginatedNotifications = filteredNotifications.slice(startIndex, startIndex + itemsPerPage);
 
-    const hasFilters = search !== "" || type !== "all" || severity !== "all" || status !== "active";
+    const hasFilters = search !== "" || type !== "all" || status !== "active";
     const resetFilters = () => {
         setSearch("");
         setType("all");
-        setSeverity("all");
         setStatus("active");
     };
 
@@ -251,11 +248,10 @@ export default function TodoListPage({ activeSection, onNavigate, onLogout, curr
                     </div>
 
                     <div className="flex w-full sm:w-auto items-center gap-2">
-                        <div className="grid grid-cols-3 gap-2 flex-1 sm:flex sm:items-center sm:gap-2">
+                        <div className="grid grid-cols-2 gap-2 flex-1 sm:flex sm:items-center sm:gap-2">
                             {[
                                 { z: "z-[60]", icon: "category", val: type, setter: setType, opts: [{ value: "all", label: "Semua Tipe" }, ...typeOptions.map(([v, l]) => ({ value: v, label: l }))] },
-                                { z: "z-50",   icon: "warning",  val: severity, setter: setSeverity, opts: [{ value: "all", label: "Semua Severity" }, ...Object.entries(SEVERITY_LABELS).map(([v, l]) => ({ value: v, label: l }))] },
-                                { z: "z-40",   icon: "flag",     val: status, setter: setStatus, opts: [{ value: "active", label: "Aktif" }, { value: "unread", label: "Belum Dibaca" }, { value: "read", label: "Dibaca" }, { value: "resolved", label: "Selesai" }, { value: "all", label: "Semua Status" }], align: "right" },
+                                { z: "z-50",   icon: "flag",     val: status, setter: setStatus, opts: [{ value: "active", label: "Aktif" }, { value: "unread", label: "Belum Dibaca" }, { value: "read", label: "Dibaca" }, { value: "resolved", label: "Selesai" }, { value: "all", label: "Semua Status" }], align: "right" },
                             ].map(({ z, icon, val, setter, opts, align = "left" }) => (
                                 <div key={icon} className={`relative ${z} w-full sm:w-36`}>
                                     <div className="relative group h-9 rounded-lg bg-white/5 border border-white/10 focus-within:border-gold-accent/40 focus-within:bg-black/40 transition-all backdrop-blur-md">

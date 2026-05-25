@@ -10,12 +10,12 @@ const GlassFieldInput = ({ label, type = "text", value, onChange, placeholder = 
             </label>
             <div className="relative group">
                 {icon && (
-                    <span className="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 text-xl text-white/20 group-focus-within:text-gold-accent transition-all duration-300 pointer-events-none">
+                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[15px] text-white/20 group-focus-within:text-gold-accent transition-all duration-300 pointer-events-none">
                         {icon}
                     </span>
                 )}
                 <input
-                    className={`w-full h-14 rounded-2xl bg-black/20 border backdrop-blur-md ${error ? "border-rose-500/70 ring-4 ring-rose-500/10" : "border-white/10 focus:border-gold-accent/40 focus:ring-4 focus:ring-gold-accent/5"} ${icon ? "pl-14" : "px-6"} pr-6 text-sm font-bold placeholder:text-white/10 outline-none transition-all focus:bg-black/40 shadow-inner-glass ${type === "date" ? "text-white/40 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer" : "text-white"} [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
+                    className={`w-full h-9 rounded-xl bg-black/20 border backdrop-blur-md ${error ? "border-rose-500/70 ring-2 ring-rose-500/10" : "border-white/10 focus:border-gold-accent/40 focus:ring-2 focus:ring-gold-accent/10"} ${icon ? "pl-9" : "px-3"} pr-3 text-[10px] font-bold placeholder:text-white/20 outline-none transition-all focus:bg-black/40 shadow-inner-glass ${type === "date" ? "text-white/40 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer" : "text-white"} [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
                     onChange={(event) => onChange(event.target.value)}
                     onKeyDown={(e) => {
                         if (type === "date") e.preventDefault();
@@ -33,7 +33,7 @@ const GlassFieldInput = ({ label, type = "text", value, onChange, placeholder = 
     );
 };
 
-const GlassCustomSelect = ({ label, value, onChange, options, icon, heightClass = "h-14", iconOnly = false }) => {
+const GlassCustomSelect = ({ label, value, onChange, options, icon, heightClass = "h-9", iconOnly = false }) => {
     const [isOpen, setIsOpen] = useState(false);
     const containerRef = useRef(null);
     const selectedOption = options.find(opt => opt.value === value) || options[0];
@@ -56,23 +56,23 @@ const GlassCustomSelect = ({ label, value, onChange, options, icon, heightClass 
             <div className="relative">
                 <div
                     onClick={() => setIsOpen(!isOpen)}
-                    className={`rounded-2xl bg-black/20 border flex items-center justify-center transition-all cursor-pointer shadow-inner-glass relative z-20 backdrop-blur-md ${isOpen ? "border-gold-accent/60 bg-black/40 shadow-gold-glow" : "border-white/10 text-white/70 hover:border-white/30"} ${heightClass} ${iconOnly ? "w-11 px-0" : icon ? "w-full pl-14 pr-12 text-[10px] font-black" : "w-full px-5 text-[10px] font-black"}`}
+                    className={`rounded-xl bg-black/20 border flex items-center justify-center transition-all cursor-pointer shadow-inner-glass relative z-20 backdrop-blur-md ${isOpen ? "border-gold-accent/60 bg-black/40 shadow-gold-glow" : "border-white/10 text-white/70 hover:border-white/30"} ${heightClass} ${iconOnly ? "w-11 px-0" : icon ? "w-full pl-9 pr-8 text-[10px] font-black" : "w-full px-3 text-[10px] font-black"}`}
                 >
                     {icon && (
-                        <span className={`material-symbols-outlined transition-all duration-300 ${iconOnly ? "text-xl" : "absolute left-5 top-1/2 -translate-y-1/2 text-xl"}`} style={{ color: isOpen ? "#d4a937" : "rgba(255,255,255,0.2)" }}>
+                        <span className={`material-symbols-outlined transition-all duration-300 ${iconOnly ? "text-[15px]" : "absolute left-3 top-1/2 -translate-y-1/2 text-[15px]"}`} style={{ color: isOpen ? "#d4a937" : "rgba(255,255,255,0.2)" }}>
                             {icon}
                         </span>
                     )}
                     {!iconOnly && <span className="truncate uppercase tracking-widest">{selectedOption.label}</span>}
                     {!iconOnly && (
-                        <span className={`material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 transition-transform duration-300 ${isOpen ? "rotate-180 text-gold-accent" : "text-white/20"}`}>
+                        <span className={`material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 transition-transform duration-300 text-[15px] ${isOpen ? "rotate-180 text-gold-accent" : "text-white/20"}`}>
                             expand_more
                         </span>
                     )}
                 </div>
 
                 {isOpen && (
-                    <div className={`absolute top-full mt-2 p-2 rounded-2xl bg-black/80 backdrop-blur-3xl border border-white/10 shadow-glass-depth z-50 animate-in fade-in zoom-in-95 duration-200 overflow-hidden ${iconOnly ? "right-0 w-48" : "left-0 right-0"}`}>
+                    <div className={`absolute top-full mt-2 p-1.5 rounded-xl bg-black/80 backdrop-blur-3xl border border-white/10 shadow-glass-depth z-50 animate-in fade-in zoom-in-95 duration-200 overflow-hidden ${iconOnly ? "right-0 w-40" : "left-0 right-0"}`}>
                         {options.map((opt) => (
                             <div
                                 key={opt.value}
@@ -80,10 +80,10 @@ const GlassCustomSelect = ({ label, value, onChange, options, icon, heightClass 
                                     onChange(opt.value);
                                     setIsOpen(false);
                                 }}
-                                className={`flex items-center px-4 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest cursor-pointer transition-all mb-1 last:mb-0 ${value === opt.value ? "bg-gold-accent/10 text-gold-accent border border-gold-accent/20 shadow-gold-glow" : "text-white/40 hover:bg-white/5 hover:text-white"}`}
+                                className={`flex items-center px-3 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest cursor-pointer transition-all mb-1 last:mb-0 ${value === opt.value ? "bg-gold-accent/10 text-gold-accent border border-gold-accent/20 shadow-gold-glow" : "text-white/40 hover:bg-white/5 hover:text-white"}`}
                             >
                                 {opt.label}
-                                {value === opt.value && <span className="material-symbols-outlined ml-auto text-sm">check_circle</span>}
+                                {value === opt.value && <span className="material-symbols-outlined ml-auto text-[15px]">check_circle</span>}
                             </div>
                         ))}
                     </div>
@@ -235,40 +235,40 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                 <div className="absolute bottom-[-5%] left-[-5%] w-[30%] h-[30%] rounded-full bg-gold-accent/5 blur-[100px] backdrop-blur-md" />
             </div>
 
-            <form className="relative z-10 mx-auto max-w-7xl space-y-10 pb-20 pt-4 px-6" onSubmit={handleSubmit}>
+            <form className="relative z-10 mx-auto max-w-7xl space-y-6 pb-20 pt-4 px-6" onSubmit={handleSubmit}>
                 {/* Header Section */}
-                <header className="flex flex-col justify-between gap-8 md:flex-row md:items-end mb-6 px-2">
-                    <div className="space-y-4">
-                        <div className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-gold-accent/10 border border-gold-accent/20 backdrop-blur-md">
+                <header className="flex flex-col justify-between gap-6 md:flex-row md:items-end mb-6 px-2">
+                    <div>
+                        <div className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-gold-accent/10 border border-gold-accent/20 backdrop-blur-md mb-2">
                             <span className="w-2 h-2 rounded-full bg-gold-accent animate-pulse shadow-gold-glow" />
-                            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-gold-accent">
+                            <p className="text-[9px] font-black text-gold-accent uppercase tracking-[0.4em]">
                                 {isEditMode ? "Modul Pengeditan" : "Modul Pendaftaran"}
-                            </span>
+                            </p>
                         </div>
-                        <h1 className="text-5xl md:text-6xl font-black tracking-tighter text-white leading-none">
+                        <h1 className="text-3xl md:text-4xl xl:text-5xl font-black text-white tracking-tight leading-tight">
                             {isEditMode ? "Edit" : "Daftar"} <span className="text-gold-accent italic">Lokasi Baru</span>
                         </h1>
-                        <p className="max-w-2xl text-base font-medium leading-relaxed text-white/60">
+                        <p className="mt-1 max-w-xl text-[11px] font-bold text-white/40">
                             Silakan lengkapi data administratif dan konfigurasi layanan untuk {isEditMode ? "memperbarui lokasi" : "mendaftarkan titik lokasi baru"}.
                         </p>
                     </div>
 
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3">
                         <button
-                            className="h-12 px-6 rounded-xl bg-white/5 border border-white/10 text-[11px] font-black uppercase tracking-[0.2em] text-white/60 hover:text-white hover:bg-white/10 transition-all active:scale-95 shadow-glass-depth backdrop-blur-md"
+                            className="h-9 px-4 rounded-xl bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-[0.2em] text-white/60 hover:text-white hover:bg-white/10 transition-all active:scale-95 shadow-glass-depth backdrop-blur-md"
                             onClick={onCancel}
                             type="button"
                         >
                             Batal
                         </button>
                         <button
-                            className="h-12 px-8 rounded-xl btn-premium text-[11px] font-black uppercase tracking-[0.2em] text-white shadow-gold-glow active:scale-95 transition-all disabled:opacity-50 disabled:pointer-events-none"
+                            className="h-9 px-6 rounded-xl btn-premium text-[9px] font-black uppercase tracking-[0.2em] text-white shadow-gold-glow active:scale-95 transition-all disabled:opacity-50 disabled:pointer-events-none"
                             disabled={isSubmitting}
                             type="submit"
                         >
                             {isSubmitting ? (
                                 <span className="flex items-center gap-2">
-                                    <span className="h-4 w-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></span>
+                                    <span className="h-3 w-3 border-2 border-white/20 border-t-white rounded-full animate-spin"></span>
                                     Memproses...
                                 </span>
                             ) : (
@@ -287,17 +287,17 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                     </div>
                 )}
 
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                     {/* Left Column - Core Info */}
-                    <div className="lg:col-span-8 space-y-8">
+                    <div className="lg:col-span-8 space-y-6">
                         {/* Section: Identitas Lokasi */}
-                        <div className="glass-card backdrop-blur-xl rounded-premium p-8 border-white/20 shadow-glass-depth relative z-40">
-                            <div className="flex items-center gap-3 mb-8">
-                                <span className="h-6 w-1.5 bg-gold-accent rounded-full shadow-gold-glow"></span>
-                                <h3 className="text-xl font-black text-white uppercase tracking-widest">Identitas Lokasi</h3>
+                        <div className="glass-card backdrop-blur-xl rounded-premium p-6 border-white/20 shadow-glass-depth relative z-40">
+                            <div className="flex items-center gap-3 mb-6">
+                                <span className="h-5 w-1.5 bg-gold-accent rounded-full shadow-gold-glow"></span>
+                                <h3 className="text-base font-black text-white uppercase tracking-widest">Identitas Lokasi</h3>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <GlassFieldInput
                                     label="Nama Lokasi"
                                     icon="location_on"
@@ -324,14 +324,14 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                         </div>
 
                         {!isEditMode && (
-                            <div className="glass-card backdrop-blur-xl rounded-premium p-8 border-white/20 shadow-glass-depth relative z-30">
-                                <div className="flex items-center gap-3 mb-8">
-                                    <span className="h-6 w-1.5 bg-gold-accent rounded-full shadow-gold-glow"></span>
-                                    <h3 className="text-xl font-black text-white uppercase tracking-widest">Layanan & Kontrak</h3>
+                            <div className="glass-card backdrop-blur-xl rounded-premium p-6 border-white/20 shadow-glass-depth relative z-30">
+                                <div className="flex items-center gap-3 mb-6">
+                                    <span className="h-5 w-1.5 bg-gold-accent rounded-full shadow-gold-glow"></span>
+                                    <h3 className="text-base font-black text-white uppercase tracking-widest">Layanan & Kontrak</h3>
                                 </div>
 
-                                <div className="grid grid-cols-1 gap-8">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div className="grid grid-cols-1 gap-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <GlassCustomSelect
                                             label="Jenis Paket"
                                             icon="inventory_2"
@@ -359,18 +359,18 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                                                 <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-gold-accent/60 ml-1">Ratio Shared</label>
                                                 <div className="flex items-center gap-4">
                                                     <div className="relative flex-1">
-                                                        <input className="w-full h-14 rounded-2xl bg-black/20 border border-white/10 px-6 text-sm font-bold text-white outline-none focus:border-gold-accent/40 shadow-inner-glass text-center backdrop-blur-md" type="number" min="1" onKeyDown={(e) => { if (e.key === '-' || e.key === 'e' || e.key === 'E') e.preventDefault(); }} value={form.ratioLeft} onChange={(e) => { if (e.target.value === '' || Number(e.target.value) >= 1) setForm(p => ({ ...p, ratioLeft: e.target.value })); }} />
+                                                        <input className="w-full h-9 rounded-xl bg-black/20 border border-white/10 px-3 text-[10px] font-bold text-white outline-none focus:border-gold-accent/40 shadow-inner-glass text-center backdrop-blur-md" type="number" min="1" onKeyDown={(e) => { if (e.key === '-' || e.key === 'e' || e.key === 'E') e.preventDefault(); }} value={form.ratioLeft} onChange={(e) => { if (e.target.value === '' || Number(e.target.value) >= 1) setForm(p => ({ ...p, ratioLeft: e.target.value })); }} />
                                                     </div>
-                                                    <span className="text-xl font-black text-white/20">:</span>
+                                                    <span className="text-[15px] font-black text-white/20">:</span>
                                                     <div className="relative flex-1">
-                                                        <input className="w-full h-14 rounded-2xl bg-black/20 border border-white/10 px-6 text-sm font-bold text-white outline-none focus:border-gold-accent/40 shadow-inner-glass text-center backdrop-blur-md" type="number" min="1" onKeyDown={(e) => { if (e.key === '-' || e.key === 'e' || e.key === 'E') e.preventDefault(); }} value={form.ratioRight} onChange={(e) => { if (e.target.value === '' || Number(e.target.value) >= 1) setForm(p => ({ ...p, ratioRight: e.target.value })); }} />
+                                                        <input className="w-full h-9 rounded-xl bg-black/20 border border-white/10 px-3 text-[10px] font-bold text-white outline-none focus:border-gold-accent/40 shadow-inner-glass text-center backdrop-blur-md" type="number" min="1" onKeyDown={(e) => { if (e.key === '-' || e.key === 'e' || e.key === 'E') e.preventDefault(); }} value={form.ratioRight} onChange={(e) => { if (e.target.value === '' || Number(e.target.value) >= 1) setForm(p => ({ ...p, ratioRight: e.target.value })); }} />
                                                     </div>
                                                 </div>
                                             </div>
                                         )}
                                     </div>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                         <GlassFieldInput label="Awal Kontrak (Ops)" icon="calendar_today" type="date" value={form.contractStartDate} onChange={(val) => setForm(p => ({ ...p, contractStartDate: val }))} />
                                         <GlassFieldInput label="Mulai Periode" icon="event_available" type="date" value={form.contractPeriodStart} error={fieldErrors.contractPeriodStart} onChange={(val) => { setForm(p => ({ ...p, contractPeriodStart: val })); setFieldErrors((errors) => ({ ...errors, contractPeriodStart: "" })); }} />
                                         <GlassFieldInput label="Akhir Periode" icon="event_busy" type="date" value={form.contractPeriodEnd} error={fieldErrors.contractPeriodEnd} onChange={(val) => { setForm(p => ({ ...p, contractPeriodEnd: val })); setFieldErrors((errors) => ({ ...errors, contractPeriodEnd: "" })); }} />
@@ -381,19 +381,19 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
 
                         {/* ISP Selection Section */}
                         {!isEditMode && (
-                            <div className={`glass-card backdrop-blur-xl rounded-premium p-8 shadow-glass-depth relative z-20 ${fieldErrors.selectedIspId ? "border-rose-500/70 ring-4 ring-rose-500/10" : "border-white/20"}`}>
-                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+                            <div className={`glass-card backdrop-blur-xl rounded-premium p-6 shadow-glass-depth relative z-20 ${fieldErrors.selectedIspId ? "border-rose-500/70 ring-2 ring-rose-500/10" : "border-white/20"}`}>
+                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                                     <div className="flex items-center gap-3">
-                                        <span className="h-6 w-1.5 bg-gold-accent rounded-full shadow-gold-glow"></span>
-                                        <h3 className="text-xl font-black text-white uppercase tracking-widest">Pilih Mitra ISP</h3>
+                                        <span className="h-5 w-1.5 bg-gold-accent rounded-full shadow-gold-glow"></span>
+                                        <h3 className="text-base font-black text-white uppercase tracking-widest">Pilih Mitra ISP</h3>
                                     </div>
                                     <div className="flex flex-col md:flex-row items-center gap-3">
-                                        <div className="relative group w-full md:w-72">
-                                            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold-accent transition-colors">search</span>
+                                        <div className="relative group w-full md:w-64">
+                                            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[15px] text-white/20 group-focus-within:text-gold-accent transition-colors">search</span>
                                             <input
                                                 type="text"
                                                 placeholder="Cari ISP..."
-                                                className="w-full h-11 pl-12 pr-4 rounded-xl bg-black/40 border border-white/10 text-xs font-bold text-white outline-none focus:border-gold-accent/40 transition-all shadow-inner-glass"
+                                                className="w-full h-9 pl-9 pr-3 rounded-xl bg-black/40 border border-white/10 text-[10px] font-bold text-white outline-none focus:border-gold-accent/40 transition-all shadow-inner-glass"
                                                 value={ispSearchTerm}
                                                 onChange={(e) => setIspSearchTerm(e.target.value)}
                                             />
@@ -403,7 +403,7 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                                                 value={ispSortBy}
                                                 onChange={setIspSortBy}
                                                 icon="sort"
-                                                heightClass="h-11"
+                                                heightClass="h-9"
                                                 iconOnly={true}
                                                 options={[
                                                     { value: "newest", label: "TERBARU" },
@@ -425,15 +425,15 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                                         <div
                                             key={isp.id}
                                             onClick={() => selectIsp(isp.id)}
-                                            className={`relative overflow-hidden group cursor-pointer rounded-2xl border transition-all duration-300 p-5 ${selectedIspId === isp.id ? "bg-gold-accent/10 border-gold-accent shadow-gold-glow" : "bg-white/5 border-white/10 hover:border-white/30"}`}
+                                            className={`relative overflow-hidden group cursor-pointer rounded-xl border transition-all duration-300 p-4 ${selectedIspId === isp.id ? "bg-gold-accent/10 border-gold-accent shadow-gold-glow" : "bg-white/5 border-white/10 hover:border-white/30"}`}
                                         >
-                                            <div className="flex items-center gap-4 relative z-10">
-                                                <div className={`h-12 w-12 rounded-xl flex items-center justify-center transition-all ${selectedIspId === isp.id ? "bg-gold-accent text-slate-900" : "bg-white/5 text-white/20"}`}>
-                                                    <span className="material-symbols-outlined text-2xl">{selectedIspId === isp.id ? "check_circle" : "corporate_fare"}</span>
+                                            <div className="flex items-center gap-3 relative z-10">
+                                                <div className={`h-10 w-10 shrink-0 rounded-lg flex items-center justify-center transition-all ${selectedIspId === isp.id ? "bg-gold-accent text-slate-900" : "bg-white/5 text-white/20"}`}>
+                                                    <span className="material-symbols-outlined text-[15px]">{selectedIspId === isp.id ? "check_circle" : "corporate_fare"}</span>
                                                 </div>
                                                 <div className="min-w-0">
-                                                    <p className={`text-sm font-black uppercase tracking-widest truncate transition-colors ${selectedIspId === isp.id ? "text-gold-accent" : "text-white"}`}>{isp.name}</p>
-                                                    <p className="text-[10px] font-bold text-white/40 uppercase tracking-tighter truncate">{isp.contractReference || "Tanpa referensi"}</p>
+                                                    <p className={`text-[10px] font-black uppercase tracking-widest truncate transition-colors ${selectedIspId === isp.id ? "text-gold-accent" : "text-white"}`}>{isp.name}</p>
+                                                    <p className="text-[8px] mt-0.5 font-bold text-white/40 uppercase tracking-tighter truncate">{isp.contractReference || "Tanpa referensi"}</p>
                                                 </div>
                                             </div>
                                             {selectedIspId === isp.id && (
@@ -446,24 +446,24 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                                 </div>
 
                                 {totalPages > 1 && (
-                                    <div className="mt-8 flex items-center justify-between border-t border-white/5 pt-6">
+                                    <div className="mt-6 flex items-center justify-between border-t border-white/5 pt-4">
                                         <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em]">Halaman {ispPage} / {totalPages}</p>
                                         <div className="flex gap-2">
                                             <button
                                                 type="button"
                                                 disabled={ispPage === 1}
                                                 onClick={() => setIspPage(p => p - 1)}
-                                                className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-white disabled:opacity-20 transition-all backdrop-blur-md"
+                                                className="h-8 w-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-white disabled:opacity-20 transition-all backdrop-blur-md"
                                             >
-                                                <span className="material-symbols-outlined">chevron_left</span>
+                                                <span className="material-symbols-outlined text-[15px]">chevron_left</span>
                                             </button>
                                             <button
                                                 type="button"
                                                 disabled={ispPage === totalPages}
                                                 onClick={() => setIspPage(p => p + 1)}
-                                                className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-white disabled:opacity-20 transition-all backdrop-blur-md"
+                                                className="h-8 w-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-white disabled:opacity-20 transition-all backdrop-blur-md"
                                             >
-                                                <span className="material-symbols-outlined">chevron_right</span>
+                                                <span className="material-symbols-outlined text-[15px]">chevron_right</span>
                                             </button>
                                         </div>
                                     </div>
@@ -474,14 +474,14 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
 
                     {/* Right Column - Billing */}
                     {!isEditMode && (
-                        <div className="lg:col-span-4 space-y-8">
-                            <div className="glass-card backdrop-blur-xl rounded-premium p-8 border-white/20 shadow-glass-depth relative z-10">
-                                <div className="flex items-center gap-3 mb-8">
-                                    <span className="h-6 w-1.5 bg-gold-accent rounded-full shadow-gold-glow"></span>
-                                    <h3 className="text-xl font-black text-white uppercase tracking-widest">Billing & Biaya</h3>
+                        <div className="lg:col-span-4 space-y-6">
+                            <div className="glass-card backdrop-blur-xl rounded-premium p-6 border-white/20 shadow-glass-depth relative z-10">
+                                <div className="flex items-center gap-3 mb-6">
+                                    <span className="h-5 w-1.5 bg-gold-accent rounded-full shadow-gold-glow"></span>
+                                    <h3 className="text-base font-black text-white uppercase tracking-widest">Billing & Biaya</h3>
                                 </div>
 
-                                <div className="space-y-8">
+                                <div className="space-y-6">
                                     <div className="space-y-4">
                                         <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-gold-accent/60 ml-1">Siklus Penagihan</label>
                                         <div className="grid grid-cols-3 gap-2">
@@ -490,7 +490,7 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                                                     key={modeValue}
                                                     type="button"
                                                     onClick={() => setForm(p => ({ ...p, billingPeriodMode: modeValue }))}
-                                                    className={`h-11 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${form.billingPeriodMode === modeValue ? "bg-gold-accent text-slate-900 shadow-gold-glow" : "bg-white/5 text-white/40 hover:bg-white/10 hover:text-white border border-white/5"}`}
+                                                    className={`h-9 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${form.billingPeriodMode === modeValue ? "bg-gold-accent text-slate-900 shadow-gold-glow" : "bg-white/5 text-white/40 hover:bg-white/10 hover:text-white border border-white/5"}`}
                                                 >
                                                     {modeValue === "bulanan" ? "Bulan" : modeValue === "3bulanan" ? "3 Bln" : "Kustom"}
                                                 </button>
@@ -498,15 +498,15 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                                         </div>
 
                                         {form.billingPeriodMode === "custom" && (
-                                            <div className="p-5 rounded-2xl bg-black/40 border border-white/10 space-y-4 animate-in slide-in-from-top-4 duration-500 shadow-inner-glass">
-                                                <div className="flex items-center gap-3 mb-2">
+                                            <div className="p-4 rounded-xl bg-black/40 border border-white/10 space-y-3 animate-in slide-in-from-top-4 duration-500 shadow-inner-glass">
+                                                <div className="flex items-center gap-3 mb-1">
                                                     <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Konfigurasi Periode</p>
                                                 </div>
                                                 <div className="flex gap-3">
                                                     <div className="flex-[2] relative group">
-                                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[9px] font-black text-gold-accent/40 uppercase tracking-widest pointer-events-none group-focus-within:text-gold-accent transition-colors">SETIAP</span>
+                                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-gold-accent/40 uppercase tracking-widest pointer-events-none group-focus-within:text-gold-accent transition-colors">SETIAP</span>
                                                         <input
-                                                            className="w-full h-12 pl-16 pr-4 rounded-xl bg-black/20 border border-white/10 text-xs font-bold text-white outline-none focus:border-gold-accent/40 focus:bg-black/40 transition-all shadow-inner-glass [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none backdrop-blur-md"
+                                                            className="w-full h-9 pl-14 pr-3 rounded-xl bg-black/20 border border-white/10 text-[10px] font-bold text-white outline-none focus:border-gold-accent/40 focus:bg-black/40 transition-all shadow-inner-glass [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none backdrop-blur-md"
                                                             min="1"
                                                             onKeyDown={(e) => { if (e.key === '-' || e.key === 'e' || e.key === 'E') e.preventDefault(); }}
                                                             type="number"
@@ -519,7 +519,7 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                                                         <GlassCustomSelect
                                                             value={form.billingCustomUnit}
                                                             onChange={(val) => setForm(p => ({ ...p, billingCustomUnit: val }))}
-                                                            heightClass="h-12"
+                                                            heightClass="h-9"
                                                             options={[
                                                                 { value: "hari", label: "HARI" },
                                                                 { value: "bulan", label: "BULAN" },
@@ -543,12 +543,12 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                                         onChange={(val) => { if (val === '' || Number(val) >= 0) setForm(p => ({ ...p, activationFeeAmount: val })); }}
                                     />
 
-                                    <div className="p-6 rounded-2xl bg-gold-accent/5 border border-gold-accent/20 backdrop-blur-md">
-                                        <div className="flex items-center gap-3 mb-2">
-                                            <span className="material-symbols-outlined text-gold-accent text-sm">info</span>
+                                    <div className="p-5 rounded-xl bg-gold-accent/5 border border-gold-accent/20 backdrop-blur-md">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <span className="material-symbols-outlined text-gold-accent text-[15px]">info</span>
                                             <p className="text-[10px] font-black text-gold-accent uppercase tracking-widest">Informasi Sistem</p>
                                         </div>
-                                        <p className="text-[10px] text-white/40 font-medium leading-relaxed uppercase tracking-widest">
+                                        <p className="text-[10px] text-white/40 font-medium leading-relaxed">
                                             Invoice dan kontrak pertama akan dibuat secara otomatis setelah data disimpan.
                                         </p>
                                     </div>
