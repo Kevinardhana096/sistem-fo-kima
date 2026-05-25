@@ -2490,6 +2490,18 @@ export const monitoringApi = {
       ?? getLatestVersion(contract)
     );
 
+    const getContractRange = (contract) => {
+      let start = contract.start_date;
+      let end = contract.end_date;
+      const versions = contract.versions || [];
+      versions.forEach(v => {
+        if (v.deleted_at) return;
+        if (v.start_date && (!start || v.start_date < start)) start = v.start_date;
+        if (v.end_date && (!end || v.end_date > end)) end = v.end_date;
+      });
+      return { start, end };
+    };
+
     const getCurrentContract = (contracts = []) => {
       const sortedContracts = [...contracts].sort((left, right) => {
         const leftStart = getDateValue(left.start_date);
@@ -2501,19 +2513,36 @@ export const monitoringApi = {
       const yearStart = `${selectedYear}-01-01`;
       const yearEnd = `${selectedYear}-12-31`;
 
-      return sortedContracts.find(contract => contract.start_date <= yearEnd && contract.end_date >= yearStart)
-        ?? sortedContracts.find(contract => contract.start_date <= today && contract.end_date >= today)
-        ?? sortedContracts.find(contract => contract.start_date > today)
+      return sortedContracts.find(contract => {
+        const range = getContractRange(contract);
+        return range.start <= yearEnd && range.end >= yearStart;
+      })
+        ?? sortedContracts.find(contract => {
+          const range = getContractRange(contract);
+          return range.start <= today && range.end >= today;
+        })
+        ?? sortedContracts.find(contract => {
+          const range = getContractRange(contract);
+          return range.start > today;
+        })
         ?? sortedContracts[0]
         ?? null;
     };
 
     const isMonthInsideContract = (contract, month) => {
       if (!contract?.start_date || !contract?.end_date) return false;
-      const monthStart = `${year}-${String(month).padStart(2, '0')}-01`;
+      const monthStart = `${selectedYear}-${String(month).padStart(2, '0')}-01`;
       const monthEndDate = new Date(Date.UTC(selectedYear, month, 0));
       const monthEnd = monthEndDate.toISOString().slice(0, 10);
-      return monthEnd >= contract.start_date && monthStart <= contract.end_date;
+      
+      const insideBase = monthEnd >= contract.start_date && monthStart <= contract.end_date;
+      if (insideBase) return true;
+
+      const versions = contract.versions || [];
+      return versions.some(version => {
+        if (version.deleted_at) return false;
+        return monthEnd >= version.start_date && monthStart <= version.end_date;
+      });
     };
 
     const getLatestRouteVersion = (customerRouteVersions = []) => (
@@ -3195,6 +3224,19 @@ export const documentsApi = {
     const { data, error } = await supabase
       .from('documents')
       .insert(mapDocumentPayload(documentData))
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  // Update document
+  async update(id, documentData) {
+    const { data, error } = await supabase
+      .from('documents')
+      .update(mapDocumentPayload(documentData))
+      .eq('id', id)
       .select()
       .single();
 

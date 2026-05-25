@@ -335,7 +335,11 @@ function GlassInput({ label, icon, ...props }) {
 
 function formatDisplayContractNumber(contractNumber) {
   const normalizedNumber = String(contractNumber ?? "").trim();
-  if (!normalizedNumber || normalizedNumber.startsWith("NO-BAK-")) {
+  if (
+    !normalizedNumber
+    || normalizedNumber.startsWith("NO-BAK-")
+    || normalizedNumber.startsWith("CTR-")
+  ) {
     return "-";
   }
   return normalizedNumber;
@@ -376,6 +380,7 @@ function TenantDetailPage({
   const [documentFeedback, setDocumentFeedback] = useState("");
   const [isUploadingDocument, setIsUploadingDocument] = useState(false);
   const [isUploadingContractFile, setIsUploadingContractFile] = useState(false);
+  const [isUploadingBakFile, setIsUploadingBakFile] = useState(false);
   const [versionEditor, setVersionEditor] = useState(null);
   const [versionError, setVersionError] = useState("");
   const [isSubmittingVersion, setIsSubmittingVersion] = useState(false);
@@ -409,7 +414,10 @@ function TenantDetailPage({
   const [isMarkingActivationFeePaid, setIsMarkingActivationFeePaid] = useState(false);
   const [contractNumberInputs, setContractNumberInputs] = useState({});
   const [isSavingContractNumber, setIsSavingContractNumber] = useState(false);
+  const [editingContractNumberRows, setEditingContractNumberRows] = useState({});
   const [emptyContractNumberRows, setEmptyContractNumberRows] = useState({});
+  const [bakNumberInputs, setBakNumberInputs] = useState({});
+  const [isSavingBakNumber, setIsSavingBakNumber] = useState(false);
   const [emptyBakRows, setEmptyBakRows] = useState({});
   const [routeBusy, setRouteBusy] = useState(false);
   const [routeFeedback, setRouteFeedback] = useState("");
@@ -611,29 +619,43 @@ function TenantDetailPage({
     return null;
   }, [contractById, contractVersionById]);
   const shouldArchiveInvoice = useCallback((invoice) => {
-    if (invoice?.scheduleStatus === "history") {
-      return true;
-    }
-
     const contractPeriodEnd = resolveInvoiceContractPeriodEnd(invoice);
-    if (contractPeriodEnd && contractPeriodEnd < todayIso) {
-      return true;
-    }
-
     const contractKey = Number(invoice?.contractId ?? invoice?.contract_id);
     if (Number.isFinite(contractKey)) {
       const contractRow = contractById.get(contractKey);
       const contractEndDate = contractRow?.endDate ?? contractRow?.end_date ?? null;
+      const resolvedContractEnd = contractPeriodEnd ?? contractEndDate;
+      const contractStatus = String(contractRow?.status ?? "").toLowerCase();
+
+      // Keep invoices from the still-running contract window in the active cycle table,
+      // even if their persisted schedule status was previously marked as history.
+      if (
+        contractRow &&
+        contractStatus !== "expired" &&
+        contractStatus !== "nonaktif" &&
+        (!resolvedContractEnd || resolvedContractEnd >= todayIso)
+      ) {
+        return false;
+      }
+
+      if (contractPeriodEnd && contractPeriodEnd < todayIso) {
+        return true;
+      }
+
       if (
         contractRow &&
         (
-          contractRow.status === "expired" ||
-          contractRow.status === "nonaktif" ||
+          contractStatus === "expired" ||
+          contractStatus === "nonaktif" ||
           (contractEndDate && contractEndDate < todayIso)
         )
       ) {
         return true;
       }
+    }
+
+    if (invoice?.scheduleStatus === "history") {
+      return true;
     }
 
     return false;
@@ -1556,6 +1578,59 @@ function TenantDetailPage({
       ?? contractRow?.core_total
       ?? "-";
   };
+  const resolveContractMonthlyAmount = useCallback((contractRow, version = null) => {
+    const directMonthlyAmount = Number(
+      version?.monthlyAmount
+      ?? version?.monthly_amount
+      ?? contractRow?.monthlyAmount
+      ?? contractRow?.monthly_amount
+      ?? 0,
+    );
+    if (Number.isFinite(directMonthlyAmount) && directMonthlyAmount > 0) {
+      return directMonthlyAmount;
+    }
+
+    const yearlyAmount = Number(
+      version?.yearlyAmount
+      ?? version?.yearly_amount
+      ?? contractRow?.yearlyAmount
+      ?? contractRow?.yearly_amount
+      ?? 0,
+    );
+    if (Number.isFinite(yearlyAmount) && yearlyAmount > 0) {
+      return Math.round(yearlyAmount / 12);
+    }
+
+    const periodStart = String(version?.startDate ?? version?.start_date ?? contractRow?.startDate ?? contractRow?.start_date ?? "").slice(0, 10);
+    const periodEnd = String(version?.endDate ?? version?.end_date ?? contractRow?.endDate ?? contractRow?.end_date ?? "").slice(0, 10);
+    const targetVersionId = Number(version?.id ?? NaN);
+    const targetContractId = Number(contractRow?.id ?? NaN);
+    const invoiceMatch = invoices.find((invoice) => {
+      const invoiceVersionId = Number(invoice?.contractVersionId ?? invoice?.contract_version_id ?? NaN);
+      const invoiceContractId = Number(invoice?.contractId ?? invoice?.contract_id ?? NaN);
+      const invoicePeriodStart = String(invoice?.periodStartDate ?? invoice?.period_start_date ?? "").slice(0, 10);
+      const amount = Number(invoice?.amount ?? 0);
+      if (!Number.isFinite(amount) || amount <= 0) {
+        return false;
+      }
+
+      if (Number.isFinite(targetVersionId) && invoiceVersionId === targetVersionId) {
+        return true;
+      }
+
+      if (!Number.isFinite(targetVersionId) && Number.isFinite(targetContractId) && invoiceContractId === targetContractId) {
+        if (!periodStart || !periodEnd) {
+          return true;
+        }
+        return invoicePeriodStart >= periodStart && invoicePeriodStart <= periodEnd;
+      }
+
+      return false;
+    });
+
+    const inferredAmount = Number(invoiceMatch?.amount ?? 0);
+    return Number.isFinite(inferredAmount) && inferredAmount > 0 ? inferredAmount : null;
+  }, [invoices]);
   const contractsForTable = Array.isArray(detail?.contracts)
     ? [...detail.contracts].sort((left, right) => (
         getRowPeriodTime({ periodEnd: left?.endDate ?? left?.end_date, periodStart: left?.startDate ?? left?.start_date })
@@ -1586,7 +1661,12 @@ function TenantDetailPage({
     const note = getContractRowNote(periodStart, periodEnd);
 
     const versionContractNumber = version
-      ? (version?.contractNumber ?? version?.contract_number)
+      ? (
+          version?.contractNumber
+          ?? version?.contract_number
+          ?? contractRow.contractNumber
+          ?? contractRow.contract_number
+        )
       : (contractRow.contractNumber ?? contractRow.contract_number);
 
     return {
@@ -1603,29 +1683,36 @@ function TenantDetailPage({
       periodEnd,
       paket: getContractPackageDisplay(resolveContractPackageType(rowSource)),
       jumlahPaket: resolveContractActualValue(rowSource),
-      monthlyAmount: version?.monthlyAmount ?? version?.monthly_amount ?? null,
+      monthlyAmount: resolveContractMonthlyAmount(contractRow, version),
       yearlyAmount: version?.yearlyAmount ?? version?.yearly_amount ?? null,
       hasBak: Boolean(
         version?.id
           ? bakDocumentByVersionId.get(Number(version.id))
           : (contractRow.id ? bakDocumentByContractId.get(Number(contractRow.id)) : null),
       ),
+      bakDocumentId: (
+        version?.id
+          ? bakDocumentByVersionId.get(Number(version.id))?.id
+          : (contractRow.id ? bakDocumentByContractId.get(Number(contractRow.id))?.id : null)
+      ) ?? null,
+      bakFileUrl: (
+        version?.id
+          ? bakDocumentByVersionId.get(Number(version.id))?.fileUrl
+          : (contractRow.id ? bakDocumentByContractId.get(Number(contractRow.id))?.fileUrl : null)
+      ) ?? null,
+      bakNumber: (
+        version?.id
+          ? bakDocumentByVersionId.get(Number(version.id))?.nomorDokumen
+          : (contractRow.id ? bakDocumentByContractId.get(Number(contractRow.id))?.nomorDokumen : null)
+      ) ?? null,
       renewalFollowUps: Array.isArray(version?.renewalFollowUps)
         ? version.renewalFollowUps
         : [],
     };
   };
   const contractRowsForTable = contractsForTable.flatMap((contractRow) => {
-    const rows = [
-      buildContractTableRow({
-        contractRow,
-        id: `contract-${contractRow.id ?? "unknown"}`,
-        number: 0,
-      }),
-    ];
-
-    if (Array.isArray(contractRow.versions)) {
-      const versionRows = [...contractRow.versions]
+    const versionRows = Array.isArray(contractRow.versions)
+      ? [...contractRow.versions]
         .sort((left, right) => (
           getRowPeriodTime({ periodEnd: left?.endDate ?? left?.end_date, periodStart: left?.startDate ?? left?.start_date })
           - getRowPeriodTime({ periodEnd: right?.endDate ?? right?.end_date, periodStart: right?.startDate ?? right?.start_date })
@@ -1635,11 +1722,48 @@ function TenantDetailPage({
           version,
           id: `version-${version.id ?? `${contractRow.id}-${version.startDate ?? version.start_date ?? "unknown"}`}`,
           number: 0,
-        }));
-      rows.push(...versionRows);
+        }))
+      : [];
+
+    const baseRow = buildContractTableRow({
+      contractRow,
+      id: `contract-${contractRow.id ?? "unknown"}`,
+      number: 0,
+    });
+
+    if (versionRows.length > 0) {
+      const basePeriodKey = `${baseRow.periodStart ?? ""}::${baseRow.periodEnd ?? ""}`;
+      const hasMatchingVersionPeriod = versionRows.some((row) => (
+        `${row.periodStart ?? ""}::${row.periodEnd ?? ""}` === basePeriodKey
+      ));
+
+      if (hasMatchingVersionPeriod) {
+        return versionRows;
+      }
+
+      const earliestVersionStart = [...versionRows]
+        .map((row) => String(row.periodStart ?? "").slice(0, 10))
+        .filter(Boolean)
+        .sort()[0] ?? null;
+      const basePeriodStart = String(baseRow.periodStart ?? "").slice(0, 10);
+      const shouldForceLegacyContractNumber = Boolean(
+        earliestVersionStart
+        && basePeriodStart
+        && basePeriodStart < earliestVersionStart,
+      );
+
+      return [
+        {
+          ...baseRow,
+          // When the base legacy period predates all explicit renewal versions,
+          // do not inherit the latest contract number from the parent contract row.
+          contractNumber: shouldForceLegacyContractNumber ? "-" : baseRow.contractNumber,
+        },
+        ...versionRows,
+      ];
     }
 
-    return rows;
+    return [baseRow];
   }).sort((left, right) => getRowPeriodTime(right) - getRowPeriodTime(left))
     .map((row, index) => ({ ...row, number: index + 1 }));
 
@@ -1872,6 +1996,37 @@ function TenantDetailPage({
     }
   };
 
+  const handleSaveBakNumber = async (row) => {
+    const value = String(bakNumberInputs[row.id] ?? "").trim();
+    if (!value) {
+      setError("Nomor BAK wajib diisi sebelum disimpan.");
+      return;
+    }
+    setIsSavingBakNumber(true);
+    setError("");
+    try {
+      if (row.bakDocumentId) {
+        await api.documents.update(row.bakDocumentId, { nomorDokumen: value });
+      } else {
+        await api.documents.create({
+          customer_id: customer.id,
+          contract_id: row.contractId ?? null,
+          contract_version_id: row.versionId ?? null,
+          jenis_dokumen: "BAK",
+          nomor_dokumen: value,
+          tanggal_dokumen: todayIso,
+          file_url: "",
+        });
+      }
+      setBakNumberInputs((prev) => { const n = { ...prev }; delete n[row.id]; return n; });
+      await Promise.all([loadDetail(), onRefreshAll?.()]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Gagal menyimpan nomor BAK.");
+    } finally {
+      setIsSavingBakNumber(false);
+    }
+  };
+
   const openVersionEditor = () => {
     const latestVersion = versions[0];
     const packageType = latestVersion?.sharedCoreRatio ?? contract?.sharingRatio ? "sharing_core" : "core";
@@ -2039,6 +2194,32 @@ function TenantDetailPage({
       );
     } finally {
       setIsUploadingContractFile(false);
+    }
+  };
+
+  const handleUploadBakFile = async ({ row, file }) => {
+    if (!file) return;
+    setIsUploadingBakFile(true);
+    setError("");
+    try {
+      const fileUrl = await uploadFileForRecord(file, ["customers", customer.id, "bak"]);
+      if (row.bakDocumentId) {
+        await api.documents.update(row.bakDocumentId, { file_url: fileUrl });
+      } else {
+        await api.documents.create({
+          customer_id: customer.id,
+          contract_id: row.contractId ?? null,
+          contract_version_id: row.versionId ?? null,
+          jenis_dokumen: "BAK",
+          tanggal_dokumen: todayIso,
+          file_url: fileUrl,
+        });
+      }
+      await Promise.all([loadDetail(), onRefreshAll?.()]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Gagal mengunggah berkas BAK.");
+    } finally {
+      setIsUploadingBakFile(false);
     }
   };
 
@@ -4299,7 +4480,41 @@ function TenantDetailPage({
                                             {/* Nomor Kontrak */}
                                             <td className="px-5 py-4">
                                                 {row.contractNumber ? (
-                                                    <span className="text-[11px] font-black text-white uppercase tracking-tight">{row.contractNumber}</span>
+                                                    editingContractNumberRows[row.id] ? (
+                                                        <div className="flex items-center gap-1.5">
+                                                            <input
+                                                                className="h-8 w-36 rounded-lg border border-white/10 bg-white/5 px-3 text-[10px] font-bold text-white outline-none focus:border-gold-accent/50 transition-all placeholder:text-white/10 backdrop-blur-md"
+                                                                onChange={(e) => setContractNumberInputs((prev) => ({ ...prev, [row.id]: e.target.value }))}
+                                                                placeholder="No. kontrak..."
+                                                                type="text"
+                                                                value={contractNumberInputs[row.id] ?? ""}
+                                                            />
+                                                            <button
+                                                                className="h-8 px-3 rounded-lg border border-gold-accent/20 bg-gold-accent/10 text-gold-accent text-[8px] font-black uppercase tracking-widest hover:bg-gold-accent hover:text-[#0f141e] transition-all disabled:opacity-40 backdrop-blur-md"
+                                                                disabled={isSavingContractNumber}
+                                                                onClick={() => void handleSaveContractNumber(row)}
+                                                            >
+                                                                Simpan
+                                                            </button>
+                                                            <button
+                                                                className="h-8 px-2 rounded-lg border border-white/10 bg-white/5 text-white/40 text-[8px] font-black hover:bg-white/10 transition-all"
+                                                                onClick={() => setEditingContractNumberRows((prev) => ({ ...prev, [row.id]: false }))}
+                                                            >
+                                                                Batal
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-[11px] font-black text-white uppercase tracking-tight">{row.contractNumber}</span>
+                                                            <button
+                                                                className="h-6 w-6 rounded-md border border-white/10 bg-white/5 flex items-center justify-center text-white/20 hover:text-gold-accent hover:border-gold-accent/30 transition-all"
+                                                                onClick={() => { setContractNumberInputs((prev) => ({ ...prev, [row.id]: row.contractNumber })); setEditingContractNumberRows((prev) => ({ ...prev, [row.id]: true })); }}
+                                                                title="Edit nomor kontrak"
+                                                            >
+                                                                <span className="material-symbols-outlined text-[12px]">edit</span>
+                                                            </button>
+                                                        </div>
+                                                    )
                                                 ) : (
                                                     <div className="space-y-2">
                                                         {!isContractNumberMarkedEmpty && (
@@ -4405,24 +4620,44 @@ function TenantDetailPage({
 
                                             {/* BAK */}
                                             <td className="px-5 py-4">
-                                                {row.hasBak ? (
-                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 text-[8px] font-black uppercase tracking-widest backdrop-blur-md">
-                                                        <span className="material-symbols-outlined text-[12px]">verified</span>
-                                                        Ada
-                                                    </span>
-                                                ) : (
-                                                    <div className="space-y-1.5">
-                                                        <span className={`inline-flex px-2.5 py-1 rounded-full border text-[8px] font-black uppercase tracking-widest ${isBakMarkedEmpty ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400" : "border-white/10 bg-white/5 text-white/20"}`}>
-                                                            {isBakMarkedEmpty ? "Tidak Diperlukan" : "Belum Ada"}
-                                                        </span>
+                                                <div className="flex flex-col gap-1.5">
+                                                    <label className={`relative inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border text-[8px] font-black uppercase tracking-widest transition-all cursor-pointer ${isUploadingBakFile ? 'border-white/5 bg-white/[0.02] text-white/10 cursor-not-allowed' : 'border-white/10 bg-white/5 text-white/40 hover:border-white/20 hover:text-white'}`}>
+                                                        <span className="material-symbols-outlined text-[13px]">upload_file</span>
+                                                        {isOpenableFileUrl(row.bakFileUrl) ? "Ganti" : "Upload"}
+                                                        <input
+                                                            className="absolute inset-0 opacity-0 cursor-pointer"
+                                                            disabled={isUploadingBakFile}
+                                                            onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleUploadBakFile({ row, file: f }); }}
+                                                            type="file"
+                                                        />
+                                                    </label>
+                                                    {isOpenableFileUrl(row.bakFileUrl) && (
+                                                        <a
+                                                            className="inline-flex items-center gap-1 text-[8px] font-black text-gold-accent uppercase tracking-widest hover:underline underline-offset-2"
+                                                            href={row.bakFileUrl}
+                                                            target="_blank" rel="noopener noreferrer"
+                                                        >
+                                                            <span className="material-symbols-outlined text-[11px]">open_in_new</span>
+                                                            Lihat
+                                                        </a>
+                                                    )}
+                                                    {!isOpenableFileUrl(row.bakFileUrl) && !isBakMarkedEmpty && (
                                                         <button
                                                             className="block text-[8px] font-black text-gold-accent/50 uppercase tracking-widest hover:text-gold-accent underline underline-offset-2"
                                                             onClick={() => toggleBakEmptyMark(row.id)}
                                                         >
-                                                            {isBakMarkedEmpty ? "Batalkan" : "Tandai Tidak Perlu"}
+                                                            Tandai Tidak Perlu
                                                         </button>
-                                                    </div>
-                                                )}
+                                                    )}
+                                                    {isBakMarkedEmpty && (
+                                                        <button
+                                                            className="block text-[8px] font-black text-emerald-400/70 uppercase tracking-widest hover:text-emerald-400 underline underline-offset-2"
+                                                            onClick={() => toggleBakEmptyMark(row.id)}
+                                                        >
+                                                            Batalkan
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </td>
 
                                             {/* Perpanjangan */}
@@ -4665,7 +4900,7 @@ function TenantDetailPage({
                                                     />
                                                 ) : (
                                                     <span className="text-[11px] font-black text-white/60">
-                                                        {invoice.invoiceNumber || <span className="text-white/20 italic font-normal">—</span>}
+                                                        {invoice.invoiceNumber || <span className="text-white/20 italic font-normal">-</span>}
                                                     </span>
                                                 )}
                                             </td>
@@ -5046,7 +5281,7 @@ function TenantDetailPage({
                                         <tr key={invoice.id} className="hover:bg-white/[0.01] transition-colors">
                                             <td className="px-8 py-4 text-[10px] font-black text-white/10">{idx + 1}</td>
                                             <td className="px-8 py-4 text-xs font-black text-white/40 uppercase">Sequence #{invoice.paymentOrder}</td>
-                                            <td className="px-8 py-4 text-xs font-bold text-white/60">{invoice.invoiceNumber || "—"}</td>
+                                            <td className="px-8 py-4 text-xs font-bold text-white/60">{invoice.invoiceNumber || "-"}</td>
                                             <td className="px-8 py-4 text-[10px] font-bold text-white/30 uppercase">{periodLabel}</td>
                                             <td className="px-8 py-4 text-xs font-black text-white/60">{formatCurrency(invoice.amount ?? 0)}</td>
                                             <td className="px-8 py-4">
