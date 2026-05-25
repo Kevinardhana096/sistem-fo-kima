@@ -115,11 +115,11 @@ export default function DashboardPage({
     }, [customers, isps]);
 
     const sharingRows = useMemo(() => ([
-        { ratio: '1:2', count: dashboardMetrics?.sharingCounts?.['1/2'] ?? 0 },
-        { ratio: '1:4', count: dashboardMetrics?.sharingCounts?.['1/4'] ?? 0 },
-        { ratio: '1:8', count: dashboardMetrics?.sharingCounts?.['1/8'] ?? 0 },
-        { ratio: '1:16', count: dashboardMetrics?.sharingCounts?.['1/16'] ?? 0 },
-        { ratio: '1:32', count: dashboardMetrics?.sharingCounts?.['1/32'] ?? 0 },
+        { ratio: '1:2', count: dashboardMetrics?.sharingCounts?.['1/2'] ?? 0, color: 'text-[#d4a937]', bg: 'bg-[#d4a937]/10', border: 'bg-[#d4a937]' },
+        { ratio: '1:4', count: dashboardMetrics?.sharingCounts?.['1/4'] ?? 0, color: 'text-[#00687b]', bg: 'bg-[#00687b]/10', border: 'bg-[#00687b]' },
+        { ratio: '1:8', count: dashboardMetrics?.sharingCounts?.['1/8'] ?? 0, color: 'text-[#10b981]', bg: 'bg-[#10b981]/10', border: 'bg-[#10b981]' },
+        { ratio: '1:16', count: dashboardMetrics?.sharingCounts?.['1/16'] ?? 0, color: 'text-[#8b5cf6]', bg: 'bg-[#8b5cf6]/10', border: 'bg-[#8b5cf6]' },
+        { ratio: '1:32', count: dashboardMetrics?.sharingCounts?.['1/32'] ?? 0, color: 'text-[#f43f5e]', bg: 'bg-[#f43f5e]/10', border: 'bg-[#f43f5e]' },
     ]), [dashboardMetrics]);
 
     const sharingTrendData = dashboardMetrics?.sharingTrend?.length ? dashboardMetrics.sharingTrend : [];
@@ -322,7 +322,7 @@ export default function DashboardPage({
                 </section>
 
                 {/* Row 2: Core Trend & Sharing Details */}
-                <section className="relative z-30 grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-[360px]">
+                <section className="relative z-30 grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-[300px]">
                     {/* Core Chart with Toggle */}
                     <div className={`${glassCardClass} z-[60] flex flex-col overflow-visible lg:col-span-2 h-full`}>
                         <div className="flex flex-col md:flex-row md:items-center justify-between mb-3 gap-2 relative z-50">
@@ -348,6 +348,16 @@ export default function DashboardPage({
                                 </div>
                             </div>
                         </div>
+                        {/* Legend moved above chart */}
+                        {coreChartType === "sharing" && (
+                            <div className="flex flex-wrap items-center justify-start gap-x-3 gap-y-1 mb-4 relative z-50">
+                                <LegendItem dotColor="bg-[#d4a937]" label="1:2" small />
+                                <LegendItem dotColor="bg-[#00687b]" label="1:4" small />
+                                <LegendItem dotColor="bg-[#10b981]" label="1:8" small />
+                                <LegendItem dotColor="bg-[#8b5cf6]" label="1:16" small />
+                                <LegendItem dotColor="bg-[#f43f5e]" label="1:32" small />
+                            </div>
+                        )}
                         <div ref={coreTrendChartRef} className="h-[220px] w-full min-w-0 md:h-[240px]">
                             <ResponsiveContainer width="100%" height={220}>
                                 <LineChart data={coreChartType === "sharing" ? visibleSharingTrendData : visibleCoreTrendData} margin={{ top: 5, right: 5, bottom: 5, left: -25 }}>
@@ -370,16 +380,7 @@ export default function DashboardPage({
                                 </LineChart>
                             </ResponsiveContainer>
                         </div>
-                        {/* Legend */}
-                        {coreChartType === "sharing" && (
-                            <div className="flex flex-wrap items-center justify-start gap-x-3 gap-y-1 mt-3">
-                                <LegendItem dotColor="bg-[#d4a937]" label="1:2" small />
-                                <LegendItem dotColor="bg-[#00687b]" label="1:4" small />
-                                <LegendItem dotColor="bg-[#10b981]" label="1:8" small />
-                                <LegendItem dotColor="bg-[#8b5cf6]" label="1:16" small />
-                                <LegendItem dotColor="bg-[#f43f5e]" label="1:32" small />
-                            </div>
-                        )}
+
                         <div className="relative z-50 mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                                 <ChartFilterSelector filter={coreTrendExportFilter} setFilter={setCoreTrendExportFilter} availableYears={availableYears} showCurrentMonthOption />
@@ -409,17 +410,44 @@ export default function DashboardPage({
 
                     {/* Card 2: Sewa Sharing Core (Tabel) */}
                     <div className={`${glassCardClass} flex flex-col lg:col-span-1 h-full`}>
-                        <div className="flex items-center gap-2 mb-3">
-                            <span className="h-4 w-1 bg-gold-accent rounded-full"></span>
-                            <h2 className="text-base font-black text-white tracking-tight leading-none">Rincian Sharing Core</h2>
+                        <div className="mb-3 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <span className="h-4 w-1 bg-gold-accent rounded-full"></span>
+                                <h2 className="text-base font-black text-on-surface tracking-tight">Rincian Sharing Core</h2>
+                            </div>
+                            <span className="px-2 py-0.5 rounded-full bg-white/10 text-white/60 text-[8px] font-black uppercase">5 PAKET</span>
                         </div>
-                        <div className="flex-1 flex flex-col justify-between">
-                            {sharingRows.map((item) => (
-                                <div key={item.ratio} className="flex justify-between items-center py-1.5 px-2.5 mb-1.5 rounded-lg hover:bg-white/10 hover:shadow-[0_0_15px_rgba(255,255,255,0.08)] transition-all border border-white/10 last:mb-0 group cursor-default backdrop-blur-md">
-                                    <span className="text-[9px] font-black text-white/80 uppercase tracking-widest transition-colors">Ratio {item.ratio}</span>
-                                    <span className="text-base font-black text-white">{item.count}</span>
+                        <div className="flex-1 flex flex-col">
+                            <div className="space-y-1.5 overflow-y-auto pr-1 custom-scrollbar">
+                                {sharingRows.map((item) => (
+                                    <div key={item.ratio} className="flex items-center justify-between p-2.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/12 transition-all backdrop-blur-md">
+                                        <div className="flex items-center gap-2">
+                                            <div>
+                                                <p className="text-[8px] font-black text-white/50 uppercase tracking-widest mb-0.5">Paket</p>
+                                                <p className={`text-[11px] font-black uppercase tracking-wider ${item.color}`}>{item.ratio}</p>
+                                            </div>
+                                        </div>
+                                        <div className="text-right flex items-baseline gap-1.5">
+                                            <span className={`text-sm font-black ${item.color}`}>{item.count}</span>
+                                            <span className="text-[8px] font-black text-white/40 uppercase tracking-widest">Lokasi</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="mt-auto pt-3 border-t border-white/10">
+                                <div className="flex items-center justify-between p-2.5 rounded-lg bg-gold-accent/10 border border-gold-accent/20 backdrop-blur-md">
+                                    <div className="flex items-center gap-2">
+                                        <div>
+                                            <p className="text-[8px] font-black text-white/50 uppercase tracking-widest mb-0.5">Total Lokasi</p>
+                                            <p className="text-[11px] font-black text-gold-accent uppercase tracking-wider">Semua Paket</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-right flex items-baseline gap-1.5">
+                                        <span className="text-base font-black text-gold-accent">{sharingRows.reduce((sum, item) => sum + item.count, 0)}</span>
+                                        <span className="text-[8px] font-black text-gold-accent/50 uppercase tracking-widest">Lokasi</span>
+                                    </div>
                                 </div>
-                            ))}
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -450,9 +478,9 @@ export default function DashboardPage({
                                 </div>
                             </div>
                         </div>
-                        <div className="h-[220px] w-full min-w-0 md:h-[250px]">
-                            <ResponsiveContainer width="100%" height={220}>
-                                <LineChart data={growthData[growthType]}>
+                        <div className="flex-1 w-full min-w-0 min-h-[220px] -ml-2 pb-2">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <LineChart data={growthData[growthType]} margin={{ top: 5, right: 5, bottom: 5, left: -25 }}>
                                     <CartesianGrid strokeDasharray="0" vertical={false} stroke="rgba(255,255,255,0.08)" />
                                     <XAxis dataKey="year" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 900, fill: 'rgba(255,255,255,0.6)' }} dy={15} />
                                     <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 900, fill: 'rgba(255,255,255,0.6)' }} />
