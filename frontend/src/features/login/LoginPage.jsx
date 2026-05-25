@@ -120,22 +120,7 @@ export default function LoginPage({ onLoginSuccess }) {
                         border: "1px solid rgba(255,255,255,0.12)",
                     }}
                 >
-                    {/* ─── Garis Kuning Pemisah Tengah ─── */}
-                    <div style={{
-                        position: "absolute",
-                        left: "50%",
-                        top: isStacked ? activePanel === "login" ? 178 : 128 : "25%",
-                        bottom: isStacked ? "auto" : "25%",
-                        width: isStacked ? "44%" : 4,
-                        height: isStacked ? 4 : "auto",
-                        display: isMobile ? "none" : "block",
-                        background: isStacked ? "linear-gradient(90deg, transparent, #f0c040 20%, #f0c040 80%, transparent)" : "linear-gradient(180deg, transparent, #f0c040 20%, #f0c040 80%, transparent)",
-                        borderRadius: 999,
-                        zIndex: 15,
-                        transform: isStacked ? "translate(-50%, -50%)" : "translateX(-50%)",
-                        boxShadow: "0 0 12px rgba(240,192,64,0.5)",
-                        pointerEvents: "none",
-                    }} />
+
 
                     {/* ─── LEFT: Bantuan Akses (always rendered, revealed when sliding panel moves away) ─── */}
                     <div
@@ -144,7 +129,7 @@ export default function LoginPage({ onLoginSuccess }) {
                             display: activePanel === "forgot" || !isStacked ? "flex" : "none",
                             flexDirection: "column",
                             justifyContent: "center",
-                            background: "rgba(255,255,255,0.08)",
+                            background: "rgba(255,255,255,0.13)",
                             minHeight: isStacked ? "auto" : "unset",
                             order: isStacked ? 1 : 0,
                         }}
@@ -199,7 +184,6 @@ export default function LoginPage({ onLoginSuccess }) {
                             flexDirection: "column",
                             justifyContent: "center",
                             background: "rgba(255,255,255,0.13)",
-                            borderLeft: isStacked ? "none" : "1px solid rgba(255,255,255,0.1)",
                             order: isStacked ? 1 : 0,
                         }}
                     >
