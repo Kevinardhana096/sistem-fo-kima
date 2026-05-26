@@ -204,6 +204,11 @@
     filter: brightness(1.05);
   }
 
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(212, 169, 55, 0.8) transparent;
+  }
+
   .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
     height: 6px;

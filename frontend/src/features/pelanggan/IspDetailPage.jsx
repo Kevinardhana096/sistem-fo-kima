@@ -94,30 +94,30 @@ const GlassCustomSelect = ({ label, value, onChange, options, icon, heightClass 
     }, []);
 
     return (
-        <div className={`space-y-3 relative ${isOpen ? "z-[60]" : "z-0"}`} ref={containerRef}>
+        <div className={`space-y-1.5 relative ${isOpen ? "z-[60]" : "z-0"}`} ref={containerRef}>
             {label && (
-                <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-gold-accent/40 ml-1">
+                <label className="block text-[8px] font-black uppercase tracking-[0.3em] pl-1 text-gold-accent/40">
                     {label}
                 </label>
             )}
             <div className="relative">
                 <div
                     onClick={() => setIsOpen(!isOpen)}
-                    className={`rounded-xl bg-black/20 border flex items-center transition-all cursor-pointer shadow-inner-glass relative z-20 ${isOpen ? "border-gold-accent/60 bg-black/40 shadow-gold-glow" : "border-white/10 text-white/70 hover:border-white/30"} ${heightClass} w-full px-4 text-[10px] font-black`}
+                    className={`rounded-lg bg-black/20 border flex items-center transition-all cursor-pointer shadow-inner-glass relative z-20 ${isOpen ? "border-gold-accent/60 bg-black/40 shadow-gold-glow" : "border-white/10 text-white/70 hover:border-white/30"} ${heightClass} w-full px-4 text-[9px] font-bold`}
                 >
                     {icon && (
-                        <span className="material-symbols-outlined mr-3 text-lg" style={{ color: isOpen ? "#d4a937" : "rgba(255,255,255,0.2)" }}>
+                        <span className="material-symbols-outlined mr-2" style={{ fontSize: "16px", color: isOpen ? "#d4a937" : "rgba(255,255,255,0.2)" }}>
                             {icon}
                         </span>
                     )}
-                    <span className="truncate uppercase tracking-widest">{selectedOption.label}</span>
-                    <span className={`material-symbols-outlined ml-auto transition-transform duration-300 ${isOpen ? "rotate-180 text-gold-accent" : "text-white/20"}`}>
+                    <span className="truncate">{selectedOption.label}</span>
+                    <span className={`material-symbols-outlined ml-auto transition-transform duration-300 text-[16px] ${isOpen ? "rotate-180 text-gold-accent" : "text-white/20"}`}>
                         expand_more
                     </span>
                 </div>
 
                 {isOpen && (
-                    <div className="absolute top-full mt-2 p-2 rounded-2xl bg-black/80 backdrop-blur-3xl border border-white/10 shadow-glass-depth z-50 animate-in fade-in zoom-in-95 duration-200 overflow-hidden left-0 right-0 max-h-64 overflow-y-auto custom-scrollbar">
+                    <div className="absolute top-full mt-2 p-1.5 rounded-xl bg-black/80 backdrop-blur-3xl border border-white/10 shadow-glass-depth z-50 animate-in fade-in zoom-in-95 duration-200 overflow-hidden left-0 right-0 max-h-64 overflow-y-auto custom-scrollbar">
                         {options.map((opt) => (
                             <div
                                 key={opt.value}
@@ -125,7 +125,7 @@ const GlassCustomSelect = ({ label, value, onChange, options, icon, heightClass 
                                     onChange(opt.value);
                                     setIsOpen(false);
                                 }}
-                                className={`flex items-center px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest cursor-pointer transition-all mb-1 last:mb-0 ${value === opt.value ? "bg-gold-accent/10 text-gold-accent border border-gold-accent/20 shadow-gold-glow" : "text-white/40 hover:bg-white/5 hover:text-white"}`}
+                                className={`flex items-center px-4 py-2.5 rounded-lg text-[9px] font-bold cursor-pointer transition-all mb-1 last:mb-0 ${value === opt.value ? "bg-gold-accent/10 text-gold-accent border border-gold-accent/20 shadow-gold-glow" : "text-white/40 hover:bg-white/5 hover:text-white"}`}
                             >
                                 {opt.label}
                                 {value === opt.value && <span className="material-symbols-outlined ml-auto text-sm">check_circle</span>}
@@ -703,23 +703,23 @@ function IspDetailPage({
             {/* ── POPUP AKUN ISP ─────────────────────────────────────────── */}
             {userPopupOpen && createPortal(
                 <div className="fixed inset-0 z-[200] flex items-center justify-center px-4 backdrop-blur-md bg-black/60 animate-fade-in duration-300">
-                    <div className="w-full max-w-lg rounded-[2.5rem] glass-card backdrop-blur-xl p-10 border border-white/20 shadow-[0_0_100px_rgba(0,0,0,0.8)] animate-in zoom-in-95 duration-300 relative overflow-hidden">
+                    <div className="w-full max-w-sm rounded-2xl glass-card backdrop-blur-xl p-5 border border-white/20 shadow-[0_0_100px_rgba(0,0,0,0.8)] animate-in zoom-in-95 duration-300 relative overflow-hidden">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-gold-accent/5 blur-3xl pointer-events-none" />
                         
                         {/* Header */}
-                        <div className="mb-10 flex items-center justify-between relative z-10">
-                            <div className="space-y-1">
-                                <h3 className="text-2xl font-black text-white tracking-widest uppercase">
+                        <div className="mb-5 flex items-center justify-between relative z-10">
+                            <div className="space-y-0.5">
+                                <h3 className="text-base font-black text-white tracking-widest uppercase">
                                     Akun Akses ISP
                                 </h3>
                                 <p className="text-[9px] font-bold text-gold-accent/40 tracking-[0.3em] uppercase">{ispName}</p>
                             </div>
                             <button 
-                                className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white/30 hover:bg-[#ff2400]/10 hover:border-[#ff2400]/40 hover:text-[#ff2400] transition-all duration-300 shadow-sm" 
+                                className="w-7 h-7 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white/30 hover:bg-[#ff2400]/10 hover:border-[#ff2400]/40 hover:text-[#ff2400] transition-all duration-300 shadow-sm" 
                                 onClick={() => { setUserPopupOpen(false); setShowPassword(false); setUserPopupMode("view"); }} 
                                 type="button"
                             >
-                                <span className="material-symbols-outlined">close</span>
+                                <span className="material-symbols-outlined text-[14px]">close</span>
                             </button>
                         </div>
 
@@ -732,7 +732,7 @@ function IspDetailPage({
                                 </div>
                             ) : userPopupMode === "view" ? (
                                 /* ── VIEW MODE ── */
-                                <div className="space-y-6">
+                                <div className="space-y-4">
                                     {userPopupData?.hasUser ? (
                                         <>
                                             {/* Status */}
@@ -748,24 +748,24 @@ function IspDetailPage({
                                                 { label: "Username", value: userPopupData.user.username, icon: "person" },
                                                 { label: "Email", value: userPopupData.user.email, icon: "alternate_email" },
                                             ].map(({ label, value, icon }) => (
-                                                <div key={label} className="space-y-2">
-                                                    <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-white/40 ml-1">{label}</label>
-                                                    <div className="flex items-center gap-4 rounded-2xl border border-white/10 bg-black/40 px-5 py-4">
-                                                        <span className="material-symbols-outlined text-[16px] text-white/20 shrink-0">{icon}</span>
+                                                <div key={label} className="space-y-1">
+                                                    <label className="block text-[8px] font-black uppercase tracking-[0.3em] text-white/40 ml-1">{label}</label>
+                                                    <div className="flex items-center gap-2.5 rounded-xl border border-white/10 bg-black/40 px-3 py-2">
+                                                        <span className="material-symbols-outlined text-[10px] text-white/20 shrink-0">{icon}</span>
                                                         <div className="flex-1 min-w-0">
-                                                            <p className="text-sm font-bold text-white truncate">{value}</p>
+                                                            <p className="text-[11px] font-bold text-white truncate">{value}</p>
                                                         </div>
                                                     </div>
                                                 </div>
                                             ))}
 
                                             {/* Password row */}
-                                            <div className="space-y-2">
-                                                <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-white/40 ml-1">Password</label>
-                                                <div className="flex items-center gap-4 rounded-2xl border border-white/10 bg-black/40 px-5 py-4">
-                                                    <span className="material-symbols-outlined text-[16px] text-white/20 shrink-0">lock</span>
+                                            <div className="space-y-1">
+                                                <label className="block text-[8px] font-black uppercase tracking-[0.3em] text-white/40 ml-1">Password</label>
+                                                <div className="flex items-center gap-2.5 rounded-xl border border-white/10 bg-black/40 px-3 py-2">
+                                                    <span className="material-symbols-outlined text-[10px] text-white/20 shrink-0">lock</span>
                                                     <div className="flex-1 min-w-0">
-                                                        <p className="text-sm font-bold text-white tracking-widest">
+                                                        <p className="text-[11px] font-bold text-white tracking-widest">
                                                             {showPassword
                                                                 ? (userPopupData.user.passwordPlain ?? <span className="text-white/20 italic font-normal normal-case tracking-normal">Tidak tersimpan</span>)
                                                                 : "••••••••••"
@@ -777,7 +777,7 @@ function IspDetailPage({
                                                         onClick={() => setShowPassword(s => !s)}
                                                         type="button"
                                                     >
-                                                        <span className="material-symbols-outlined text-[18px]">{showPassword ? "visibility_off" : "visibility"}</span>
+                                                        <span className="material-symbols-outlined text-[12px]">{showPassword ? "visibility_off" : "visibility"}</span>
                                                     </button>
                                                 </div>
                                             </div>
@@ -800,17 +800,17 @@ function IspDetailPage({
                                 </div>
                             ) : (
                                 /* ── EDIT MODE ── */
-                                <div className="space-y-6">
+                                <div className="space-y-4">
                                     {[
                                         { label: "Username", key: "username", icon: "person", type: "text", placeholder: "username_isp" },
                                         { label: "Email", key: "email", icon: "alternate_email", type: "email", placeholder: "email@isp.com" },
                                     ].map(({ label, key, icon, type, placeholder }) => (
-                                        <div key={key} className="space-y-3">
-                                            <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-white/40 ml-1">{label}</label>
+                                        <div key={key} className="space-y-1.5">
+                                            <label className="block text-[8px] font-black uppercase tracking-[0.3em] text-white/40 ml-1">{label}</label>
                                             <div className="relative group">
-                                                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-[16px] text-white/20 group-focus-within:text-gold-accent transition-colors pointer-events-none">{icon}</span>
+                                                <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] text-white/20 group-focus-within:text-gold-accent transition-colors pointer-events-none">{icon}</span>
                                                 <input
-                                                    className="w-full rounded-2xl bg-black/40 border border-white/10 pl-12 pr-4 py-4 text-sm font-bold text-white outline-none focus:border-gold-accent/50 transition-all placeholder:text-white/10"
+                                                    className="w-full rounded-xl bg-black/40 border border-white/10 pl-8 pr-3 py-2 text-[11px] font-bold text-white outline-none focus:border-gold-accent/50 transition-all placeholder:text-white/10"
                                                     onChange={e => setUserForm(f => ({ ...f, [key]: e.target.value }))}
                                                     placeholder={placeholder}
                                                     type={type}
@@ -821,23 +821,23 @@ function IspDetailPage({
                                     ))}
 
                                     {/* Password */}
-                                    <div className="space-y-3">
-                                        <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-white/40 ml-1">Password Baru <span className="text-white/20 normal-case font-normal">(kosongkan jika tidak diubah)</span></label>
+                                    <div className="space-y-1.5">
+                                        <label className="block text-[8px] font-black uppercase tracking-[0.3em] text-white/40 ml-1">Password Baru <span className="text-white/20 normal-case font-normal">(kosong)</span></label>
                                         <div className="relative group">
-                                            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-[16px] text-white/20 group-focus-within:text-gold-accent transition-colors pointer-events-none">lock</span>
+                                            <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] text-white/20 group-focus-within:text-gold-accent transition-colors pointer-events-none">lock</span>
                                             <input
-                                                className="w-full rounded-2xl bg-black/40 border border-white/10 pl-12 pr-12 py-4 text-sm font-bold text-white outline-none transition-all focus:border-gold-accent/50 placeholder:text-white/10"
+                                                className="w-full rounded-xl bg-black/40 border border-white/10 pl-8 pr-8 py-2 text-[11px] font-bold text-white outline-none transition-all focus:border-gold-accent/50 placeholder:text-white/10"
                                                 onChange={e => setUserForm(f => ({ ...f, password: e.target.value }))}
                                                 placeholder="••••••••"
                                                 type={showPassword ? "text" : "password"}
                                                 value={userForm.password}
                                             />
                                             <button
-                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-white/20 hover:text-white/60 transition-colors"
+                                                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/20 hover:text-white/60 transition-colors"
                                                 onClick={() => setShowPassword(s => !s)}
                                                 type="button"
                                             >
-                                                <span className="material-symbols-outlined text-[16px]">{showPassword ? "visibility_off" : "visibility"}</span>
+                                                <span className="material-symbols-outlined text-[12px]">{showPassword ? "visibility_off" : "visibility"}</span>
                                             </button>
                                         </div>
                                     </div>
@@ -851,18 +851,18 @@ function IspDetailPage({
 
                         {/* Footer Buttons */}
                         {!userPopupLoading && (
-                            <div className="mt-12 flex justify-end gap-4 relative z-10">
+                            <div className="mt-6 flex justify-end gap-3 relative z-10">
                                 {userPopupMode === "view" ? (
                                     <>
                                         <button
-                                            className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-white transition-all"
+                                            className="px-4 py-1.5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:text-white transition-all"
                                             onClick={() => { setUserPopupOpen(false); setShowPassword(false); }}
                                             type="button"
                                         >
                                             Tutup
                                         </button>
                                         <button
-                                            className="px-6 py-4 rounded-2xl bg-white/5 border border-white/10 hover:border-gold-accent/40 text-[10px] font-black uppercase tracking-widest text-white hover:text-gold-accent transition-all duration-300 flex items-center gap-2"
+                                            className="px-4 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:border-gold-accent/40 text-[8px] font-black uppercase tracking-widest text-white hover:text-gold-accent transition-all duration-300 flex items-center gap-1.5"
                                             onClick={() => { setUserPopupMode("edit"); setUserPopupFeedback(""); setUserPopupError(""); setShowPassword(false); }}
                                             type="button"
                                         >
@@ -873,14 +873,14 @@ function IspDetailPage({
                                 ) : (
                                     <>
                                         <button
-                                            className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-white transition-all"
+                                            className="px-4 py-1.5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:text-white transition-all"
                                             onClick={() => { setUserPopupMode("view"); setUserPopupError(""); setShowPassword(false); }}
                                             type="button"
                                         >
                                             Batal
                                         </button>
                                         <button
-                                            className="px-8 py-4 rounded-2xl bg-gold-accent text-[10px] font-black uppercase tracking-widest text-slate-900 hover:opacity-90 active:scale-95 transition-all shadow-gold-glow flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                                            className="px-4 py-1.5 rounded-lg bg-gold-accent text-[8px] font-black uppercase tracking-widest text-slate-900 hover:opacity-90 active:scale-95 transition-all shadow-gold-glow flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
                                             disabled={userPopupSaving}
                                             onClick={() => void handleSaveUserPopup()}
                                             type="button"
@@ -902,58 +902,58 @@ function IspDetailPage({
                 <div className="absolute bottom-[-5%] left-[-5%] w-[30%] h-[30%] rounded-full bg-[#ff2400]/5 blur-[100px]" />
             </div>
 
-            <div className="space-y-8 pb-20 pt-2 md:pt-4">
+            <div className="space-y-4 pb-20 pt-2 md:pt-4">
                 {/* 1. TOP BAR & PROFILE CARD SECTION */}
-                <div className="flex flex-col gap-10">
+                <div className="flex flex-col gap-2">
                     {/* Top Bar: Back & Actions */}
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
                             <button
-                                className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-white/40 hover:text-gold-accent transition-all group"
+                                className="inline-flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.2em] text-white/40 hover:text-gold-accent transition-all group"
                                 onClick={onBack}
                                 type="button"
                             >
-                                <span className="material-symbols-outlined text-base transition-transform group-hover:-translate-x-1">arrow_back</span>
+                                <span className="material-symbols-outlined text-[10px] transition-transform group-hover:-translate-x-1">arrow_back</span>
                                 KEMBALI KE WORKSPACE
                             </button>
                         </div>
 
                         {!isTeknisi && (
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1.5">
                                 <button
-                                    className="h-12 px-5 flex items-center gap-2 rounded-xl bg-white/5 border border-white/10 text-white/60 hover:bg-white/10 hover:text-white transition-all shadow-sm group text-[10px] font-black uppercase tracking-widest backdrop-blur-md"
+                                    className="h-7 px-3 flex items-center gap-1.5 rounded-lg bg-white/5 border border-white/10 text-white/60 hover:bg-white/10 hover:text-white transition-all shadow-sm group text-[8px] font-black uppercase tracking-widest backdrop-blur-md"
                                     onClick={() => void loadDetail()}
                                     title="Refresh Data"
                                 >
-                                    <span className="material-symbols-outlined text-lg group-hover:rotate-180 transition-transform duration-500">sync</span>
+                                    <span className="material-symbols-outlined text-[10px] group-hover:rotate-180 transition-transform duration-500">sync</span>
                                     Refresh
                                 </button>
                                 {/* Tombol Akun ISP */}
                                 <button
-                                    className="inline-flex items-center gap-2 h-12 px-5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white transition-all shadow-sm text-[10px] font-black uppercase tracking-widest backdrop-blur-md"
+                                    className="inline-flex items-center gap-1.5 h-7 px-3 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white transition-all shadow-sm text-[8px] font-black uppercase tracking-widest backdrop-blur-md"
                                     onClick={() => void openUserPopup()}
                                     title="Lihat / Edit Akun ISP"
                                 >
-                                    <span className="material-symbols-outlined text-base">manage_accounts</span>
+                                    <span className="material-symbols-outlined text-[10px]">manage_accounts</span>
                                     Akun Akses
                                 </button>
                                 {canEditIsp && (
                                     <button
-                                        className="h-12 px-5 flex items-center gap-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500 hover:text-white transition-all shadow-sm text-[10px] font-black uppercase tracking-widest backdrop-blur-md"
+                                        className="h-7 px-3 flex items-center gap-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500 hover:text-white transition-all shadow-sm text-[8px] font-black uppercase tracking-widest backdrop-blur-md"
                                         onClick={() => onEditIsp?.(detail ?? isp)}
                                         title="Edit ISP"
                                     >
-                                        <span className="material-symbols-outlined text-lg">edit_note</span>
+                                        <span className="material-symbols-outlined text-[10px]">edit_note</span>
                                         Edit ISP
                                     </button>
                                 )}
                                 {canDeleteIsp && (
                                     <button
-                                        className="h-12 px-5 flex items-center gap-2 rounded-xl bg-[#ff2400]/10 border border-[#ff2400]/20 text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all shadow-sm text-[10px] font-black uppercase tracking-widest backdrop-blur-md"
+                                        className="h-7 px-3 flex items-center gap-1.5 rounded-lg bg-[#ff2400]/10 border border-[#ff2400]/20 text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all shadow-sm text-[8px] font-black uppercase tracking-widest backdrop-blur-md"
                                         onClick={handleDeleteIsp}
                                         title="Hapus ISP"
                                     >
-                                        <span className="material-symbols-outlined text-lg">delete_forever</span>
+                                        <span className="material-symbols-outlined text-[10px]">delete_forever</span>
                                         Hapus ISP
                                     </button>
                                 )}
@@ -970,20 +970,20 @@ function IspDetailPage({
                         {/* Top accent line */}
                         <div className="h-px w-full bg-gradient-to-r from-transparent via-gold-accent/30 to-transparent" />
 
-                        <div className="relative p-6 md:p-8 space-y-6">
+                        <div className="relative p-4 md:p-5 space-y-4">
                             {/* Row 1: Identity + Status */}
                             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                                 {/* Left: icon + label + name */}
-                                <div className="min-w-0 flex-1 space-y-3">
-                                    <div className="flex items-center gap-2.5">
-                                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-gold-accent/20 bg-gold-accent/10 text-gold-accent backdrop-blur-md">
-                                            <span className="material-symbols-outlined text-lg">corporate_fare</span>
+                                <div className="min-w-0 flex-1 space-y-1.5">
+                                    <div className="flex items-center gap-2">
+                                        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-gold-accent/20 bg-gold-accent/10 text-gold-accent backdrop-blur-md">
+                                            <span className="material-symbols-outlined" style={{ fontSize: "12px" }}>corporate_fare</span>
                                         </div>
                                         <div>
-                                            <p className="text-[8px] font-black uppercase tracking-[0.4em] text-white/20">Internet Service Provider</p>
+                                            <p className="text-[7px] font-black uppercase tracking-[0.4em] text-white/20">Internet Service Provider</p>
                                         </div>
                                     </div>
-                                    <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white uppercase leading-tight">
+                                    <h1 className="text-lg md:text-xl font-black tracking-tight text-white uppercase leading-tight">
                                         {ispName}
                                     </h1>
                                 </div>
@@ -991,12 +991,11 @@ function IspDetailPage({
                                 {/* Right: status pill */}
                                 <div className="flex shrink-0 items-start">
                                     <div className={`inline-flex items-center gap-2 rounded-xl border px-3.5 py-2 ${isOperationallyActive(detail?.status ?? isp.status) ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-white/5 border-white/10 text-white/30'}`}>
-                                        <span className={`material-symbols-outlined text-[14px] ${isOperationallyActive(detail?.status ?? isp.status) ? 'text-emerald-400' : 'text-white/30'}`}>{isOperationallyActive(detail?.status ?? isp.status) ? 'check_circle' : 'cancel'}</span>
+                                        <span className={`material-symbols-outlined text-[12px] ${isOperationallyActive(detail?.status ?? isp.status) ? 'text-emerald-400' : 'text-white/30'}`}>{isOperationallyActive(detail?.status ?? isp.status) ? 'check_circle' : 'cancel'}</span>
                                         <div>
                                             <p className="text-[7px] font-black uppercase tracking-[0.3em] text-white/20">Status</p>
                                             <p className={`text-[9px] font-black uppercase tracking-widest ${isOperationallyActive(detail?.status ?? isp.status) ? 'text-emerald-400' : 'text-white/30'}`}>{getOperationalLabel(detail?.status ?? isp.status)}</p>
                                         </div>
-                                        <span className={`h-1.5 w-1.5 rounded-full ${isOperationallyActive(detail?.status ?? isp.status) ? 'bg-emerald-400 shadow-emerald-glow animate-pulse' : 'bg-white/20'}`} />
                                     </div>
                                 </div>
                             </div>
@@ -1010,7 +1009,7 @@ function IspDetailPage({
                                 <div className="space-y-1.5">
                                     <p className="text-[8px] font-black uppercase tracking-[0.35em] text-white/20">Nomor Kontrak</p>
                                     <div className="flex items-center gap-2">
-                                        <span className="material-symbols-outlined text-[14px] text-gold-accent/60">description</span>
+                                        <span className="material-symbols-outlined text-[12px] text-gold-accent/60">description</span>
                                         <p className="text-[11px] font-black text-gold-accent uppercase tracking-wide italic">{contractRef}</p>
                                     </div>
                                 </div>
@@ -1019,7 +1018,7 @@ function IspDetailPage({
                                 <div className="space-y-1.5">
                                     <p className="text-[8px] font-black uppercase tracking-[0.35em] text-white/20">Periode Awal Kontrak</p>
                                     <div className="flex items-center gap-2">
-                                        <span className="material-symbols-outlined text-[14px] text-emerald-400/60">event_available</span>
+                                        <span className="material-symbols-outlined text-[12px] text-emerald-400/60">event_available</span>
                                         <p className="text-[11px] font-black text-white tracking-wide font-mono">
                                             {detail?.contractStartDate ?? isp.contractStartDate ? formatDate(detail?.contractStartDate ?? isp.contractStartDate) : "—"}
                                         </p>
@@ -1030,7 +1029,7 @@ function IspDetailPage({
                                 <div className="space-y-1.5">
                                     <p className="text-[8px] font-black uppercase tracking-[0.35em] text-white/20">Periode Berjalan</p>
                                     <div className="flex items-center gap-2">
-                                        <span className="material-symbols-outlined text-[14px] text-sky-400/60">date_range</span>
+                                        <span className="material-symbols-outlined text-[12px] text-sky-400/60">date_range</span>
                                         <p className="text-[11px] font-black text-white tracking-wide font-mono">
                                             {detail?.contractPeriodStart ?? isp.contractPeriodStart ?? detail?.contractPeriodEnd ?? isp.contractPeriodEnd
                                                 ? <>{formatDate(detail?.contractPeriodStart ?? isp.contractPeriodStart)}<span className="mx-1.5 text-white/20 font-normal">—</span>{formatDate(detail?.contractPeriodEnd ?? isp.contractPeriodEnd)}</>
@@ -1044,7 +1043,7 @@ function IspDetailPage({
                                 <div className="space-y-1.5">
                                     <p className="text-[8px] font-black uppercase tracking-[0.35em] text-white/20">Paket</p>
                                     <div className="flex items-center gap-2">
-                                        <span className="material-symbols-outlined text-[14px] text-amber-400/60">hub</span>
+                                        <span className="material-symbols-outlined text-[12px] text-amber-400/60">hub</span>
                                         <p className="text-[11px] font-black text-white tracking-wide uppercase">
                                             {(() => {
                                                 const packageQty = detail?.packageQuantity ?? isp.packageQuantity ?? detail?.jumlah ?? isp.jumlah;
@@ -1062,9 +1061,9 @@ function IspDetailPage({
                 </div>
 
                 {/* 2. TABS NAVIGATION */}
-                <section className="glass-card backdrop-blur-xl rounded-premium p-1.5 border-white/10 shadow-glass-depth relative overflow-hidden">
+                <section className="glass-card backdrop-blur-xl rounded-2xl p-1 border-white/10 shadow-glass-depth relative overflow-hidden">
                     <div className="absolute inset-0 bg-white/[0.02] pointer-events-none" />
-                    <nav className="relative flex flex-wrap gap-2">
+                    <nav className="relative flex flex-wrap gap-1">
                         {[
                             { id: "overview", label: "Ringkasan", icon: "dashboard" },
                             { id: "customers", label: "Daftar Lokasi", icon: "groups" },
@@ -1077,11 +1076,11 @@ function IspDetailPage({
                         ].map((tab) => (
                             <button
                                 key={tab.id}
-                                className={`flex items-center gap-3 px-8 py-4 rounded-2xl text-[10px] font-black tracking-[0.1em] transition-all duration-500 relative overflow-hidden ${activeTab === tab.id ? "text-white bg-gold-accent shadow-gold-glow" : "text-white/60 hover:text-white hover:bg-white/5"}`}
+                                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-[9px] font-black tracking-[0.1em] transition-all duration-500 relative overflow-hidden ${activeTab === tab.id ? "text-white bg-gold-accent shadow-gold-glow" : "text-white/60 hover:text-white hover:bg-white/5"}`}
                                 onClick={() => handleTabChange(tab.id)}
                                 type="button"
                             >
-                                <span className={`material-symbols-outlined text-xl relative z-10 ${activeTab === tab.id ? "scale-110 text-white" : ""}`}>{tab.icon}</span>
+                                <span className={`material-symbols-outlined relative z-10 ${activeTab === tab.id ? "scale-110 text-white" : ""}`} style={{ fontSize: "18px" }}>{tab.icon}</span>
                                 <span className="relative z-10">{tab.label}</span>
                             </button>
                         ))}
@@ -1107,102 +1106,119 @@ function IspDetailPage({
                         )}
 
                         {activeTab === "overview" && (
-                            <div className="space-y-6">
+                            <div className="space-y-2">
                                 {/* Stats Cards */}
-                                <section className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-12">
+                                <section className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-12">
                                     {/* Card 1: Total Lokasi */}
-                                    <div className="md:col-span-2 lg:col-span-2 glass-card backdrop-blur-xl rounded-premium p-6 border-white/10 shadow-glass-depth bg-white/[0.02] flex flex-col justify-between relative overflow-hidden group hover:border-gold-accent/20 transition-all duration-500">
-                                        <div className="flex justify-between items-start mb-6">
-                                            <div>
-                                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">Total Lokasi</p>
-                                                <p className="mt-1 text-[8px] font-bold text-white/20 uppercase tracking-widest">Seluruh lokasi terdaftar</p>
-                                            </div>
-                                            <div className="h-10 w-10 flex items-center justify-center rounded-xl bg-gold-accent/10 border border-gold-accent/20 text-gold-accent shadow-sm">
-                                                <span className="material-symbols-outlined text-xl">groups</span>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-baseline gap-2">
-                                            <span className="text-4xl font-black text-white leading-none">{summary.tenantCount ?? allTenants.length}</span>
-                                            <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Titik Layanan</span>
+                                    <div className="md:col-span-2 lg:col-span-2 glass-card backdrop-blur-xl rounded-lg p-3 border-white/10 shadow-glass-depth relative overflow-hidden group hover:border-gold-accent/30 transition-all duration-500 border-l-2 border-l-gold-accent">
+                                        <div className="absolute top-0 right-0 w-32 h-32 bg-gold-accent/5 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 group-hover:bg-gold-accent/10 transition-colors duration-500" />
+                                        <div className="flex flex-col h-full justify-center text-center relative z-10">
+                                            <p className="text-[9px] font-bold text-white/50 uppercase tracking-[0.2em] mb-1">Total Lokasi</p>
+                                            <span className="text-3xl font-black text-white tracking-tighter drop-shadow-md">{summary.tenantCount ?? allTenants.length}</span>
                                         </div>
                                     </div>
 
                                     {/* Card 2: Status Lokasi */}
-                                    <div className="md:col-span-1 lg:col-span-5 glass-card backdrop-blur-xl rounded-premium p-6 border-white/10 shadow-glass-depth bg-white/[0.02] flex flex-col justify-between relative overflow-hidden group hover:border-gold-accent/20 transition-all duration-500">
-                                        <div className="flex justify-between items-start mb-4">
-                                            <div>
-                                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">Status Lokasi</p>
-                                                <p className="mt-1 text-[8px] font-bold text-white/20 uppercase tracking-widest">Rincian status operasional</p>
+                                    <div className="md:col-span-1 lg:col-span-5 glass-card backdrop-blur-xl rounded-lg p-3 border-white/10 shadow-glass-depth relative overflow-hidden group hover:border-emerald-500/30 transition-all duration-500 border-l-2 border-l-emerald-500">
+                                        <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 group-hover:bg-emerald-500/10 transition-colors duration-500" />
+                                        <div className="relative z-10 flex flex-col h-full justify-center">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="h-3.5 w-1 bg-gold-accent rounded-full"></span>
+                                                    <p className="text-[10px] font-black text-white uppercase tracking-widest">Status Kontrak</p>
+                                                </div>
                                             </div>
-                                            <div className="h-10 w-10 flex items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shadow-sm">
-                                                <span className="material-symbols-outlined text-xl">check_circle</span>
-                                            </div>
-                                        </div>
-                                        <div className="grid grid-cols-4 gap-1.5 mt-2">
-                                            <div className="rounded-xl bg-emerald-500/5 border border-emerald-500/10 p-2 text-center">
-                                                <p className="text-[8px] font-bold text-emerald-400/60 uppercase tracking-wider">Beroperasi</p>
-                                                <p className="text-md font-black text-emerald-400 mt-1">{statusBeroperasiCount}</p>
-                                            </div>
-                                            <div className="rounded-xl bg-white/5 border border-white/10 p-2 text-center">
-                                                <p className="text-[8px] font-bold text-white/40 uppercase tracking-wider">Belum Beroperasi</p>
-                                                <p className="text-md font-black text-white/80 mt-1">{statusBelumBeroperasiCount}</p>
-                                            </div>
-                                            <div className="rounded-xl bg-[#ff2400]/5 border border-[#ff2400]/10 p-2 text-center">
-                                                <p className="text-[8px] font-bold text-[#ff2400]/60 uppercase tracking-wider">Belum Diperpanjang</p>
-                                                <p className="text-md font-black text-[#ff2400] mt-1">{statusBelumDiperpanjangCount}</p>
-                                            </div>
-                                            <div className="rounded-xl bg-white/5 border border-white/10 p-2 text-center">
-                                                <p className="text-[8px] font-bold text-white/30 uppercase tracking-wider">Berhenti</p>
-                                                <p className="text-md font-black text-white/60 mt-1">{statusBerhentiCount}</p>
+                                            
+                                            {/* Badges Grid */}
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-emerald-400/5 border border-emerald-400/10 hover:bg-emerald-400/10 transition-colors">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className="text-[7px] font-bold text-white/70 uppercase tracking-widest">Beroperasi</span>
+                                                    </div>
+                                                    <span className="text-sm font-black text-emerald-400">{statusBeroperasiCount}</span>
+                                                </div>
+                                                <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-sky-400/5 border border-sky-400/10 hover:bg-sky-400/10 transition-colors">
+                                                    <div className="flex items-center gap-1.5 min-w-0">
+                                                        <span className="text-[7px] font-bold text-white/70 uppercase tracking-widest truncate">Belum Beroperasi</span>
+                                                    </div>
+                                                    <span className="text-sm font-black text-sky-400 shrink-0 ml-1">{statusBelumBeroperasiCount}</span>
+                                                </div>
+                                                <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-[#ff2400]/5 border border-[#ff2400]/10 hover:bg-[#ff2400]/10 transition-colors">
+                                                    <div className="flex items-center gap-1.5 min-w-0">
+                                                        <span className="text-[7px] font-bold text-white/70 uppercase tracking-widest truncate">Belum Diperpanjang</span>
+                                                    </div>
+                                                    <span className="text-sm font-black text-[#ff2400] shrink-0 ml-1">{statusBelumDiperpanjangCount}</span>
+                                                </div>
+                                                <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className="text-[7px] font-bold text-white/70 uppercase tracking-widest">Berhenti</span>
+                                                    </div>
+                                                    <span className="text-sm font-black text-white/60">{statusBerhentiCount}</span>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
 
                                     {/* Card 3: Informasi Jalur */}
-                                    <div className="md:col-span-1 lg:col-span-5 glass-card backdrop-blur-xl rounded-premium p-6 border-white/10 shadow-glass-depth bg-white/[0.02] flex flex-col justify-between relative overflow-hidden group hover:border-gold-accent/20 transition-all duration-500">
-                                        <div className="flex justify-between items-start mb-4">
-                                            <div>
-                                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">Informasi Jalur</p>
-                                                <p className="mt-1 text-[8px] font-bold text-white/20 uppercase tracking-widest">Rincian status jalur FO</p>
+                                    <div className="md:col-span-1 lg:col-span-5 glass-card backdrop-blur-xl rounded-lg p-3 border-white/10 shadow-glass-depth relative overflow-hidden group hover:border-blue-500/30 transition-all duration-500 border-l-2 border-l-blue-500">
+                                        <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 group-hover:bg-blue-500/10 transition-colors duration-500" />
+                                        <div className="relative z-10 flex flex-col h-full justify-center">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="h-3.5 w-1 bg-gold-accent rounded-full"></span>
+                                                    <p className="text-[10px] font-black text-white uppercase tracking-widest">Status Jalur FO</p>
+                                                </div>
                                             </div>
-                                            <div className="h-10 w-10 flex items-center justify-center rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 shadow-sm">
-                                                <span className="material-symbols-outlined text-xl">lan</span>
-                                            </div>
-                                        </div>
-                                        <div className="grid grid-cols-4 gap-1.5 mt-2">
-                                            <div className="rounded-xl bg-emerald-500/5 border border-emerald-500/10 p-2 text-center">
-                                                <p className="text-[8px] font-bold text-emerald-400/60 uppercase tracking-wider">Aktif</p>
-                                                <p className="text-md font-black text-emerald-400 mt-1">{pathAktifCount}</p>
-                                            </div>
-                                            <div className="rounded-xl bg-[#ff2400]/5 border border-[#ff2400]/10 p-2 text-center">
-                                                <p className="text-[8px] font-bold text-[#ff2400]/60 uppercase tracking-wider">Gangguan</p>
-                                                <p className="text-md font-black text-[#ff2400] mt-1">{pathGangguanCount}</p>
-                                            </div>
-                                            <div className="rounded-xl bg-amber-500/5 border border-amber-500/10 p-2 text-center">
-                                                <p className="text-[8px] font-bold text-amber-400/60 uppercase tracking-wider">Perbaikan</p>
-                                                <p className="text-md font-black text-amber-400 mt-1">{pathPerbaikanCount}</p>
-                                            </div>
-                                            <div className="rounded-xl bg-white/5 border border-white/10 p-2 text-center">
-                                                <p className="text-[8px] font-bold text-white/30 uppercase tracking-wider">Nonaktif</p>
-                                                <p className="text-md font-black text-white/70 mt-1">{pathNonaktifCount}</p>
+                                            
+                                            {/* Badges Grid */}
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-emerald-400/5 border border-emerald-400/10 hover:bg-emerald-400/10 transition-colors">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className="text-[7px] font-bold text-white/70 uppercase tracking-widest">Aktif</span>
+                                                    </div>
+                                                    <span className="text-sm font-black text-emerald-400">{pathAktifCount}</span>
+                                                </div>
+                                                <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-[#ff2400]/5 border border-[#ff2400]/10 hover:bg-[#ff2400]/10 transition-colors">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className="text-[7px] font-bold text-white/70 uppercase tracking-widest">Gangguan</span>
+                                                    </div>
+                                                    <span className="text-sm font-black text-[#ff2400]">{pathGangguanCount}</span>
+                                                </div>
+                                                <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-amber-400/5 border border-amber-400/10 hover:bg-amber-400/10 transition-colors">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className="text-[7px] font-bold text-white/70 uppercase tracking-widest">Perbaikan</span>
+                                                    </div>
+                                                    <span className="text-sm font-black text-amber-400">{pathPerbaikanCount}</span>
+                                                </div>
+                                                <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className="text-[7px] font-bold text-white/70 uppercase tracking-widest">Nonaktif</span>
+                                                    </div>
+                                                    <span className="text-sm font-black text-white/60">{pathNonaktifCount}</span>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 </section>
 
-                                <section className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                                <section className="grid grid-cols-1 gap-2 lg:grid-cols-3">
                                     {/* Action Items List - Separated ISP & Lokasi */}
-                                    <div className="lg:col-span-2 space-y-6">
+                                    <div className="lg:col-span-2 space-y-2">
                                         {/* 1. Tindak Lanjut ISP */}
-                                        <div className="glass-card backdrop-blur-xl rounded-premium p-8 border-white/10 shadow-glass-depth relative overflow-hidden group/isp-actions">
+                                        <div className="glass-card backdrop-blur-xl rounded-lg p-3 border-white/10 shadow-glass-depth relative overflow-hidden group/isp-actions">
                                             <div className="absolute -right-24 -top-24 h-64 w-64 rounded-full bg-gold-accent/5 blur-3xl transition-all duration-700 group-hover/isp-actions:bg-gold-accent/10" />
 
-                                            <h3 className="text-xl font-bold text-white tracking-widest mb-8 flex items-center gap-4">
-                                                <span className="material-symbols-outlined text-gold-accent">admin_panel_settings</span>
-                                                Tindak Lanjut ISP
-                                            </h3>
+                                            <div className="flex items-center justify-between mb-4">
+                                                <h3 className="text-sm md:text-base font-bold text-white tracking-widest flex items-center gap-3">
+                                                    <span className="material-symbols-outlined text-gold-accent text-lg">admin_panel_settings</span>
+                                                    Tindak Lanjut ISP
+                                                </h3>
+                                                <div className="flex items-center justify-center min-w-[24px] h-6 px-2 rounded-full bg-gold-accent/10 border border-gold-accent/20 text-gold-accent text-[10px] font-black shadow-sm">
+                                                    {ispActionItems.length}
+                                                </div>
+                                            </div>
 
-                                            <div className="space-y-4 relative z-10">
+                                            <div className="space-y-3 relative z-10">
                                                 {ispActionItems.length === 0 ? (
                                                     <p className="text-xs font-bold text-white/20 italic p-8 text-center border border-dashed border-white/10 rounded-2xl">Tidak ada tindak lanjut administrasi ISP.</p>
                                                 ) : (
@@ -1226,16 +1242,16 @@ function IspDetailPage({
                                                         const statusLabel = item.readAt ? "Dibaca" : "Belum Dibaca";
 
                                                         return (
-                                                            <div key={itemKey} className={`flex flex-col lg:flex-row lg:items-center justify-between gap-6 rounded-2xl p-6 border transition-all hover:scale-[1.01] hover:shadow-2xl ${toneStyle}`}>
+                                                            <div key={itemKey} className={`flex flex-col lg:flex-row lg:items-center justify-between gap-2 rounded-sm p-2 border transition-all hover:scale-[1.01] hover:shadow-lg ${toneStyle}`}>
                                                                 <div className="space-y-1">
-                                                                    <div className="flex items-center gap-3">
-                                                                        <span className="material-symbols-outlined text-lg">contract_edit</span>
-                                                                        <h4 className="text-sm font-bold">{itemTitle}</h4>
-                                                                        {item.id && <span className="h-2 w-2 rounded-full bg-current opacity-60" title={statusLabel} />}
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="material-symbols-outlined text-base">contract_edit</span>
+                                                                        <h4 className="text-xs font-bold">{itemTitle}</h4>
+                                                                        {item.id && <span className="h-1.5 w-1.5 rounded-full bg-current opacity-60" title={statusLabel} />}
                                                                     </div>
-                                                                    <p className="text-[11px] font-bold opacity-70 leading-relaxed max-w-xl">{itemDescription}</p>
+                                                                    <p className="text-[9px] font-bold opacity-70 leading-relaxed max-w-xl">{itemDescription}</p>
                                                                 </div>
-                                                                <span className="text-[9px] font-bold bg-white/10 px-4 py-1.5 rounded-full border border-white/10">{actionLabel}</span>
+                                                                <span className="text-[8px] font-bold bg-white/10 px-3 py-1 rounded-full border border-white/10">{actionLabel}</span>
                                                             </div>
                                                         );
                                                     })
@@ -1244,15 +1260,20 @@ function IspDetailPage({
                                         </div>
 
                                         {/* 2. Tindak Lanjut Lokasi */}
-                                        <div className="glass-card backdrop-blur-xl rounded-premium p-8 border-white/10 shadow-glass-depth relative overflow-hidden group/lokasi-actions">
+                                        <div className="glass-card backdrop-blur-xl rounded-lg p-3 border-white/10 shadow-glass-depth relative overflow-hidden group/lokasi-actions">
                                             <div className="absolute -right-24 -top-24 h-64 w-64 rounded-full bg-[#ff2400]/5 blur-3xl transition-all duration-700 group-hover/lokasi-actions:bg-[#ff2400]/10" />
 
-                                            <h3 className="text-xl font-bold text-white tracking-widest mb-8 flex items-center gap-4">
-                                                <span className="material-symbols-outlined text-[#ff2400]">location_away</span>
-                                                Tindak Lanjut Lokasi
-                                            </h3>
+                                            <div className="flex items-center justify-between mb-4">
+                                                <h3 className="text-sm md:text-base font-bold text-white tracking-widest flex items-center gap-3">
+                                                    <span className="material-symbols-outlined text-[#ff2400] text-lg">location_away</span>
+                                                    Tindak Lanjut Lokasi
+                                                </h3>
+                                                <div className="flex items-center justify-center min-w-[24px] h-6 px-2 rounded-full bg-[#ff2400]/10 border border-[#ff2400]/20 text-[#ff2400] text-[10px] font-black shadow-sm">
+                                                    {totalTenantActionCount}
+                                                </div>
+                                            </div>
 
-                                            <div className="space-y-4 relative z-10">
+                                            <div className="space-y-3 relative z-10">
                                                 {(() => {
                                                     const pathIssues = allTenants.filter(t => (t.route?.activeFlowStatus ?? t.status_jalur) === "gangguan");
                                                     const issues = [...pathIssues, ...tenantActionRows.filter(t => !pathIssues.find(p => p.id === t.id))];
@@ -1266,20 +1287,20 @@ function IspDetailPage({
                                                         return (
                                                             <div
                                                                 key={`loc-${t.id}`}
-                                                                className={`flex flex-col lg:flex-row lg:items-center justify-between gap-6 rounded-2xl p-6 border transition-all hover:scale-[1.01] hover:shadow-2xl cursor-pointer ${isGangguan ? "bg-[#ff2400]/10 border-[#ff2400]/20 text-[#ff2400]" : "bg-white/5 border-white/10 text-white/80"}`}
+                                                                className={`flex flex-col lg:flex-row lg:items-center justify-between gap-2 rounded-sm p-2 border transition-all hover:scale-[1.01] hover:shadow-lg cursor-pointer ${isGangguan ? "bg-[#ff2400]/10 border-[#ff2400]/20 text-[#ff2400]" : "bg-white/5 border-white/10 text-white/80"}`}
                                                                 onClick={() => onOpenTenant(t, isGangguan ? "jalur" : "overview")}
                                                             >
                                                                 <div className="space-y-1">
-                                                                    <div className="flex items-center gap-3">
-                                                                        <span className="material-symbols-outlined text-lg">{isGangguan ? "router" : "warning"}</span>
-                                                                        <h4 className="text-sm font-bold">{t.name}</h4>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="material-symbols-outlined text-base">{isGangguan ? "router" : "warning"}</span>
+                                                                        <h4 className="text-xs font-bold">{t.name}</h4>
                                                                     </div>
-                                                                    <p className="text-[11px] font-bold opacity-70">
+                                                                    <p className="text-[9px] font-bold opacity-70">
                                                                         {isGangguan ? "Terdeteksi gangguan jalur fiber optik." : `Terdapat ${t.totalActions || 1} rincian berkas yang perlu dilengkapi.`}
                                                                     </p>
                                                                 </div>
-                                                                <div className="flex items-center gap-3">
-                                                                    <span className="text-[9px] font-bold bg-white/10 px-4 py-1.5 rounded-full border border-white/10">Buka Lokasi</span>
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="text-[8px] font-bold bg-white/10 px-3 py-1 rounded-full border border-white/10">Buka Lokasi</span>
                                                                 </div>
                                                             </div>
                                                         );
@@ -1290,43 +1311,29 @@ function IspDetailPage({
                                     </div>
 
                                     {/* Sidebar Stats - Updated */}
-                                    <div className="space-y-8">
-                                        <div className="glass-card backdrop-blur-xl rounded-premium p-8 border-white/10 shadow-glass-depth bg-white/[0.02]">
-                                            <h3 className="text-lg font-bold text-white tracking-widest mb-8">Ringkasan Tindak Lanjut</h3>
-                                            <div className="space-y-6">
-                                                <div className="flex items-center justify-between p-5 rounded-2xl bg-white/5 border border-white/10">
-                                                    <div className="space-y-1">
-                                                        <p className="text-[10px] font-bold text-white/30 tracking-widest">Tindak Lanjut ISP</p>
-                                                        <p className="text-2xl font-bold text-gold-accent">{ispActionItems.length}</p>
-                                                    </div>
-                                                    <span className="material-symbols-outlined text-gold-accent/40 text-3xl">admin_panel_settings</span>
-                                                </div>
+                                    <div className="space-y-2">
 
-                                                <div className="flex items-center justify-between p-5 rounded-2xl bg-white/5 border border-white/10">
-                                                    <div className="space-y-1">
-                                                        <p className="text-[10px] font-bold text-white/30 tracking-widest">Tindak Lanjut Lokasi</p>
-                                                        <p className="text-2xl font-bold text-[#ff2400]">{totalTenantActionCount}</p>
-                                                    </div>
-                                                    <span className="material-symbols-outlined text-[#ff2400]/40 text-3xl">location_on</span>
-                                                </div>
-
-                                            </div>
-                                        </div>
-
-                                        <div className="glass-card backdrop-blur-xl rounded-premium p-8 border-white/10 shadow-glass-depth">
-                                            <h3 className="text-lg font-bold text-white tracking-widest mb-8 flex items-center gap-3">
-                                                <span className="material-symbols-outlined text-blue-400">history</span>
+                                        <div className="glass-card backdrop-blur-xl rounded-lg p-3 border-white/10 shadow-glass-depth">
+                                            <h3 className="text-sm md:text-base font-bold text-white tracking-widest mb-5 flex items-center gap-2.5">
+                                                <span className="material-symbols-outlined text-blue-400 text-lg">history</span>
                                                 Aktivitas Terkini
                                             </h3>
-                                            <div className="space-y-6">
+                                            <div className="space-y-1.5">
                                                 {timeline.slice(0, 3).map((e) => (
-                                                    <div key={e.id} className="flex gap-4 relative group/history">
-                                                        <div className={`w-8 h-8 shrink-0 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center ${e.color} group-hover/history:scale-110 transition-all`}>
-                                                            <span className="material-symbols-outlined text-base">{e.icon}</span>
-                                                        </div>
-                                                        <div>
-                                                            <p className="text-xs font-bold text-white tracking-tight">{e.title}</p>
-                                                            <p className="text-[9px] font-bold text-white/20 mt-1 leading-relaxed">{e.description}</p>
+                                                    <div key={e.id} className="group/history py-2 border-b border-white/5 last:border-0 relative">
+                                                        <div className="flex items-start gap-3">
+                                                            <div className={`mt-0.5 w-6 h-6 rounded flex items-center justify-center shrink-0 ${e.bg || 'bg-white/5'} ${e.color || 'text-white/60'} group-hover/history:scale-105 transition-transform duration-300`}>
+                                                                <span className="material-symbols-outlined text-[12px]">{e.icon}</span>
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <div className="flex items-start justify-between gap-2 mb-1">
+                                                                    <p className="text-[10px] font-bold text-white/90 truncate group-hover/history:text-gold-accent transition-colors">{e.title}</p>
+                                                                    <span className="text-[8px] font-black text-white/30 uppercase shrink-0">
+                                                                        {new Date(e.date).toLocaleString('id-ID', {day: 'numeric', month: 'short', hour: '2-digit', minute:'2-digit'}).replace(',', ' •')}
+                                                                    </span>
+                                                                </div>
+                                                                <p className="text-[8px] font-bold text-white/40 leading-relaxed group-hover/history:text-white/60 transition-colors">{e.description}</p>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 ))}
@@ -1338,69 +1345,77 @@ function IspDetailPage({
                         )}
 
                         {activeTab === "customers" && (
-                            <section className="glass-card backdrop-blur-xl rounded-premium p-10 border-white/10 shadow-glass-depth">
-                                <div className="mb-6 flex flex-col justify-between gap-8 lg:flex-row lg:items-end">
-                                    <div className="space-y-4 flex-1">
-                                        <div className="space-y-2">
-                                            <h2 className="text-2xl font-black text-white tracking-widest uppercase">Inventori Lokasi</h2>
-                                            <p className="text-[10px] font-bold text-white/20 tracking-[0.2em] uppercase">Manajemen titik layanan dan status operasional</p>
+                            <div className="space-y-2.5">
+                                {/* ══════ CARD 1: HEADER & STATS ══════ */}
+                                <section className="glass-card backdrop-blur-xl rounded-xl p-5 border-white/10 shadow-glass-depth">
+                                    <div className="flex flex-col justify-between gap-3 lg:flex-row lg:items-end">
+                                        <div className="space-y-3 flex-1">
+                                            <div className="space-y-1">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="h-4 w-1 bg-gold-accent rounded-full"></span>
+                                                    <h2 className="text-base font-black text-white tracking-widest uppercase">Inventori Lokasi</h2>
+                                                </div>
+                                                <p className="text-[9px] font-bold text-white/20 tracking-wider">Manajemen titik layanan dan status operasional.</p>
+                                            </div>
+
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 shadow-sm">
+                                                    <span className="text-[8px] font-bold text-white/40 tracking-widest">Total:</span>
+                                                    <span className="text-[10px] font-bold text-white">{allTenants.length}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 shadow-sm">
+                                                    <span className="text-[8px] font-bold text-emerald-400 tracking-widest">Beroperasi:</span>
+                                                    <span className="text-[10px] font-bold text-emerald-400">{allTenants.filter(t => t.status === "aktif").length}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#ff2400]/10 border border-[#ff2400]/20 shadow-sm">
+                                                    <span className="text-[8px] font-bold text-[#ff2400] tracking-widest">Belum Diperpanjang:</span>
+                                                    <span className="text-[10px] font-bold text-[#ff2400]">{allTenants.filter(t => t.status === "expired").length}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 shadow-sm">
+                                                    <span className="text-[8px] font-bold text-white/20 tracking-widest">Berhenti:</span>
+                                                    <span className="text-[10px] font-bold text-white/40">{allTenants.filter(t => t.status === "berhenti").length}</span>
+                                                </div>
+                                            </div>
                                         </div>
 
-                                        <div className="flex flex-wrap items-center gap-4">
-                                            <div className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-white/5 border border-white/10 shadow-sm">
-                                                <span className="text-[10px] font-bold text-white/40 tracking-widest">Total:</span>
-                                                <span className="text-sm font-bold text-white">{allTenants.length}</span>
-                                            </div>
-                                            <div className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 shadow-sm">
-                                                <span className="text-[10px] font-bold text-emerald-400 tracking-widest">Beroperasi:</span>
-                                                <span className="text-sm font-bold text-emerald-400">{allTenants.filter(t => t.status === "aktif").length}</span>
-                                            </div>
-                                            <div className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-[#ff2400]/10 border border-[#ff2400]/20 shadow-sm">
-                                                <span className="text-[10px] font-bold text-[#ff2400] tracking-widest">Belum Diperpanjang:</span>
-                                                <span className="text-sm font-bold text-[#ff2400]">{allTenants.filter(t => t.status === "expired").length}</span>
-                                            </div>
-                                            <div className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-white/5 border border-white/10 shadow-sm">
-                                                <span className="text-[10px] font-bold text-white/20 tracking-widest">Berhenti:</span>
-                                                <span className="text-sm font-bold text-white/40">{allTenants.filter(t => t.status === "berhenti").length}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {!isTeknisi && (
-                                        <div className="flex flex-wrap items-center gap-3">
-                                            <button
-                                                className="h-12 px-6 rounded-xl bg-white/5 border border-white/10 text-white text-[10px] font-bold uppercase tracking-widest hover:bg-white/10 transition-all flex items-center gap-2"
-                                                onClick={handleExportToExcel}
-                                                type="button"
-                                            >
-                                                <span className="material-symbols-outlined text-lg">description</span>
-                                                Ekspor Excel
-                                            </button>
-                                            {canCreateTenant && (
+                                        {!isTeknisi && (
+                                            <div className="flex flex-wrap items-center gap-2">
                                                 <button
-                                                    className="h-12 px-8 rounded-xl bg-gold-accent text-slate-900 text-[10px] font-black uppercase tracking-[0.1em] shadow-gold-glow active:scale-95 transition-all flex items-center gap-2"
-                                                    onClick={() => onOpenCreateTenant?.(detail ?? isp)}
+                                                    className="h-7 px-3 rounded bg-white/5 border border-white/10 text-white text-[8px] font-bold uppercase tracking-widest hover:bg-white/10 transition-all flex items-center gap-1.5"
+                                                    onClick={handleExportToExcel}
                                                     type="button"
                                                 >
-                                                    <span className="material-symbols-outlined text-lg text-slate-900">add_location</span>
-                                                    Tambah Lokasi
+                                                    <span className="material-symbols-outlined" style={{ fontSize: "16px" }}>description</span>
+                                                    Ekspor Excel
                                                 </button>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
+                                                {canCreateTenant && (
+                                                    <button
+                                                        className="h-7 px-4 rounded bg-gold-accent text-slate-900 text-[8px] font-black uppercase tracking-[0.1em] shadow-gold-glow active:scale-95 transition-all flex items-center gap-1.5"
+                                                        onClick={() => onOpenCreateTenant?.(detail ?? isp)}
+                                                        type="button"
+                                                    >
+                                                        <span className="material-symbols-outlined text-slate-900" style={{ fontSize: "16px" }}>add_location</span>
+                                                        Tambah Lokasi
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                </section>
 
-                                {/* ══════ REFINED FILTER PANEL ══════ */}
-                                <div className="mb-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 p-6 rounded-2xl bg-black/20 border border-white/5 shadow-inner-glass relative z-50">
+                                {/* ══════ CARD 2: FILTER & TABLE ══════ */}
+                                <section className="glass-card backdrop-blur-xl rounded-xl p-5 border-white/10 shadow-glass-depth">
+                                    {/* ══════ REFINED FILTER PANEL ══════ */}
+                                    <div className="mb-3 flex flex-wrap items-end gap-3 w-full relative z-50">
                                     {/* 1. Search */}
-                                    <div className="space-y-3">
-                                        <p className="text-[10px] font-black uppercase tracking-[0.3em] pl-1 text-gold-accent/40">Cari Lokasi</p>
+                                    <div className="space-y-1.5 flex-1 min-w-[200px]">
+                                        <p className="text-[8px] font-black uppercase tracking-[0.3em] pl-1 text-gold-accent/40">Cari Lokasi</p>
                                         <div className="relative group">
-                                            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold-accent transition-all text-xl">search</span>
+                                            <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold-accent transition-all" style={{ fontSize: "16px" }}>search</span>
                                             <input
                                                 type="text"
                                                 placeholder="Nama atau ID Lokasi..."
-                                                className="w-full h-12 pl-12 pr-4 rounded-xl bg-black/20 border border-white/10 text-sm font-bold text-white outline-none focus:border-gold-accent/40 focus:bg-black/40 transition-all shadow-inner-glass"
+                                                className="w-full h-8 pl-8 pr-3 rounded-lg bg-black/20 border border-white/10 text-[9px] font-bold text-white outline-none focus:border-gold-accent/40 focus:bg-black/40 transition-all shadow-inner-glass"
                                                 value={tenantSearch}
                                                 onChange={(e) => setTenantSearch(e.target.value)}
                                             />
@@ -1408,81 +1423,111 @@ function IspDetailPage({
                                     </div>
 
                                     {/* 2. Status Kontrak */}
-                                    <GlassCustomSelect
-                                        label="Status Kontrak"
-                                        icon="verified_user"
-                                        value={tenantStatusFilter}
-                                        onChange={setTenantStatusFilter}
-                                        options={[
-                                            { value: "all", label: "SEMUA STATUS" },
-                                            { value: "aktif", label: "BEROPERASI" },
-                                            { value: "expired", label: "BELUM DIPERPANJANG" },
-                                            { value: "berhenti", label: "BERHENTI" }
-                                        ]}
-                                    />
+                                    <div className="w-full md:w-[160px]">
+                                        <GlassCustomSelect
+                                            label="Status Kontrak"
+                                            heightClass="h-8"
+                                            icon="verified_user"
+                                            value={tenantStatusFilter}
+                                            onChange={setTenantStatusFilter}
+                                            options={[
+                                                { value: "all", label: "Semua Status" },
+                                                { value: "aktif", label: "Beroperasi" },
+                                                { value: "expired", label: "Belum Diperpanjang" },
+                                                { value: "berhenti", label: "Berhenti" }
+                                            ]}
+                                        />
+                                    </div>
 
                                     {/* 3. Paket */}
-                                    <GlassCustomSelect
-                                        label="Jenis Paket"
-                                        icon="inventory_2"
-                                        value={tenantPaketFilter}
-                                        onChange={setTenantPaketFilter}
-                                        options={[
-                                            { value: "all", label: "SEMUA PAKET" },
-                                            { value: "core", label: "CORE" },
-                                            { value: "sharing_core", label: "SHARING CORE" }
-                                        ]}
-                                    />
+                                    <div className="w-full md:w-[160px]">
+                                        <GlassCustomSelect
+                                            label="Jenis Paket"
+                                            heightClass="h-8"
+                                            icon="inventory_2"
+                                            value={tenantPaketFilter}
+                                            onChange={setTenantPaketFilter}
+                                            options={[
+                                                { value: "all", label: "Semua Paket" },
+                                                { value: "core", label: "Core" },
+                                                { value: "sharing_core", label: "Sharing Core" }
+                                            ]}
+                                        />
+                                    </div>
 
                                     {/* 4. Sorting */}
-                                    <GlassCustomSelect
-                                        label="Urutkan"
-                                        icon="sort"
-                                        value={tenantSortMethod}
-                                        onChange={setTenantSortMethod}
-                                        options={[
-                                            { value: "newest", label: "TERBARU" },
-                                            { value: "oldest", label: "TERLAMA" },
-                                            { value: "name_asc", label: "NAMA A-Z" },
-                                            { value: "name_desc", label: "NAMA Z-A" }
-                                        ]}
-                                    />
+                                    <div className="w-full md:w-[150px]">
+                                        <GlassCustomSelect
+                                            label="Urutkan"
+                                            heightClass="h-8"
+                                            icon="sort"
+                                            value={tenantSortMethod}
+                                            onChange={setTenantSortMethod}
+                                            options={[
+                                                { value: "newest", label: "Terbaru" },
+                                                { value: "oldest", label: "Terlama" },
+                                                { value: "name_asc", label: "Nama A-Z" },
+                                                { value: "name_desc", label: "Nama Z-A" }
+                                            ]}
+                                        />
+                                    </div>
+
+                                    {/* 5. Reset Filter */}
+                                    {(() => {
+                                        const isFilterActive = tenantSearch || tenantStatusFilter !== "all" || tenantPaketFilter !== "all" || tenantSortMethod !== "newest";
+                                        return (
+                                            <button
+                                                onClick={() => {
+                                                    setTenantSearch("");
+                                                    setTenantStatusFilter("all");
+                                                    setTenantPaketFilter("all");
+                                                    setTenantSortMethod("newest");
+                                                }}
+                                                title="Hapus Filter"
+                                                disabled={!isFilterActive}
+                                                className={`w-8 h-8 rounded-lg border flex items-center justify-center transition-all shrink-0 backdrop-blur-md ${isFilterActive ? "border-[#ff2400]/40 bg-[#ff2400]/20 text-[#ff2400] hover:bg-[#ff2400] hover:text-white cursor-pointer shadow-[0_0_15px_rgba(255,36,0,0.4)]" : "bg-white/5 border-white/10 text-white/40 opacity-40 cursor-not-allowed"}`}
+                                                type="button"
+                                            >
+                                                <span className="material-symbols-outlined" style={{ fontSize: "16px" }}>filter_alt_off</span>
+                                            </button>
+                                        );
+                                    })()}
                                 </div>
 
-                                <div className="overflow-x-auto rounded-3xl border border-white/10 bg-black/55 backdrop-blur-3xl shadow-2xl custom-scrollbar">
+                                <div className="overflow-x-auto rounded-lg border border-white/10 bg-black/55 backdrop-blur-3xl shadow-2xl custom-scrollbar">
                                     <table className="min-w-full border-collapse whitespace-nowrap">
                                         <thead>
                                             <tr className="bg-white/5 border-b border-white/10">
-                                                <th rowSpan="2" className="px-6 py-5 text-center text-[10px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">No</th>
-                                                <th rowSpan="2" className="px-6 py-5 text-center text-[10px] font-bold tracking-[0.3em] text-gold-accent border-r border-white/10">Lokasi</th>
-                                                <th rowSpan="2" className="px-6 py-5 text-center text-[10px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Status Kontrak</th>
-                                                <th rowSpan="2" className="px-6 py-5 text-center text-[10px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Status Jalur</th>
-                                                <th rowSpan="2" className="px-6 py-5 text-center text-[10px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Periode Awal</th>
-                                                <th colSpan="2" className="px-6 py-3 text-center text-[9px] font-black tracking-[0.4em] text-white/30 uppercase border-b border-white/10 border-r border-white/10">Kontrak Berjalan</th>
-                                                <th rowSpan="2" className="px-6 py-5 text-center text-[10px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Paket</th>
-                                                <th rowSpan="2" className="px-6 py-5 text-center text-[10px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Jumlah</th>
-                                                <th rowSpan="2" className="px-6 py-5 text-center text-[10px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Tindak Lanjut</th>
-                                                <th rowSpan="2" className="px-6 py-5 text-center text-[10px] font-bold tracking-[0.3em] text-white/40">Aksi</th>
+                                                <th rowSpan="2" className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">No</th>
+                                                <th rowSpan="2" className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-gold-accent border-r border-white/10">Lokasi</th>
+                                                <th rowSpan="2" className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Status Kontrak</th>
+                                                <th rowSpan="2" className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Status Jalur</th>
+                                                <th rowSpan="2" className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Periode Awal</th>
+                                                <th colSpan="2" className="px-3 py-1.5 text-center text-[8px] font-black tracking-[0.4em] text-white/30 uppercase border-b border-white/10 border-r border-white/10">Kontrak Berjalan</th>
+                                                <th rowSpan="2" className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Paket</th>
+                                                <th rowSpan="2" className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Jumlah</th>
+                                                <th rowSpan="2" className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Tindak Lanjut</th>
+                                                <th rowSpan="2" className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40">Aksi</th>
                                             </tr>
                                             <tr className="bg-white/5">
-                                                <th className="px-6 py-3 text-center text-[8px] font-black tracking-[0.2em] text-white/20 uppercase border-r border-white/10">Awal</th>
-                                                <th className="px-6 py-3 text-center text-[8px] font-black tracking-[0.2em] text-white/20 uppercase border-r border-white/10">Akhir</th>
+                                                <th className="px-3 py-1.5 text-center text-[7px] font-black tracking-[0.2em] text-white/20 uppercase border-r border-white/10">Awal</th>
+                                                <th className="px-3 py-1.5 text-center text-[7px] font-black tracking-[0.2em] text-white/20 uppercase border-r border-white/10">Akhir</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-white/10">
                                             {filteredTenants.map((tenant, idx) => (
                                                 <tr key={tenant.id} className="hover:bg-white/[0.04] transition-colors group/row">
-                                                    <td className="px-6 py-6 text-sm font-bold text-white/20 border-r border-white/10">{String(idx + 1).padStart(2, '0')}</td>
-                                                    <td className="px-6 py-6 border-r border-white/10">
-                                                        <p className="text-sm font-bold text-white group-hover/row:text-gold-accent transition-colors">{tenant.name}</p>
+                                                    <td className="px-3 py-2.5 text-center text-[11px] font-bold text-white/20 border-r border-white/10">{String(idx + 1).padStart(2, '0')}</td>
+                                                    <td className="px-3 py-2.5 border-r border-white/10">
+                                                        <p className="text-[11px] font-bold text-white group-hover/row:text-gold-accent transition-colors">{tenant.name}</p>
                                                     </td>
-                                                    <td className="px-6 py-6 border-r border-white/10">
-                                                        <span className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[9px] font-bold border transition-all ${['aktif'].includes(tenant.status) ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : tenant.status === 'expired' ? 'bg-[#ff2400]/10 text-[#ff2400] border-[#ff2400]/20' : 'bg-white/5 text-white/30 border-white/10'}`}>
+                                                    <td className="px-3 py-2.5 text-center border-r border-white/10">
+                                                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[8px] font-bold border transition-all ${['aktif'].includes(tenant.status) ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : tenant.status === 'expired' ? 'bg-[#ff2400]/10 text-[#ff2400] border-[#ff2400]/20' : 'bg-white/5 text-white/30 border-white/10'}`}>
                                                             <span className={`w-1.5 h-1.5 rounded-full ${['aktif'].includes(tenant.status) ? 'bg-emerald-400 shadow-emerald-glow' : tenant.status === 'expired' ? 'bg-[#ff2400] shadow-red-glow' : 'bg-white/20'}`} />
                                                             {getOperationalLabel(tenant.status)}
                                                         </span>
                                                     </td>
-                                                    <td className="px-6 py-6 border-r border-white/10">
+                                                    <td className="px-3 py-2.5 text-center border-r border-white/10">
                                                         {(() => {
                                                             const routeStatus = resolveRouteStatus(tenant.status, tenant.route?.activeFlowStatus ?? tenant.status_jalur);
                                                             const colors = {
@@ -1492,50 +1537,50 @@ function IspDetailPage({
                                                             };
                                                             const color = colors[routeStatus] || colors.nonaktif;
                                                             return (
-                                                                <span className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[9px] font-bold border ${color}`}>
+                                                                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[8px] font-bold border ${color}`}>
                                                                     {routeStatus === 'aktif' ? "Aktif" : routeStatus === 'gangguan' ? "Gangguan" : "Nonaktif"}
                                                                 </span>
                                                             );
                                                         })()}
                                                     </td>
-                                                    <td className="px-6 py-6 border-r border-white/10">
-                                                        <p className="text-[11px] font-bold text-white/60 uppercase">{formatDate(tenant.contractPeriodInfo?.contractStartDate ?? tenant.contractStartDate)}</p>
+                                                    <td className="px-3 py-2.5 text-center border-r border-white/10">
+                                                        <p className="text-[10px] font-bold text-white/60 uppercase">{formatDate(tenant.contractPeriodInfo?.contractStartDate ?? tenant.contractStartDate)}</p>
                                                     </td>
-                                                    <td className="px-6 py-6 border-r border-white/10">
-                                                        <p className="text-[11px] font-bold text-white/60 uppercase">{formatDate(tenant.contractPeriodInfo?.contractPeriodStart ?? tenant.contractPeriodStart)}</p>
+                                                    <td className="px-3 py-2.5 text-center border-r border-white/10">
+                                                        <p className="text-[10px] font-bold text-white/60 uppercase">{formatDate(tenant.contractPeriodInfo?.contractPeriodStart ?? tenant.contractPeriodStart)}</p>
                                                     </td>
-                                                    <td className="px-6 py-6 border-r border-white/10">
-                                                        <p className="text-[11px] font-bold text-white/60 uppercase">{formatDate(tenant.contractPeriodInfo?.contractPeriodEnd ?? tenant.contractPeriodEnd)}</p>
+                                                    <td className="px-3 py-2.5 text-center border-r border-white/10">
+                                                        <p className="text-[10px] font-bold text-white/60 uppercase">{formatDate(tenant.contractPeriodInfo?.contractPeriodEnd ?? tenant.contractPeriodEnd)}</p>
                                                     </td>
-                                                    <td className="px-6 py-6 border-r border-white/10">
-                                                        <p className="text-xs font-bold text-white/70 tracking-widest">{getPackageDisplay(tenant.packageInfo?.paket ?? tenant.paket).label}</p>
+                                                    <td className="px-3 py-2.5 text-center border-r border-white/10">
+                                                        <p className="text-[11px] font-bold text-white/70 tracking-widest">{getPackageDisplay(tenant.packageInfo?.paket ?? tenant.paket).label}</p>
                                                     </td>
-                                                    <td className="px-6 py-6 border-r border-white/10">
-                                                        <p className="text-xs font-bold text-white/70 tracking-widest">{tenant.packageInfo?.jumlah ?? tenant.contractSharingRatio ?? tenant.jumlah ?? '-'}</p>
+                                                    <td className="px-3 py-2.5 text-center border-r border-white/10">
+                                                        <p className="text-[11px] font-bold text-white/70 tracking-widest">{tenant.packageInfo?.jumlah ?? tenant.contractSharingRatio ?? tenant.jumlah ?? '-'}</p>
                                                     </td>
-                                                    <td className="px-6 py-6 text-sm font-bold text-[#ff2400] border-r border-white/10">
+                                                    <td className="px-3 py-2.5 text-center text-[11px] font-bold text-[#ff2400] border-r border-white/10">
                                                         {isTeknisi ? (
                                                             (!tenant.route && tenant.status === "aktif") || (tenant.route?.activeFlowStatus ?? tenant.status_jalur) === "gangguan" ? "YA" : "-"
                                                         ) : getTenantActionCount(tenant)}
                                                     </td>
-                                                    <td className="px-6 py-6 text-right">
-                                                        <div className="flex justify-end gap-2">
+                                                    <td className="px-3 py-2.5 text-right">
+                                                        <div className="flex justify-end gap-1.5">
                                                             {!isTeknisi && (
-                                                                <button className="w-9 h-9 flex items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all shadow-sm" onClick={() => onOpenTenant(tenant, "invoices")} title="Invoice">
-                                                                    <span className="material-symbols-outlined text-lg">receipt_long</span>
+                                                                <button className="w-6 h-6 flex items-center justify-center rounded-md bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all shadow-sm" onClick={() => onOpenTenant(tenant, "invoices")} title="Invoice">
+                                                                    <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>receipt_long</span>
                                                                 </button>
                                                             )}
-                                                            <button className="w-9 h-9 flex items-center justify-center rounded-lg bg-white/5 text-white hover:bg-white/10 transition-all shadow-sm" onClick={() => onOpenTenant(tenant, isTeknisi ? "jalur" : "overview")} title="Detail">
-                                                                    <span className="material-symbols-outlined text-lg">visibility</span>
+                                                            <button className="w-6 h-6 flex items-center justify-center rounded-md bg-white/5 text-white hover:bg-white/10 transition-all shadow-sm" onClick={() => onOpenTenant(tenant, isTeknisi ? "jalur" : "overview")} title="Detail">
+                                                                    <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>visibility</span>
                                                             </button>
                                                             {!isTeknisi && canEditTenant && (
-                                                                <button className="w-9 h-9 flex items-center justify-center rounded-lg bg-amber-500/10 text-amber-400 hover:bg-amber-500 hover:text-white transition-all shadow-sm" onClick={() => onEditTenant?.(tenant)} title="Edit">
-                                                                    <span className="material-symbols-outlined text-lg">edit</span>
+                                                                <button className="w-6 h-6 flex items-center justify-center rounded-md bg-amber-500/10 text-amber-400 hover:bg-amber-500 hover:text-white transition-all shadow-sm" onClick={() => onEditTenant?.(tenant)} title="Edit">
+                                                                    <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>edit</span>
                                                                 </button>
                                                             )}
                                                             {!isTeknisi && canDeleteTenant && (
-                                                                <button className="w-9 h-9 flex items-center justify-center rounded-lg bg-[#ff2400]/10 text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all shadow-sm" onClick={() => onDeleteTenant?.(tenant)} title="Hapus">
-                                                                    <span className="material-symbols-outlined text-lg">delete</span>
+                                                                <button className="w-6 h-6 flex items-center justify-center rounded-md bg-[#ff2400]/10 text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all shadow-sm" onClick={() => onDeleteTenant?.(tenant)} title="Hapus">
+                                                                    <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>delete</span>
                                                                 </button>
                                                             )}
                                                         </div>
@@ -1563,6 +1608,7 @@ function IspDetailPage({
                                     </table>
                                 </div>
                             </section>
+                            </div>
                         )}
 
                         {activeTab === "jalur" && (
@@ -1576,33 +1622,42 @@ function IspDetailPage({
                         )}
 
                         {activeTab === "contracts" && (
-                            <section className="glass-card backdrop-blur-xl rounded-premium p-10 border-white/10 shadow-glass-depth">
-                                {/* Enhanced Header with Search & Sort - Matching Dokumen Style */}
-                                <div className="mb-10 flex flex-col lg:flex-row lg:items-end justify-between gap-8">
-                                    <div className="space-y-2">
-                                        <h2 className="text-2xl font-black text-white tracking-widest uppercase">Rincian Kontrak & Adendum</h2>
-                                        <p className="text-[10px] font-bold text-white/20 tracking-[0.2em] uppercase">Manajemen berkas legal dan amandemen layanan</p>
+                            <div className="space-y-2.5">
+                                {/* ══════ CARD 1: HEADER ══════ */}
+                                <section className="glass-card backdrop-blur-xl rounded-xl p-5 border-white/10 shadow-glass-depth">
+                                    <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-3">
+                                        <div className="space-y-1">
+                                            <div className="flex items-center gap-2">
+                                                <span className="h-4 w-1 bg-gold-accent rounded-full"></span>
+                                                <h2 className="text-base font-black text-white tracking-widest uppercase">Rincian Kontrak & Adendum</h2>
+                                            </div>
+                                            <p className="text-[9px] font-bold text-white/20 tracking-wider">Manajemen berkas legal dan amandemen layanan.</p>
+                                        </div>
                                     </div>
+                                </section>
 
-                                    <div className="flex flex-wrap items-center gap-4">
+                                {/* ══════ CARD 2: FILTER & TABLE ══════ */}
+                                <section className="glass-card backdrop-blur-xl rounded-xl p-5 border-white/10 shadow-glass-depth">
+                                    <div className="mb-3 flex flex-wrap items-end gap-3 w-full relative z-50">
                                         {/* Search Bar */}
-                                        <div className="relative group min-w-[280px]">
-                                            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold-accent transition-colors">search</span>
+                                        <div className="relative group min-w-[280px] flex-1">
+                                            <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold-accent transition-colors" style={{ fontSize: "16px" }}>search</span>
                                             <input
                                                 type="text"
                                                 placeholder="Cari nomor kontrak..."
                                                 value={contractSearch}
                                                 onChange={(e) => setContractSearch(e.target.value)}
-                                                className="w-full h-12 pl-12 pr-4 rounded-xl bg-black/20 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white outline-none focus:border-gold-accent/50 focus:bg-black/40 transition-all placeholder:text-white/10 shadow-inner-glass"
+                                                className="w-full h-8 pl-8 pr-3 rounded-lg bg-black/20 border border-white/10 text-[9px] font-bold text-white outline-none focus:border-gold-accent/40 focus:bg-black/40 transition-all shadow-inner-glass"
                                             />
                                         </div>
 
                                         {/* Sort Dropdown */}
-                                        <div className="w-48">
+                                        <div className="w-48 md:w-[150px]">
                                             <GlassCustomSelect
                                                 value={contractSortMethod}
                                                 onChange={setContractSortMethod}
                                                 icon="sort"
+                                                heightClass="h-8"
                                                 options={[
                                                     { value: "newest", label: "Terbaru" },
                                                     { value: "oldest", label: "Terlama" }
@@ -1610,110 +1665,112 @@ function IspDetailPage({
                                             />
                                         </div>
                                     </div>
-                                </div>
-                                <div className="overflow-x-auto rounded-3xl border border-white/10 bg-black/55 backdrop-blur-3xl shadow-2xl custom-scrollbar">
-                                    <table className="min-w-full border-collapse whitespace-nowrap">
-                                        <thead>
-                                            <tr className="bg-white/5 border-b border-white/10">
-                                                <th rowSpan="2" className="px-6 py-5 text-center text-[10px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">No</th>
-                                                <th rowSpan="2" className="px-6 py-5 text-center text-[10px] font-bold tracking-[0.3em] text-gold-accent border-r border-white/10">Nomor Kontrak</th>
-                                                <th rowSpan="2" className="px-6 py-5 text-center text-[10px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Berkas Kontrak</th>
-                                                <th rowSpan="2" className="px-6 py-5 text-center text-[10px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Periode Awal Kontrak</th>
-                                                <th colSpan="2" className="px-6 py-3 text-center text-[9px] font-black tracking-[0.4em] text-white/30 uppercase border-b border-white/10">Periode Berjalan</th>
-                                                <th rowSpan="2" className="px-6 py-5 text-center text-[10px] font-bold tracking-[0.3em] text-white/40 border-l border-white/10">BAK</th>
-                                                <th rowSpan="2" className="px-6 py-5 text-center text-[10px] font-bold tracking-[0.3em] text-white/40 border-l border-white/10">Perpanjangan</th>
-                                                <th rowSpan="2" className="px-6 py-5 text-center text-[10px] font-bold tracking-[0.3em] text-white/40 border-l border-white/10">Tanggapan</th>
-                                                <th rowSpan="2" className="px-6 py-5 text-center text-[10px] font-bold tracking-[0.3em] text-white/40 border-l border-white/10">Aksi</th>
-                                            </tr>
-                                            <tr className="bg-white/5">
-                                                <th className="px-6 py-3 text-center text-[8px] font-black tracking-[0.2em] text-white/20 uppercase border-r border-white/10">Awal</th>
-                                                <th className="px-6 py-3 text-center text-[8px] font-black tracking-[0.2em] text-white/20 uppercase">Akhir</th>
-                                            </tr>
-                                        </thead>
+
+                                    <div className="overflow-x-auto rounded-lg border border-white/10 bg-black/55 backdrop-blur-3xl shadow-2xl custom-scrollbar">
+                                        <table className="min-w-full border-collapse whitespace-nowrap">
+                                            <thead>
+                                                <tr className="bg-white/5 border-b border-white/10">
+                                                    <th rowSpan="2" className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">No</th>
+                                                    <th rowSpan="2" className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-gold-accent border-r border-white/10">Nomor Kontrak</th>
+                                                    <th rowSpan="2" className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Berkas Kontrak</th>
+                                                    <th rowSpan="2" className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Periode Awal Kontrak</th>
+                                                    <th colSpan="2" className="px-3 py-1.5 text-center text-[8px] font-black tracking-[0.4em] text-white/30 uppercase border-b border-white/10">Periode Berjalan</th>
+                                                    <th rowSpan="2" className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-l border-white/10">BAK</th>
+                                                    <th rowSpan="2" className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-l border-white/10">Perpanjangan</th>
+                                                    <th rowSpan="2" className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-l border-white/10">Tanggapan</th>
+                                                    <th rowSpan="2" className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-l border-white/10">Aksi</th>
+                                                </tr>
+                                                <tr className="bg-white/5">
+                                                    <th className="px-3 py-1.5 text-center text-[7px] font-black tracking-[0.2em] text-white/20 uppercase border-r border-white/10">Awal</th>
+                                                    <th className="px-3 py-1.5 text-center text-[7px] font-black tracking-[0.2em] text-white/20 uppercase">Akhir</th>
+                                                </tr>
+                                            </thead>
                                         <tbody className="divide-y divide-white/10">
                                             {filteredContracts.map((row, idx) => (
                                                 <tr key={row.id} className={`${editingRow?.id === row.id ? 'bg-gold-accent/5' : 'hover:bg-white/[0.02] transition-colors'}`}>
-                                                    <td className="px-6 py-6 text-sm font-bold text-white/20 border-r border-white/10">{String(idx + 1).padStart(2, '0')}</td>
-                                                    <td className="px-6 py-6 border-r border-white/10">
+                                                    <td className="px-3 py-2.5 text-center text-[11px] font-bold text-white/20 border-r border-white/10">{String(idx + 1).padStart(2, '0')}</td>
+                                                    <td className="px-3 py-2.5 text-center border-r border-white/10">
                                                         {editingRow?.id === row.id ? (
-                                                            <input type="text" className="w-full rounded-xl bg-white/10 border border-white/20 px-4 py-2 text-sm font-bold text-white outline-none focus:border-gold-accent transition-all" value={editingRow.contractReference || ""} onChange={(e) => setEditingRow({ ...editingRow, contractReference: e.target.value })} />
-                                                        ) : <span className="text-sm font-bold text-white">{row.contractReference || "-"}</span>}
+                                                            <input type="text" className="w-full rounded-lg bg-white/10 border border-white/20 px-3 py-1.5 text-[11px] font-bold text-white outline-none focus:border-gold-accent transition-all" value={editingRow.contractReference || ""} onChange={(e) => setEditingRow({ ...editingRow, contractReference: e.target.value })} />
+                                                        ) : <span className="text-[11px] font-bold text-white">{row.contractReference || "-"}</span>}
                                                     </td>
-                                                    <td className="px-6 py-6 border-r border-white/10">
+                                                    <td className="px-3 py-2.5 text-center border-r border-white/10">
                                                         {isOpenableFileUrl(row.contractFileUrl) ? (
-                                                            <button onClick={() => openSafeFile(row.contractFileUrl, row.contractFileName)} className="inline-flex items-center gap-2 text-gold-accent hover:text-white font-bold text-[10px] bg-gold-accent/10 border border-gold-accent/20 px-3 py-1.5 rounded-lg transition-all"><span className="material-symbols-outlined text-sm">description</span>Buka</button>
-                                                        ) : <label className="inline-flex items-center gap-2 cursor-pointer font-bold text-[10px] text-white/30 bg-white/5 border border-white/10 border-dashed px-3 py-1.5 rounded-lg hover:bg-white/10 transition-all"><span className="material-symbols-outlined text-sm">upload</span>Upload<input type="file" className="hidden" onChange={(e) => handleFileUpload(row.id, 'contract', e.target.files[0])} /></label>}
+                                                            <button onClick={() => openSafeFile(row.contractFileUrl, row.contractFileName)} className="inline-flex items-center gap-1.5 text-gold-accent hover:text-white font-bold text-[9px] uppercase tracking-wider bg-gold-accent/10 border border-gold-accent/20 px-2.5 py-1 rounded-md transition-all"><span className="material-symbols-outlined" style={{ fontSize: "14px" }}>description</span>Buka</button>
+                                                        ) : <label className="inline-flex items-center gap-1.5 cursor-pointer font-bold text-[9px] uppercase tracking-wider text-white/30 bg-white/5 border border-white/10 border-dashed px-2.5 py-1 rounded-md hover:bg-white/10 transition-all"><span className="material-symbols-outlined" style={{ fontSize: "14px" }}>upload</span>Upload<input type="file" className="hidden" onChange={(e) => handleFileUpload(row.id, 'contract', e.target.files[0])} /></label>}
                                                     </td>
-                                                    <td className="px-6 py-6 border-r border-white/10 text-center">
-                                                        <span className="text-sm font-bold text-white/60">{formatDate(row.contractStartDate ?? detail?.contractStartDate ?? detail?.contract_start_date ?? isp.contractStartDate ?? isp.contract_start_date)}</span>
+                                                    <td className="px-3 py-2.5 border-r border-white/10 text-center">
+                                                        <span className="text-[11px] font-bold text-white/60 uppercase">{formatDate(row.contractStartDate ?? detail?.contractStartDate ?? detail?.contract_start_date ?? isp.contractStartDate ?? isp.contract_start_date)}</span>
                                                     </td>
-                                                    <td className="px-6 py-6 text-center border-r border-white/10">
+                                                    <td className="px-3 py-2.5 text-center border-r border-white/10">
                                                         {editingRow?.id === row.id ? (
                                                             <input
                                                                 type="date"
-                                                                className="rounded-lg bg-white/10 border border-white/20 px-3 py-2 text-xs text-white outline-none w-32 custom-date-input cursor-pointer"
+                                                                className="rounded-md bg-white/10 border border-white/20 px-2 py-1 text-[11px] text-white outline-none w-28 custom-date-input cursor-pointer uppercase"
                                                                 value={editingRow.periodStart || ""}
                                                                 onChange={(e) => setEditingRow({ ...editingRow, periodStart: e.target.value })}
                                                                 onClick={(e) => {
                                                                     try { e.currentTarget.showPicker(); } catch { /* Browser tidak mendukung showPicker. */ }
                                                                 }}
                                                             />
-                                                        ) : <span className="text-sm font-bold text-white">{formatDate(row.periodStart)}</span>}
+                                                        ) : <span className="text-[11px] font-bold text-white uppercase">{formatDate(row.periodStart)}</span>}
                                                     </td>
-                                                    <td className="px-6 py-6 text-center border-r border-white/10">
+                                                    <td className="px-3 py-2.5 text-center border-r border-white/10">
                                                         {editingRow?.id === row.id ? (
                                                             <input
                                                                 type="date"
-                                                                className="rounded-lg bg-white/10 border border-white/20 px-3 py-2 text-xs text-white outline-none w-32 custom-date-input cursor-pointer"
+                                                                className="rounded-md bg-white/10 border border-white/20 px-2 py-1 text-[11px] text-white outline-none w-28 custom-date-input cursor-pointer uppercase"
                                                                 value={editingRow.periodEnd || ""}
                                                                 onChange={(e) => setEditingRow({ ...editingRow, periodEnd: e.target.value })}
                                                                 onClick={(e) => {
                                                                     try { e.currentTarget.showPicker(); } catch { /* Browser tidak mendukung showPicker. */ }
                                                                 }}
                                                             />
-                                                        ) : <span className="text-sm font-bold text-gold-accent italic">{formatDate(row.periodEnd)}</span>}
+                                                        ) : <span className="text-[11px] font-bold text-gold-accent italic uppercase">{formatDate(row.periodEnd)}</span>}
                                                     </td>
-                                                    <td className="px-6 py-6 border-r border-white/10">
+                                                    <td className="px-3 py-2.5 text-center border-r border-white/10">
                                                         {isOpenableFileUrl(row.bakFileUrl) ? (
-                                                            <button onClick={() => openSafeFile(row.bakFileUrl, row.bakFileName)} className="inline-flex items-center gap-2 text-emerald-400 hover:text-white font-bold text-[10px] bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg transition-all"><span className="material-symbols-outlined text-sm">task_alt</span>Buka BAK</button>
-                                                        ) : <label className="inline-flex items-center gap-2 cursor-pointer font-bold text-[10px] text-white/20 border border-white/10 border-dashed px-3 py-1.5 rounded-lg hover:bg-white/5 transition-all">Upload BAK<input type="file" className="hidden" onChange={(e) => handleFileUpload(row.id, 'bak', e.target.files[0])} /></label>}
+                                                            <button onClick={() => openSafeFile(row.bakFileUrl, row.bakFileName)} className="inline-flex items-center gap-1.5 text-emerald-400 hover:text-white font-bold text-[9px] uppercase tracking-wider bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-md transition-all"><span className="material-symbols-outlined" style={{ fontSize: "14px" }}>task_alt</span>Buka BAK</button>
+                                                        ) : <label className="inline-flex items-center gap-1.5 cursor-pointer font-bold text-[9px] uppercase tracking-wider text-white/20 border border-white/10 border-dashed px-2.5 py-1 rounded-md hover:bg-white/5 transition-all">Upload BAK<input type="file" className="hidden" onChange={(e) => handleFileUpload(row.id, 'bak', e.target.files[0])} /></label>}
                                                     </td>
-                                                    <td className="px-6 py-6 min-w-[280px] border-r border-white/10">
-                                                        <div className="flex items-center gap-3">
+                                                    <td className="px-3 py-2.5 min-w-[280px] border-r border-white/10 text-center">
+                                                        <div className="flex items-center justify-center gap-2">
                                                             {renderRenewalFollowUps(row, "renewal")}
-                                                            <button className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 border border-white/10 text-white/40 transition-all hover:bg-white/10 disabled:opacity-30" disabled={row.isPrimaryIspContract || !hasInitialRenewalUpload(row)} onClick={() => handleAddRenewalSplit(row.id)} type="button">
-                                                                <span className="material-symbols-outlined text-sm">add_circle</span>
+                                                            <button className="shrink-0 w-6 h-6 flex items-center justify-center rounded-md bg-white/5 border border-white/10 text-white/40 transition-all hover:bg-white/10 disabled:opacity-30" disabled={row.isPrimaryIspContract || !hasInitialRenewalUpload(row)} onClick={() => handleAddRenewalSplit(row.id)} type="button">
+                                                                <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>add_circle</span>
                                                             </button>
                                                         </div>
                                                     </td>
-                                                    <td className="px-6 py-6 min-w-[240px] border-r border-white/10">{renderRenewalFollowUps(row, "response")}</td>
-                                                    <td className="px-6 py-6 text-right">
+                                                    <td className="px-3 py-2.5 min-w-[240px] border-r border-white/10 text-center">{renderRenewalFollowUps(row, "response")}</td>
+                                                    <td className="px-3 py-2.5 text-center">
                                                         {editingRow?.id === row.id ? (
-                                                            <div className="flex justify-end gap-2">
+                                                            <div className="flex justify-center gap-1.5">
                                                                 <button
-                                                                    className="w-9 h-9 flex items-center justify-center rounded-lg bg-emerald-500 text-white shadow-lg shadow-emerald-500/20 active:scale-90 transition-all"
+                                                                    className="w-6 h-6 flex items-center justify-center rounded-md bg-emerald-500 text-white shadow-lg shadow-emerald-500/20 active:scale-90 transition-all"
                                                                     onClick={() => handleUpdateRow(row.id, { contract_reference: editingRow.contractReference, period_start: editingRow.periodStart, period_end: editingRow.periodEnd })}
                                                                     title="Simpan"
                                                                 >
-                                                                    <span className="material-symbols-outlined text-base">check</span>
+                                                                    <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>check</span>
                                                                 </button>
                                                                 <button
-                                                                    className="w-9 h-9 flex items-center justify-center rounded-lg bg-white/10 text-white hover:bg-white/20 active:scale-90 transition-all"
+                                                                    className="w-6 h-6 flex items-center justify-center rounded-md bg-white/10 text-white hover:bg-white/20 active:scale-90 transition-all"
                                                                     onClick={() => setEditingRow(null)}
                                                                     title="Batal"
                                                                 >
-                                                                    <span className="material-symbols-outlined text-base">close</span>
+                                                                    <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>close</span>
                                                                 </button>
                                                             </div>
                                                         ) : (
-                                                            <button
-                                                                className="w-9 h-9 flex items-center justify-center rounded-lg bg-white/5 border border-white/10 text-gold-accent hover:bg-gold-accent hover:text-white transition-all shadow-sm"
-                                                                onClick={() => setEditingRow({ ...row })}
-                                                                type="button"
-                                                                title="Edit Baris"
-                                                            >
-                                                                <span className="material-symbols-outlined text-base">edit_note</span>
-                                                            </button>
+                                                            <div className="flex justify-center">
+                                                                <button
+                                                                    className="w-6 h-6 flex items-center justify-center rounded-md bg-white/5 border border-white/10 text-gold-accent hover:bg-gold-accent hover:text-white transition-all shadow-sm"
+                                                                    onClick={() => setEditingRow({ ...row })}
+                                                                    type="button"
+                                                                    title="Edit Baris"
+                                                                >
+                                                                    <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>edit_note</span>
+                                                                </button>
+                                                            </div>
                                                         )}
                                                     </td>
                                                 </tr>
@@ -1735,36 +1792,46 @@ function IspDetailPage({
                                     </table>
                                 </div>
                             </section>
+                            </div>
                         )}
 
                         {activeTab === "risalah" && (
-                            <section className="glass-card backdrop-blur-xl rounded-premium p-10 border-white/10 shadow-glass-depth">
-                                {/* Enhanced Header with Search & Sort */}
-                                <div className="mb-10 flex flex-col lg:flex-row lg:items-end justify-between gap-8">
-                                    <div className="space-y-2">
-                                        <h2 className="text-2xl font-black text-white tracking-widest uppercase">Dokumen Pendukung</h2>
-                                        <p className="text-[10px] font-bold text-white/20 tracking-[0.2em] uppercase">Arsip risalah rapat dan dokumen administratif</p>
+                            <div className="space-y-2.5">
+                                {/* ══════ CARD 1: HEADER ══════ */}
+                                <section className="glass-card backdrop-blur-xl rounded-xl p-5 border-white/10 shadow-glass-depth">
+                                    <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-3">
+                                        <div className="space-y-1">
+                                            <div className="flex items-center gap-2">
+                                                <span className="h-4 w-1 bg-gold-accent rounded-full"></span>
+                                                <h2 className="text-base font-black text-white tracking-widest uppercase">Dokumen Pendukung</h2>
+                                            </div>
+                                            <p className="text-[9px] font-bold text-white/20 tracking-wider">Arsip risalah rapat dan dokumen administratif.</p>
+                                        </div>
                                     </div>
+                                </section>
 
-                                    <div className="flex flex-wrap items-center gap-4">
+                                {/* ══════ CARD 2: FILTER & TABLE ══════ */}
+                                <section className="glass-card backdrop-blur-xl rounded-xl p-5 border-white/10 shadow-glass-depth">
+                                    <div className="mb-3 flex flex-wrap items-center gap-3 w-full relative z-50">
                                         {/* Search Bar */}
-                                        <div className="relative group min-w-[280px]">
-                                            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold-accent transition-colors">search</span>
+                                        <div className="relative group min-w-[280px] flex-1">
+                                            <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold-accent transition-colors" style={{ fontSize: "16px" }}>search</span>
                                             <input
                                                 type="text"
                                                 placeholder="Cari dokumen..."
                                                 value={docSearch}
                                                 onChange={(e) => setDocSearch(e.target.value)}
-                                                className="w-full h-12 pl-12 pr-4 rounded-xl bg-black/20 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white outline-none focus:border-gold-accent/50 focus:bg-black/40 transition-all placeholder:text-white/10 shadow-inner-glass"
+                                                className="w-full h-8 pl-8 pr-3 rounded-lg bg-black/20 border border-white/10 text-[9px] font-bold text-white outline-none focus:border-gold-accent/40 focus:bg-black/40 transition-all shadow-inner-glass"
                                             />
                                         </div>
 
                                         {/* Sort Dropdown */}
-                                        <div className="w-48">
+                                        <div className="w-48 md:w-[150px]">
                                             <GlassCustomSelect
                                                 value={docSortMethod}
                                                 onChange={setDocSortMethod}
                                                 icon="sort"
+                                                heightClass="h-8"
                                                 options={[
                                                     { value: "newest", label: "Terbaru" },
                                                     { value: "oldest", label: "Terlama" }
@@ -1772,109 +1839,107 @@ function IspDetailPage({
                                             />
                                         </div>
 
-                                        <div className="w-px h-10 bg-white/5 mx-2 hidden lg:block" />
-
                                         <button
-                                            className="rounded-xl bg-gold-accent px-8 h-12 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-900 shadow-gold-glow active:scale-95 transition-all"
+                                            className="rounded-lg bg-gold-accent px-4 h-8 flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-slate-900 shadow-gold-glow active:scale-95 transition-all shrink-0"
                                             onClick={handleAddRisalah}
                                             type="button"
                                         >
-                                            <span className="material-symbols-outlined text-lg text-slate-900">add_circle</span>
-                                            Tambah Dokumen
+                                            <span className="material-symbols-outlined text-slate-900" style={{ fontSize: "14px" }}>add_circle</span>
+                                            Tambah
                                         </button>
                                     </div>
-                                </div>
 
-                                <div className="overflow-x-auto rounded-3xl border border-white/10 bg-black/55 backdrop-blur-3xl shadow-2xl custom-scrollbar">
-                                    <table className="min-w-full border-collapse">
-                                        <thead>
-                                            <tr className="border-b border-white/10 bg-white/[0.02]">
-                                                <th className="w-16 px-4 py-6 text-center text-[10px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">No</th>
-                                                <th className="w-36 px-4 py-6 text-center text-[10px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Tanggal</th>
-                                                <th className="px-6 py-6 text-left text-[10px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Nama Dokumen</th>
-                                                <th className="w-44 px-4 py-6 text-center text-[10px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Berkas</th>
-                                                <th className="w-32 px-4 py-6 text-center text-[10px] font-bold tracking-[0.3em] text-white/40">Aksi</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-white/10">
-                                            {filteredDocs.map((row, idx) => (
-                                                <tr key={row.id} className="hover:bg-white/[0.02] transition-colors group/row">
-                                                    <td className="px-4 py-6 text-center text-sm font-bold text-white/20 border-r border-white/10">{String(idx + 1).padStart(2, '0')}</td>
-                                                    <td className="px-4 py-6 text-center border-r border-white/10">
-                                                        <span className="text-sm font-bold text-white">{formatDate(row.tanggal)}</span>
-                                                    </td>
-                                                    <td className="px-6 py-6 border-r border-white/10">
-                                                        <p className="text-sm font-bold text-white/70 tracking-wide">{row.fileName || "N/A"}</p>
-                                                    </td>
-                                                    <td className="px-4 py-6 text-center border-r border-white/10">
-                                                        {isOpenableFileUrl(row.fileUrl) ? (
-                                                            <button onClick={() => openSafeFile(row.fileUrl, row.fileName)} className="inline-flex items-center gap-2 text-emerald-400 hover:text-white font-bold text-[10px] bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg transition-all mx-auto"><span className="material-symbols-outlined text-sm">description</span>Buka Berkas</button>
-                                                        ) : <span className="text-[10px] font-bold text-white/20">Kosong</span>}
-                                                    </td>
-                                                    <td className="px-4 py-6 text-center">
-                                                        <div className="flex justify-center gap-3">
-                                                            <button
-                                                                className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 border border-white/10 text-gold-accent hover:bg-gold-accent hover:text-white transition-all shadow-sm"
-                                                                onClick={() => handleEditRisalah(row)}
-                                                                title="Edit Dokumen"
-                                                            >
-                                                                <span className="material-symbols-outlined text-base">edit_note</span>
-                                                            </button>
-                                                            <button
-                                                                className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 border border-white/10 text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all shadow-sm"
-                                                                onClick={() => handleDeleteRisalah(row.id)}
-                                                                title="Hapus Dokumen"
-                                                            >
-                                                                <span className="material-symbols-outlined text-base">delete_forever</span>
-                                                            </button>
-                                                        </div>
-                                                    </td>
+                                    <div className="overflow-x-auto rounded-lg border border-white/10 bg-black/55 backdrop-blur-3xl shadow-2xl custom-scrollbar">
+                                        <table className="min-w-full border-collapse whitespace-nowrap">
+                                            <thead>
+                                                <tr className="bg-white/5 border-b border-white/10">
+                                                    <th className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">No</th>
+                                                    <th className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Tanggal</th>
+                                                    <th className="px-3 py-2 text-left text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Nama Dokumen</th>
+                                                    <th className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Berkas</th>
+                                                    <th className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40">Aksi</th>
                                                 </tr>
-                                            ))}
-                                            {filteredDocs.length === 0 && (
-                                                <tr>
-                                                    <td colSpan="5" className="py-10 text-center">
-                                                        <div className="flex flex-col items-center justify-center">
-                                                            <div className="h-12 w-12 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 shadow-inner-glass mb-3 animate-pulse">
-                                                                <span className="material-symbols-outlined text-2xl text-gold-accent/40">folder_off</span>
+                                            </thead>
+                                            <tbody className="divide-y divide-white/10">
+                                                {filteredDocs.map((row, idx) => (
+                                                    <tr key={row.id} className="hover:bg-white/[0.02] transition-colors group/row">
+                                                        <td className="px-3 py-2.5 text-center text-[11px] font-bold text-white/20 border-r border-white/10">{String(idx + 1).padStart(2, '0')}</td>
+                                                        <td className="px-3 py-2.5 text-center border-r border-white/10">
+                                                            <span className="text-[11px] font-bold text-white">{formatDate(row.tanggal)}</span>
+                                                        </td>
+                                                        <td className="px-3 py-2.5 border-r border-white/10 text-left">
+                                                            <p className="text-[11px] font-bold text-white/70 tracking-wide">{row.fileName || "N/A"}</p>
+                                                        </td>
+                                                        <td className="px-3 py-2.5 text-center border-r border-white/10">
+                                                            {isOpenableFileUrl(row.fileUrl) ? (
+                                                                <button onClick={() => openSafeFile(row.fileUrl, row.fileName)} className="inline-flex items-center gap-1.5 text-emerald-400 hover:text-white font-bold text-[9px] uppercase tracking-wider bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-md transition-all mx-auto"><span className="material-symbols-outlined" style={{ fontSize: "14px" }}>description</span>Buka Berkas</button>
+                                                            ) : <span className="text-[9px] font-bold text-white/20 uppercase tracking-widest">Kosong</span>}
+                                                        </td>
+                                                        <td className="px-3 py-2.5 text-center">
+                                                            <div className="flex justify-center gap-2">
+                                                                <button
+                                                                    className="w-6 h-6 flex items-center justify-center rounded-md bg-white/5 border border-white/10 text-gold-accent hover:bg-gold-accent hover:text-white transition-all shadow-sm"
+                                                                    onClick={() => handleEditRisalah(row)}
+                                                                    title="Edit Dokumen"
+                                                                >
+                                                                    <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>edit_note</span>
+                                                                </button>
+                                                                <button
+                                                                    className="w-6 h-6 flex items-center justify-center rounded-md bg-white/5 border border-white/10 text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all shadow-sm"
+                                                                    onClick={() => handleDeleteRisalah(row.id)}
+                                                                    title="Hapus Dokumen"
+                                                                >
+                                                                    <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>delete_forever</span>
+                                                                </button>
                                                             </div>
-                                                            <h4 className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em]">BELUM ADA DOKUMEN</h4>
-                                                            <p className="text-[8px] font-bold text-white/20 uppercase tracking-widest mt-1">Silakan tambahkan dokumen administratif baru</p>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            )}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </section>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                                {filteredDocs.length === 0 && (
+                                                    <tr>
+                                                        <td colSpan="5" className="py-10 text-center">
+                                                            <div className="flex flex-col items-center justify-center">
+                                                                <div className="h-12 w-12 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 shadow-inner-glass mb-3 animate-pulse">
+                                                                    <span className="material-symbols-outlined text-2xl text-gold-accent/40">folder_off</span>
+                                                                </div>
+                                                                <h4 className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em]">BELUM ADA DOKUMEN</h4>
+                                                                <p className="text-[8px] font-bold text-white/20 uppercase tracking-widest mt-1">Silakan tambahkan dokumen administratif baru</p>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </section>
+                            </div>
                         )}
 
                         {risalahEditor && createPortal(
-                            <div className="fixed inset-0 z-[200] flex items-center justify-center px-4 backdrop-blur-md bg-black/60">
-                                <div className="w-full max-w-lg rounded-[2.5rem] glass-card backdrop-blur-xl p-10 border border-white/20 shadow-[0_0_100px_rgba(0,0,0,0.8)] animate-in zoom-in-95 duration-300 relative overflow-hidden">
-                                    <div className="absolute top-0 right-0 w-32 h-32 bg-gold-accent/5 blur-3xl" />
+                            <div className="fixed inset-0 z-[200] flex items-center justify-center px-4 backdrop-blur-md bg-black/60 animate-fade-in duration-300">
+                                <div className="w-full max-w-sm rounded-2xl glass-card backdrop-blur-xl p-5 border border-white/20 shadow-[0_0_100px_rgba(0,0,0,0.8)] animate-in zoom-in-95 duration-300 relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 w-32 h-32 bg-gold-accent/5 blur-3xl pointer-events-none" />
 
-                                    <div className="mb-10 flex items-center justify-between relative z-10">
-                                        <div className="space-y-1">
-                                            <h3 className="text-2xl font-black text-white tracking-widest uppercase">
+                                    <div className="mb-5 flex items-center justify-between relative z-10">
+                                        <div className="space-y-0.5">
+                                            <h3 className="text-base font-black text-white tracking-widest uppercase">
                                                 {risalahEditor.id ? "Edit Dokumen" : "Tambah Dokumen"}
                                             </h3>
                                             <p className="text-[9px] font-bold text-gold-accent/40 tracking-[0.3em] uppercase">Arsip Administratif ISP</p>
                                         </div>
-                                        <button className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white/30 hover:bg-[#ff2400]/10 hover:border-[#ff2400]/40 hover:text-[#ff2400] transition-all duration-300 shadow-sm" onClick={() => setRisalahEditor(null)} type="button">
-                                            <span className="material-symbols-outlined">close</span>
+                                        <button className="w-7 h-7 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white/30 hover:bg-[#ff2400]/10 hover:border-[#ff2400]/40 hover:text-[#ff2400] transition-all duration-300 shadow-sm" onClick={() => setRisalahEditor(null)} type="button">
+                                            <span className="material-symbols-outlined text-[14px]">close</span>
                                         </button>
                                     </div>
 
-                                    <div className="space-y-8 relative z-10">
+                                    <div className="space-y-4 relative z-10">
                                         {/* Nama Dokumen */}
-                                        <div className="space-y-3">
-                                            <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-white/40 ml-1">Nama Dokumen</label>
-                                            <div className="relative group">
-                                                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold-accent transition-colors">edit_note</span>
+                                        <div className="space-y-1">
+                                            <label className="block text-[8px] font-black uppercase tracking-[0.3em] text-white/40 ml-1">Nama Dokumen</label>
+                                            <div className="flex items-center gap-2.5 rounded-xl border border-white/10 bg-black/40 px-3 py-2 focus-within:border-gold-accent/50 transition-all">
+                                                <span className="material-symbols-outlined text-[12px] text-white/20 shrink-0">edit_note</span>
                                                 <input
-                                                    className="w-full rounded-2xl bg-black/40 border border-white/10 pl-12 pr-4 py-4 text-sm font-bold text-white outline-none focus:border-gold-accent/50 transition-all placeholder:text-white/10"
+                                                    className="flex-1 min-w-0 bg-transparent text-[11px] font-bold text-white outline-none placeholder:text-white/10"
                                                     onChange={(e) => setRisalahEditor(p => p ? { ...p, fileName: e.target.value } : p)}
                                                     type="text"
                                                     value={risalahEditor.fileName}
@@ -1884,8 +1949,8 @@ function IspDetailPage({
                                         </div>
 
                                         {/* Unggah Berkas */}
-                                        <div className="space-y-3">
-                                            <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-white/40 ml-1">Unggah Berkas</label>
+                                        <div className="space-y-1">
+                                            <label className="block text-[8px] font-black uppercase tracking-[0.3em] text-white/40 ml-1">Unggah Berkas</label>
                                             <div className="relative">
                                                 <input
                                                     id="risalah-file-upload"
@@ -1895,28 +1960,28 @@ function IspDetailPage({
                                                 />
                                                 <label
                                                     htmlFor="risalah-file-upload"
-                                                    className="flex items-center justify-between w-full rounded-2xl bg-black/40 border border-white/10 hover:border-gold-accent/40 px-5 py-4 cursor-pointer group transition-all"
+                                                    className="flex items-center justify-between w-full rounded-xl bg-black/40 border border-white/10 hover:border-gold-accent/40 px-3 py-2 cursor-pointer group transition-all"
                                                 >
-                                                    <div className="flex items-center gap-3">
-                                                        <span className="material-symbols-outlined text-white/30 group-hover:text-gold-accent transition-colors">cloud_upload</span>
-                                                        <span className="text-xs font-bold text-white/60 group-hover:text-white transition-colors truncate max-w-[220px]">
+                                                    <div className="flex items-center gap-2.5 min-w-0">
+                                                        <span className="material-symbols-outlined text-[12px] text-white/30 group-hover:text-gold-accent shrink-0">cloud_upload</span>
+                                                        <span className="text-[11px] font-bold text-white/60 group-hover:text-white truncate">
                                                             {risalahEditor.file ? risalahEditor.file.name : (risalahEditor.fileName || "Pilih berkas...")}
                                                         </span>
                                                     </div>
-                                                    <span className="text-[9px] font-black uppercase tracking-widest bg-gold-accent/10 text-gold-accent group-hover:bg-gold-accent group-hover:text-slate-900 px-4 py-2 rounded-xl transition-all border border-gold-accent/20">
-                                                        Cari File
+                                                    <span className="text-[8px] font-black uppercase tracking-widest bg-gold-accent/10 text-gold-accent group-hover:bg-gold-accent group-hover:text-slate-900 px-2 py-1 rounded-md transition-all border border-gold-accent/20 shrink-0 ml-2">
+                                                        Cari
                                                     </span>
                                                 </label>
                                             </div>
                                         </div>
 
-                                        {/* Tanggal Rapat */}
-                                        <div className="space-y-3">
-                                            <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-gold-accent/40 ml-1">Tanggal Dokumen</label>
-                                            <div className="relative group">
-                                                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gold-accent shadow-gold-glow-sm z-10">calendar_month</span>
+                                        {/* Tanggal Dokumen */}
+                                        <div className="space-y-1">
+                                            <label className="block text-[8px] font-black uppercase tracking-[0.3em] text-gold-accent/40 ml-1">Tanggal Dokumen</label>
+                                            <div className="flex items-center gap-2.5 rounded-xl border border-white/10 bg-black/40 px-3 py-2 focus-within:border-gold-accent/50 transition-all">
+                                                <span className="material-symbols-outlined text-[12px] text-gold-accent shrink-0">calendar_month</span>
                                                 <input
-                                                    className="w-full rounded-2xl bg-black/40 border border-white/10 pl-12 pr-4 py-4 text-sm font-bold text-white outline-none focus:border-gold-accent transition-all appearance-none custom-date-input cursor-pointer"
+                                                    className="flex-1 min-w-0 bg-transparent text-[11px] font-bold text-white outline-none appearance-none custom-date-input cursor-pointer"
                                                     onChange={(e) => setRisalahEditor(p => p ? { ...p, tanggal: e.target.value } : p)}
                                                     onClick={(e) => {
                                                         try { e.currentTarget.showPicker(); } catch { /* Browser tidak mendukung showPicker. */ }
@@ -1928,9 +1993,9 @@ function IspDetailPage({
                                         </div>
                                     </div>
 
-                                    <div className="mt-12 flex justify-end gap-4 relative z-10">
-                                        <button className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-white transition-all" onClick={() => setRisalahEditor(null)} type="button">Batal</button>
-                                        <button className="rounded-2xl bg-gold-accent px-12 py-4 text-[10px] font-black uppercase tracking-widest text-slate-900 shadow-gold-glow active:scale-95 transition-all" onClick={handleSaveRisalah} type="button">Simpan Dokumen</button>
+                                    <div className="mt-6 flex justify-end gap-3 relative z-10">
+                                        <button className="px-4 py-2 text-[9px] font-black uppercase tracking-widest text-white/40 hover:text-white transition-all" onClick={() => setRisalahEditor(null)} type="button">Batal</button>
+                                        <button className="rounded-xl bg-gold-accent px-6 py-2 text-[9px] font-black uppercase tracking-widest text-slate-900 shadow-gold-glow active:scale-95 transition-all" onClick={handleSaveRisalah} type="button">Simpan</button>
                                     </div>
                                 </div>
                             </div>,
@@ -1938,65 +2003,72 @@ function IspDetailPage({
                         )}
 
                         {activeTab === "timeline" && (
-                            <section className="glass-card backdrop-blur-xl rounded-premium p-10 border-white/10 shadow-glass-depth relative overflow-hidden space-y-10">
-
-                                {/* Header - Sleek Audit Trail Header */}
-                                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
-                                    <div className="space-y-2">
-                                        <div className="inline-flex items-center gap-2.5 px-3 py-1 rounded-full bg-gold-accent/10 border border-gold-accent/20">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-gold-accent animate-pulse shadow-gold-glow" />
-                                            <span className="text-[8px] font-black uppercase tracking-[0.3em] text-gold-accent">Log Keamanan & Sistem</span>
-                                        </div>
-                                        <h2 className="text-3xl font-black text-white tracking-widest uppercase">Timeline Aktivitas</h2>
-                                        <p className="text-[10px] font-bold text-white/30 tracking-[0.2em] uppercase">Jejak audit digital dan riwayat perubahan repositori ISP</p>
-                                    </div>
-                                </div>
-
-                                {timeline.length === 0 ? renderEmptyState("Belum ada aktivitas terekam.") : (
-                                    <div className="relative pt-2">
-                                        {/* Vertical line - High Glow Gradient */}
-                                        <div className="absolute left-[27px] top-6 bottom-6 w-[2px] bg-gradient-to-b from-gold-accent/40 via-white/10 to-transparent rounded-full shadow-gold-glow" />
-
-                                        <div className="space-y-8 relative z-10">
-                                            {timeline.map((e) => (
-                                                <div key={e.id} className="flex gap-6 group/t-item">
-                                                    {/* Glowing Marker */}
-                                                    <div className="relative shrink-0 mt-1">
-                                                        <div className={`w-14 h-14 rounded-2xl ${e.bg} border border-white/10 flex items-center justify-center ${e.color} shadow-lg group-hover/t-item:scale-110 group-hover/t-item:shadow-gold-glow transition-all duration-500`}>
-                                                            <span className="material-symbols-outlined text-2xl">{e.icon}</span>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Compact Content */}
-                                                    <div className="flex-1 space-y-2">
-                                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pr-1">
-                                                            <div className="space-y-1">
-                                                                <h4 className="text-md font-black text-white group-hover/t-item:text-gold-accent transition-colors duration-500 tracking-tight uppercase">{e.title}</h4>
-                                                                <span className={`inline-block text-[8px] font-black uppercase tracking-[0.2em] px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 ${e.color}`}>{e.type}</span>
-                                                            </div>
-
-                                                            {/* Compact Right Aligned Date/Time */}
-                                                            <div className="flex items-center gap-2 text-[9px] font-black tracking-widest bg-white/5 border border-white/10 px-3 py-1.5 rounded-xl">
-                                                                <span className="text-white/40 uppercase">{new Date(e.date).toLocaleDateString("id-ID", { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                                                                <div className="w-1.5 h-1.5 rounded-full bg-white/10 animate-pulse" />
-                                                                <span className="text-gold-accent">{new Date(e.date).toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' })} WITA</span>
-                                                            </div>
-                                                        </div>
-
-                                                        {/* ULTRA DARK GLASS - Monitoring Table Style Depth */}
-                                                        <div className="p-6 border border-white/5 bg-black/40 backdrop-blur-3xl rounded-2xl transition-all duration-500 shadow-glass-depth relative overflow-hidden group-hover/t-item:bg-black/60 group-hover/t-item:border-white/10 hover:shadow-2xl">
-                                                            <div className={`absolute left-0 top-0 bottom-0 w-1 ${e.bg.replace('bg-', 'bg-').replace('/10', '/80')}`} />
-                                                            <p className="text-[12px] font-bold text-white/50 leading-relaxed tracking-wide group-hover/t-item:text-white/90 transition-colors">
-                                                                {e.description}
-                                                            </p>
-                                                        </div>
-                                                    </div>
+                            <div className="space-y-2.5">
+                                {/* ══════ CARD 1: HEADER ══════ */}
+                                <section className="glass-card backdrop-blur-xl rounded-xl p-5 border-white/10 shadow-glass-depth relative overflow-hidden">
+                                    <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-3">
+                                        <div className="space-y-1">
+                                            <div className="flex items-center gap-2">
+                                                <span className="h-4 w-1 bg-gold-accent rounded-full"></span>
+                                                <h2 className="text-base font-black text-white tracking-widest uppercase">Timeline Aktivitas</h2>
+                                                <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-gold-accent/10 border border-gold-accent/20 ml-2">
+                                                    <span className="w-1 h-1 rounded-full bg-gold-accent animate-pulse shadow-gold-glow" />
+                                                    <span className="text-[7px] font-black uppercase tracking-widest text-gold-accent">Sistem Log</span>
                                                 </div>
-                                            ))}
+                                            </div>
+                                            <p className="text-[9px] font-bold text-white/20 tracking-wider">Jejak audit digital dan riwayat perubahan repositori ISP.</p>
                                         </div>
                                     </div>
-                                )}
-                            </section>
+                                </section>
+
+                                {/* ══════ CARD 2: TIMELINE ══════ */}
+                                <section className="glass-card backdrop-blur-xl rounded-xl p-5 border-white/10 shadow-glass-depth relative overflow-hidden">
+                                    {timeline.length === 0 ? renderEmptyState("Belum ada aktivitas terekam.") : (
+                                        <div className="relative pt-2">
+                                            {/* Vertical line - High Glow Gradient */}
+                                            <div className="absolute left-[19px] top-6 bottom-6 w-[2px] bg-gradient-to-b from-gold-accent/40 via-white/10 to-transparent rounded-full shadow-gold-glow" />
+
+                                            <div className="space-y-6 relative z-10">
+                                                {timeline.map((e) => (
+                                                    <div key={e.id} className="flex gap-4 group/t-item">
+                                                        {/* Glowing Marker */}
+                                                        <div className="relative shrink-0 mt-1">
+                                                            <div className={`w-10 h-10 rounded-xl ${e.bg} border border-white/10 flex items-center justify-center ${e.color} shadow-sm group-hover/t-item:scale-110 group-hover/t-item:shadow-gold-glow transition-all duration-300`}>
+                                                                <span className="material-symbols-outlined" style={{ fontSize: "18px" }}>{e.icon}</span>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Compact Content */}
+                                                        <div className="flex-1 space-y-2">
+                                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pr-1">
+                                                                <div className="space-y-0.5">
+                                                                    <h4 className="text-[11px] font-black text-white group-hover/t-item:text-gold-accent transition-colors duration-300 tracking-wider uppercase">{e.title}</h4>
+                                                                    <span className={`inline-block text-[7px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-white/5 border border-white/10 ${e.color}`}>{e.type}</span>
+                                                                </div>
+
+                                                                {/* Compact Right Aligned Date/Time */}
+                                                                <div className="flex items-center gap-1.5 text-[8px] font-black tracking-widest bg-white/5 border border-white/10 px-2.5 py-1 rounded-lg">
+                                                                    <span className="text-white/40 uppercase">{new Date(e.date).toLocaleDateString("id-ID", { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                                                                    <div className="w-1 h-1 rounded-full bg-white/10 animate-pulse" />
+                                                                    <span className="text-gold-accent">{new Date(e.date).toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' })} WITA</span>
+                                                                </div>
+                                                            </div>
+
+                                                            {/* ULTRA DARK GLASS - Monitoring Table Style Depth */}
+                                                            <div className="p-4 border border-white/5 bg-black/40 backdrop-blur-3xl rounded-xl transition-all duration-300 shadow-sm relative overflow-hidden group-hover/t-item:bg-black/60 group-hover/t-item:border-white/10">
+                                                                <div className={`absolute left-0 top-0 bottom-0 w-1 ${e.bg.replace('bg-', 'bg-').replace('/10', '/80')}`} />
+                                                                <p className="text-[10px] font-bold text-white/50 leading-relaxed tracking-wide group-hover/t-item:text-white/90 transition-colors">
+                                                                    {e.description}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </section>
+                            </div>
                         )}
                     </div>
                 )}

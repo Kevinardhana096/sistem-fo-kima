@@ -3,7 +3,7 @@ export const getPackageDisplay = (packageValue) => {
     const isSharingPackage = normalizedPackage.includes("shar") || normalizedPackage === "shared";
 
     return {
-        label: isSharingPackage ? "SHARING CORE" : "CORE",
+        label: isSharingPackage ? "Sharing Core" : "Core",
         filterValue: isSharingPackage ? "sharing_core" : "core",
         isSharingPackage,
     };

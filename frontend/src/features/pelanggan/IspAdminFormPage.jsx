@@ -429,80 +429,82 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
                         </div>
 
                         {/* Section: Kontrak ISP */}
-                        <div className="glass-card backdrop-blur-xl rounded-premium p-6 border-white/20 shadow-glass-depth relative z-10">
-                            <div className="flex items-center gap-3 mb-6">
-                                <span className="h-5 w-1.5 bg-gold-accent rounded-full shadow-gold-glow"></span>
-                                <h3 className="text-base font-black text-white uppercase tracking-widest">Kontrak ISP</h3>
+                        {!isEditMode && (
+                            <div className="glass-card backdrop-blur-xl rounded-premium p-6 border-white/20 shadow-glass-depth relative z-10">
+                                <div className="flex items-center gap-3 mb-6">
+                                    <span className="h-5 w-1.5 bg-gold-accent rounded-full shadow-gold-glow"></span>
+                                    <h3 className="text-base font-black text-white uppercase tracking-widest">Kontrak ISP</h3>
+                                </div>
+                                <div className="grid grid-cols-1 gap-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <GlassFieldInput
+                                            label="Awal Kontrak"
+                                            icon="calendar_today"
+                                            type="date"
+                                            value={form.contractStartDate}
+                                            error={fieldErrors.contractStartDate}
+                                            onChange={(val) => {
+                                                setForm(p => ({ ...p, contractStartDate: val }));
+                                                setFieldErrors((errors) => ({ ...errors, contractStartDate: "" }));
+                                            }}
+                                        />
+                                        <GlassFieldInput
+                                            label="Nomor Kontrak (Opsional)"
+                                            icon="tag"
+                                            placeholder="Contoh: KTR/ISP/001/2026"
+                                            value={form.contractReference}
+                                            error={fieldErrors.contractReference}
+                                            onChange={(val) => {
+                                                setForm(p => ({ ...p, contractReference: val }));
+                                                setFieldErrors((errors) => ({ ...errors, contractReference: "" }));
+                                            }}
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <GlassFieldInput
+                                            label="Periode Berjalan Awal"
+                                            icon="event_available"
+                                            type="date"
+                                            value={form.contractPeriodStart}
+                                            error={fieldErrors.contractPeriodStart}
+                                            onChange={(val) => {
+                                                setForm(p => ({ ...p, contractPeriodStart: val, status: deriveOperationalStatus(val, p.status) }));
+                                                setFieldErrors((errors) => ({ ...errors, contractPeriodStart: "" }));
+                                            }}
+                                        />
+                                        <GlassFieldInput
+                                            label="Periode Berjalan Akhir"
+                                            icon="event_busy"
+                                            type="date"
+                                            value={form.contractPeriodEnd}
+                                            error={fieldErrors.contractPeriodEnd}
+                                            onChange={(val) => {
+                                                setForm(p => ({ ...p, contractPeriodEnd: val }));
+                                                setFieldErrors((errors) => ({ ...errors, contractPeriodEnd: "" }));
+                                            }}
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <FileUploadCard
+                                            label="Upload BAK (Opsional)"
+                                            fileName={form.bakFileName}
+                                            error={fieldErrors.bakFileDataUrl}
+                                            uploadPathParts={["isps", initialData?.id ?? "new", "bak"]}
+                                            onFileSelected={(file, dataUrl) => setForm(p => ({ ...p, bakFileName: file.name, bakFileDataUrl: dataUrl }))}
+                                            onClear={() => setForm(p => ({ ...p, bakFileName: "", bakFileDataUrl: "" }))}
+                                        />
+                                        <FileUploadCard
+                                            label="Upload Kontrak (Opsional)"
+                                            fileName={form.contractFileName}
+                                            error={fieldErrors.contractFileDataUrl}
+                                            uploadPathParts={["isps", initialData?.id ?? "new", "contracts"]}
+                                            onFileSelected={(file, dataUrl) => setForm(p => ({ ...p, contractFileName: file.name, contractFileDataUrl: dataUrl }))}
+                                            onClear={() => setForm(p => ({ ...p, contractFileName: "", contractFileDataUrl: "" }))}
+                                        />
+                                    </div>
+                                </div>
                             </div>
-                            <div className="grid grid-cols-1 gap-6">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <GlassFieldInput
-                                        label="Awal Kontrak"
-                                        icon="calendar_today"
-                                        type="date"
-                                        value={form.contractStartDate}
-                                        error={fieldErrors.contractStartDate}
-                                        onChange={(val) => {
-                                            setForm(p => ({ ...p, contractStartDate: val }));
-                                            setFieldErrors((errors) => ({ ...errors, contractStartDate: "" }));
-                                        }}
-                                    />
-                                    <GlassFieldInput
-                                        label="Nomor Kontrak (Opsional)"
-                                        icon="tag"
-                                        placeholder="Contoh: KTR/ISP/001/2026"
-                                        value={form.contractReference}
-                                        error={fieldErrors.contractReference}
-                                        onChange={(val) => {
-                                            setForm(p => ({ ...p, contractReference: val }));
-                                            setFieldErrors((errors) => ({ ...errors, contractReference: "" }));
-                                        }}
-                                    />
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <GlassFieldInput
-                                        label="Periode Berjalan Awal"
-                                        icon="event_available"
-                                        type="date"
-                                        value={form.contractPeriodStart}
-                                        error={fieldErrors.contractPeriodStart}
-                                        onChange={(val) => {
-                                            setForm(p => ({ ...p, contractPeriodStart: val, status: deriveOperationalStatus(val, p.status) }));
-                                            setFieldErrors((errors) => ({ ...errors, contractPeriodStart: "" }));
-                                        }}
-                                    />
-                                    <GlassFieldInput
-                                        label="Periode Berjalan Akhir"
-                                        icon="event_busy"
-                                        type="date"
-                                        value={form.contractPeriodEnd}
-                                        error={fieldErrors.contractPeriodEnd}
-                                        onChange={(val) => {
-                                            setForm(p => ({ ...p, contractPeriodEnd: val }));
-                                            setFieldErrors((errors) => ({ ...errors, contractPeriodEnd: "" }));
-                                        }}
-                                    />
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <FileUploadCard
-                                        label="Upload BAK (Opsional)"
-                                        fileName={form.bakFileName}
-                                        error={fieldErrors.bakFileDataUrl}
-                                        uploadPathParts={["isps", initialData?.id ?? "new", "bak"]}
-                                        onFileSelected={(file, dataUrl) => setForm(p => ({ ...p, bakFileName: file.name, bakFileDataUrl: dataUrl }))}
-                                        onClear={() => setForm(p => ({ ...p, bakFileName: "", bakFileDataUrl: "" }))}
-                                    />
-                                    <FileUploadCard
-                                        label="Upload Kontrak (Opsional)"
-                                        fileName={form.contractFileName}
-                                        error={fieldErrors.contractFileDataUrl}
-                                        uploadPathParts={["isps", initialData?.id ?? "new", "contracts"]}
-                                        onFileSelected={(file, dataUrl) => setForm(p => ({ ...p, contractFileName: file.name, contractFileDataUrl: dataUrl }))}
-                                        onClear={() => setForm(p => ({ ...p, contractFileName: "", contractFileDataUrl: "" }))}
-                                    />
-                                </div>
-                            </div>
-                        </div>
+                        )}
 
                         {/* Section: Akun Akses ISP - Only in Add Mode */}
                         {!isEditMode && (
