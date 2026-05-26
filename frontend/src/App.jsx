@@ -485,7 +485,10 @@ function App() {
 
                         setCurrentRole(nextRole);
                         persistRole(nextRole);
+                        setCustomersError("");
+                        setIspsError("");
                         navigateTo(landingPath, { replace: true });
+                        void Promise.all([loadCustomers(), loadIsps(), loadNotifications()]);
                     }}
                 />
             </Suspense>

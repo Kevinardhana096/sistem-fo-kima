@@ -478,7 +478,11 @@ function MonitoringSpreadsheetPage({
 
             // 3. Status Jalur Filter
             const tenantRouteStatus = resolveRouteStatus(row.customerStatus, row.routeStatus);
-            const matchesRoute = filters.routeStatus === "all" ? true : tenantRouteStatus === filters.routeStatus;
+            const matchesRoute = filters.routeStatus === "all" ? true : (
+                filters.routeStatus === "perbaikan"
+                    ? (tenantRouteStatus === "perbaikan" || tenantRouteStatus === "sedang perbaikan")
+                    : tenantRouteStatus === filters.routeStatus
+            );
 
             // 4. Status Tindakan Filter
             const hasAlert = alertCustomerIds.has(row.customerId);
@@ -495,8 +499,10 @@ function MonitoringSpreadsheetPage({
 
     const filteredHistoryRows = useMemo(() => {
         const loweredSearch = filters.search.trim().toLowerCase();
+        const alertCustomerIds = new Set(alerts.map(a => a.customerId));
 
         return historyRows.filter((row) => {
+            // 1. Search Filter
             const searchableText = [
                 row.customerName,
                 row.ispName,
@@ -505,12 +511,37 @@ function MonitoringSpreadsheetPage({
                 row.lastInvoiceNumber,
             ].filter(Boolean).join(" ").toLowerCase();
             const matchesSearch = !loweredSearch || searchableText.includes(loweredSearch);
+
+            // 2. Status Kontrak Filter
+            const remainingDays = getRemainingRentalDays(row.contractEnd);
+            let contractStatusKey = "beroperasi";
+            if (isStoppedStatus(row.customerStatus)) {
+                contractStatusKey = "berhenti";
+            } else if (remainingDays !== null && remainingDays < 0) {
+                contractStatusKey = "expired";
+            }
+            const matchesContract = filters.contractStatus === "all" ? true : contractStatusKey === filters.contractStatus;
+
+            // 3. Status Jalur Filter
+            const tenantRouteStatus = resolveRouteStatus(row.customerStatus, row.routeStatus);
+            const matchesRoute = filters.routeStatus === "all" ? true : (
+                filters.routeStatus === "perbaikan"
+                    ? (tenantRouteStatus === "perbaikan" || tenantRouteStatus === "sedang perbaikan")
+                    : tenantRouteStatus === filters.routeStatus
+            );
+
+            // 4. Status Tindakan Filter
+            const hasAlert = alertCustomerIds.has(row.customerId);
+            const todoStatusKey = hasAlert ? "perlu_tindakan" : "tidak_ada";
+            const matchesTodo = filters.todoStatus === "all" ? true : todoStatusKey === filters.todoStatus;
+
+            // 5. Paket Filter
             const rowPackage = row.paket || row.coreType;
             const matchesPackage = filters.package === "all" ? true : rowPackage === filters.package;
 
-            return matchesSearch && matchesPackage;
+            return matchesSearch && matchesContract && matchesRoute && matchesTodo && matchesPackage;
         });
-    }, [historyRows, filters.search, filters.package]);
+    }, [historyRows, filters.search, filters.contractStatus, filters.routeStatus, filters.todoStatus, filters.package, alerts]);
 
     const isFilterActive = filters.search !== "" || filters.contractStatus !== "all" || filters.routeStatus !== "all" || filters.todoStatus !== "all" || filters.package !== "all" || filters.year !== currentYear;
 

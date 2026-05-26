@@ -29,6 +29,7 @@
         "-y",
         "@playwright/mcp@latest",
         "--browser=chrome",
+        "--executable-path=/usr/bin/google-chrome-stable",
         "--headless"
       ],
       "env": {
