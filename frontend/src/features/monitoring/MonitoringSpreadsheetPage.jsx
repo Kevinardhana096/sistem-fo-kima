@@ -49,14 +49,14 @@ const CustomSelect = ({ value, onChange, options, icon, label, variant = "defaul
                         }`}
                 >
                     {!isCompact && icon && (
-                        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[15px] transition-all duration-300 " style={{ color: isOpen || isSelected ? "#d4a937" : "rgba(255,255,255,0.2)" }}>
+                        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 transition-all duration-300 " style={{ fontSize: "20px",  color: isOpen || isSelected ? "#d4a937" : "rgba(255,255,255,0.2)" }}>
                             {icon}
                         </span>
                     )}
                     <span className={`truncate ${hideArrow ? "text-center w-full" : ""}`}>{selectedOption.label}</span>
                     {!hideArrow && (
                         <div className={`absolute inset-y-0 right-0 flex items-center justify-center transition-colors w-8 ${!isCompact && "border-l border-white/5 group-hover:border-gold-accent/20"}`}>
-                            <span className={`material-symbols-outlined transition-all duration-500 text-[15px] ${isCompact ? "text-gold-accent" : ""} ${isOpen ? "rotate-180" : (isSelected ? "" : "text-white/20 group-hover:text-gold-accent")}`}>
+                            <span className={`material-symbols-outlined transition-all duration-500 ${isCompact ? "text-gold-accent" : ""} ${isOpen ? "rotate-180" : (isSelected ? "" : "text-white/20 group-hover:text-gold-accent")}`} style={{ fontSize: "20px" }}>
                                 expand_more
                             </span>
                         </div>
@@ -195,7 +195,7 @@ function MonitoringSpreadsheetPage({
                         onClick={() => setSelectedInvoiceCell(null)}
                         type="button"
                     >
-                        <span className="material-symbols-outlined text-xl">close</span>
+                        <span className="material-symbols-outlined" style={{ fontSize: "16px" }}>close</span>
                     </button>
                 </div>
 
@@ -203,7 +203,7 @@ function MonitoringSpreadsheetPage({
                     <div className="rounded-xl bg-white/5 border border-white/5 p-3 transition-colors hover:bg-white/[0.07] backdrop-blur-md">
                         <dt className="text-[9px] font-black uppercase tracking-[0.15em] text-white/30 mb-1.5">Periode Tagihan</dt>
                         <dd className="text-xs font-black text-white flex items-center gap-2">
-                            <span className="material-symbols-outlined text-gold-accent text-sm">calendar_today</span>
+                            <span className="material-symbols-outlined text-gold-accent" style={{ fontSize: "16px" }}>calendar_today</span>
                             {selectedInvoiceCell.month} {selectedInvoiceCell.year}
                         </dd>
                     </div>
@@ -242,7 +242,7 @@ function MonitoringSpreadsheetPage({
                     <div className="rounded-xl bg-white/5 border border-white/5 p-3 transition-colors hover:bg-white/[0.07] backdrop-blur-md">
                         <dt className="text-[9px] font-black uppercase tracking-[0.15em] text-white/30 mb-1.5">Sisa Masa Sewa</dt>
                         <dd className="text-[11px] font-bold text-white/70 flex items-center gap-2">
-                            <span className="material-symbols-outlined text-gold-accent text-[13px]">timer</span>
+                            <span className="material-symbols-outlined text-gold-accent" style={{ fontSize: "16px" }}>timer</span>
                             {getRemainingRentalDays(selectedInvoiceCell.contractEnd)} Hari
                         </dd>
                     </div>
@@ -271,7 +271,7 @@ function MonitoringSpreadsheetPage({
                         }}
                         type="button"
                     >
-                        <span className="material-symbols-outlined text-[14px]">open_in_new</span>
+                        <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>open_in_new</span>
                         Buka Detail Lokasi
                     </button>
                 </div>
@@ -793,7 +793,7 @@ function MonitoringSpreadsheetPage({
                                     {billingRows.length === 0 ? (
                                         <div className="flex flex-col items-center justify-center animate-in fade-in zoom-in duration-500">
                                             <div className="h-20 w-20 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center mb-6 shadow-glass-depth">
-                                                <span className="material-symbols-outlined text-4xl text-white/20">inbox</span>
+                                                <span className="material-symbols-outlined text-white/20" style={{ fontSize: "36px" }}>inbox</span>
                                             </div>
                                             <h3 className="text-sm font-black text-white uppercase tracking-widest mb-2">Data Kosong</h3>
                                             <p className="text-[11px] font-bold text-white/30 tracking-wide text-center max-w-[240px] leading-relaxed">Belum ada data monitoring lokasi yang terdaftar dalam sistem.</p>
@@ -801,7 +801,7 @@ function MonitoringSpreadsheetPage({
                                     ) : (
                                         <div className="flex flex-col items-center justify-center animate-in fade-in zoom-in duration-500">
                                             <div className="h-20 w-20 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center mb-6 shadow-glass-depth">
-                                                <span className="material-symbols-outlined text-4xl text-white/20">filter_list_off</span>
+                                                <span className="material-symbols-outlined text-white/20" style={{ fontSize: "36px" }}>filter_list_off</span>
                                             </div>
                                             <h3 className="text-sm font-black text-white uppercase tracking-widest mb-2">Data Tidak Ditemukan</h3>
                                             <p className="text-[11px] font-bold text-white/30 tracking-wide text-center max-w-[240px] leading-relaxed mb-6">Tidak ada data yang cocok dengan filter pencarian Anda saat ini.</p>
@@ -812,7 +812,7 @@ function MonitoringSpreadsheetPage({
                                                     setAppliedFilters({ year: currentYear, contractStatus: "all", routeStatus: "all", todoStatus: "all", package: "all" });
                                                 }}
                                             >
-                                                <span className="material-symbols-outlined text-[15px] group-hover:rotate-180 transition-transform duration-500">restart_alt</span>
+                                                <span className="material-symbols-outlined group-hover:rotate-180 transition-transform duration-500" style={{ fontSize: "16px" }}>restart_alt</span>
                                                 Reset Filter
                                             </button>
                                         </div>
@@ -838,7 +838,7 @@ function MonitoringSpreadsheetPage({
                                         onClick={() => onOpenCustomerById(row.customerId, "overview")}
                                         type="button"
                                     >
-                                        <span className="material-symbols-outlined text-[13px]">open_in_new</span>
+                                        <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>open_in_new</span>
                                         Detail Unit
                                     </button>
                                     <span className="absolute right-0 top-0 h-full w-px bg-white/10 backdrop-blur-md" />
@@ -877,15 +877,15 @@ function MonitoringSpreadsheetPage({
                                         }
 
                                         if (remainingDays < 0) {
-                                            return <span className="font-black text-rose-500 uppercase text-[10px] tracking-widest flex items-center gap-1 justify-center"><span className="material-symbols-outlined text-sm">error</span> {Math.abs(remainingDays)} hari</span>;
+                                            return <span className="font-black text-rose-500 uppercase text-[10px] tracking-widest flex items-center gap-1 justify-center"><span className="material-symbols-outlined" style={{ fontSize: "16px" }}>error</span> {Math.abs(remainingDays)} hari</span>;
                                         }
 
                                         if (remainingDays === 0) {
-                                            return <span className="font-black text-amber-500 uppercase text-[10px] tracking-widest flex items-center gap-1 justify-center"><span className="material-symbols-outlined text-sm">warning</span> Akhir hari ini</span>;
+                                            return <span className="font-black text-amber-500 uppercase text-[10px] tracking-widest flex items-center gap-1 justify-center"><span className="material-symbols-outlined" style={{ fontSize: "16px" }}>warning</span> Akhir hari ini</span>;
                                         }
 
                                         const colorClass = remainingDays < 30 ? "text-amber-400" : "text-emerald-400";
-                                        return <span className={`font-black ${colorClass} uppercase text-[10px] tracking-widest flex items-center gap-1 justify-center`}><span className="material-symbols-outlined text-sm">schedule</span> {remainingDays} hari</span>;
+                                        return <span className={`font-black ${colorClass} uppercase text-[10px] tracking-widest flex items-center gap-1 justify-center`}><span className="material-symbols-outlined" style={{ fontSize: "16px" }}>schedule</span> {remainingDays} hari</span>;
                                     })()}
                                 </td>
                                 <td className="px-6 py-3 text-center transition-colors group-hover:bg-white/5 border-r border-white/5 backdrop-blur-md">
@@ -1121,7 +1121,7 @@ function MonitoringSpreadsheetPage({
                                     {historyRows.length === 0 ? (
                                         <div className="flex flex-col items-center justify-center animate-in fade-in zoom-in duration-500">
                                             <div className="h-20 w-20 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center mb-6 shadow-glass-depth">
-                                                <span className="material-symbols-outlined text-4xl text-white/20">inbox</span>
+                                                <span className="material-symbols-outlined text-white/20" style={{ fontSize: "36px" }}>inbox</span>
                                             </div>
                                             <h3 className="text-sm font-black text-white uppercase tracking-widest mb-2">Riwayat Kosong</h3>
                                             <p className="text-[11px] font-bold text-white/30 tracking-wide text-center max-w-[240px] leading-relaxed">Belum ada riwayat kontrak yang terdaftar dalam sistem.</p>
@@ -1129,7 +1129,7 @@ function MonitoringSpreadsheetPage({
                                     ) : (
                                         <div className="flex flex-col items-center justify-center animate-in fade-in zoom-in duration-500">
                                             <div className="h-20 w-20 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center mb-6 shadow-glass-depth">
-                                                <span className="material-symbols-outlined text-4xl text-white/20">filter_list_off</span>
+                                                <span className="material-symbols-outlined text-white/20" style={{ fontSize: "36px" }}>filter_list_off</span>
                                             </div>
                                             <h3 className="text-sm font-black text-white uppercase tracking-widest mb-2">Riwayat Tidak Ditemukan</h3>
                                             <p className="text-[11px] font-bold text-white/30 tracking-wide text-center max-w-[240px] leading-relaxed">Tidak ada riwayat kontrak yang cocok dengan filter pencarian Anda saat ini.</p>
@@ -1154,7 +1154,7 @@ function MonitoringSpreadsheetPage({
                                         onClick={() => onOpenCustomerById(row.customerId, "overview")}
                                         type="button"
                                     >
-                                        <span className="material-symbols-outlined text-[14px]">open_in_new</span>
+                                        <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>open_in_new</span>
                                         Detail Unit
                                     </button>
                                 </td>
@@ -1188,7 +1188,7 @@ function MonitoringSpreadsheetPage({
 
     if (tableOnly) {
         const tableOnlyContent = (
-            <div className="h-full min-h-0 w-full flex flex-col gap-5 p-2">
+            <div className="h-full min-h-0 w-full flex flex-col gap-2 p-2">
                 {typeof onCloseTableOnly === "function" && (
                     <div className="shrink-0 flex items-center justify-between gap-6 px-2">
                         <div className="flex items-center gap-4">
@@ -1197,7 +1197,7 @@ function MonitoringSpreadsheetPage({
                                 onClick={onCloseTableOnly}
                                 type="button"
                             >
-                                <span className="material-symbols-outlined text-xs text-gold-accent">logout</span>
+                                <span className="material-symbols-outlined text-gold-accent" style={{ fontSize: "16px" }}>logout</span>
                                 Keluar
                             </button>
                             <div className="h-6 w-px bg-white/10 mx-2"></div>
@@ -1207,7 +1207,7 @@ function MonitoringSpreadsheetPage({
                         <div className="flex-1 flex flex-wrap items-center gap-3">
                             {/* Search */}
                             <div className="relative flex-1 min-w-[180px] group">
-                                <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-base text-white/30 group-focus-within:text-gold-accent transition-colors">search</span>
+                                <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-gold-accent transition-colors" style={{ fontSize: "20px" }}>search</span>
                                 <input
                                     className="w-full h-9 rounded-xl bg-white/5 border border-white/10 pl-10 pr-3 text-[11px] font-bold text-white placeholder:text-white/20 outline-none transition-all focus:bg-white/10 focus:border-gold-accent/40 focus:ring-4 focus:ring-gold-accent/5 backdrop-blur-md"
                                     onChange={(e) => setFilters(p => ({ ...p, search: e.target.value }))}
@@ -1293,7 +1293,7 @@ function MonitoringSpreadsheetPage({
                                 })}
                                 title="Update Data"
                             >
-                                <span className="material-symbols-outlined text-[15px]">sync_alt</span>
+                                <span className="material-symbols-outlined" style={{ fontSize: "20px" }}>sync_alt</span>
                             </button>
 
                             <button
@@ -1319,7 +1319,7 @@ function MonitoringSpreadsheetPage({
                                 }}
                                 title="Hapus Filter"
                             >
-                                <span className="material-symbols-outlined text-[15px]">filter_alt_off</span>
+                                <span className="material-symbols-outlined" style={{ fontSize: "20px" }}>filter_alt_off</span>
                             </button>
                         </div>
                     </div>
@@ -1327,7 +1327,7 @@ function MonitoringSpreadsheetPage({
                 {error && (
                     <div className="shrink-0 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-6 py-2.5 text-sm font-bold text-rose-400 backdrop-blur-md">
                         <div className="flex items-center gap-3">
-                            <span className="material-symbols-outlined">warning</span>
+                            <span className="material-symbols-outlined" style={{ fontSize: "16px" }}>warning</span>
                             {error}
                         </div>
                     </div>
@@ -1387,7 +1387,7 @@ function MonitoringSpreadsheetPage({
                                 className="h-9 px-3 rounded-lg border border-gold-accent bg-gold-accent/10 text-gold-accent hover:bg-gold-accent hover:text-black transition-all flex items-center gap-1.5 backdrop-blur-md"
                                 onClick={handleEnterTable}
                             >
-                                <span className="material-symbols-outlined text-[15px]">table_chart</span>
+                                <span className="material-symbols-outlined" style={{ fontSize: "20px" }}>table_chart</span>
                                 <span className="text-[9px] font-black uppercase tracking-widest">Masuk ke Tabel</span>
                             </button>
                         )}
@@ -1413,7 +1413,7 @@ function MonitoringSpreadsheetPage({
                         <div className="flex flex-wrap items-center gap-3">
                             {/* Search Input - Now inside card */}
                             <div className="relative group flex-grow min-w-[200px]">
-                                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[15px] text-white/30 group-focus-within:text-gold-accent transition-all duration-300">search</span>
+                                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-gold-accent transition-all duration-300" style={{ fontSize: "20px" }}>search</span>
                                 <input
                                     className="w-full h-9 rounded-xl bg-black/20 border border-white/10 pl-9 pr-3 text-[10px] font-bold text-white placeholder:text-white/20 outline-none transition-all focus:bg-black/40 focus:border-gold-accent/40 focus:ring-2 focus:ring-gold-accent/10 shadow-inner-glass backdrop-blur-md"
                                     onChange={(e) => setFilters(p => ({ ...p, search: e.target.value }))}
@@ -1445,7 +1445,7 @@ function MonitoringSpreadsheetPage({
                                 }}
                                 title="Hapus Filter"
                             >
-                                <span className="material-symbols-outlined text-[15px]">filter_alt_off</span>
+                                <span className="material-symbols-outlined" style={{ fontSize: "20px" }}>filter_alt_off</span>
                             </button>
 
                             <button
@@ -1458,7 +1458,7 @@ function MonitoringSpreadsheetPage({
                                     package: filters.package,
                                 })}
                             >
-                                <span className="material-symbols-outlined text-[15px]">sync_alt</span>
+                                <span className="material-symbols-outlined" style={{ fontSize: "20px" }}>sync_alt</span>
                                 <span className="text-[9px] font-black uppercase tracking-[0.2em] text-white">Terapkan</span>
                             </button>
                         </div>
@@ -1556,7 +1556,7 @@ function MonitoringSpreadsheetPage({
                     </div>
                     <div className="flex-1 flex justify-end">
                         <span className="flex items-center gap-1 text-[10px] font-medium text-on-surface-variant leading-relaxed opacity-60 uppercase tracking-widest">
-                            <span className="material-symbols-outlined text-xs">touch_app</span>
+                            <span className="material-symbols-outlined" style={{ fontSize: "16px" }}>touch_app</span>
                             Klik sel bulanan untuk detail
                         </span>
                     </div>
@@ -1589,7 +1589,7 @@ function MonitoringSpreadsheetPage({
                                 className="h-8 px-3 rounded-lg border border-white/10 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white transition-all flex items-center gap-1.5 backdrop-blur-md"
                                 onClick={onOpenTableOnly}
                             >
-                                <span className="material-symbols-outlined text-[14px]">fullscreen</span>
+                                <span className="material-symbols-outlined" style={{ fontSize: "16px" }}>fullscreen</span>
                                 <span className="text-[9px] font-black uppercase tracking-widest">Mode Fokus</span>
                             </button>
                         )}
@@ -1598,7 +1598,7 @@ function MonitoringSpreadsheetPage({
                             onClick={exportToExcel}
                             disabled={isExporting}
                         >
-                            <span className="material-symbols-outlined text-[14px]">{isExporting ? "progress_activity" : "download_for_offline"}</span>
+                            <span className="material-symbols-outlined" style={{ fontSize: "16px" }}>{isExporting ? "progress_activity" : "download_for_offline"}</span>
                             <span className="text-[9px] font-black uppercase tracking-widest">{isExporting ? "Menyiapkan..." : "Ekspor Excel"}</span>
                         </button>
                         <button
@@ -1606,7 +1606,7 @@ function MonitoringSpreadsheetPage({
                             className={`h-8 w-8 flex items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/40 hover:bg-white/10 hover:text-white transition-all backdrop-blur-md ${isLoading ? "animate-pulse" : ""}`}
                             disabled={isLoading}
                         >
-                            <span className={`material-symbols-outlined text-[14px] ${isLoading ? "animate-spin" : ""}`}>sync</span>
+                            <span className={`material-symbols-outlined text-sm ${isLoading ? "animate-spin" : ""}`}>sync</span>
                         </button>
                     </div>
                 </div>
@@ -1802,7 +1802,7 @@ function PaginationControls({ currentPage, totalPages, onPageChange, itemsPerPag
                     className="flex h-8 items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-3 text-[8px] font-black uppercase tracking-widest text-white/50 transition-all hover:bg-white/10 hover:text-white disabled:opacity-30 backdrop-blur-md"
                     type="button" disabled={currentPage <= 1} onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
                 >
-                    <span className="material-symbols-outlined text-sm">chevron_left</span> Prev
+                    <span className="material-symbols-outlined" style={{ fontSize: "16px" }}>chevron_left</span> Prev
                 </button>
                 
                 <div 
@@ -1853,7 +1853,7 @@ function PaginationControls({ currentPage, totalPages, onPageChange, itemsPerPag
                     className="flex h-8 items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-3 text-[8px] font-black uppercase tracking-widest text-white/50 transition-all hover:bg-white/10 hover:text-white disabled:opacity-30 backdrop-blur-md"
                     type="button" disabled={currentPage >= totalPages} onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
                 >
-                    Next <span className="material-symbols-outlined text-sm">chevron_right</span>
+                    Next <span className="material-symbols-outlined" style={{ fontSize: "16px" }}>chevron_right</span>
                 </button>
             </div>
         </div>
@@ -1875,7 +1875,7 @@ function StatCard({ label, value, icon, accent, sub }) {
             <div className="flex justify-between items-start mb-4">
                 <p className="text-[9px] font-black uppercase tracking-[0.2em] text-on-surface-variant group-hover:text-gold-accent transition-colors">{label}</p>
                 <div className={`h-9 w-9 flex items-center justify-center rounded-xl border transition-all group-hover:shadow-lg ${accents[accent]}`}>
-                    <span className="material-symbols-outlined text-[15px]">{icon}</span>
+                    <span className="material-symbols-outlined" style={{ fontSize: "20px" }}>{icon}</span>
                 </div>
             </div>
             <h3 className="text-2xl font-black text-on-surface tracking-tighter mb-1">{value}</h3>

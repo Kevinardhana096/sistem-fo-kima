@@ -5,13 +5,13 @@ import { uploadFileForRecord } from "../../lib/files";
 
 const GlassFieldInput = ({ label, type = "text", value, onChange, placeholder = "", icon, error = "" }) => {
     return (
-        <div className="space-y-3">
+        <div className="space-y-1.5">
             <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-gold-accent/60 ml-1">
                 {label}
             </label>
             <div className="relative group">
                 {icon && (
-                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[15px] text-white/20 group-focus-within:text-gold-accent transition-all duration-300 pointer-events-none">
+                    <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold-accent transition-all duration-300 pointer-events-none" style={{ fontSize: "14px" }}>
                         {icon}
                     </span>
                 )}
@@ -32,7 +32,7 @@ const GlassFieldInput = ({ label, type = "text", value, onChange, placeholder = 
 };
 
 const FileUploadCard = ({ label, fileName, onFileSelected, onClear, uploadPathParts = [], icon = "upload_file", error = "" }) => (
-    <div className="space-y-3">
+    <div className="space-y-1.5">
         <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-gold-accent/60 ml-1">{label}</label>
         <div className={`relative overflow-hidden rounded-xl border border-dashed bg-black/20 p-4 transition-all hover:border-gold-accent/40 backdrop-blur-md ${error ? "border-rose-500/70 ring-2 ring-rose-500/10" : "border-white/10"}`}>
             <input
@@ -46,12 +46,12 @@ const FileUploadCard = ({ label, fileName, onFileSelected, onClear, uploadPathPa
                 type="file"
             />
             <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-gold-accent backdrop-blur-md">
-                    <span className="material-symbols-outlined text-xl">{icon}</span>
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-gold-accent backdrop-blur-md">
+                    <span className="material-symbols-outlined" style={{ fontSize: "16px" }}>{icon}</span>
                 </div>
                 <div className="min-w-0 flex-1">
                     <p className="truncate text-[10px] font-black uppercase tracking-widest text-white">{fileName || "Pilih Berkas"}</p>
-                    <p className="mt-0.5 text-[8px] font-bold uppercase tracking-widest text-white/30">Opsional. Klik area ini untuk upload.</p>
+                    <p className="mt-0.5 text-[9px] font-bold tracking-wide text-white/40">Opsional. Klik area ini untuk upload.</p>
                 </div>
                 {fileName && (
                     <button
@@ -87,7 +87,7 @@ const GlassCustomSelect = ({ label, value, onChange, options, icon, disabled = f
     }, [disabled]);
 
     return (
-        <div className={`space-y-3 relative ${isOpen ? "z-50" : "z-10"}`} ref={containerRef}>
+        <div className={`space-y-1.5 relative ${isOpen ? "z-50" : "z-10"}`} ref={containerRef}>
             <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-gold-accent/60 ml-1">
                 {label}
             </label>
@@ -96,11 +96,11 @@ const GlassCustomSelect = ({ label, value, onChange, options, icon, disabled = f
                     onClick={() => !disabled && setIsOpen(!isOpen)}
                     className={`w-full h-9 rounded-xl bg-black/20 border flex items-center pl-9 pr-8 text-[10px] font-bold transition-all shadow-inner-glass relative z-20 backdrop-blur-md ${disabled ? "cursor-not-allowed border-white/10 text-white/50" : "cursor-pointer"} ${isOpen ? "border-gold-accent/60 bg-black/40 shadow-gold-glow" : "border-white/10 text-white/70 hover:border-white/30"}`}
                 >
-                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[15px] transition-all duration-300" style={{ color: isOpen ? "#d4a937" : "rgba(255,255,255,0.2)" }}>
+                    <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 transition-all duration-300" style={{ fontSize: "14px", color: isOpen ? "#d4a937" : "rgba(255,255,255,0.2)" }}>
                         {icon}
                     </span>
                     <span className="truncate uppercase tracking-widest">{selectedOption.label}</span>
-                    <span className={`material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 transition-transform duration-300 text-[15px] ${isOpen ? "rotate-180 text-gold-accent" : "text-white/20"}`}>
+                    <span className={`material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 transition-transform duration-300 ${isOpen ? "rotate-180 text-gold-accent" : "text-white/20"}`} style={{ fontSize: "14px" }}>
                         expand_more
                     </span>
                 </div>
@@ -117,13 +117,13 @@ const GlassCustomSelect = ({ label, value, onChange, options, icon, disabled = f
                                 className={`flex items-center px-3 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest cursor-pointer transition-all mb-1 last:mb-0 ${value === opt.value ? "bg-gold-accent/10 text-gold-accent border border-gold-accent/20 shadow-gold-glow" : "text-white/40 hover:bg-white/5 hover:text-white"}`}
                             >
                                 {opt.label}
-                                {value === opt.value && <span className="material-symbols-outlined ml-auto text-[15px]">check_circle</span>}
+                                {value === opt.value && <span className="material-symbols-outlined ml-auto" style={{ fontSize: "14px" }}>check_circle</span>}
                             </div>
                         ))}
                     </div>
                 )}
             </div>
-            {helperText && <p className="text-[10px] font-black uppercase tracking-widest text-white/30">{helperText}</p>}
+            {helperText && <p className="text-[9px] font-bold tracking-wide text-white/40">{helperText}</p>}
         </div>
     );
 };
@@ -253,9 +253,9 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
                 <div className="absolute bottom-[-5%] left-[-5%] w-[30%] h-[30%] rounded-full bg-gold-accent/5 blur-[100px] backdrop-blur-md" />
             </div>
 
-            <form className="mx-auto max-w-7xl space-y-6 pb-20 pt-4 px-6" onSubmit={handleSubmit}>
+            <form className="mx-auto max-w-7xl space-y-4 pb-20 pt-2 px-4 md:px-6" onSubmit={handleSubmit}>
                 {/* Header Section */}
-                <header className="flex flex-col justify-between gap-6 md:flex-row md:items-end mb-6 px-2">
+                <header className="flex flex-col justify-between gap-4 md:flex-row md:items-end mb-4 px-2">
                     <div>
                         <div className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-gold-accent/10 border border-gold-accent/20 backdrop-blur-md mb-2">
                             <span className="w-2 h-2 rounded-full bg-gold-accent animate-pulse shadow-gold-glow" />
@@ -299,25 +299,25 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
                 {submitError && (
                     <div className="mx-2 p-6 rounded-2xl border border-rose-500/20 bg-rose-500/10 text-rose-400 text-sm font-bold backdrop-blur-md animate-in fade-in slide-in-from-top-4">
                         <div className="flex items-center gap-3">
-                            <span className="material-symbols-outlined">warning</span>
+                            <span className="material-symbols-outlined" style={{ fontSize: "18px" }}>warning</span>
                             {submitError}
                         </div>
                     </div>
                 )}
 
-                <div className="grid grid-cols-1 gap-6 items-start">
+                <div className="grid grid-cols-1 gap-3 items-start">
                     {/* Left Column - Core Info */}
-                    <div className="space-y-6">
+                    <div className="space-y-3">
                         {/* Section: Identitas ISP */}
-                        <div className="glass-card backdrop-blur-xl rounded-premium p-6 border-white/20 shadow-glass-depth relative z-20">
+                        <div className="glass-card backdrop-blur-xl rounded-2xl p-5 border-white/20 shadow-glass-depth relative z-20">
                             
-                            <div className="flex items-center gap-3 mb-6">
+                            <div className="flex items-center gap-3 mb-4">
                                 <span className="h-5 w-1.5 bg-gold-accent rounded-full shadow-gold-glow"></span>
                                 <h3 className="text-base font-black text-white uppercase tracking-widest">Identitas ISP</h3>
                             </div>
 
-                            <div className="grid grid-cols-1 gap-6">
-                                <div className="space-y-3">
+                            <div className="grid grid-cols-1 gap-4">
+                                <div className="space-y-1.5">
                                     <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-gold-accent/60 ml-1">Logo Perusahaan (Opsional)</label>
                                     <div className="flex flex-col sm:flex-row items-center gap-4 p-4 rounded-xl bg-black/20 border border-white/10 border-dashed hover:border-gold-accent/40 transition-all group cursor-pointer relative overflow-hidden backdrop-blur-md">
                                         <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-white/5 border border-white/10 flex items-center justify-center backdrop-blur-md">
@@ -329,7 +329,7 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
                                                 />
                                             ) : (
                                                 <div className="flex flex-col items-center justify-center text-white/20">
-                                                    <span className="material-symbols-outlined text-3xl mb-1">image</span>
+                                                    <span className="material-symbols-outlined mb-1" style={{ fontSize: "20px" }}>image</span>
                                                     <span className="text-[7px] font-black uppercase tracking-widest">No Logo</span>
                                                 </div>
                                             )}
@@ -345,7 +345,7 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
                                         </div>
                                         <div className="flex-1 space-y-1.5">
                                             <p className="text-[10px] font-bold text-white uppercase tracking-widest">Pilih Berkas Logo</p>
-                                            <p className="text-[8px] text-white/40 font-medium uppercase tracking-widest leading-relaxed">Format: PNG/JPG (Maks. 2MB). Gunakan latar transparan untuk hasil terbaik.</p>
+                                            <p className="text-[9px] text-white/50 font-medium tracking-wide leading-relaxed">Format: PNG/JPG (Maks. 2MB). Gunakan latar transparan untuk hasil terbaik.</p>
                                             {(form.logoFileDataUrl || form.logoUrl) && (
                                                 <button 
                                                     className="mt-2 text-[10px] font-black text-rose-400 uppercase tracking-widest hover:text-rose-300 flex items-center gap-1 transition-colors z-20 relative"
@@ -355,14 +355,14 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
                                                         setForm(p => ({ ...p, logoFileDataUrl: "", logoUrl: "" }));
                                                     }}
                                                 >
-                                                    <span className="material-symbols-outlined text-sm">delete</span>
+                                                    <span className="material-symbols-outlined" style={{ fontSize: "12px" }}>delete</span>
                                                     Hapus Logo
                                                 </button>
                                             )}
                                         </div>
                                     </div>
                                 </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <GlassFieldInput
                                         label="Nama Perusahaan ISP"
                                         icon="corporate_fare"
@@ -391,13 +391,13 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
                                     />
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="space-y-3">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-1.5">
                                         <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-gold-accent/60 ml-1">
                                             Paket (Jumlah Core)
                                         </label>
                                         <div className="relative group">
-                                            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[15px] text-white/20 group-focus-within:text-gold-accent transition-all duration-300 pointer-events-none">
+                                            <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold-accent transition-all duration-300 pointer-events-none" style={{ fontSize: "14px" }}>
                                                 hub
                                             </span>
                                             <input
@@ -430,13 +430,13 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
 
                         {/* Section: Kontrak ISP */}
                         {!isEditMode && (
-                            <div className="glass-card backdrop-blur-xl rounded-premium p-6 border-white/20 shadow-glass-depth relative z-10">
-                                <div className="flex items-center gap-3 mb-6">
+                            <div className="glass-card backdrop-blur-xl rounded-2xl p-5 border-white/20 shadow-glass-depth relative z-10">
+                                <div className="flex items-center gap-3 mb-4">
                                     <span className="h-5 w-1.5 bg-gold-accent rounded-full shadow-gold-glow"></span>
                                     <h3 className="text-base font-black text-white uppercase tracking-widest">Kontrak ISP</h3>
                                 </div>
-                                <div className="grid grid-cols-1 gap-6">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="grid grid-cols-1 gap-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <GlassFieldInput
                                             label="Awal Kontrak"
                                             icon="calendar_today"
@@ -460,7 +460,7 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
                                             }}
                                         />
                                     </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <GlassFieldInput
                                             label="Periode Berjalan Awal"
                                             icon="event_available"
@@ -484,7 +484,7 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
                                             }}
                                         />
                                     </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <FileUploadCard
                                             label="Upload BAK (Opsional)"
                                             fileName={form.bakFileName}
@@ -508,14 +508,14 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
 
                         {/* Section: Akun Akses ISP - Only in Add Mode */}
                         {!isEditMode && (
-                            <div className="glass-card backdrop-blur-xl rounded-premium p-6 border-white/20 shadow-glass-depth relative z-10">
+                            <div className="glass-card backdrop-blur-xl rounded-2xl p-5 border-white/20 shadow-glass-depth relative z-10">
                                 
-                                <div className="flex items-center gap-3 mb-6">
+                                <div className="flex items-center gap-3 mb-4">
                                     <span className="h-5 w-1.5 bg-gold-accent rounded-full shadow-gold-glow"></span>
                                     <h3 className="text-base font-black text-white uppercase tracking-widest">Akun Akses ISP</h3>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <GlassFieldInput
                                         label="Alamat Email Akses"
                                         icon="mail"

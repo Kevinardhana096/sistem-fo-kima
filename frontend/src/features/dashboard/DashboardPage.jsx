@@ -338,8 +338,8 @@ export default function DashboardPage({
                                             key={type}
                                             onClick={() => setCoreChartType(type)}
                                             className={`rounded-lg px-4 py-1.5 text-[9px] font-black uppercase tracking-widest transition-all ${coreChartType === type
-                                                    ? "bg-gold-accent text-white shadow-gold-glow"
-                                                    : "text-white/70 hover:text-white"
+                                                ? "bg-gold-accent text-white shadow-gold-glow"
+                                                : "text-white/70 hover:text-white"
                                                 }`}
                                         >
                                             {type === "sharing" ? "Sharing Core" : "Core"}
@@ -468,8 +468,8 @@ export default function DashboardPage({
                                             key={type}
                                             onClick={() => setGrowthType(type)}
                                             className={`rounded-lg px-4 py-1.5 text-[9px] font-black uppercase tracking-widest transition-all ${growthType === type
-                                                    ? "bg-gold-accent text-white shadow-gold-glow"
-                                                    : "text-white/70 hover:text-white"
+                                                ? "bg-gold-accent text-white shadow-gold-glow"
+                                                : "text-white/70 hover:text-white"
                                                 }`}
                                         >
                                             {type === "tenant" ? "Lokasi" : "ISP"}
@@ -504,7 +504,7 @@ export default function DashboardPage({
                             {alerts.map((alert, i) => (
                                 <div key={i} className="flex items-center gap-2 p-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/12 transition-all backdrop-blur-md">
                                     <div className="h-6 w-6 shrink-0 flex items-center justify-center rounded bg-rose-500/15 text-rose-300">
-                                        <span className="material-symbols-outlined text-[14px]">priority_high</span>
+                                        <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>priority_high</span>
                                     </div>
                                     <p className="text-[9px] font-black text-on-surface line-clamp-1">{alert.message || alert.title}</p>
                                 </div>
@@ -534,17 +534,17 @@ export default function DashboardPage({
                         </div>
                         <div className="flex-1 flex flex-col justify-between mt-2">
                             <div className="space-y-2">
-                                <OperationalStatusRow label="Aktif & Beroperasi" count={routeStatus.aktif} percent={routePercent(routeStatus.aktif)} color="bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.3)]" bg="bg-emerald-500/5 border-emerald-500/10" />
+                                <OperationalStatusRow label="Aktif" count={routeStatus.aktif} percent={routePercent(routeStatus.aktif)} color="bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.3)]" bg="bg-emerald-500/5 border-emerald-500/10" />
                                 <OperationalStatusRow label="Gangguan Jaringan" count={routeStatus.gangguan} percent={routePercent(routeStatus.gangguan)} color="bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.3)]" bg="bg-amber-500/5 border-amber-500/10" />
                                 <OperationalStatusRow label="Sedang Perbaikan" count={routeStatus.perbaikan} percent={routePercent(routeStatus.perbaikan)} color="bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.3)]" bg="bg-rose-500/5 border-rose-500/10" />
                             </div>
                             <div className="mt-3 p-3 rounded-lg bg-white/5 border border-white/10 flex items-center justify-between shrink-0 backdrop-blur-md">
                                 <div>
-                                    <p className="text-[8px] font-black text-on-surface-variant uppercase tracking-widest">Total Jalur Terdata</p>
+                                    <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest">Total Jalur Terdata</p>
                                     <p className="text-xl font-black text-on-surface mt-0.5">{routeStatus.total}</p>
                                 </div>
                                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 text-on-surface-variant border border-white/5 backdrop-blur-md">
-                                    <span className="material-symbols-outlined text-base">route</span>
+                                    <span className="material-symbols-outlined" style={{ fontSize: "18px" }}>route</span>
                                 </div>
                             </div>
                         </div>
@@ -569,7 +569,7 @@ export default function DashboardPage({
                                     <p className="text-xl font-black text-on-surface mt-0.5">{stats.contract.totalOperational}</p>
                                 </div>
                                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 text-on-surface-variant border border-white/5 backdrop-blur-md">
-                                    <span className="material-symbols-outlined text-base">domain</span>
+                                    <span className="material-symbols-outlined" style={{ fontSize: "18px" }}>domain</span>
                                 </div>
                             </div>
                         </div>
@@ -591,7 +591,7 @@ function StatCard({ label, value, icon, accent, sub }) {
             <div className="flex justify-between items-start mb-5">
                 <p className="text-[9px] font-black uppercase tracking-widest text-on-surface-variant">{label}</p>
                 <div className={`h-10 w-10 flex items-center justify-center rounded-xl ${accents[accent]}`}>
-                    <span className="material-symbols-outlined text-xl">{icon}</span>
+                    <span className="material-symbols-outlined" style={{ fontSize: "18px" }}>{icon}</span>
                 </div>
             </div>
             <h3 className="text-2xl font-black text-on-surface tracking-tighter mb-2">{value}</h3>
@@ -613,7 +613,7 @@ function OperationalStatusRow({ label, count, percent, color, bg }) {
     return (
         <div className={`group cursor-pointer rounded-lg border p-2.5 transition-all hover:scale-[1.02] ${bg}`}>
             <div className="flex items-end justify-between mb-1.5">
-                <span className="text-[8px] font-black uppercase tracking-wider text-on-surface/80 transition-colors group-hover:text-on-surface">{label}</span>
+                <span className="text-[10px] font-black uppercase tracking-wider text-on-surface/80 transition-colors group-hover:text-on-surface">{label}</span>
                 <span className="text-base font-black text-on-surface">{count}</span>
             </div>
             <div className="h-1 w-full overflow-hidden rounded-full bg-white/10 border border-white/5 backdrop-blur-md">
@@ -628,7 +628,7 @@ function ContractStatusRow({ label, count, color, bg, icon }) {
         <div className={`flex items-center justify-between rounded-lg border p-2.5 transition-transform hover:scale-[1.02] ${bg}`}>
             <div className="flex items-center gap-2">
                 <div className={`flex h-6 w-6 items-center justify-center rounded-full bg-white/10 ${color} backdrop-blur-md`}>
-                    <span className="material-symbols-outlined text-[14px]">{icon}</span>
+                    <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>{icon}</span>
                 </div>
                 <span className={`text-[9px] font-black uppercase tracking-widest ${color}`}>{label}</span>
             </div>
@@ -649,7 +649,7 @@ function CustomDropdown({ value, options, onChange, align = "right", triggerClas
                 className={`flex items-center gap-1 appearance-none bg-transparent border-none font-black focus:outline-none ${triggerClass}`}
             >
                 <span>{selectedOption.label}</span>
-                <span className={`material-symbols-outlined text-[12px] transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`}>expand_more</span>
+                <span className={`material-symbols-outlined transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`} style={{ fontSize: "14px" }}>expand_more</span>
             </button>
 
             {isOpen && (

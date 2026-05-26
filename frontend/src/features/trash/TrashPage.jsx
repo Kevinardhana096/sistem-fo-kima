@@ -33,7 +33,7 @@ function CustomDropdown({ value, options, onChange, align = "right", triggerClas
                 className={`flex w-full h-full items-center justify-between gap-1 appearance-none bg-transparent border-none font-black focus:outline-none ${triggerClass}`}
             >
                 <span>{selectedOption.label}</span>
-                <span className={`material-symbols-outlined text-[16px] transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`}>expand_more</span>
+                <span className={`material-symbols-outlined transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`} style={{ fontSize: "18px" }}>expand_more</span>
             </button>
             
             {isOpen && (
@@ -286,7 +286,7 @@ export default function TrashPage({ activeSection, onNavigate, onLogout: _onLogo
                 {/* Filter Section */}
                 <div className="glass-card rounded-xl p-2 sm:p-2.5 flex flex-col sm:flex-row gap-2 items-center z-40 relative">
                     <div className="relative flex-1 w-full group">
-                        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-gold-accent transition-colors z-10 pointer-events-none text-[15px]">
+                        <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-gold-accent transition-colors z-10 pointer-events-none" style={{ fontSize: "18px" }}>
                             search
                         </span>
                         <input
@@ -300,7 +300,7 @@ export default function TrashPage({ activeSection, onNavigate, onLogout: _onLogo
 
                     <div className="w-full sm:w-40 relative z-50">
                         <div className="relative group h-9 rounded-lg bg-white/5 border border-white/10 focus-within:border-gold-accent/40 focus-within:bg-black/40 transition-all backdrop-blur-md">
-                            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold-accent transition-colors z-10 pointer-events-none text-[15px]">filter_list</span>
+                            <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold-accent transition-colors z-10 pointer-events-none" style={{ fontSize: "18px" }}>filter_list</span>
                             <CustomDropdown 
                                 value={sortOrder}
                                 onChange={setSortOrder}
@@ -393,7 +393,7 @@ export default function TrashPage({ activeSection, onNavigate, onLogout: _onLogo
                                                     className="flex h-8 items-center gap-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-3 text-[8px] font-black uppercase tracking-widest text-emerald-400 transition-all hover:bg-emerald-500 hover:text-white active:scale-95 backdrop-blur-md"
                                                     disabled={isLoading}
                                                 >
-                                                    <span className="material-symbols-outlined text-sm">restore_from_trash</span>
+                                                    <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>restore_from_trash</span>
                                                     Pulihkan
                                                 </button>
                                                 <button
@@ -402,7 +402,7 @@ export default function TrashPage({ activeSection, onNavigate, onLogout: _onLogo
                                                     title="Hapus Permanen"
                                                     disabled={isLoading}
                                                 >
-                                                    <span className="material-symbols-outlined text-sm">delete_forever</span>
+                                                    <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>delete_forever</span>
                                                 </button>
                                             </div>
                                         </div>

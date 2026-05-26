@@ -3170,16 +3170,16 @@ function TenantDetailPage({
       hideSidebar={hideSidebar}
       currentRole={currentRole}
     >
-           <div className="flex flex-col gap-10">
+           <div className="flex flex-col gap-2">
             {/* Top Bar: Back & Status */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                     <button
-                        className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-white/40 hover:text-gold-accent transition-all group"
+                        className="inline-flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.2em] text-white/40 hover:text-gold-accent transition-all group"
                         onClick={onBack}
                         type="button"
                     >
-                        <span className="material-symbols-outlined text-base transition-transform group-hover:-translate-x-1">arrow_back</span>
+                        <span className="material-symbols-outlined text-[10px] transition-transform group-hover:-translate-x-1">arrow_back</span>
                         {backLabel}
                     </button>
                 </div>
@@ -3187,30 +3187,30 @@ function TenantDetailPage({
                 {!isTeknisi && (
                     <div className="flex items-center gap-2">
                         <button
-                            className="h-12 px-5 flex items-center gap-2 rounded-xl bg-white/5 border border-white/10 text-white/60 hover:bg-white/10 hover:text-white transition-all shadow-sm group text-[10px] font-black uppercase tracking-widest backdrop-blur-md"
+                            className="h-7 px-3 flex items-center gap-1.5 rounded-lg bg-white/5 border border-white/10 text-white/60 hover:bg-white/10 hover:text-white transition-all shadow-sm group text-[8px] font-black uppercase tracking-widest backdrop-blur-md"
                             onClick={() => void Promise.all([loadDetail(), onRefreshAll?.()])}
                             title="Refresh Data"
                         >
-                            <span className="material-symbols-outlined text-lg group-hover:rotate-180 transition-transform duration-500">sync</span>
+                            <span className="material-symbols-outlined text-[10px] group-hover:rotate-180 transition-transform duration-500">sync</span>
                             Refresh
                         </button>
                         {canEditTenant && (
                             <button
-                                className="h-12 px-5 flex items-center gap-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500 hover:text-white transition-all shadow-sm text-[10px] font-black uppercase tracking-widest"
+                                className="h-7 px-3 flex items-center gap-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500 hover:text-white transition-all shadow-sm text-[8px] font-black uppercase tracking-widest"
                                 onClick={() => onEditTenant?.(detail ?? customer)}
                                 title="Edit Tenant"
                             >
-                                <span className="material-symbols-outlined text-lg">edit_note</span>
+                                <span className="material-symbols-outlined text-[10px]">edit_note</span>
                                 Edit Lokasi
                             </button>
                         )}
                         {canDeleteTenant && (
                             <button
-                                className="h-12 px-5 flex items-center gap-2 rounded-xl bg-[#ff2400]/10 border border-[#ff2400]/20 text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all shadow-sm text-[10px] font-black uppercase tracking-widest"
+                                className="h-7 px-3 flex items-center gap-1.5 rounded-lg bg-[#ff2400]/10 border border-[#ff2400]/20 text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all shadow-sm text-[8px] font-black uppercase tracking-widest"
                                 onClick={handleOpenDeleteModal}
                                 title="Hapus Tenant"
                             >
-                                <span className="material-symbols-outlined text-lg">delete_forever</span>
+                                <span className="material-symbols-outlined text-[10px]">delete_forever</span>
                                 Hapus Lokasi
                             </button>
                         )}
@@ -3410,16 +3410,13 @@ function TenantDetailPage({
                         {/* Top accent line */}
                         <div className="h-px w-full bg-gradient-to-r from-transparent via-gold-accent/30 to-transparent" />
 
-                        <div className="relative p-6 md:p-8 space-y-6">
+                        <div className="relative p-4 md:p-5 space-y-4">
 
                             {/* ── Row 1: Identity + Status ── */}
                             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                                 {/* Left: icon + label + name + ISP info */}
-                                <div className="min-w-0 flex-1 space-y-3">
-                                    <div className="flex items-center gap-2.5">
-                                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-gold-accent/20 bg-gold-accent/10 text-gold-accent backdrop-blur-md">
-                                            <span className="material-symbols-outlined text-lg">location_on</span>
-                                        </div>
+                                <div className="min-w-0 flex-1 space-y-1">
+                                    <div className="flex items-center gap-2.5 pb-1">
                                         <div>
                                             <p className="text-[8px] font-black uppercase tracking-[0.4em] text-white/20">Lokasi Operasional</p>
                                             {customerId && (
@@ -3427,11 +3424,14 @@ function TenantDetailPage({
                                             )}
                                         </div>
                                     </div>
-                                    <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white uppercase leading-tight">
+                                    <h1 className="text-lg md:text-xl font-black tracking-tight text-white uppercase leading-tight">
                                         {tenantName}
                                     </h1>
+                                    <p className="text-[11px] font-black text-white/40 tracking-widest uppercase">
+                                        {formatDisplayContractNumber(versions?.[0]?.contractNumber ?? versions?.[0]?.contract_number ?? contract?.contractNumber ?? contract?.contract_number)}
+                                    </p>
                                     {/* ISP info row */}
-                                    <div className="flex items-center gap-3 pt-0.5">
+                                    <div className="flex items-center gap-3 pt-4">
                                         <span className="material-symbols-outlined text-[15px] text-gold-accent/50">corporate_fare</span>
                                         <span className="text-[10px] font-black uppercase tracking-widest text-white/50">
                                             {isps.length > 0 ? isps.map((i) => i.name).join(", ") : "Provider Mandiri"}
@@ -3443,7 +3443,7 @@ function TenantDetailPage({
                                 <div className="flex shrink-0 flex-wrap items-start gap-2">
                                     {/* Contract status pill */}
                                     <div className={`inline-flex items-center gap-2 rounded-xl border px-3.5 py-2 ${cBg} ${cBorder}`}>
-                                        <span className={`material-symbols-outlined text-[14px] ${cText}`}>{cIcon}</span>
+                                        <span className={`material-symbols-outlined text-[12px] ${cText}`}>{cIcon}</span>
                                         <div>
                                             <p className="text-[7px] font-black uppercase tracking-[0.3em] text-white/20">Kontrak</p>
                                             <p className={`text-[9px] font-black uppercase tracking-widest ${cText}`}>{cLabel}</p>
@@ -3453,7 +3453,7 @@ function TenantDetailPage({
 
                                     {/* Route status pill */}
                                     <div className={`inline-flex items-center gap-2 rounded-xl border px-3.5 py-2 ${rBg} ${rBorder}`}>
-                                        <span className={`material-symbols-outlined text-[14px] ${rText}`}>{rIcon}</span>
+                                        <span className={`material-symbols-outlined text-[12px] ${rText}`}>{rIcon}</span>
                                         <div>
                                             <p className="text-[7px] font-black uppercase tracking-[0.3em] text-white/20">Jalur FO</p>
                                             <p className={`text-[9px] font-black uppercase tracking-widest ${rText}`}>{rLabel}</p>
@@ -3467,12 +3467,12 @@ function TenantDetailPage({
                             <div className="h-px bg-white/[0.05]" />
 
                             {/* ── Row 2: Metadata grid ── */}
-                            <div className="grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-3 lg:grid-cols-4">
+                            <div className="grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-4 lg:grid-cols-4">
                                 {/* Paket */}
                                 <div className="space-y-1.5">
                                     <p className="text-[8px] font-black uppercase tracking-[0.35em] text-white/20">Paket</p>
                                     <div className="flex items-center gap-2">
-                                        <span className="material-symbols-outlined text-[14px] text-gold-accent/60">package_2</span>
+                                        <span className="material-symbols-outlined text-[12px] text-gold-accent/60">package_2</span>
                                         <p className="text-[11px] font-black text-white uppercase tracking-wide">{paketVal}</p>
                                     </div>
                                 </div>
@@ -3481,7 +3481,7 @@ function TenantDetailPage({
                                 <div className="space-y-1.5">
                                     <p className="text-[8px] font-black uppercase tracking-[0.35em] text-white/20">Jumlah</p>
                                     <div className="flex items-center gap-2">
-                                        <span className="material-symbols-outlined text-[14px] text-blue-400/60">speed</span>
+                                        <span className="material-symbols-outlined text-[12px] text-blue-400/60">speed</span>
                                         <p className="text-[11px] font-black text-white uppercase tracking-wide">{jumlahVal}</p>
                                     </div>
                                 </div>
@@ -3490,7 +3490,7 @@ function TenantDetailPage({
                                 <div className="space-y-1.5">
                                     <p className="text-[8px] font-black uppercase tracking-[0.35em] text-white/20">Periode Awal Kontrak</p>
                                     <div className="flex items-center gap-2">
-                                        <span className="material-symbols-outlined text-[14px] text-emerald-400/60">event_available</span>
+                                        <span className="material-symbols-outlined text-[12px] text-emerald-400/60">event_available</span>
                                         <p className="text-[11px] font-black text-white tracking-wide">
                                             {contractPeriodInfo.contractStartDate ? formatDate(contractPeriodInfo.contractStartDate) : "—"}
                                         </p>
@@ -3501,7 +3501,7 @@ function TenantDetailPage({
                                 <div className="space-y-1.5">
                                     <p className="text-[8px] font-black uppercase tracking-[0.35em] text-white/20">Periode Berjalan</p>
                                     <div className="flex items-center gap-2">
-                                        <span className="material-symbols-outlined text-[14px] text-sky-400/60">date_range</span>
+                                        <span className="material-symbols-outlined text-[12px] text-sky-400/60">date_range</span>
                                         <p className="text-[11px] font-black text-white tracking-wide">
                                             {periodStart || periodEnd
                                                 ? <>{periodStart ? formatDate(periodStart) : "—"}<span className="mx-1.5 text-white/20 font-normal">—</span>{periodEnd ? formatDate(periodEnd) : "—"}</>
@@ -3536,25 +3536,40 @@ function TenantDetailPage({
                 </div>
             )}
 
-            {/* Tab Navigation */}
-            <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-white/5 border border-white/10 w-fit backdrop-blur-md">
-                {tabs.map((tab) => (
-                    <button
-                        key={tab.key}
-                        onClick={() => setActiveTab(tab.key)}
-                        className={`h-11 px-8 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 ${activeTab === tab.key ? 'bg-gold-accent text-[#0f141e] shadow-gold-glow' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
-                    >
-                        {tab.label}
-                    </button>
-                ))}
-            </div>
+            {/* 2. TABS NAVIGATION */}
+            <section className="glass-card backdrop-blur-xl rounded-2xl p-1 border-white/10 shadow-glass-depth relative overflow-hidden">
+                <div className="absolute inset-0 bg-white/[0.02] pointer-events-none" />
+                <nav className="relative flex flex-wrap gap-1">
+                    {[
+                        { id: "overview", label: "Ringkasan", icon: "dashboard" },
+                        { id: "contracts", label: "Kontrak", icon: "description" },
+                        { id: "documents", label: "Dokumen", icon: "inventory_2" },
+                        { id: "invoices", label: "Invoice & Penagihan", icon: "receipt_long" },
+                        { id: "timeline", label: "Timeline", icon: "history" },
+                        { id: "jalur", label: "Peta Jalur FO", icon: "map" },
+                    ]
+                    // If teknisi, hide some tabs
+                    .filter(tab => !(isTeknisi && (tab.id === "documents" || tab.id === "invoices" || tab.id === "timeline")))
+                    .map((tab) => (
+                        <button
+                            key={tab.id}
+                            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-[9px] font-black tracking-[0.1em] transition-all duration-500 relative overflow-hidden ${activeTab === tab.id ? "text-white bg-gold-accent shadow-gold-glow" : "text-white/60 hover:text-white hover:bg-white/5"}`}
+                            onClick={() => setActiveTab(tab.id)}
+                            type="button"
+                        >
+                            <span className={`material-symbols-outlined relative z-10 ${activeTab === tab.id ? "scale-110 text-white" : ""}`} style={{ fontSize: "18px" }}>{tab.icon}</span>
+                            <span className="relative z-10">{tab.label}</span>
+                        </button>
+                    ))}
+                </nav>
+            </section>
 
         {activeTab === "overview" && (
             <div className="space-y-6">
                 {/* ── Row 1: Stats strip ─────────────────────────────────── */}
                 <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
                     {/* Invoice Bulanan */}
-                    <div className="glass-card backdrop-blur-xl rounded-2xl p-5 border-white/10 shadow-glass-depth group relative overflow-hidden">
+                    <div className="glass-card backdrop-blur-xl rounded-2xl p-3 border-white/10 shadow-glass-depth group relative overflow-hidden">
                         <div className="pointer-events-none absolute -right-6 -top-6 h-20 w-20 rounded-full bg-gold-accent/5 blur-2xl group-hover:bg-gold-accent/10 transition-all duration-700 backdrop-blur-md" />
                         <p className="mb-3 text-[8px] font-black uppercase tracking-[0.3em] text-white/30">Invoice Bulanan</p>
                         <div className="flex items-baseline gap-2">
@@ -3576,7 +3591,7 @@ function TenantDetailPage({
                     </div>
 
                     {/* Butuh Perhatian */}
-                    <div className="glass-card backdrop-blur-xl rounded-2xl p-5 border-white/10 shadow-glass-depth relative overflow-hidden">
+                    <div className="glass-card backdrop-blur-xl rounded-2xl p-3 border-white/10 shadow-glass-depth relative overflow-hidden">
                         <p className="mb-3 text-[8px] font-black uppercase tracking-[0.3em] text-white/30">Butuh Perhatian</p>
                         <div className="flex items-center gap-3">
                             <div className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 ${totalActionItems > 0 ? 'bg-amber-500/20 text-amber-400 animate-pulse' : 'bg-white/5 text-white/20'}`}>
@@ -3590,7 +3605,7 @@ function TenantDetailPage({
                     </div>
 
                     {/* Fee Aktivasi */}
-                    <div className="glass-card backdrop-blur-xl rounded-2xl p-5 border-white/10 shadow-glass-depth">
+                    <div className="glass-card backdrop-blur-xl rounded-2xl p-3 border-white/10 shadow-glass-depth">
                         <p className="mb-3 text-[8px] font-black uppercase tracking-[0.3em] text-white/30">Fee Aktivasi</p>
                         <div className="flex items-center gap-3">
                             <div className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 ${detail?.activationFeePaidAt ? 'bg-emerald-500/20 text-emerald-400' : 'bg-[#ff2400]/20 text-[#ff2400]'}`}>
@@ -3607,7 +3622,7 @@ function TenantDetailPage({
                     </div>
 
                     {/* Periode Tagihan */}
-                    <div className="glass-card backdrop-blur-xl rounded-2xl p-5 border-white/10 shadow-glass-depth">
+                    <div className="glass-card backdrop-blur-xl rounded-2xl p-3 border-white/10 shadow-glass-depth">
                         <p className="mb-3 text-[8px] font-black uppercase tracking-[0.3em] text-white/30">Periode Tagihan</p>
                         <div className="flex items-center gap-3">
                             <div className="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0 text-blue-400 backdrop-blur-md">
@@ -3623,7 +3638,7 @@ function TenantDetailPage({
 
                 <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_380px]">
                     {/* Status Kelengkapan Berkas */}
-                    <div className="glass-card backdrop-blur-xl rounded-premium p-8 border-white/10 shadow-glass-depth relative overflow-hidden">
+                    <div className="glass-card backdrop-blur-xl rounded-premium p-5 border-white/10 shadow-glass-depth relative overflow-hidden">
                         <div className="flex items-center gap-4 mb-8">
                             <div className="h-10 w-10 rounded-xl bg-gold-accent/10 border border-gold-accent/20 flex items-center justify-center text-gold-accent backdrop-blur-md">
                                 <span className="material-symbols-outlined text-xl">fact_check</span>
@@ -4470,7 +4485,7 @@ function TenantDetailPage({
         {activeTab === "invoices" && (
             <div className="space-y-10">
                 {/* Billing Header & Controls */}
-                <section className="glass-card backdrop-blur-xl rounded-premium p-8 border-white/10 shadow-glass-depth relative overflow-hidden">
+                <section className="glass-card backdrop-blur-xl rounded-premium p-5 border-white/10 shadow-glass-depth relative overflow-hidden">
                     <div className="absolute -right-24 -top-24 h-64 w-64 rounded-full bg-blue-500/5 blur-3xl backdrop-blur-md" />
                     
                     <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-8">
@@ -5123,7 +5138,7 @@ function TenantDetailPage({
 
             {/* Upload Section */}
             <section className="lg:col-span-5 space-y-6">
-                <div className="glass-card backdrop-blur-xl rounded-premium p-8 border-white/10 shadow-glass-depth relative overflow-hidden">
+                <div className="glass-card backdrop-blur-xl rounded-premium p-5 border-white/10 shadow-glass-depth relative overflow-hidden">
                     <div className="absolute -right-12 -top-12 h-32 w-32 rounded-full bg-gold-accent/5 blur-2xl backdrop-blur-md" />
                     <div className="flex items-center gap-4 mb-8">
                         <div className="h-10 w-10 rounded-xl bg-gold-accent/10 border border-gold-accent/20 flex items-center justify-center text-gold-accent backdrop-blur-md">
@@ -5220,7 +5235,7 @@ function TenantDetailPage({
         {activeTab === "timeline" && (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
             {/* Timeline Header */}
-            <section className="glass-card backdrop-blur-xl rounded-premium p-8 border-white/10 shadow-glass-depth relative overflow-hidden">
+            <section className="glass-card backdrop-blur-xl rounded-premium p-5 border-white/10 shadow-glass-depth relative overflow-hidden">
                 <div className="absolute -right-24 -top-24 h-64 w-64 rounded-full bg-emerald-500/5 blur-3xl backdrop-blur-md" />
                 <div className="flex items-center gap-6">
                     <div className="h-14 w-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 backdrop-blur-md">

@@ -97,7 +97,7 @@ function CustomDropdown({ value, options, onChange, align = "left", position = "
             >
                 <span className="truncate">{selectedOption.label}</span>
                 {!hideArrow && (
-                    <span className={`material-symbols-outlined text-[16px] shrink-0 transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`}>expand_more</span>
+                    <span className={`material-symbols-outlined shrink-0 transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`} style={{ fontSize: "18px" }}>expand_more</span>
                 )}
             </button>
 
@@ -296,7 +296,7 @@ export default function ActivityLogPage({ activeSection, onNavigate, onLogout, c
                                     : "lg:grid-cols-[2fr_1fr_1.2fr]"
                             }`}>
                         <div className="relative w-full group">
-                            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-gold-accent transition-colors z-10 pointer-events-none text-[15px]">
+                            <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-gold-accent transition-colors z-10 pointer-events-none" style={{ fontSize: "18px" }}>
                                 search
                             </span>
                             <input
@@ -310,7 +310,7 @@ export default function ActivityLogPage({ activeSection, onNavigate, onLogout, c
 
                         <div className="relative z-[60]">
                             <div className="relative group h-9 rounded-lg bg-white/5 border border-white/10 focus-within:border-gold-accent/40 focus-within:bg-black/40 transition-all backdrop-blur-md">
-                                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold-accent transition-colors z-10 pointer-events-none text-[15px]">category</span>
+                                <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold-accent transition-colors z-10 pointer-events-none" style={{ fontSize: "18px" }}>category</span>
                                 <CustomDropdown
                                     value={entityType}
                                     onChange={setEntityType}
@@ -328,7 +328,7 @@ export default function ActivityLogPage({ activeSection, onNavigate, onLogout, c
 
                         <div className="relative z-40">
                             <div className="relative group h-9 rounded-lg bg-white/5 border border-white/10 focus-within:border-gold-accent/40 focus-within:bg-black/40 transition-all backdrop-blur-md">
-                                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold-accent transition-colors z-10 pointer-events-none text-[15px]">date_range</span>
+                                <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold-accent transition-colors z-10 pointer-events-none" style={{ fontSize: "18px" }}>date_range</span>
                                 <CustomDropdown
                                     value={dateMode}
                                     onChange={handleDateModeChange}
@@ -393,7 +393,7 @@ export default function ActivityLogPage({ activeSection, onNavigate, onLogout, c
                         {dateMode === "year" && (
                             <div className="relative z-40">
                                 <div className="relative group h-9 rounded-lg bg-white/5 border border-white/10 focus-within:border-gold-accent/40 focus-within:bg-black/40 transition-all backdrop-blur-md">
-                                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold-accent transition-colors z-10 pointer-events-none text-[15px]">calendar_today</span>
+                                    <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold-accent transition-colors z-10 pointer-events-none" style={{ fontSize: "18px" }}>calendar_today</span>
                                     <CustomDropdown
                                         value={selectedYear}
                                         onChange={handleYearChange}
@@ -423,7 +423,7 @@ export default function ActivityLogPage({ activeSection, onNavigate, onLogout, c
                         type="button"
                         title="Reset Filter"
                     >
-                        <span className="material-symbols-outlined text-[15px]">filter_alt_off</span>
+                        <span className="material-symbols-outlined" style={{ fontSize: "18px" }}>filter_alt_off</span>
                         <span className="text-[9px] font-black uppercase tracking-widest hidden sm:block">Reset</span>
                     </button>
                 </div>
@@ -489,7 +489,7 @@ export default function ActivityLogPage({ activeSection, onNavigate, onLogout, c
                                             onClick={() => setSelectedLog(log)}
                                             type="button"
                                         >
-                                            <span className="material-symbols-outlined text-sm">open_in_new</span>
+                                            <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>open_in_new</span>
                                             Lihat Detail
                                         </button>
                                     </div>
@@ -523,7 +523,7 @@ export default function ActivityLogPage({ activeSection, onNavigate, onLogout, c
                                             className="flex h-8 items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-3 text-[8px] font-black uppercase tracking-widest text-white/50 transition-all hover:bg-white/10 hover:text-white disabled:opacity-30 backdrop-blur-md"
                                             type="button" disabled={currentPage <= 1} onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
                                         >
-                                            <span className="material-symbols-outlined text-sm">chevron_left</span> Prev
+                                            <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>chevron_left</span> Prev
                                         </button>
                                         
                                         <div 
@@ -574,7 +574,7 @@ export default function ActivityLogPage({ activeSection, onNavigate, onLogout, c
                                             className="flex h-8 items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-3 text-[8px] font-black uppercase tracking-widest text-white/50 transition-all hover:bg-white/10 hover:text-white disabled:opacity-30 backdrop-blur-md"
                                             type="button" disabled={currentPage >= totalPages} onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
                                         >
-                                            Next <span className="material-symbols-outlined text-sm">chevron_right</span>
+                                            Next <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>chevron_right</span>
                                         </button>
                                     </div>
                                 </div>

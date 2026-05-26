@@ -4,13 +4,13 @@ import api, { getApiErrorDetails } from "../../lib/api";
 
 const GlassFieldInput = ({ label, type = "text", value, onChange, placeholder = "", icon, min, onKeyDown, error = "" }) => {
     return (
-        <div className="space-y-3">
+        <div className="space-y-1.5">
             <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-gold-accent/60 ml-1">
                 {label}
             </label>
             <div className="relative group">
                 {icon && (
-                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[15px] text-white/20 group-focus-within:text-gold-accent transition-all duration-300 pointer-events-none">
+                    <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold-accent transition-all duration-300 pointer-events-none" style={{ fontSize: "14px" }}>
                         {icon}
                     </span>
                 )}
@@ -47,7 +47,7 @@ const GlassCustomSelect = ({ label, value, onChange, options, icon, heightClass 
     }, []);
 
     return (
-        <div className={`space-y-3 relative ${isOpen ? "z-50" : "z-0"}`} ref={containerRef}>
+        <div className={`space-y-1.5 relative ${isOpen ? "z-50" : "z-0"}`} ref={containerRef}>
             {label && (
                 <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-gold-accent/60 ml-1">
                     {label}
@@ -59,13 +59,13 @@ const GlassCustomSelect = ({ label, value, onChange, options, icon, heightClass 
                     className={`rounded-xl bg-black/20 border flex items-center justify-center transition-all cursor-pointer shadow-inner-glass relative z-20 backdrop-blur-md ${isOpen ? "border-gold-accent/60 bg-black/40 shadow-gold-glow" : "border-white/10 text-white/70 hover:border-white/30"} ${heightClass} ${iconOnly ? "w-11 px-0" : icon ? "w-full pl-9 pr-8 text-[10px] font-black" : "w-full px-3 text-[10px] font-black"}`}
                 >
                     {icon && (
-                        <span className={`material-symbols-outlined transition-all duration-300 ${iconOnly ? "text-[15px]" : "absolute left-3 top-1/2 -translate-y-1/2 text-[15px]"}`} style={{ color: isOpen ? "#d4a937" : "rgba(255,255,255,0.2)" }}>
+                        <span className={`material-symbols-outlined transition-all duration-300 ${iconOnly ? "" : "absolute left-2.5 top-1/2 -translate-y-1/2"}`} style={{ fontSize: "14px", color: isOpen ? "#d4a937" : "rgba(255,255,255,0.2)" }}>
                             {icon}
                         </span>
                     )}
                     {!iconOnly && <span className="truncate uppercase tracking-widest">{selectedOption.label}</span>}
                     {!iconOnly && (
-                        <span className={`material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 transition-transform duration-300 text-[15px] ${isOpen ? "rotate-180 text-gold-accent" : "text-white/20"}`}>
+                        <span className={`material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 transition-transform duration-300 ${isOpen ? "rotate-180 text-gold-accent" : "text-white/20"}`} style={{ fontSize: "14px" }}>
                             expand_more
                         </span>
                     )}
@@ -83,7 +83,7 @@ const GlassCustomSelect = ({ label, value, onChange, options, icon, heightClass 
                                 className={`flex items-center px-3 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest cursor-pointer transition-all mb-1 last:mb-0 ${value === opt.value ? "bg-gold-accent/10 text-gold-accent border border-gold-accent/20 shadow-gold-glow" : "text-white/40 hover:bg-white/5 hover:text-white"}`}
                             >
                                 {opt.label}
-                                {value === opt.value && <span className="material-symbols-outlined ml-auto text-[15px]">check_circle</span>}
+                                {value === opt.value && <span className="material-symbols-outlined ml-auto" style={{ fontSize: "14px" }}>check_circle</span>}
                             </div>
                         ))}
                     </div>
@@ -235,9 +235,9 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                 <div className="absolute bottom-[-5%] left-[-5%] w-[30%] h-[30%] rounded-full bg-gold-accent/5 blur-[100px] backdrop-blur-md" />
             </div>
 
-            <form className="relative z-10 mx-auto max-w-7xl space-y-6 pb-20 pt-4 px-6" onSubmit={handleSubmit}>
+            <form className="relative z-10 mx-auto max-w-7xl space-y-4 pb-20 pt-2 px-4 md:px-6" onSubmit={handleSubmit}>
                 {/* Header Section */}
-                <header className="flex flex-col justify-between gap-6 md:flex-row md:items-end mb-6 px-2">
+                <header className="flex flex-col justify-between gap-4 md:flex-row md:items-end mb-4 px-2">
                     <div>
                         <div className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-gold-accent/10 border border-gold-accent/20 backdrop-blur-md mb-2">
                             <span className="w-2 h-2 rounded-full bg-gold-accent animate-pulse shadow-gold-glow" />
@@ -281,23 +281,23 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                 {submitError && (
                     <div className="mx-2 p-6 rounded-2xl border border-rose-500/20 bg-rose-500/10 text-rose-400 text-sm font-bold backdrop-blur-md animate-in fade-in slide-in-from-top-4">
                         <div className="flex items-center gap-3">
-                            <span className="material-symbols-outlined">warning</span>
+                            <span className="material-symbols-outlined" style={{ fontSize: "18px" }}>warning</span>
                             {submitError}
                         </div>
                     </div>
                 )}
 
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
                     {/* Left Column - Core Info */}
-                    <div className="lg:col-span-8 space-y-6">
+                    <div className="lg:col-span-8 space-y-4">
                         {/* Section: Identitas Lokasi */}
-                        <div className="glass-card backdrop-blur-xl rounded-premium p-6 border-white/20 shadow-glass-depth relative z-40">
-                            <div className="flex items-center gap-3 mb-6">
+                        <div className="glass-card backdrop-blur-xl rounded-2xl p-5 border-white/20 shadow-glass-depth relative z-40">
+                            <div className="flex items-center gap-3 mb-4">
                                 <span className="h-5 w-1.5 bg-gold-accent rounded-full shadow-gold-glow"></span>
                                 <h3 className="text-base font-black text-white uppercase tracking-widest">Identitas Lokasi</h3>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <GlassFieldInput
                                     label="Nama Lokasi"
                                     icon="location_on"
@@ -324,14 +324,14 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                         </div>
 
                         {!isEditMode && (
-                            <div className="glass-card backdrop-blur-xl rounded-premium p-6 border-white/20 shadow-glass-depth relative z-30">
-                                <div className="flex items-center gap-3 mb-6">
+                            <div className="glass-card backdrop-blur-xl rounded-2xl p-5 border-white/20 shadow-glass-depth relative z-30">
+                                <div className="flex items-center gap-3 mb-4">
                                     <span className="h-5 w-1.5 bg-gold-accent rounded-full shadow-gold-glow"></span>
                                     <h3 className="text-base font-black text-white uppercase tracking-widest">Layanan & Kontrak</h3>
                                 </div>
 
-                                <div className="grid grid-cols-1 gap-6">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="grid grid-cols-1 gap-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <GlassCustomSelect
                                             label="Jenis Paket"
                                             icon="inventory_2"
@@ -355,7 +355,7 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                                                 onChange={(val) => { if (val === '' || Number(val) >= 1) setForm(p => ({ ...p, jumlah: val })); setFieldErrors((errors) => ({ ...errors, jumlah: "" })); }}
                                             />
                                         ) : (
-                                            <div className="space-y-3">
+                                            <div className="space-y-1.5">
                                                 <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-gold-accent/60 ml-1">Ratio Shared</label>
                                                 <div className="flex items-center gap-4">
                                                     <div className="relative flex-1">
@@ -370,7 +370,7 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                                         )}
                                     </div>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                         <GlassFieldInput label="Awal Kontrak (Ops)" icon="calendar_today" type="date" value={form.contractStartDate} onChange={(val) => setForm(p => ({ ...p, contractStartDate: val }))} />
                                         <GlassFieldInput label="Mulai Periode" icon="event_available" type="date" value={form.contractPeriodStart} error={fieldErrors.contractPeriodStart} onChange={(val) => { setForm(p => ({ ...p, contractPeriodStart: val })); setFieldErrors((errors) => ({ ...errors, contractPeriodStart: "" })); }} />
                                         <GlassFieldInput label="Akhir Periode" icon="event_busy" type="date" value={form.contractPeriodEnd} error={fieldErrors.contractPeriodEnd} onChange={(val) => { setForm(p => ({ ...p, contractPeriodEnd: val })); setFieldErrors((errors) => ({ ...errors, contractPeriodEnd: "" })); }} />
@@ -381,15 +381,15 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
 
                         {/* ISP Selection Section */}
                         {!isEditMode && (
-                            <div className={`glass-card backdrop-blur-xl rounded-premium p-6 shadow-glass-depth relative z-20 ${fieldErrors.selectedIspId ? "border-rose-500/70 ring-2 ring-rose-500/10" : "border-white/20"}`}>
-                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                            <div className={`glass-card backdrop-blur-xl rounded-2xl p-5 shadow-glass-depth relative z-20 ${fieldErrors.selectedIspId ? "border-rose-500/70 ring-2 ring-rose-500/10" : "border-white/20"}`}>
+                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
                                     <div className="flex items-center gap-3">
                                         <span className="h-5 w-1.5 bg-gold-accent rounded-full shadow-gold-glow"></span>
                                         <h3 className="text-base font-black text-white uppercase tracking-widest">Pilih Mitra ISP</h3>
                                     </div>
                                     <div className="flex flex-col md:flex-row items-center gap-3">
                                         <div className="relative group w-full md:w-64">
-                                            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[15px] text-white/20 group-focus-within:text-gold-accent transition-colors">search</span>
+                                            <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold-accent transition-colors" style={{ fontSize: "14px" }}>search</span>
                                             <input
                                                 type="text"
                                                 placeholder="Cari ISP..."
@@ -420,16 +420,16 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                                     <p className="mb-4 text-[10px] font-black uppercase tracking-widest text-rose-400">{fieldErrors.selectedIspId}</p>
                                 )}
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
                                     {displayedIsps.map((isp) => (
                                         <div
                                             key={isp.id}
                                             onClick={() => selectIsp(isp.id)}
-                                            className={`relative overflow-hidden group cursor-pointer rounded-xl border transition-all duration-300 p-4 ${selectedIspId === isp.id ? "bg-gold-accent/10 border-gold-accent shadow-gold-glow" : "bg-white/5 border-white/10 hover:border-white/30"}`}
+                                            className={`relative overflow-hidden group cursor-pointer rounded-xl border transition-all duration-300 p-3 ${selectedIspId === isp.id ? "bg-gold-accent/10 border-gold-accent shadow-gold-glow" : "bg-white/5 border-white/10 hover:border-white/30"}`}
                                         >
                                             <div className="flex items-center gap-3 relative z-10">
                                                 <div className={`h-10 w-10 shrink-0 rounded-lg flex items-center justify-center transition-all ${selectedIspId === isp.id ? "bg-gold-accent text-slate-900" : "bg-white/5 text-white/20"}`}>
-                                                    <span className="material-symbols-outlined text-[15px]">{selectedIspId === isp.id ? "check_circle" : "corporate_fare"}</span>
+                                                    <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>{selectedIspId === isp.id ? "check_circle" : "corporate_fare"}</span>
                                                 </div>
                                                 <div className="min-w-0">
                                                     <p className={`text-[10px] font-black uppercase tracking-widest truncate transition-colors ${selectedIspId === isp.id ? "text-gold-accent" : "text-white"}`}>{isp.name}</p>
@@ -446,7 +446,7 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                                 </div>
 
                                 {totalPages > 1 && (
-                                    <div className="mt-6 flex items-center justify-between border-t border-white/5 pt-4">
+                                    <div className="mt-4 flex items-center justify-between border-t border-white/5 pt-3">
                                         <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em]">Halaman {ispPage} / {totalPages}</p>
                                         <div className="flex gap-2">
                                             <button
@@ -455,7 +455,7 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                                                 onClick={() => setIspPage(p => p - 1)}
                                                 className="h-8 w-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-white disabled:opacity-20 transition-all backdrop-blur-md"
                                             >
-                                                <span className="material-symbols-outlined text-[15px]">chevron_left</span>
+                                                <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>chevron_left</span>
                                             </button>
                                             <button
                                                 type="button"
@@ -463,7 +463,7 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                                                 onClick={() => setIspPage(p => p + 1)}
                                                 className="h-8 w-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-white disabled:opacity-20 transition-all backdrop-blur-md"
                                             >
-                                                <span className="material-symbols-outlined text-[15px]">chevron_right</span>
+                                                <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>chevron_right</span>
                                             </button>
                                         </div>
                                     </div>
@@ -474,23 +474,23 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
 
                     {/* Right Column - Billing */}
                     {!isEditMode && (
-                        <div className="lg:col-span-4 space-y-6">
-                            <div className="glass-card backdrop-blur-xl rounded-premium p-6 border-white/20 shadow-glass-depth relative z-10">
-                                <div className="flex items-center gap-3 mb-6">
+                        <div className="lg:col-span-4 space-y-4">
+                            <div className="glass-card backdrop-blur-xl rounded-2xl p-5 border-white/20 shadow-glass-depth relative z-10">
+                                <div className="flex items-center gap-3 mb-4">
                                     <span className="h-5 w-1.5 bg-gold-accent rounded-full shadow-gold-glow"></span>
                                     <h3 className="text-base font-black text-white uppercase tracking-widest">Billing & Biaya</h3>
                                 </div>
 
-                                <div className="space-y-6">
-                                    <div className="space-y-4">
+                                <div className="space-y-3">
+                                    <div className="space-y-1.5">
                                         <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-gold-accent/60 ml-1">Siklus Penagihan</label>
-                                        <div className="grid grid-cols-3 gap-2">
+                                        <div className="grid grid-cols-3 gap-1.5">
                                             {["bulanan", "3bulanan", "custom"].map((modeValue) => (
                                                 <button
                                                     key={modeValue}
                                                     type="button"
                                                     onClick={() => setForm(p => ({ ...p, billingPeriodMode: modeValue }))}
-                                                    className={`h-9 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${form.billingPeriodMode === modeValue ? "bg-gold-accent text-slate-900 shadow-gold-glow" : "bg-white/5 text-white/40 hover:bg-white/10 hover:text-white border border-white/5"}`}
+                                                    className={`h-8 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all ${form.billingPeriodMode === modeValue ? "bg-gold-accent text-slate-900 shadow-gold-glow" : "bg-white/5 text-white/40 hover:bg-white/10 hover:text-white border border-white/5"}`}
                                                 >
                                                     {modeValue === "bulanan" ? "Bulan" : modeValue === "3bulanan" ? "3 Bln" : "Kustom"}
                                                 </button>
@@ -498,15 +498,15 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                                         </div>
 
                                         {form.billingPeriodMode === "custom" && (
-                                            <div className="p-4 rounded-xl bg-black/40 border border-white/10 space-y-3 animate-in slide-in-from-top-4 duration-500 shadow-inner-glass">
-                                                <div className="flex items-center gap-3 mb-1">
+                                            <div className="p-3 rounded-xl bg-black/40 border border-white/10 space-y-2 animate-in slide-in-from-top-4 duration-500 shadow-inner-glass">
+                                                <div className="flex items-center gap-2 mb-1">
                                                     <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Konfigurasi Periode</p>
                                                 </div>
-                                                <div className="flex gap-3">
+                                                <div className="flex gap-2">
                                                     <div className="flex-[2] relative group">
-                                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-gold-accent/40 uppercase tracking-widest pointer-events-none group-focus-within:text-gold-accent transition-colors">SETIAP</span>
+                                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[8px] font-black text-gold-accent/40 uppercase tracking-widest pointer-events-none group-focus-within:text-gold-accent transition-colors">SETIAP</span>
                                                         <input
-                                                            className="w-full h-9 pl-14 pr-3 rounded-xl bg-black/20 border border-white/10 text-[10px] font-bold text-white outline-none focus:border-gold-accent/40 focus:bg-black/40 transition-all shadow-inner-glass [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none backdrop-blur-md"
+                                                            className="w-full h-8 pl-14 pr-3 rounded-lg bg-black/20 border border-white/10 text-[9px] font-bold text-white outline-none focus:border-gold-accent/40 focus:bg-black/40 transition-all shadow-inner-glass [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none backdrop-blur-md"
                                                             min="1"
                                                             onKeyDown={(e) => { if (e.key === '-' || e.key === 'e' || e.key === 'E') e.preventDefault(); }}
                                                             type="number"
@@ -519,7 +519,7 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                                                         <GlassCustomSelect
                                                             value={form.billingCustomUnit}
                                                             onChange={(val) => setForm(p => ({ ...p, billingCustomUnit: val }))}
-                                                            heightClass="h-9"
+                                                            heightClass="h-8"
                                                             options={[
                                                                 { value: "hari", label: "HARI" },
                                                                 { value: "bulan", label: "BULAN" },
@@ -543,9 +543,9 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                                         onChange={(val) => { if (val === '' || Number(val) >= 0) setForm(p => ({ ...p, activationFeeAmount: val })); }}
                                     />
 
-                                    <div className="p-5 rounded-xl bg-gold-accent/5 border border-gold-accent/20 backdrop-blur-md">
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <span className="material-symbols-outlined text-gold-accent text-[15px]">info</span>
+                                    <div className="p-3 rounded-xl bg-gold-accent/5 border border-gold-accent/20 backdrop-blur-md">
+                                        <div className="flex items-center gap-2 mb-1.5">
+                                            <span className="material-symbols-outlined text-gold-accent" style={{ fontSize: "14px" }}>info</span>
                                             <p className="text-[10px] font-black text-gold-accent uppercase tracking-widest">Informasi Sistem</p>
                                         </div>
                                         <p className="text-[10px] text-white/40 font-medium leading-relaxed">

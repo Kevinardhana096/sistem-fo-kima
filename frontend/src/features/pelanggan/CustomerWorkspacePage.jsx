@@ -79,19 +79,19 @@ const CustomSelect = ({ value, onChange, options, icon, label }) => {
                 {/* Trigger */}
                 <div
                     onClick={() => setIsOpen(!isOpen)}
-                    className={`w-full rounded-xl flex items-center justify-center text-[9px] font-bold cursor-pointer transition-all border relative z-20 h-9 pl-9 pr-8 uppercase font-black tracking-widest shadow-inner-glass ${isOpen || isSelected
+                    className={`w-full rounded-xl flex items-center justify-center text-[9px] font-bold cursor-pointer transition-all border relative z-20 h-9 pl-7 pr-6 uppercase font-black tracking-widest shadow-inner-glass ${isOpen || isSelected
                         ? "bg-gold-accent/10 border-gold-accent/60 text-gold-accent shadow-gold-glow"
                         : "bg-black/20 border-white/10 text-white/70 hover:border-white/30"
                         }`}
                 >
                     {icon && (
-                        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[15px] transition-all duration-300" style={{ color: isOpen || isSelected ? "#d4a937" : "rgba(255,255,255,0.2)" }}>
+                        <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 transition-all duration-300" style={{ fontSize: "18px", color: isOpen || isSelected ? "#d4a937" : "rgba(255,255,255,0.2)" }}>
                             {icon}
                         </span>
                     )}
                     <span className="truncate">{selectedOption.label}</span>
-                    <div className="absolute inset-y-0 right-0 flex items-center justify-center transition-colors w-8 border-l border-white/5 group-hover:border-gold-accent/20">
-                        <span className={`material-symbols-outlined transition-all duration-500 text-[15px] ${isOpen ? "rotate-180" : (isSelected ? "" : "text-white/20 group-hover:text-gold-accent")}`}>
+                    <div className="absolute inset-y-0 right-0 flex items-center justify-center transition-colors w-6 border-l border-white/5 group-hover:border-gold-accent/20">
+                        <span className={`material-symbols-outlined transition-all duration-500 ${isOpen ? "rotate-180" : (isSelected ? "" : "text-white/20 group-hover:text-gold-accent")}`} style={{ fontSize: "18px" }}>
                             expand_more
                         </span>
                     </div>
@@ -447,11 +447,11 @@ function CustomerWorkspacePage({
                         { label: "Belum Diperpanjang", value: totalExpiredTenants, icon: "event_busy", color: "text-[#ffab00]", bg: "bg-[#ffab00]/10", border: "border-[#ffab00]/20" },
                         { label: "Lokasi Berhenti", value: totalStoppedTenants, icon: "cancel", color: "text-[#ff2400]", bg: "bg-[#ff2400]/10", border: "border-[#ff2400]/20" },
                     ].map(({ label, value, icon, color, bg, border }) => (
-                        <div key={label} className={`relative overflow-hidden glass-card rounded-2xl p-4 group border ${border} transition-all duration-300 hover:scale-[1.03] hover:shadow-xl cursor-default`}>
+                        <div key={label} className={`relative overflow-hidden glass-card rounded-xl p-4 group border ${border} transition-all duration-300 hover:scale-[1.03] hover:shadow-xl cursor-default`}>
                             <div className="flex items-center justify-between mb-3">
                                 <p className="text-[8px] font-black uppercase tracking-widest text-white/40">{label}</p>
-                                <div className={`flex h-8 w-8 items-center justify-center rounded-xl ${bg} border ${border}`}>
-                                    <span className={`material-symbols-outlined text-lg ${color}`}>{icon}</span>
+                                <div className={`flex h-7 w-7 items-center justify-center rounded-xl ${bg} border ${border}`}>
+                                    <span className={`material-symbols-outlined ${color}`} style={{ fontSize: "16px" }}>{icon}</span>
                                 </div>
                             </div>
                             <p className={`text-2xl font-black ${color}`}>{value}</p>
@@ -460,19 +460,19 @@ function CustomerWorkspacePage({
                 </section>
 
                 {/* Premium Filter Section */}
-                <section className="glass-card monitoring-card backdrop-blur-xl rounded-premium p-5 border-white/40 shadow-glass-depth relative z-[40] !overflow-visible">
+                <section className="glass-card monitoring-card backdrop-blur-xl rounded-xl p-5 border-white/40 shadow-glass-depth relative z-[40] !overflow-visible">
                     <div className="flex flex-col gap-4 mb-4">
                         <div className="flex flex-wrap items-center gap-3">
                             {/* Tab Switch - Compact */}
                             <div className="flex shrink-0 h-9 p-1 rounded-xl gap-1 bg-black/40 border border-white/5 backdrop-blur-2xl shadow-inner-glass">
                                 <button
-                                    className={`flex-1 px-4 rounded-lg text-[9px] font-black tracking-[0.2em] uppercase transition-all duration-500 relative overflow-hidden ${listType === "current" ? "text-gold-accent bg-gold-accent/10 border border-gold-accent/20" : "text-white/40 hover:text-white/70"}`}
+                                    className={`flex-1 px-4 rounded-lg text-[9px] font-black tracking-[0.2em] uppercase transition-all duration-500 relative overflow-hidden ${listType === "current" ? "text-white bg-gold-accent shadow-gold-glow" : "text-white/40 hover:text-white/70"}`}
                                     onClick={() => setListType("current")}
                                 >
                                     <span className="relative z-10">Saat Ini</span>
                                 </button>
                                 <button
-                                    className={`flex-1 px-4 rounded-lg text-[9px] font-black tracking-[0.2em] uppercase transition-all duration-500 relative overflow-hidden ${listType === "riwayat" ? "text-gold-accent bg-gold-accent/10 border border-gold-accent/20" : "text-white/40 hover:text-white/70"}`}
+                                    className={`flex-1 px-4 rounded-lg text-[9px] font-black tracking-[0.2em] uppercase transition-all duration-500 relative overflow-hidden ${listType === "riwayat" ? "text-white bg-gold-accent shadow-gold-glow" : "text-white/40 hover:text-white/70"}`}
                                     onClick={() => setListType("riwayat")}
                                 >
                                     <span className="relative z-10">Riwayat</span>
@@ -481,9 +481,9 @@ function CustomerWorkspacePage({
 
                             {/* Search Input - Compact */}
                             <div className="relative group flex-grow min-w-[200px]">
-                                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[15px] text-white/30 group-focus-within:text-gold-accent transition-all duration-300">search</span>
+                                <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-gold-accent transition-all duration-300" style={{ fontSize: "18px" }}>search</span>
                                 <input
-                                    className="w-full h-9 rounded-xl bg-black/20 border border-white/10 pl-9 pr-3 text-[10px] font-bold text-white placeholder:text-white/20 outline-none transition-all focus:bg-black/40 focus:border-gold-accent/40 focus:ring-2 focus:ring-gold-accent/10 shadow-inner-glass backdrop-blur-md"
+                                    className="w-full h-9 rounded-xl bg-black/20 border border-white/10 pl-8 pr-3 text-[10px] font-bold text-white placeholder:text-white/20 outline-none transition-all focus:bg-black/40 focus:border-gold-accent/40 focus:ring-2 focus:ring-gold-accent/10 shadow-inner-glass backdrop-blur-md"
                                     onChange={(e) => handleFilterChange(setSearchTerm, e.target.value)}
                                     placeholder="Cari ID, ISP, atau nama lokasi..."
                                     type="text"
@@ -497,7 +497,7 @@ function CustomerWorkspacePage({
                                 onClick={handleResetFilters}
                                 title="Hapus Filter"
                             >
-                                <span className="material-symbols-outlined text-[15px]">filter_alt_off</span>
+                                <span className="material-symbols-outlined" style={{ fontSize: "18px" }}>filter_alt_off</span>
                             </button>
                         </div>
                     </div>
@@ -605,7 +605,7 @@ function CustomerWorkspacePage({
                             return (
                                 <div key={group.id} className="relative group/group">
 
-                                    <div className="rounded-premium bg-white/5 border border-white/10 backdrop-blur-xl overflow-hidden transition-all duration-500 hover:border-gold-accent/40 shadow-glass-depth hover:shadow-gold-accent/5">
+                                    <div className="rounded-xl bg-white/5 border border-white/10 backdrop-blur-xl overflow-hidden transition-all duration-500 hover:border-gold-accent/40 shadow-glass-depth hover:shadow-gold-accent/5">
                                         {/* Group Header */}
                                         <div className="flex flex-col gap-4 px-6 py-4 lg:flex-row lg:items-center lg:justify-between bg-white/[0.03] relative overflow-hidden">
                                             <div className="absolute top-0 right-0 w-64 h-64 bg-gold-accent/5 rounded-full -mr-32 -mt-32 blur-[80px] group-hover/group:bg-gold-accent/10 transition-all duration-700 backdrop-blur-md"></div>
@@ -653,10 +653,10 @@ function CustomerWorkspacePage({
 
                                                 {/* 4. Detail ISP */}
                                                 <button
-                                                    className="h-8 px-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase tracking-[0.2em] hover:bg-emerald-500 hover:text-white transition-all duration-300 active:scale-95 shadow-glass-depth hover:shadow-[0_0_20px_rgba(16,185,129,0.2)] flex items-center gap-1.5 group/isp-btn backdrop-blur-md"
+                                                    className="h-8 px-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase tracking-[0.2em] hover:bg-emerald-500 hover:text-white transition-all duration-300 active:scale-95 shadow-glass-depth hover:shadow-[0_0_20px_rgba(16,185,129,0.2)] flex items-center gap-1.5 group/isp-btn backdrop-blur-md"
                                                     onClick={() => onOpenIsp(group)}
                                                 >
-                                                    <span className="material-symbols-outlined text-[15px] group-hover/isp-btn:translate-x-0.5 transition-transform">visibility</span>
+                                                    <span className="material-symbols-outlined group-hover/isp-btn:translate-x-0.5 transition-transform" style={{ fontSize: "16px" }}>visibility</span>
                                                     Detail ISP
                                                 </button>
 
@@ -677,16 +677,16 @@ function CustomerWorkspacePage({
                                         {/* Group Content (Table) */}
                                         {isExpanded && (
                                             <div className="p-6 pt-2 border-t border-white/5">
-                                                <div className="overflow-x-auto overflow-y-hidden rounded-2xl border border-white/10 bg-black/20 backdrop-blur-md custom-scrollbar">
+                                                <div className="overflow-x-auto overflow-y-hidden rounded-xl border border-white/10 bg-black/20 backdrop-blur-md custom-scrollbar">
                                                     <table className="w-full border-collapse min-w-[800px]">
                                                         <thead>
                                                             <tr className="border-b border-white/10">
-                                                                <th className="px-4 py-3 text-left text-[9px] font-black uppercase tracking-[0.3em] text-gold-accent/60">Info Lokasi</th>
-                                                                <th className="px-4 py-3 text-left text-[9px] font-black uppercase tracking-[0.3em] text-white/40">Paket</th>
-                                                                <th className="px-4 py-3 text-left text-[9px] font-black uppercase tracking-[0.3em] text-white/40">Jumlah</th>
-                                                                <th className="px-4 py-3 text-left text-[9px] font-black uppercase tracking-[0.3em] text-white/40">Status Operasional</th>
-                                                                {!isTeknisi && <th className="px-4 py-3 text-left text-[9px] font-black uppercase tracking-[0.3em] text-white/40">Tindakan</th>}
-                                                                <th className="px-4 py-3 text-right text-[9px] font-black uppercase tracking-[0.3em] text-white/40">Aksi</th>
+                                                                <th className="px-4 py-2.5 text-left text-[9px] font-black uppercase tracking-[0.3em] text-gold-accent/60">Info Lokasi</th>
+                                                                <th className="px-4 py-2.5 text-left text-[9px] font-black uppercase tracking-[0.3em] text-white/40">Paket</th>
+                                                                <th className="px-4 py-2.5 text-left text-[9px] font-black uppercase tracking-[0.3em] text-white/40">Jumlah</th>
+                                                                <th className="px-4 py-2.5 text-left text-[9px] font-black uppercase tracking-[0.3em] text-white/40">Status Operasional</th>
+                                                                {!isTeknisi && <th className="px-4 py-2.5 text-left text-[9px] font-black uppercase tracking-[0.3em] text-white/40">Tindakan</th>}
+                                                                <th className="px-4 py-2.5 text-right text-[9px] font-black uppercase tracking-[0.3em] text-white/40">Aksi</th>
                                                             </tr>
                                                         </thead>
                                                         <tbody className="divide-y divide-white/5">
@@ -701,16 +701,16 @@ function CustomerWorkspacePage({
                                                                     const actionCounts = getTenantActionCounts(tenant, notificationCountsByCustomerId);
                                                                     return (
                                                                         <tr key={`${group.id}-${tenant.id}`} className="hover:bg-white/[0.04] transition-colors group/row">
-                                                                        <td className="px-4 py-3">
-                                                                            <p className="text-xs font-black text-white group-hover/row:text-gold-accent transition-colors break-words max-w-[250px]">{tenant.name}</p>
+                                                                        <td className="px-4 py-2.5">
+                                                                            <p className="text-[11px] font-black text-white group-hover/row:text-gold-accent transition-colors break-words max-w-[250px]">{tenant.name}</p>
                                                                             <p className="text-[9px] font-black text-white/30 tracking-[0.2em] uppercase mt-0.5">{tenant.customerId}</p>
                                                                         </td>
-                                                                        <td className="px-4 py-3">
+                                                                        <td className="px-4 py-2.5">
                                                                             {tenant.paket ? (() => {
                                                                                 const packageDisplay = getPackageDisplay(tenant.paket);
 
                                                                                 return (
-                                                                                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${packageDisplay.isSharingPackage
+                                                                                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${packageDisplay.isSharingPackage
                                                                                         ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
                                                                                         : "bg-indigo-500/10 text-indigo-400 border-indigo-500/20"
                                                                                         }`}>
@@ -721,20 +721,20 @@ function CustomerWorkspacePage({
                                                                                 <span className="text-[9px] font-bold text-white/20">-</span>
                                                                             )}
                                                                         </td>
-                                                                        <td className="px-4 py-3">
-                                                                            <span className="text-xs font-black text-white/80">
+                                                                        <td className="px-4 py-2.5">
+                                                                            <span className="text-[11px] font-black text-white/80">
                                                                                 {tenant.jumlah != null && tenant.jumlah !== "" ? tenant.jumlah : "-"}
                                                                             </span>
                                                                         </td>
-                                                                        <td className="px-4 py-3">
+                                                                        <td className="px-4 py-2.5">
                                                                             <div className="flex flex-wrap items-center gap-2">
-                                                                                <span className={`inline-flex items-center px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${isTenantActive(tenant, todayIso)
+                                                                                <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${isTenantActive(tenant, todayIso)
                                                                                     ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
                                                                                     : "bg-white/5 text-white/40 border border-white/10"
                                                                                     }`}>
                                                                                     {getTenantOperationalStatus(tenant, todayIso) === "expired" ? "Belum Diperpanjang" : isTenantActive(tenant, todayIso) ? "Beroperasi" : "Berhenti"}
                                                                                 </span>
-                                                                                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${resolveTenantRouteStatus(tenant, todayIso) === "gangguan"
+                                                                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${resolveTenantRouteStatus(tenant, todayIso) === "gangguan"
                                                                                     ? "bg-red-600/10 text-red-400 border border-red-600/20"
                                                                                     : resolveTenantRouteStatus(tenant, todayIso) === "perbaikan"
                                                                                         ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
@@ -755,41 +755,41 @@ function CustomerWorkspacePage({
                                                                             </div>
                                                                         </td>
                                                                         {!isTeknisi && (
-                                                                            <td className="px-4 py-3">
+                                                                            <td className="px-4 py-2.5">
                                                                                 <div className="flex flex-col justify-center">
-                                                                                    <span className={`text-xs font-black ${actionCounts.needAction > 0 ? "text-red-500" : "text-white"}`}>{actionCounts.needAction}</span>
+                                                                                    <span className={`text-[11px] font-black ${actionCounts.needAction > 0 ? "text-red-500" : "text-white"}`}>{actionCounts.needAction}</span>
                                                                                     <span className="text-[8px] font-black text-white/20 uppercase tracking-widest">Tindakan</span>
                                                                                 </div>
                                                                             </td>
                                                                         )}
-                                                                        <td className="px-4 py-3 text-right">
-                                                                            <div className="flex justify-end gap-3">
+                                                                        <td className="px-4 py-2.5 text-right">
+                                                                            <div className="flex justify-end gap-2">
                                                                                 {!isTeknisi && (
                                                                                     <button
-                                                                                        className="h-8 inline-flex items-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 text-[9px] font-black uppercase tracking-widest text-emerald-400 transition-all hover:bg-emerald-500 hover:text-white active:scale-95 shadow-glass-depth backdrop-blur-md"
+                                                                                        className="h-7 inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-2.5 text-[9px] font-black uppercase tracking-widest text-emerald-400 transition-all hover:bg-emerald-500 hover:text-white active:scale-95 shadow-glass-depth backdrop-blur-md"
                                                                                         onClick={() => onOpenTenant(tenant, "invoices", group)}
                                                                                         type="button"
                                                                                     >
-                                                                                        <span className="material-symbols-outlined text-[14px]">receipt_long</span>
+                                                                                        <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>receipt_long</span>
                                                                                         Invoice
                                                                                     </button>
                                                                                 )}
                                                                                 <button
-                                                                                    className="h-8 inline-flex items-center gap-2 rounded-lg bg-white/5 border border-white/10 px-3 text-[9px] font-black uppercase tracking-widest text-white hover:border-gold-accent hover:text-gold-accent transition-all active:scale-95 shadow-glass-depth backdrop-blur-md"
+                                                                                    className="h-7 inline-flex items-center gap-1.5 rounded-lg bg-white/5 border border-white/10 px-2.5 text-[9px] font-black uppercase tracking-widest text-white hover:border-gold-accent hover:text-gold-accent transition-all active:scale-95 shadow-glass-depth backdrop-blur-md"
                                                                                     onClick={() => handleOpenTenantDetail(tenant, group)}
                                                                                     type="button"
                                                                                 >
-                                                                                    <span className="material-symbols-outlined text-[14px]">open_in_new</span>
+                                                                                        <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>open_in_new</span>
                                                                                     Detail
                                                                                 </button>
                                                                                 {!isTeknisi && (
                                                                                     <button
-                                                                                        className="h-8 w-8 inline-flex items-center justify-center rounded-lg bg-red-600/10 text-red-500 border border-red-600/20 shadow-glass-depth hover:bg-red-600 hover:text-white transition-all active:scale-95 backdrop-blur-md"
+                                                                                        className="h-7 w-7 inline-flex items-center justify-center rounded-lg bg-red-600/10 text-red-500 border border-red-600/20 shadow-glass-depth hover:bg-red-600 hover:text-white transition-all active:scale-95 backdrop-blur-md"
                                                                                         onClick={() => handleArchiveTenant(tenant)}
                                                                                         title="Hapus Lokasi"
                                                                                         type="button"
                                                                                     >
-                                                                                        <span className="material-symbols-outlined text-[14px]">delete</span>
+                                                                                        <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>delete</span>
                                                                                     </button>
                                                                                 )}
                                                                             </div>

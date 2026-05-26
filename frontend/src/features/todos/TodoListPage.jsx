@@ -60,7 +60,7 @@ function CustomDropdown({ value, options, onChange, align = "left", position = "
             >
                 <span className="truncate">{selectedOption.label}</span>
                 {!hideArrow && (
-                    <span className={`material-symbols-outlined text-[16px] shrink-0 transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`}>expand_more</span>
+                    <span className={`material-symbols-outlined shrink-0 transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`} style={{ fontSize: "18px" }}>expand_more</span>
                 )}
             </button>
 
@@ -226,8 +226,8 @@ export default function TodoListPage({ activeSection, onNavigate, onLogout, curr
                         <div key={label} className={`relative overflow-hidden glass-card rounded-2xl p-4 group border ${border}`}>
                             <div className="flex items-center justify-between mb-3">
                                 <p className="text-[8px] font-black uppercase tracking-widest text-white/40">{label}</p>
-                                <div className={`flex h-8 w-8 items-center justify-center rounded-xl ${bg} border ${border}`}>
-                                    <span className={`material-symbols-outlined text-lg ${color}`}>{icon}</span>
+                                <div className={`flex h-7 w-7 items-center justify-center rounded-xl ${bg} border ${border}`}>
+                                    <span className={`material-symbols-outlined ${color}`} style={{ fontSize: "16px" }}>{icon}</span>
                                 </div>
                             </div>
                             <p className={`text-2xl font-black ${color}`}>{value}</p>
@@ -238,7 +238,7 @@ export default function TodoListPage({ activeSection, onNavigate, onLogout, curr
                 {/* Filter Bar */}
                 <div className="glass-card rounded-xl p-2 sm:p-2.5 flex flex-col sm:flex-row gap-2 items-center z-50 relative">
                     <div className="relative flex-1 w-full group">
-                        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-gold-accent transition-colors z-10 pointer-events-none text-[15px]">search</span>
+                        <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-gold-accent transition-colors z-10 pointer-events-none" style={{ fontSize: "18px" }}>search</span>
                         <input
                             type="text"
                             placeholder="Cari pelanggan, pesan, atau kode..."
@@ -255,7 +255,7 @@ export default function TodoListPage({ activeSection, onNavigate, onLogout, curr
                             ].map(({ z, icon, val, setter, opts, align = "left" }) => (
                                 <div key={icon} className={`relative ${z} w-full sm:w-36`}>
                                     <div className="relative group h-9 rounded-lg bg-white/5 border border-white/10 focus-within:border-gold-accent/40 focus-within:bg-black/40 transition-all backdrop-blur-md">
-                                        <span className={`material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold-accent transition-colors z-10 pointer-events-none text-[15px]`}>{icon}</span>
+                                        <span className={`material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold-accent transition-colors z-10 pointer-events-none`} style={{ fontSize: "18px" }}>{icon}</span>
                                         <CustomDropdown value={val} onChange={setter} options={opts} triggerClass="pl-9 pr-3 text-[9px] uppercase tracking-widest text-white/40 group-focus-within:text-gold-accent" align={align} />
                                     </div>
                                 </div>
@@ -272,7 +272,7 @@ export default function TodoListPage({ activeSection, onNavigate, onLogout, curr
                             type="button"
                             title="Reset Filter"
                         >
-                            <span className="material-symbols-outlined text-[15px]">filter_alt_off</span>
+                            <span className="material-symbols-outlined" style={{ fontSize: "18px" }}>filter_alt_off</span>
                             <span className="text-[9px] font-black uppercase tracking-widest hidden sm:block">Reset</span>
                         </button>
                     </div>
@@ -337,7 +337,7 @@ export default function TodoListPage({ activeSection, onNavigate, onLogout, curr
                                                 className="flex h-8 items-center gap-1.5 rounded-lg border border-gold-accent/20 bg-gold-accent/10 px-3 text-[8px] font-black uppercase tracking-widest text-gold-accent transition-all hover:bg-gold-accent hover:text-black active:scale-95 backdrop-blur-md"
                                                 onClick={() => openNotification(n)} type="button"
                                             >
-                                                <span className="material-symbols-outlined text-sm">open_in_new</span>
+                                                <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>open_in_new</span>
                                                 {n.actionLabel || "Buka"}
                                             </button>
                                             {!n.readAt && (
@@ -383,7 +383,7 @@ export default function TodoListPage({ activeSection, onNavigate, onLogout, curr
                                             className="flex h-8 items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-3 text-[8px] font-black uppercase tracking-widest text-white/50 transition-all hover:bg-white/10 hover:text-white disabled:opacity-30 backdrop-blur-md"
                                             type="button" disabled={currentPage <= 1} onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
                                         >
-                                            <span className="material-symbols-outlined text-sm">chevron_left</span> Prev
+                                            <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>chevron_left</span> Prev
                                         </button>
                                         
                                         <div 
@@ -434,7 +434,7 @@ export default function TodoListPage({ activeSection, onNavigate, onLogout, curr
                                             className="flex h-8 items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-3 text-[8px] font-black uppercase tracking-widest text-white/50 transition-all hover:bg-white/10 hover:text-white disabled:opacity-30 backdrop-blur-md"
                                             type="button" disabled={currentPage >= totalPages} onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
                                         >
-                                            Next <span className="material-symbols-outlined text-sm">chevron_right</span>
+                                            Next <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>chevron_right</span>
                                         </button>
                                     </div>
                                 </div>
