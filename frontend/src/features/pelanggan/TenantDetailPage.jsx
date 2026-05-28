@@ -249,6 +249,222 @@ function alignRecurringDateToPeriod(period, templateDate, fallbackDate) {
   return new Date(Date.UTC(targetYear, targetMonth, targetDay)).toISOString().slice(0, 10);
 }
 
+function getInvoiceFollowUps(invoice) {
+  const followUps = Array.isArray(invoice?.invoiceFollowUps)
+    ? invoice.invoiceFollowUps
+    : [];
+  return [...followUps].sort(
+    (left, right) =>
+      Number(left?.splitOrder ?? 0) - Number(right?.splitOrder ?? 0),
+  );
+}
+
+function isInvoicePaid(invoice) {
+  return String(invoice?.status ?? "").toLowerCase() === "lunas" ||
+    isOpenableFileUrl(invoice?.paymentProofFileUrl) ||
+    (typeof invoice?.paidAt === "string" && invoice.paidAt.trim().length > 0);
+}
+
+function hasUploadedInvoiceSplit(invoice) {
+  return getInvoiceFollowUps(invoice).some((followUp) =>
+    isOpenableFileUrl(followUp?.invoiceFileUrl),
+  );
+}
+
+function hasAnyUploadedInvoiceFile(invoice) {
+  return isOpenableFileUrl(invoice?.invoiceFileUrl) || hasUploadedInvoiceSplit(invoice);
+}
+
+function getInvoiceSetupWarnings(invoice) {
+  const warnings = [];
+  const dueDate = String(invoice?.workflowDueDate ?? invoice?.dueDate ?? "").trim();
+  const amount = Number(invoice?.workflowAmount ?? invoice?.amount ?? 0);
+
+  if (!dueDate) {
+    warnings.push({
+      code: "missing_due_date",
+      message: "Segera mengatur tanggal terakhir pembayaran.",
+    });
+  }
+
+  if (!Number.isFinite(amount) || amount <= 0) {
+    warnings.push({
+      code: "missing_amount",
+      message: "Mengatur nominal jumlah pembayaran.",
+    });
+  }
+
+  return warnings;
+}
+
+function getInvoiceWorkflowMeta(
+  invoice,
+  rowsForSequence = [],
+  todayIso = new Date().toISOString().slice(0, 10),
+) {
+  const followUps = getInvoiceFollowUps(invoice);
+  const firstFollowUp = followUps.find((followUp) => Number(followUp?.splitOrder ?? 0) === 1) ?? null;
+  const secondFollowUp = followUps.find((followUp) => Number(followUp?.splitOrder ?? 0) === 2) ?? null;
+  const setupWarnings = getInvoiceSetupWarnings(invoice);
+  const dueDate = String(invoice?.workflowDueDate ?? invoice?.dueDate ?? "").trim();
+  const h7Date = dueDate ? addDaysToIsoDate(dueDate, -7) : "";
+  const h3Date = dueDate ? addDaysToIsoDate(dueDate, -3) : "";
+  const hasMainInvoiceFile = isOpenableFileUrl(invoice?.invoiceFileUrl);
+  const firstWarningUploaded = isOpenableFileUrl(firstFollowUp?.invoiceFileUrl);
+  const secondWarningUploaded = isOpenableFileUrl(secondFollowUp?.invoiceFileUrl);
+  const paid = isInvoicePaid(invoice);
+  const h7Reached = Boolean(h7Date && h7Date <= todayIso);
+  const h3Reached = Boolean(h3Date && h3Date <= todayIso);
+  const dueDateReached = Boolean(dueDate && dueDate <= todayIso);
+  const hasAnyInvoiceFile = hasMainInvoiceFile || firstWarningUploaded || secondWarningUploaded;
+  const hasBlockingPreviousUnpaid = rowsForSequence.some(
+    (candidate) => candidate.paymentOrder < invoice.paymentOrder && !isInvoicePaid(candidate),
+  );
+
+  if (paid) {
+    return {
+      key: "paid",
+      label: "Lunas",
+      setupWarnings,
+      firstFollowUp,
+      secondFollowUp,
+      hasMainInvoiceFile,
+      firstWarningUploaded,
+      secondWarningUploaded,
+      hasAnyInvoiceFile,
+      canUploadMainInvoice: false,
+      canUploadFirstWarning: false,
+      canUploadSecondWarning: false,
+      canMarkPaid: false,
+    };
+  }
+
+  if (setupWarnings.length > 0) {
+    return {
+      key: "pending_setup",
+      label: "Lengkapi Data",
+      setupWarnings,
+      firstFollowUp,
+      secondFollowUp,
+      hasMainInvoiceFile,
+      firstWarningUploaded,
+      secondWarningUploaded,
+      hasAnyInvoiceFile,
+      canUploadMainInvoice: false,
+      canUploadFirstWarning: false,
+      canUploadSecondWarning: false,
+      canMarkPaid: false,
+    };
+  }
+
+  if (dueDateReached && (secondWarningUploaded || h3Reached)) {
+    return {
+      key: "warning_unpaid",
+      label: "Warning Belum Bayar",
+      setupWarnings,
+      firstFollowUp,
+      secondFollowUp,
+      hasMainInvoiceFile,
+      firstWarningUploaded,
+      secondWarningUploaded,
+      hasAnyInvoiceFile,
+      canUploadMainInvoice: false,
+      canUploadFirstWarning: false,
+      canUploadSecondWarning: h3Reached && !secondWarningUploaded,
+      canMarkPaid: hasAnyInvoiceFile,
+    };
+  }
+
+  if (h3Reached && !hasBlockingPreviousUnpaid && (hasMainInvoiceFile || firstWarningUploaded) && !secondWarningUploaded) {
+    return {
+      key: "warning_required_h3",
+      label: "Peringatan Kedua",
+      setupWarnings,
+      firstFollowUp,
+      secondFollowUp,
+      hasMainInvoiceFile,
+      firstWarningUploaded,
+      secondWarningUploaded,
+      hasAnyInvoiceFile,
+      canUploadMainInvoice: false,
+      canUploadFirstWarning: false,
+      canUploadSecondWarning: true,
+      canMarkPaid: hasAnyInvoiceFile,
+    };
+  }
+
+  if (hasAnyInvoiceFile) {
+    return {
+      key: "waiting_payment_confirmation",
+      label: "Menunggu Konfirmasi Pembayaran",
+      setupWarnings,
+      firstFollowUp,
+      secondFollowUp,
+      hasMainInvoiceFile,
+      firstWarningUploaded,
+      secondWarningUploaded,
+      hasAnyInvoiceFile,
+      canUploadMainInvoice: false,
+      canUploadFirstWarning: false,
+      canUploadSecondWarning: h3Reached && !secondWarningUploaded,
+      canMarkPaid: true,
+    };
+  }
+
+  if (h7Reached && !hasBlockingPreviousUnpaid) {
+    return {
+      key: "warning_required_h7",
+      label: "Peringatan Pertama",
+      setupWarnings,
+      firstFollowUp,
+      secondFollowUp,
+      hasMainInvoiceFile,
+      firstWarningUploaded,
+      secondWarningUploaded,
+      hasAnyInvoiceFile,
+      canUploadMainInvoice: true,
+      canUploadFirstWarning: true,
+      canUploadSecondWarning: false,
+      canMarkPaid: false,
+    };
+  }
+
+  return {
+    key: "pending",
+    label: "Menunggu Jadwal",
+    setupWarnings,
+    firstFollowUp,
+    secondFollowUp,
+    hasMainInvoiceFile,
+    firstWarningUploaded,
+    secondWarningUploaded,
+    hasAnyInvoiceFile,
+    canUploadMainInvoice: false,
+    canUploadFirstWarning: false,
+    canUploadSecondWarning: false,
+    canMarkPaid: false,
+  };
+}
+
+function resolveInvoiceStatusMeta(invoice) {
+  const workflowMeta = invoice?.workflowMeta ?? getInvoiceWorkflowMeta(invoice);
+  const badgeClassByKey = {
+    paid: "bg-emerald-100 text-emerald-700",
+    warning_unpaid: "bg-rose-100 text-rose-700",
+    warning_required_h3: "bg-orange-100 text-orange-700",
+    warning_required_h7: "bg-amber-100 text-amber-700",
+    waiting_payment_confirmation: "bg-blue-100 text-blue-700",
+    pending_setup: "bg-rose-100 text-rose-700",
+    pending: "bg-slate-100 text-slate-700",
+  };
+
+  return {
+    key: workflowMeta.key,
+    label: workflowMeta.label,
+    badgeClass: badgeClassByKey[workflowMeta.key] ?? "bg-slate-100 text-slate-700",
+  };
+}
+
 function GlassSelect({ label, value, onChange, options, placeholder = "Pilih opsi" }) {
   const [isOpen, setIsOpen] = useState(false);
   const selectedOption = options.find((opt) => opt.value === value);
@@ -416,8 +632,6 @@ function TenantDetailPage({
   const [isSavingContractNumber, setIsSavingContractNumber] = useState(false);
   const [editingContractNumberRows, setEditingContractNumberRows] = useState({});
   const [emptyContractNumberRows, setEmptyContractNumberRows] = useState({});
-  const [bakNumberInputs, setBakNumberInputs] = useState({});
-  const [isSavingBakNumber, setIsSavingBakNumber] = useState(false);
   const [emptyBakRows, setEmptyBakRows] = useState({});
   const [routeBusy, setRouteBusy] = useState(false);
   const [routeFeedback, setRouteFeedback] = useState("");
@@ -845,215 +1059,6 @@ function TenantDetailPage({
     setContractNumberInputs({});
   }, [contract?.id]);
 
-  const getInvoiceFollowUps = (invoice) => {
-    const followUps = Array.isArray(invoice?.invoiceFollowUps)
-      ? invoice.invoiceFollowUps
-      : [];
-    return [...followUps].sort(
-      (left, right) =>
-        Number(left?.splitOrder ?? 0) - Number(right?.splitOrder ?? 0),
-    );
-  };
-
-  const isInvoicePaid = (invoice) =>
-    String(invoice?.status ?? "").toLowerCase() === "lunas" ||
-    isOpenableFileUrl(invoice?.paymentProofFileUrl) ||
-    (typeof invoice?.paidAt === "string" && invoice.paidAt.trim().length > 0);
-
-  const hasUploadedInvoiceSplit = (invoice) =>
-    getInvoiceFollowUps(invoice).some((followUp) =>
-      isOpenableFileUrl(followUp?.invoiceFileUrl),
-    );
-
-  const hasAnyUploadedInvoiceFile = (invoice) =>
-    isOpenableFileUrl(invoice?.invoiceFileUrl) || hasUploadedInvoiceSplit(invoice);
-
-  const getInvoiceSetupWarnings = (invoice) => {
-    const warnings = [];
-    const dueDate = String(invoice?.workflowDueDate ?? invoice?.dueDate ?? "").trim();
-    const amount = Number(invoice?.workflowAmount ?? invoice?.amount ?? 0);
-
-    if (!dueDate) {
-      warnings.push({
-        code: "missing_due_date",
-        message: "Segera mengatur tanggal terakhir pembayaran.",
-      });
-    }
-
-    if (!Number.isFinite(amount) || amount <= 0) {
-      warnings.push({
-        code: "missing_amount",
-        message: "Mengatur nominal jumlah pembayaran.",
-      });
-    }
-
-    return warnings;
-  };
-
-  const getInvoiceWorkflowMeta = (invoice, rowsForSequence = []) => {
-    const followUps = getInvoiceFollowUps(invoice);
-    const firstFollowUp = followUps.find((followUp) => Number(followUp?.splitOrder ?? 0) === 1) ?? null;
-    const secondFollowUp = followUps.find((followUp) => Number(followUp?.splitOrder ?? 0) === 2) ?? null;
-    const setupWarnings = getInvoiceSetupWarnings(invoice);
-    const dueDate = String(invoice?.workflowDueDate ?? invoice?.dueDate ?? "").trim();
-    const h7Date = dueDate ? addDaysToIsoDate(dueDate, -7) : "";
-    const h3Date = dueDate ? addDaysToIsoDate(dueDate, -3) : "";
-    const hasMainInvoiceFile = isOpenableFileUrl(invoice?.invoiceFileUrl);
-    const firstWarningUploaded = isOpenableFileUrl(firstFollowUp?.invoiceFileUrl);
-    const secondWarningUploaded = isOpenableFileUrl(secondFollowUp?.invoiceFileUrl);
-    const isPaid = isInvoicePaid(invoice);
-    const h7Reached = Boolean(h7Date && h7Date <= todayIso);
-    const h3Reached = Boolean(h3Date && h3Date <= todayIso);
-    const dueDateReached = Boolean(dueDate && dueDate <= todayIso);
-    const hasAnyInvoiceFile = hasMainInvoiceFile || firstWarningUploaded || secondWarningUploaded;
-    const hasBlockingPreviousUnpaid = rowsForSequence.some(
-      (candidate) => candidate.paymentOrder < invoice.paymentOrder && !isInvoicePaid(candidate),
-    );
-
-    if (isPaid) {
-      return {
-        key: "paid",
-        label: "Lunas",
-        setupWarnings,
-        firstFollowUp,
-        secondFollowUp,
-        hasMainInvoiceFile,
-        firstWarningUploaded,
-        secondWarningUploaded,
-        hasAnyInvoiceFile,
-        canUploadMainInvoice: false,
-        canUploadFirstWarning: false,
-        canUploadSecondWarning: false,
-        canMarkPaid: false,
-      };
-    }
-
-    if (setupWarnings.length > 0) {
-      return {
-        key: "pending_setup",
-        label: "Lengkapi Data",
-        setupWarnings,
-        firstFollowUp,
-        secondFollowUp,
-        hasMainInvoiceFile,
-        firstWarningUploaded,
-        secondWarningUploaded,
-        hasAnyInvoiceFile,
-        canUploadMainInvoice: false,
-        canUploadFirstWarning: false,
-        canUploadSecondWarning: false,
-        canMarkPaid: false,
-      };
-    }
-
-    if (dueDateReached && (secondWarningUploaded || h3Reached)) {
-      return {
-        key: "warning_unpaid",
-        label: "Warning Belum Bayar",
-        setupWarnings,
-        firstFollowUp,
-        secondFollowUp,
-        hasMainInvoiceFile,
-        firstWarningUploaded,
-        secondWarningUploaded,
-        hasAnyInvoiceFile,
-        canUploadMainInvoice: false,
-        canUploadFirstWarning: false,
-        canUploadSecondWarning: h3Reached && !secondWarningUploaded,
-        canMarkPaid: hasAnyInvoiceFile,
-      };
-    }
-
-    if (h3Reached && !hasBlockingPreviousUnpaid && (hasMainInvoiceFile || firstWarningUploaded) && !secondWarningUploaded) {
-      return {
-        key: "warning_required_h3",
-        label: "Peringatan Kedua",
-        setupWarnings,
-        firstFollowUp,
-        secondFollowUp,
-        hasMainInvoiceFile,
-        firstWarningUploaded,
-        secondWarningUploaded,
-        hasAnyInvoiceFile,
-        canUploadMainInvoice: false,
-        canUploadFirstWarning: false,
-        canUploadSecondWarning: true,
-        canMarkPaid: hasAnyInvoiceFile,
-      };
-    }
-
-    if (hasAnyInvoiceFile) {
-      return {
-        key: "waiting_payment_confirmation",
-        label: "Menunggu Konfirmasi Pembayaran",
-        setupWarnings,
-        firstFollowUp,
-        secondFollowUp,
-        hasMainInvoiceFile,
-        firstWarningUploaded,
-        secondWarningUploaded,
-        hasAnyInvoiceFile,
-        canUploadMainInvoice: false,
-        canUploadFirstWarning: false,
-        canUploadSecondWarning: h3Reached && !secondWarningUploaded,
-        canMarkPaid: true,
-      };
-    }
-
-    if (h7Reached && !hasBlockingPreviousUnpaid) {
-      return {
-        key: "warning_required_h7",
-        label: "Peringatan Pertama",
-        setupWarnings,
-        firstFollowUp,
-        secondFollowUp,
-        hasMainInvoiceFile,
-        firstWarningUploaded,
-        secondWarningUploaded,
-        hasAnyInvoiceFile,
-        canUploadMainInvoice: true,
-        canUploadFirstWarning: true,
-        canUploadSecondWarning: false,
-        canMarkPaid: false,
-      };
-    }
-
-    return {
-      key: "pending",
-      label: "Menunggu Jadwal",
-      setupWarnings,
-      firstFollowUp,
-      secondFollowUp,
-      hasMainInvoiceFile,
-      firstWarningUploaded,
-      secondWarningUploaded,
-      hasAnyInvoiceFile,
-      canUploadMainInvoice: false,
-      canUploadFirstWarning: false,
-      canUploadSecondWarning: false,
-      canMarkPaid: false,
-    };
-  };
-
-  const resolveInvoiceStatusMeta = (invoice) => {
-    const workflowMeta = invoice?.workflowMeta ?? getInvoiceWorkflowMeta(invoice);
-    const badgeClassByKey = {
-      paid: "bg-emerald-100 text-emerald-700",
-      warning_unpaid: "bg-rose-100 text-rose-700",
-      warning_required_h3: "bg-orange-100 text-orange-700",
-      warning_required_h7: "bg-amber-100 text-amber-700",
-      waiting_payment_confirmation: "bg-blue-100 text-blue-700",
-      pending_setup: "bg-rose-100 text-rose-700",
-      pending: "bg-slate-100 text-slate-700",
-    };
-
-    return {
-      key: workflowMeta.key,
-      label: workflowMeta.label,
-      badgeClass: badgeClassByKey[workflowMeta.key] ?? "bg-slate-100 text-slate-700",
-    };
-  };
-
   const sortedInvoices = useMemo(() => {
     const nextItems = [...activeInvoices];
     nextItems.sort((left, right) => {
@@ -1091,14 +1096,14 @@ function TenantDetailPage({
     }));
 
     return baseRows.map((invoice) => {
-      const workflowMeta = getInvoiceWorkflowMeta(invoice, baseRows);
+      const workflowMeta = getInvoiceWorkflowMeta(invoice, baseRows, todayIso);
       return {
         ...invoice,
         workflowMeta,
         statusMeta: resolveInvoiceStatusMeta({ ...invoice, workflowMeta }),
       };
     });
-  }, [sortedInvoices]);
+  }, [sortedInvoices, todayIso]);
 
   const historyInvoiceRows = useMemo(
     () =>
@@ -1993,37 +1998,6 @@ function TenantDetailPage({
       );
     } finally {
       setIsSavingContractNumber(false);
-    }
-  };
-
-  const handleSaveBakNumber = async (row) => {
-    const value = String(bakNumberInputs[row.id] ?? "").trim();
-    if (!value) {
-      setError("Nomor BAK wajib diisi sebelum disimpan.");
-      return;
-    }
-    setIsSavingBakNumber(true);
-    setError("");
-    try {
-      if (row.bakDocumentId) {
-        await api.documents.update(row.bakDocumentId, { nomorDokumen: value });
-      } else {
-        await api.documents.create({
-          customer_id: customer.id,
-          contract_id: row.contractId ?? null,
-          contract_version_id: row.versionId ?? null,
-          jenis_dokumen: "BAK",
-          nomor_dokumen: value,
-          tanggal_dokumen: todayIso,
-          file_url: "",
-        });
-      }
-      setBakNumberInputs((prev) => { const n = { ...prev }; delete n[row.id]; return n; });
-      await Promise.all([loadDetail(), onRefreshAll?.()]);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Gagal menyimpan nomor BAK.");
-    } finally {
-      setIsSavingBakNumber(false);
     }
   };
 
@@ -3281,11 +3255,11 @@ function TenantDetailPage({
       >
         <div className="relative h-dvh w-full overflow-hidden bg-slate-950 font-manrope antialiased">
           {/* Combined Top Overlay UI - Optimized for Mobile */}
-          <div className="absolute inset-x-0 top-0 z-[1000] flex items-start justify-center p-4 pointer-events-none md:p-6">
+          <div className="absolute inset-x-0 top-0 z-[1000] flex items-start justify-center pointer-events-none pt-4 md:pt-6 pb-4 md:pb-6 pl-4 sm:pl-[332px] lg:pl-[362px] xl:pl-[392px] pr-[120px] sm:pr-[160px]">
             {/* Back Button - Positioned to the right */}
             <div className="absolute right-4 top-4 md:right-6 md:top-6">
               <button
-                className="pointer-events-auto inline-flex h-10 items-center gap-2 rounded-2xl bg-white px-4 font-black text-primary shadow-2xl transition-all hover:scale-105 active:scale-95 border border-slate-200 md:h-12 md:px-5"
+                className="pointer-events-auto inline-flex h-10 items-center gap-2 rounded-2xl glass-card backdrop-blur-xl border border-white/10 px-4 font-black text-white shadow-glass-depth transition-all hover:border-gold-accent hover:text-gold-accent hover:scale-105 active:scale-95 md:h-12 md:px-5"
                 onClick={onBack}
                 type="button"
               >
@@ -3297,16 +3271,16 @@ function TenantDetailPage({
             </div>
 
             {/* Header Info Panel - Centered and more compact */}
-            <header className="pointer-events-auto flex flex-col items-center gap-0.5 rounded-2xl bg-slate-900/80 px-4 py-2 shadow-2xl backdrop-blur-md border border-white/10 md:p-4 md:min-w-[300px]">
-              <h1 className="text-[10px] md:text-sm font-black text-white uppercase tracking-[0.1em] md:tracking-[0.2em] truncate max-w-[150px] md:max-w-none text-center">
+            <header className="pointer-events-auto flex flex-col items-center gap-0.5 rounded-2xl bg-slate-900/80 px-4 py-2 shadow-2xl backdrop-blur-md border border-white/10 md:p-4 min-w-0 max-w-[calc(100vw-180px)] sm:max-w-[280px] md:max-w-[260px] lg:max-w-[420px] xl:max-w-[560px] 2xl:max-w-none">
+              <h1 className="text-[10px] md:text-sm font-black text-white uppercase tracking-[0.1em] md:tracking-[0.2em] truncate max-w-full text-center">
                 {tenantName}
               </h1>
-              <div className="flex items-center gap-1.5 md:gap-3 text-[8px] md:text-[10px] font-bold text-white/60">
-                <span className="rounded bg-primary/20 px-1.5 py-0.5 text-primary border border-primary/30 uppercase tracking-tighter">
+              <div className="flex items-center gap-1.5 md:gap-3 text-[8px] md:text-[10px] font-bold text-white/60 max-w-full">
+                <span className="rounded bg-primary/20 px-1.5 py-0.5 text-primary border border-primary/30 uppercase tracking-tighter shrink-0">
                   {(detail?.paket || customer?.paket || "CORE")}
                 </span>
-                <span className="hidden md:block w-1 h-1 rounded-full bg-white/20 backdrop-blur-md"></span>
-                <span className="uppercase tracking-widest hidden md:block">
+                <span className="hidden md:block w-1 h-1 rounded-full bg-white/20 backdrop-blur-md shrink-0"></span>
+                <span className="uppercase tracking-widest hidden md:block truncate">
                   ISP: {isps.length > 0 ? isps.map((item) => item.name).join(", ") : "-"}
                 </span>
               </div>
@@ -3325,23 +3299,13 @@ function TenantDetailPage({
               }}
               mode="full"
               providerIconUrl={isps[0]?.logoUrl || ""}
+              customerIconUrl={detail?.logo_url || ""}
             />
           </div>
         </div>
       </AppShell>
     );
   }
-
-  const tabs = [
-    { key: "overview", label: "Ringkasan" },
-    { key: "jalur", label: "Jalur" },
-    ...(currentRole !== "teknisi" ? [
-      { key: "contracts", label: "Kontrak" },
-      { key: "invoices", label: "Invoice" },
-      { key: "documents", label: "Dokumen" },
-      { key: "timeline", label: "Timeline" }
-    ] : []),
-  ];
 
   return (
     <AppShell
@@ -3367,6 +3331,17 @@ function TenantDetailPage({
 
                 {!isTeknisi && (
                     <div className="flex items-center gap-2">
+                        {!isPlannerJalurView && onOpenRoutePlanner && (
+                            <button
+                                className="h-7 px-3 flex items-center gap-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white transition-all shadow-sm text-[8px] font-black uppercase tracking-widest backdrop-blur-md"
+                                onClick={() => onOpenRoutePlanner?.(detail ?? customer)}
+                                title="Buka planner jalur FO"
+                                type="button"
+                            >
+                                <span className="material-symbols-outlined text-[10px]">route</span>
+                                Atur Jalur FO
+                            </button>
+                        )}
                         <button
                             className="h-7 px-3 flex items-center gap-1.5 rounded-lg bg-white/5 border border-white/10 text-white/60 hover:bg-white/10 hover:text-white transition-all shadow-sm group text-[8px] font-black uppercase tracking-widest backdrop-blur-md"
                             onClick={() => void Promise.all([loadDetail(), onRefreshAll?.()])}
@@ -3578,7 +3553,6 @@ function TenantDetailPage({
                 const paketVal      = packageInfo.paket === "sharing_core" ? "SHARING CORE" : "CORE";
                 const jumlahVal     = packageInfo.jumlah ?? "—";
                 const alamatVal     = detail?.alamat || customer?.alamat || null;
-                const customerId    = detail?.customerId || customer?.customerId || null;
                 const periodStart   = contractPeriodInfo.contractPeriodStart;
                 const periodEnd     = contractPeriodInfo.contractPeriodEnd;
 
@@ -3600,9 +3574,6 @@ function TenantDetailPage({
                                     <div className="flex items-center gap-2.5 pb-1">
                                         <div>
                                             <p className="text-[8px] font-black uppercase tracking-[0.4em] text-white/20">Lokasi Operasional</p>
-                                            {customerId && (
-                                                <p className="text-[9px] font-bold text-gold-accent/40 tracking-widest">#{customerId}</p>
-                                            )}
                                         </div>
                                     </div>
                                     <h1 className="text-lg md:text-xl font-black tracking-tight text-white uppercase leading-tight">
@@ -4024,6 +3995,7 @@ function TenantDetailPage({
                     previewRoads={previewRoads}
                     previewPoints={previewRoutePoints}
                     providerIconUrl={isps[0]?.logoUrl || ""}
+                    customerIconUrl={detail?.logo_url || ""}
                 />
 
                 {/* Header & Mode Selector */}
@@ -4043,7 +4015,7 @@ function TenantDetailPage({
                                                     type="button"
                                                 >
                                                     <span className="material-symbols-outlined text-lg group-hover:rotate-12 transition-transform">route</span>
-                                                    1. Buka FO Planner
+                                                    Buka Planner Jalur
                                                 </button>
                                             )}
 
@@ -4053,7 +4025,7 @@ function TenantDetailPage({
                                                 type="button"
                                             >
                                                 <span className="material-symbols-outlined text-lg">alt_route</span>
-                                                Ubah Struktur Jalur
+                                                Atur Struktur Jalur
                                             </button>
                                         </>
                                     ) : (

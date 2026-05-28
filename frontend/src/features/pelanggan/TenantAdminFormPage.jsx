@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import AppShell from "../../components/layout/AppShell";
 import api, { getApiErrorDetails } from "../../lib/api";
+import { uploadFileForRecord } from "../../lib/files";
 
 const GlassFieldInput = ({ label, type = "text", value, onChange, placeholder = "", icon, min, onKeyDown, error = "" }) => {
     return (
@@ -109,6 +110,7 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
         billingCustomEvery: "",
         billingCustomUnit: "bulan",
         activationFeeAmount: "0",
+        logoFileDataUrl: "",
     });
     const [selectedIspId, setSelectedIspId] = useState(null);
     const [submitError, setSubmitError] = useState("");
@@ -130,6 +132,7 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
             ...p,
             name: initialData.name ?? "",
             status: initialData.rawStatus ?? initialData.status ?? "aktif",
+            logoUrl: initialData.logoUrl ?? initialData.logo_url ?? "",
         }));
     }, [initialData]);
 
@@ -196,10 +199,11 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
 
         try {
             const payload = isEditMode
-                ? { name: form.name.trim(), status: form.status }
+                ? { name: form.name.trim(), status: form.status, logoUrl: form.logoFileDataUrl || form.logoUrl || undefined }
                 : {
                     name: form.name.trim(),
                     status: form.status,
+                    logoUrl: form.logoFileDataUrl || undefined,
                     ispIds: [selectedIspId],
                     contractStartDate: form.contractStartDate || form.contractPeriodStart,
                     contractPeriodStart: form.contractPeriodStart,
@@ -320,6 +324,47 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                                         { value: "berhenti", label: "BERHENTI" }
                                     ]}
                                 />
+                            </div>
+
+                            {/* Logo Upload */}
+                            <div className="mt-4 space-y-1.5">
+                                <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-gold-accent/60 ml-1">Logo Perusahaan (Opsional)</label>
+                                <div className="flex flex-col sm:flex-row items-center gap-4 p-4 rounded-xl bg-black/20 border border-white/10 border-dashed hover:border-gold-accent/40 transition-all group cursor-pointer relative overflow-hidden backdrop-blur-md">
+                                    <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-white/5 border border-white/10 flex items-center justify-center backdrop-blur-md">
+                                        {(form.logoFileDataUrl || form.logoUrl) ? (
+                                            <img src={form.logoFileDataUrl || form.logoUrl} alt="Preview" className="h-full w-full object-contain p-2" />
+                                        ) : (
+                                            <div className="flex flex-col items-center justify-center text-white/20">
+                                                <span className="material-symbols-outlined mb-1" style={{ fontSize: "20px" }}>image</span>
+                                                <span className="text-[7px] font-black uppercase tracking-widest">No Logo</span>
+                                            </div>
+                                        )}
+                                        <input
+                                            accept="image/png,image/jpeg,image/webp"
+                                            className="absolute inset-0 cursor-pointer opacity-0 z-10"
+                                            onChange={(e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) uploadFileForRecord(file, ["customers", initialData?.id ?? "new", "logos"]).then(url => setForm(p => ({ ...p, logoFileDataUrl: url })));
+                                                e.target.value = "";
+                                            }}
+                                            type="file"
+                                        />
+                                    </div>
+                                    <div className="flex-1 space-y-1.5">
+                                        <p className="text-[10px] font-bold text-white uppercase tracking-widest">Pilih Berkas Logo</p>
+                                        <p className="text-[9px] text-white/50 font-medium tracking-wide leading-relaxed">Format: PNG/JPG (Maks. 2MB). Logo akan digunakan sebagai marker di peta jalur FO.</p>
+                                        {(form.logoFileDataUrl || form.logoUrl) && (
+                                            <button
+                                                className="mt-2 text-[10px] font-black text-rose-400 uppercase tracking-widest hover:text-rose-300 flex items-center gap-1 transition-colors z-20 relative"
+                                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setForm(p => ({ ...p, logoFileDataUrl: "", logoUrl: "" })); }}
+                                                type="button"
+                                            >
+                                                <span className="material-symbols-outlined" style={{ fontSize: "12px" }}>delete</span>
+                                                Hapus Logo
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
                         </div>
 

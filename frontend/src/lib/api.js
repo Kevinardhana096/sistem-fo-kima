@@ -1314,6 +1314,7 @@ const CUSTOMER_DETAIL_SELECT = `
   isp_name,
   name,
   status,
+  logo_url,
   activation_fee_amount,
   activation_fee_paid_at,
   contract_start_date,
@@ -1682,6 +1683,7 @@ export const customersApi = {
       contract_start_date: customerData.contractStartDate ?? customerData.contract_start_date ?? customerData.contractPeriodStart ?? null,
       updated_at: now,
     };
+    if (customerData.logoUrl) customerPayload.logo_url = customerData.logoUrl;
 
     const { data, error } = await supabase
       .from('customers')
@@ -1812,6 +1814,7 @@ export const customersApi = {
     };
     if (Object.prototype.hasOwnProperty.call(customerData, 'name')) updatePayload.name = customerData.name;
     if (Object.prototype.hasOwnProperty.call(customerData, 'status')) updatePayload.status = customerData.status;
+    if (Object.prototype.hasOwnProperty.call(customerData, 'logoUrl')) updatePayload.logo_url = customerData.logoUrl;
     if (Object.prototype.hasOwnProperty.call(customerData, 'activationFeePaidAt')) updatePayload.activation_fee_paid_at = customerData.activationFeePaidAt;
     if (Object.prototype.hasOwnProperty.call(customerData, 'activation_fee_paid_at')) updatePayload.activation_fee_paid_at = customerData.activation_fee_paid_at;
 
