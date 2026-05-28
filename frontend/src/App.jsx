@@ -50,9 +50,11 @@ function App() {
     });
     const [isLoadingCustomers, setIsLoadingCustomers] = useState(false);
     const [customersError, setCustomersError] = useState("");
+    const [hasRequestedCustomers, setHasRequestedCustomers] = useState(false);
     const [isps, setIsps] = useState([]);
     const [isLoadingIsps, setIsLoadingIsps] = useState(false);
     const [ispsError, setIspsError] = useState("");
+    const [hasRequestedIsps, setHasRequestedIsps] = useState(false);
     const [notifications, setNotifications] = useState([]);
     const route = useMemo(
         () => parseAppRoute(locationState.pathname, locationState.search, currentRole),
@@ -66,6 +68,7 @@ function App() {
     );
 
     const loadCustomers = useCallback(async ({ append = false, offset = 0 } = {}) => {
+        setHasRequestedCustomers(true);
         setIsLoadingCustomers(true);
         setCustomersError("");
 
@@ -122,12 +125,19 @@ function App() {
 
     // Only load data when user is authenticated (not on login page)
     useEffect(() => {
-        if (route.type !== "login" && customers.length === 0 && !isLoadingCustomers && !customersError) {
+        if (
+            route.type !== "login"
+            && customers.length === 0
+            && !isLoadingCustomers
+            && !customersError
+            && !hasRequestedCustomers
+        ) {
             void loadCustomers();
         }
-    }, [customers.length, customersError, isLoadingCustomers, loadCustomers, route.type]);
+    }, [customers.length, customersError, hasRequestedCustomers, isLoadingCustomers, loadCustomers, route.type]);
 
     const loadIsps = useCallback(async () => {
+        setHasRequestedIsps(true);
         setIsLoadingIsps(true);
         setIspsError("");
 
@@ -149,10 +159,16 @@ function App() {
 
     // Only load ISPs when user is authenticated (not on login page)
     useEffect(() => {
-        if (route.type !== "login" && isps.length === 0 && !isLoadingIsps && !ispsError) {
+        if (
+            route.type !== "login"
+            && isps.length === 0
+            && !isLoadingIsps
+            && !ispsError
+            && !hasRequestedIsps
+        ) {
             void loadIsps();
         }
-    }, [isLoadingIsps, isps.length, ispsError, loadIsps, route.type]);
+    }, [hasRequestedIsps, isLoadingIsps, isps.length, ispsError, loadIsps, route.type]);
 
     const loadNotifications = useCallback(async () => {
         try {
@@ -309,10 +325,10 @@ function App() {
         && route.type !== "customer-jalur-planner"
         && route.type !== "customer-jalur-fullscreen"
         ? true
-        : Boolean(selectedCustomer) || (!isLoadingCustomers && customers.length > 0);
+        : Boolean(selectedCustomer) || (hasRequestedCustomers && !isLoadingCustomers);
     const ispDetailReady = route.type !== "isp-detail" && route.type !== "isp-edit"
         ? true
-        : Boolean(selectedIsp) || (!isLoadingIsps && isps.length > 0);
+        : Boolean(selectedIsp) || (hasRequestedIsps && !isLoadingIsps);
 
     const handleNavigate = useCallback((sectionKey) => {
         const targetPath = {
@@ -809,7 +825,7 @@ function App() {
                             return;
                         }
 
-                        navigateTo(appPaths.customerJalurFullscreen(resolvedCustomerId));
+                        navigateTo(appPaths.customerJalurPlanner(resolvedCustomerId));
                     }}
                     canDeleteTenant={roleCapabilities.canDeleteTenant}
                     canEditTenant={roleCapabilities.canEditTenant}
@@ -857,6 +873,11 @@ function App() {
                     onLogout={handleLogout}
                     onRefreshAll={async () => {
                         await Promise.all([loadCustomers(), loadIsps(), loadNotifications()]);
+                    }}
+                    onOpenRoutePlanner={(tenant) => {
+                        const resolvedCustomerId = Number(tenant?.id ?? selectedCustomer.id);
+                        if (!Number.isFinite(resolvedCustomerId) || resolvedCustomerId <= 0) return;
+                        navigateTo(appPaths.customerJalurPlanner(resolvedCustomerId));
                     }}
                     routeViewMode="standalone"
                     hideSidebar={true}

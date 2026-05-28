@@ -550,6 +550,25 @@ export const resolveCustomerContractPeriodInfo = (customer) => {
     };
 };
 
+const normalizeDisplayContractNumber = (value) => {
+    const contractNumber = String(value ?? "").trim();
+    return contractNumber && !contractNumber.startsWith("NO-BAK-") ? contractNumber : "-";
+};
+
+export const resolveCustomerContractNumber = (customer) => {
+    const contract = getCustomerPrimaryContract(customer);
+    const effectiveVersion = getEffectiveContractVersion(contract);
+
+    return normalizeDisplayContractNumber(
+        effectiveVersion?.contractNumber
+            ?? effectiveVersion?.contract_number
+            ?? contract?.contractNumber
+            ?? contract?.contract_number
+            ?? customer.contractNumber
+            ?? customer.contract_number,
+    );
+};
+
 export const mapCustomerToRow = (customer, index) => {
     const active = customer.status === "aktif";
     const activationFeeAmount = Number(customer.activationFeeAmount ?? customer.activation_fee_amount ?? 0);
@@ -602,6 +621,7 @@ export const mapCustomerToRow = (customer, index) => {
         contractStartDate: contractPeriodInfo.contractStartDate,
         contractPeriodStart: contractPeriodInfo.contractPeriodStart,
         contractPeriodEnd: contractPeriodInfo.contractPeriodEnd,
+        contractNumber: resolveCustomerContractNumber(customer),
         activationFeeAmount,
         activationFeePaidAt,
         paket: packageInfo.paket,

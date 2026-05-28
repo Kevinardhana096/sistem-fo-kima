@@ -18,6 +18,38 @@ const isTenantActive = (tenant, todayIso) => getTenantOperationalStatus(tenant, 
 const resolveTenantRouteStatus = (tenant, todayIso) => getTenantOperationalStatus(tenant, todayIso) === "berhenti"
     ? "nonaktif"
     : String(tenant?.routeStatus || "aktif").trim().toLowerCase();
+const getPeriodStart = (item) => String(item?.startDate ?? item?.start_date ?? "").slice(0, 10);
+const getPeriodEnd = (item) => String(item?.endDate ?? item?.end_date ?? "").slice(0, 10);
+const isInPeriod = (item, todayIso) => {
+    const start = getPeriodStart(item);
+    const end = getPeriodEnd(item);
+    return start && end && start <= todayIso && end >= todayIso;
+};
+const normalizeContractNumber = (value) => {
+    const contractNumber = String(value ?? "").trim();
+    return contractNumber && !contractNumber.startsWith("NO-BAK-") ? contractNumber : "-";
+};
+const getCurrentContractNumber = (tenant, todayIso) => {
+    const contracts = Array.isArray(tenant?.contracts)
+        ? tenant.contracts.filter((contract) => !(contract?.deletedAt ?? contract?.deleted_at))
+        : [];
+
+    const activeVersion = contracts
+        .flatMap((contract) => Array.isArray(contract?.versions)
+            ? contract.versions.map((version) => ({
+                ...version,
+                fallbackContractNumber: contract.contractNumber ?? contract.contract_number,
+            }))
+            : [])
+        .find((version) => !(version?.deletedAt ?? version?.deleted_at) && isInPeriod(version, todayIso));
+
+    if (activeVersion) {
+        return normalizeContractNumber(activeVersion.contractNumber ?? activeVersion.contract_number ?? activeVersion.fallbackContractNumber);
+    }
+
+    const activeContract = contracts.find((contract) => isInPeriod(contract, todayIso));
+    return normalizeContractNumber(activeContract?.contractNumber ?? activeContract?.contract_number ?? tenant?.contractNumber);
+};
 const getIspActionCounts = (isp, notificationCountsByIspId = {}) => {
     const ispId = Number(isp?.id);
     const notificationCounts = Number.isFinite(ispId) ? notificationCountsByIspId[ispId] : null;
@@ -288,7 +320,6 @@ function CustomerWorkspacePage({
     const totalActiveTenants = customers.filter((tenant) => isTenantActive(tenant, todayIso)).length;
     const totalExpiredTenants = customers.filter((tenant) => getTenantOperationalStatus(tenant, todayIso) === "expired").length;
     const totalStoppedTenants = customers.filter((tenant) => getTenantOperationalStatus(tenant, todayIso) === "berhenti").length;
-    const totalOperationalTenants = totalActiveTenants + totalExpiredTenants;
     const filteredTenantCount = allGroups.reduce((total, group) => total + group.tenants.length, 0);
     const isAnyFilterActive = Boolean(normalizedSearch)
         || contractStatusFilter !== "all"
@@ -306,7 +337,7 @@ function CustomerWorkspacePage({
         setCurrentPage(1);
     };
 
-    const handleOpenTenantDetail = (tenant, group) => {
+    const handleOpenTenantDetail = (tenant, group, initialTab = "overview") => {
         const tenantCode = typeof tenant?.customerId === "string"
             ? tenant.customerId.trim()
             : "";
@@ -331,7 +362,7 @@ function CustomerWorkspacePage({
         const payload = matchedCustomer
             ?? (resolvedTenantId !== null ? { ...tenant, id: resolvedTenantId } : tenant);
 
-        onOpenTenant(payload, "overview", group);
+        onOpenTenant(payload, initialTab, group);
     };
 
     const handleDeleteIsp = async (group) => {
@@ -703,7 +734,7 @@ function CustomerWorkspacePage({
                                                                         <tr key={`${group.id}-${tenant.id}`} className="hover:bg-white/[0.04] transition-colors group/row">
                                                                         <td className="px-4 py-2.5">
                                                                             <p className="text-[11px] font-black text-white group-hover/row:text-gold-accent transition-colors break-words max-w-[250px]">{tenant.name}</p>
-                                                                            <p className="text-[9px] font-black text-white/30 tracking-[0.2em] uppercase mt-0.5">{tenant.customerId}</p>
+                                                                            <p className="text-[9px] font-black text-white/30 tracking-[0.2em] uppercase mt-0.5">{getCurrentContractNumber(tenant, todayIso)}</p>
                                                                         </td>
                                                                         <td className="px-4 py-2.5">
                                                                             {tenant.paket ? (() => {
@@ -764,16 +795,24 @@ function CustomerWorkspacePage({
                                                                         )}
                                                                         <td className="px-4 py-2.5 text-right">
                                                                             <div className="flex justify-end gap-2">
-                                                                                {!isTeknisi && (
-                                                                                    <button
-                                                                                        className="h-7 inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-2.5 text-[9px] font-black uppercase tracking-widest text-emerald-400 transition-all hover:bg-emerald-500 hover:text-white active:scale-95 shadow-glass-depth backdrop-blur-md"
-                                                                                        onClick={() => onOpenTenant(tenant, "invoices", group)}
-                                                                                        type="button"
-                                                                                    >
+                                                                        {!isTeknisi && (
+                                                                            <button
+                                                                                className="h-7 inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-2.5 text-[9px] font-black uppercase tracking-widest text-emerald-400 transition-all hover:bg-emerald-500 hover:text-white active:scale-95 shadow-glass-depth backdrop-blur-md"
+                                                                                onClick={() => onOpenTenant(tenant, "invoices", group)}
+                                                                                type="button"
+                                                                            >
                                                                                         <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>receipt_long</span>
                                                                                         Invoice
-                                                                                    </button>
-                                                                                )}
+                                                                            </button>
+                                                                        )}
+                                                                                <button
+                                                                                    className="h-7 inline-flex items-center gap-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 px-2.5 text-[9px] font-black uppercase tracking-widest text-blue-400 transition-all hover:bg-blue-500 hover:text-white active:scale-95 shadow-glass-depth backdrop-blur-md"
+                                                                                    onClick={() => handleOpenTenantDetail(tenant, group, "jalur")}
+                                                                                    type="button"
+                                                                                >
+                                                                                    <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>route</span>
+                                                                                    Atur Jalur
+                                                                                </button>
                                                                                 <button
                                                                                     className="h-7 inline-flex items-center gap-1.5 rounded-lg bg-white/5 border border-white/10 px-2.5 text-[9px] font-black uppercase tracking-widest text-white hover:border-gold-accent hover:text-gold-accent transition-all active:scale-95 shadow-glass-depth backdrop-blur-md"
                                                                                     onClick={() => handleOpenTenantDetail(tenant, group)}

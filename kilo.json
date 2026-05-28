@@ -3,7 +3,7 @@
   "mcp": {
     "playwright": {
       "type": "local",
-      "command": ["node","node_modules/@playwright/mcp/cli.js","--browser","chrome","--executable-path","/usr/bin/google-chrome","--headless"],
+      "command": ["node","node_modules/@playwright/mcp/cli.js","--browser","chrome","--executable-path","/usr/bin/google-chrome"],
       "enabled": true,
       "timeout": 30000
     },

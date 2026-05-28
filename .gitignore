@@ -33,3 +33,15 @@ patch.js
 fix_patch.js
 patch_list.ts
 test_compile.ts
+
+# Screenshot debug/test di root
+/*.png
+/*.jpg
+/*.jpeg
+
+# Artefak Windows/WSL
+*:Zone.Identifier
+
+# File kosong dan tool artifacts
+.codex
+.playwright-mcp/
