@@ -64,40 +64,63 @@ function createGlowIcon(label, variant) {
   });
 }
 
-function createCompanyIcon(logoUrl) {
-  if (!logoUrl) return createGlowIcon("A", "provider");
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
 
+function makePinHtml(logoUrl, fallbackLabel, bgColor, title, cursor = "pointer") {
+  const safeTitle = escapeHtml(title);
+  const safeFallbackLabel = escapeHtml(fallbackLabel);
+  const bg = logoUrl ? "white" : bgColor;
+  const inner = logoUrl
+    ? `<img src="${escapeHtml(logoUrl)}" style="width:28px;height:28px;object-fit:contain;transform:rotate(45deg);" />`
+    : `<span style="transform:rotate(45deg);font-size:11px;font-weight:800;color:white;">${safeFallbackLabel}</span>`;
+
+  return `
+    <div title="${safeTitle}" style="position:relative;width:36px;height:44px;filter:drop-shadow(0 3px 6px rgba(0,0,0,0.5));cursor:${cursor};">
+      <div style="width:36px;height:36px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:${bg};border:2.5px solid ${bgColor};overflow:hidden;display:flex;align-items:center;justify-content:center;">
+        ${inner}
+      </div>
+    </div>`;
+}
+
+function createPinIcon(html) {
   return L.divIcon({
     className: "",
-    html: `
-            <div class="fo-marker fo-marker--provider">
-                <span class="fo-marker__pulse"></span>
-                <div class="fo-marker__core overflow-hidden bg-white p-0.5">
-                    <img src="${logoUrl}" class="h-full w-full object-cover rounded-full" />
-                </div>
-            </div>
-        `,
-    iconSize: [32, 32],
-    iconAnchor: [16, 16],
+    html,
+    iconSize: [36, 44],
+    iconAnchor: [18, 44],
+    popupAnchor: [0, -44],
   });
 }
 
-function createCustomerCompanyIcon(logoUrl) {
-  if (!logoUrl) return createGlowIcon("B", "customer");
+function createEntryPointIcon(label, isDefault) {
+  return createPinIcon(
+    makePinHtml(
+      "",
+      "ISP",
+      isDefault ? "#f59e0b" : "#0ea5e9",
+      label || "Titik Masuk ISP",
+      "grab",
+    ),
+  );
+}
 
-  return L.divIcon({
-    className: "",
-    html: `
-            <div class="fo-marker fo-marker--customer">
-                <span class="fo-marker__pulse"></span>
-                <div class="fo-marker__core overflow-hidden bg-white p-0.5">
-                    <img src="${logoUrl}" class="h-full w-full object-cover rounded-full" />
-                </div>
-            </div>
-        `,
-    iconSize: [32, 32],
-    iconAnchor: [16, 16],
-  });
+function createCompanyIcon(logoUrl, label = "") {
+  return createPinIcon(
+    makePinHtml(logoUrl, "ISP", "#0ea5e9", label || "ISP"),
+  );
+}
+
+function createCustomerCompanyIcon(logoUrl, label = "") {
+  return createPinIcon(
+    makePinHtml(logoUrl, "B", "#ec4899", label || "Pelanggan"),
+  );
 }
 
 const CUSTOMER_ICON = createGlowIcon("B", "customer");
@@ -443,6 +466,8 @@ export default function FoRoutePlanner({
   onPreviewClick,
   providerIconUrl = "",
   customerIconUrl = "",
+  providerEntryPoints = [],
+  selectedProviderEntryPointIds = [],
 }) {
   const [basemap, setBasemap] = useState("osm");
   const [profile, setProfile] = useState("driving");
@@ -471,12 +496,55 @@ export default function FoRoutePlanner({
   const skipNextRouteResetRef = useRef(false);
   const initialPlannerStateRef = useRef(null);
 
-  const providerIcon = useMemo(() => createCompanyIcon(providerIconUrl), [providerIconUrl]);
-  const customerIcon = useMemo(() => createCustomerCompanyIcon(customerIconUrl), [customerIconUrl]);
-
   const selectedBasemap =
     BASEMAP_OPTIONS.find((item) => item.key === basemap) ?? BASEMAP_OPTIONS[0];
   const isPreviewMode = mode === "preview";
+  const selectableProviderEntryPoints = useMemo(
+    () => (Array.isArray(providerEntryPoints) ? providerEntryPoints : [])
+      .filter((point) => point?.status !== "nonaktif")
+      .map((point) => ({
+        ...point,
+        id: Number(point.id),
+        lat: Number(point.latitude ?? point.lat),
+        lng: Number(point.longitude ?? point.lng),
+      }))
+      .filter((point) => Number.isFinite(point.id) && isValidLatitude(point.lat) && isValidLongitude(point.lng)),
+    [providerEntryPoints],
+  );
+  const selectedProviderEntryPoints = useMemo(() => {
+    const selectedIds = (Array.isArray(selectedProviderEntryPointIds) ? selectedProviderEntryPointIds : [])
+      .map(Number)
+      .filter(Number.isFinite);
+    if (selectedIds.length === 0) return selectableProviderEntryPoints;
+    return selectedIds
+      .map((id) => selectableProviderEntryPoints.find((point) => Number(point.id) === id))
+      .filter(Boolean);
+  }, [selectableProviderEntryPoints, selectedProviderEntryPointIds]);
+  const activeProviderEntryPointId = useMemo(() => {
+    const match = String(pointA?.id ?? "").match(/^provider-entry-(\d+)$/);
+    return match ? Number(match[1]) : null;
+  }, [pointA?.id]);
+  const visibleProviderEntryPoints = useMemo(
+    () =>
+      selectedProviderEntryPoints.filter(
+        (entryPoint) => Number(entryPoint.id) !== activeProviderEntryPointId,
+      ),
+    [activeProviderEntryPointId, selectedProviderEntryPoints],
+  );
+  const providerIcon = useMemo(() => {
+    if (activeProviderEntryPointId !== null) {
+      const entryPoint = selectedProviderEntryPoints.find(
+        (point) => Number(point.id) === activeProviderEntryPointId,
+      );
+      return createEntryPointIcon(pointA?.label, entryPoint?.isDefault);
+    }
+
+    return createCompanyIcon(providerIconUrl, pointA?.label ?? "");
+  }, [activeProviderEntryPointId, pointA?.label, providerIconUrl, selectedProviderEntryPoints]);
+  const customerIcon = useMemo(
+    () => createCustomerCompanyIcon(customerIconUrl, pointB?.label ?? ""),
+    [customerIconUrl, pointB?.label],
+  );
   const initialPlannerControlPoints = useMemo(
     () => (Array.isArray(initialControlPoints) ? initialControlPoints : []),
     [initialControlPoints],
@@ -492,6 +560,19 @@ export default function FoRoutePlanner({
         }),
       ),
     [previewPoints],
+  );
+  const visiblePreviewProviderEntryPoints = useMemo(
+    () =>
+      selectedProviderEntryPoints.filter(
+        (entryPoint) =>
+          !previewControlPoints.some(
+            (point) =>
+              point.role === "provider" &&
+              Math.abs(Number(point.lat) - entryPoint.lat) < 0.000001 &&
+              Math.abs(Number(point.lng) - entryPoint.lng) < 0.000001,
+          ),
+      ),
+    [previewControlPoints, selectedProviderEntryPoints],
   );
   const previewRouteGeoJson = useMemo(() => {
     if (!isPreviewMode) {
@@ -749,6 +830,18 @@ export default function FoRoutePlanner({
       customRouteMode: restoredCustomRouteMode,
     };
   }, [initialPlannerControlPoints, initialRouteMeta, isPreviewMode]);
+
+  const applyProviderEntryPoint = (entryPoint) => {
+    if (!entryPoint) return;
+    setPointA({
+      id: `provider-entry-${entryPoint.id}`,
+      lat: entryPoint.lat,
+      lng: entryPoint.lng,
+      label: entryPoint.label || "Titik Masuk ISP",
+    });
+    setFlyTarget({ lat: entryPoint.lat, lng: entryPoint.lng, zoom: 17 });
+    pushToast("Titik A Diperbarui", `${entryPoint.label || "Titik masuk ISP"} diterapkan sebagai provider.`, "success");
+  };
 
   const handleUndoToInitial = () => {
     if (isPreviewMode || !initialPlannerStateRef.current) {
@@ -1428,12 +1521,28 @@ export default function FoRoutePlanner({
                   fitRouteKey={isPreviewMode ? `preview-${previewControlPoints.length}-${previewGeometryCoordinates.length}-${previewRoadSegments.length}` : `route-${routeData?.geometryCoordinates?.length || 0}`}
                   flyTarget={flyTarget}
                 />
-                {previewControlPoints.map((point) => {
+                {visiblePreviewProviderEntryPoints.map((entryPoint) => (
+                  <Marker
+                    key={`preview-provider-entry-marker-${entryPoint.id}`}
+                    icon={createEntryPointIcon(entryPoint.label, entryPoint.isDefault)}
+                    position={[entryPoint.lat, entryPoint.lng]}
+                  >
+                    <Popup>
+                      <div className="min-w-[150px] space-y-1 text-xs">
+                        <p className="font-bold text-slate-800">{entryPoint.label || "Titik Masuk ISP"}</p>
+                        <p className="text-[10px] text-slate-500">
+                          {entryPoint.lat.toFixed(6)}, {entryPoint.lng.toFixed(6)}
+                        </p>
+                      </div>
+                    </Popup>
+                  </Marker>
+                ))}
+                {previewControlPoints.map((point, index) => {
                   const icon =
                     point.role === "provider"
-                      ? providerIcon
+                      ? createEntryPointIcon(point.label, activeProviderEntryPointId !== null)
                       : point.role === "customer"
-                        ? customerIcon
+                        ? createCustomerCompanyIcon(customerIconUrl, point.label ?? "")
                         : WAYPOINT_ICON;
 
                   return (
@@ -1441,7 +1550,18 @@ export default function FoRoutePlanner({
                       key={point.id ?? `${point.role}-${point.lat}-${point.lng}`}
                       icon={icon}
                       position={[point.lat, point.lng]}
-                    />
+                    >
+                      <Popup>
+                        <div className="min-w-[150px] space-y-1 text-xs">
+                          <p className="font-bold text-slate-800">
+                            {point.label || buildPointLabel(point, index, previewControlPoints.length)}
+                          </p>
+                          <p className="text-[10px] text-slate-500">
+                            {Number(point.lat).toFixed(6)}, {Number(point.lng).toFixed(6)}
+                          </p>
+                        </div>
+                      </Popup>
+                    </Marker>
                   );
                 })}
                 {previewRouteGeoJson && (
@@ -1580,6 +1700,32 @@ export default function FoRoutePlanner({
           />
           <MapInstanceCapture onReady={setMapInstance} />
 
+          {visibleProviderEntryPoints.map((entryPoint) => (
+            <Marker
+              key={`provider-entry-marker-${entryPoint.id}`}
+              icon={createEntryPointIcon(entryPoint.label, entryPoint.isDefault)}
+              position={[entryPoint.lat, entryPoint.lng]}
+            >
+              <Popup>
+                <div className="min-w-[150px] space-y-1 text-xs">
+                  <p className="font-bold text-slate-800">{entryPoint.label || "Titik Masuk ISP"}</p>
+                  <p className="text-[10px] text-slate-500">
+                    {entryPoint.lat.toFixed(6)}, {entryPoint.lng.toFixed(6)}
+                  </p>
+                  {!disabled && (
+                    <button
+                      className="pt-1 text-[10px] font-bold text-blue-600 hover:underline"
+                      onClick={() => applyProviderEntryPoint(entryPoint)}
+                      type="button"
+                    >
+                      Jadikan Titik A
+                    </button>
+                  )}
+                </div>
+              </Popup>
+            </Marker>
+          ))}
+
           {pointA && (
             <Marker
               draggable={!disabled}
@@ -1591,7 +1737,16 @@ export default function FoRoutePlanner({
               }}
               icon={providerIcon}
               position={[pointA.lat, pointA.lng]}
-            />
+            >
+              <Popup>
+                <div className="min-w-[150px] space-y-1 text-xs">
+                  <p className="font-bold text-slate-800">{pointA.label || "Titik A / Provider"}</p>
+                  <p className="text-[10px] text-slate-500">
+                    {pointA.lat.toFixed(6)}, {pointA.lng.toFixed(6)}
+                  </p>
+                </div>
+              </Popup>
+            </Marker>
           )}
           {pointB && (
             <Marker
@@ -1604,7 +1759,16 @@ export default function FoRoutePlanner({
               }}
               icon={customerIcon}
               position={[pointB.lat, pointB.lng]}
-            />
+            >
+              <Popup>
+                <div className="min-w-[150px] space-y-1 text-xs">
+                  <p className="font-bold text-slate-800">{pointB.label || "Titik B / Pelanggan"}</p>
+                  <p className="text-[10px] text-slate-500">
+                    {pointB.lat.toFixed(6)}, {pointB.lng.toFixed(6)}
+                  </p>
+                </div>
+              </Popup>
+            </Marker>
           )}
           {showKimaMarker && (
             <Marker icon={KIMA_ICON} position={KIMA_CENTER}>
@@ -1623,7 +1787,16 @@ export default function FoRoutePlanner({
               }}
               icon={WAYPOINT_ICON}
               position={[point.lat, point.lng]}
-            />
+            >
+              <Popup>
+                <div className="min-w-[150px] space-y-1 text-xs">
+                  <p className="font-bold text-slate-800">{point.label || "Waypoint Manual"}</p>
+                  <p className="text-[10px] text-slate-500">
+                    {point.lat.toFixed(6)}, {point.lng.toFixed(6)}
+                  </p>
+                </div>
+              </Popup>
+            </Marker>
           ))}
           {routeData?.geoJson && (
             <>
@@ -1708,6 +1881,28 @@ export default function FoRoutePlanner({
                 <p className="mt-1 text-sm font-black text-white">{pointSummary.waypoint}</p>
               </div>
             </div>
+
+            {selectedProviderEntryPoints.length > 0 && (
+              <div className="mt-3 rounded-[1.25rem] border border-gold-accent/25 bg-gold-accent/10 p-3 backdrop-blur-md">
+                <p className="text-[9px] font-black uppercase tracking-[0.25em] text-gold-accent/80">Titik Masuk ISP</p>
+                <div className="mt-2 space-y-1.5">
+                  {selectedProviderEntryPoints.slice(0, 4).map((entryPoint, index) => (
+                    <button
+                      key={entryPoint.id}
+                      className="w-full rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-left transition hover:border-gold-accent/40 hover:bg-gold-accent/10"
+                      onClick={() => applyProviderEntryPoint(entryPoint)}
+                      type="button"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="truncate text-[10px] font-black text-white">{entryPoint.label}</span>
+                        <span className="text-[8px] font-black uppercase tracking-widest text-gold-accent">{index === 0 ? "Utama" : `Backup ${index}`}</span>
+                      </div>
+                      <p className="mt-1 text-[9px] font-mono text-white/40">{entryPoint.lat.toFixed(6)}, {entryPoint.lng.toFixed(6)}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="mt-3 rounded-[1.25rem] border border-sky-400/30 bg-gradient-to-br from-sky-500/15 to-cyan-500/10 p-3 backdrop-blur-md shadow-[0_0_0_1px_rgba(125,211,252,0.08)]">
               <div className="flex items-start justify-between gap-2">

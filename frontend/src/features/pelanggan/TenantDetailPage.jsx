@@ -640,6 +640,8 @@ function TenantDetailPage({
   const [isRouteDrafting, setIsRouteDrafting] = useState(false);
   const [draftRoutePoints, setDraftRoutePoints] = useState([]);
   const [draftRouteStatus, setDraftRouteStatus] = useState("aktif");
+  const [selectedEntryPointIds, setSelectedEntryPointIds] = useState([]);
+  const [isSavingEntryPointSelection, setIsSavingEntryPointSelection] = useState(false);
 
   const emptyStateStorageKey = `tenant-contract-empty-state-${customer.id}`;
   const routeDraftStorageKey = `tenant-route-draft-${customer.id}`;
@@ -770,7 +772,36 @@ function TenantDetailPage({
   const tenantName = detail?.name ?? customer?.name;
   const packageInfo = resolveCustomerPackageInfo(detail ?? customer);
   const contractPeriodInfo = resolveCustomerContractPeriodInfo(detail ?? customer);
-  const isps = Array.isArray(detail?.isps) ? detail.isps : [];
+  const isps = useMemo(() => (Array.isArray(detail?.isps) ? detail.isps : []), [detail?.isps]);
+  const availableIspEntryPoints = useMemo(
+    () => isps.flatMap((isp) => (
+      Array.isArray(isp?.entryPoints)
+        ? isp.entryPoints.map((point) => ({ ...point, ispId: point.ispId ?? isp.id, ispName: isp.name }))
+        : []
+    )).filter((point) => !point.deletedAt && !point.deleted_at),
+    [isps],
+  );
+  const selectedCustomerEntryPoints = useMemo(
+    () => Array.isArray(detail?.selectedEntryPoints) ? detail.selectedEntryPoints : [],
+    [detail?.selectedEntryPoints],
+  );
+  const selectedEntryPointRows = useMemo(
+    () => selectedEntryPointIds
+      .map((id) => availableIspEntryPoints.find((point) => Number(point.id) === Number(id)))
+      .filter(Boolean),
+    [availableIspEntryPoints, selectedEntryPointIds],
+  );
+  const persistedSelectedEntryPointIds = useMemo(
+    () => selectedCustomerEntryPoints
+      .map((selection) => Number(selection.ispEntryPointId ?? selection.isp_entry_point_id))
+      .filter(Number.isFinite),
+    [selectedCustomerEntryPoints],
+  );
+  const hasEntryPointSelectionChanges = useMemo(() => (
+    selectedEntryPointIds.length !== persistedSelectedEntryPointIds.length
+    || selectedEntryPointIds.some((id, index) => Number(id) !== Number(persistedSelectedEntryPointIds[index]))
+  ), [persistedSelectedEntryPointIds, selectedEntryPointIds]);
+  const primarySelectedEntryPoint = selectedEntryPointRows[0] ?? null;
   const contract = Array.isArray(detail?.contracts)
     ? ([...detail.contracts].sort((left, right) => {
         const leftDate = new Date(`${String(left?.endDate ?? left?.end_date ?? left?.startDate ?? left?.start_date ?? "").slice(0, 10)}T00:00:00.000Z`).getTime();
@@ -1040,7 +1071,7 @@ function TenantDetailPage({
             id: point.id ?? `preview-${index}`,
             lat,
             lng,
-            label: point.pathName ?? "",
+            label: point.label ?? point.pathName ?? "",
             pointType: point.pointType,
             role:
               point.pointType === "awal"
@@ -1058,6 +1089,10 @@ function TenantDetailPage({
   useEffect(() => {
     setContractNumberInputs({});
   }, [contract?.id]);
+
+  useEffect(() => {
+    setSelectedEntryPointIds(persistedSelectedEntryPointIds);
+  }, [persistedSelectedEntryPointIds]);
 
   const sortedInvoices = useMemo(() => {
     const nextItems = [...activeInvoices];
@@ -2331,6 +2366,56 @@ function TenantDetailPage({
     }
   };
 
+  const toggleEntryPointSelection = (entryPointId) => {
+    const normalizedId = Number(entryPointId);
+    if (!Number.isFinite(normalizedId)) return;
+    setSelectedEntryPointIds((previous) => (
+      previous.includes(normalizedId)
+        ? previous.filter((id) => id !== normalizedId)
+        : [...previous, normalizedId]
+    ));
+  };
+
+  const handleSaveEntryPointSelection = async () => {
+    setIsSavingEntryPointSelection(true);
+    setRouteError("");
+    try {
+      const selections = selectedEntryPointRows.map((point, index) => ({
+        id: selectedCustomerEntryPoints.find((selection) => Number(selection.ispEntryPointId) === Number(point.id))?.id ?? null,
+        ispId: point.ispId,
+        ispEntryPointId: point.id,
+        priority: index + 1,
+        role: index === 0 ? "utama" : "backup",
+      }));
+      await api.customerIspEntryPoints.replaceForCustomer(customer.id, selections);
+      setRouteFeedback("Pilihan titik masuk ISP berhasil disimpan.");
+      await Promise.all([loadDetail(), onRefreshAll?.()]);
+    } catch (requestError) {
+      setRouteError(requestError instanceof Error ? requestError.message : "Gagal menyimpan pilihan titik masuk ISP.");
+    } finally {
+      setIsSavingEntryPointSelection(false);
+    }
+  };
+
+  const handleApplyPrimaryEntryPointToDraft = () => {
+    if (!primarySelectedEntryPoint) return;
+    const providerPoint = {
+      id: `entry-point-${primarySelectedEntryPoint.id}`,
+      pathName: primarySelectedEntryPoint.label,
+      pointType: "awal",
+      note: `${primarySelectedEntryPoint.label}\n${primarySelectedEntryPoint.latitude}, ${primarySelectedEntryPoint.longitude}`,
+      label: primarySelectedEntryPoint.label,
+      ispEntryPointId: primarySelectedEntryPoint.id,
+      orderNumber: 1,
+    };
+    setDraftRoutePoints((previous) => {
+      const withoutProvider = previous.filter((point) => point.pointType !== "awal");
+      return [providerPoint, ...withoutProvider].map((point, index) => ({ ...point, orderNumber: index + 1 }));
+    });
+    setIsRouteDrafting(true);
+    setRouteFeedback("Titik masuk utama ISP diterapkan sebagai Titik Awal draft jalur.");
+  };
+
   const handleCommitDraft = async () => {
     if (!routeChangeNote.trim()) {
       setRouteError(
@@ -3293,6 +3378,8 @@ function TenantDetailPage({
               disabled={routeBusy}
               initialControlPoints={previewRoutePoints}
               initialRouteMeta={activeRoutePlannerMeta}
+              providerEntryPoints={availableIspEntryPoints}
+              selectedProviderEntryPointIds={selectedEntryPointIds}
               onApplyPlannedRoute={(plannedPoints, plannerMeta) => {
                 handleApplyPlannedRoute(plannedPoints, plannerMeta);
                 window.setTimeout(() => onBack?.(), 800);
@@ -3994,9 +4081,72 @@ function TenantDetailPage({
                     previewGeometryCoordinates={previewGeometryCoordinates}
                     previewRoads={previewRoads}
                     previewPoints={previewRoutePoints}
+                    providerEntryPoints={availableIspEntryPoints}
+                    selectedProviderEntryPointIds={selectedEntryPointIds}
                     providerIconUrl={isps[0]?.logoUrl || ""}
                     customerIconUrl={detail?.logo_url || ""}
                 />
+
+                <section className="glass-card backdrop-blur-xl rounded-premium p-6 border-white/10 shadow-glass-depth">
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                        <div>
+                            <p className="text-[9px] font-black uppercase tracking-[0.3em] text-gold-accent/60">Titik Masuk ISP</p>
+                            <h2 className="mt-1 text-lg font-black uppercase tracking-widest text-white">Pilihan Redundansi Jalur</h2>
+                            <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-white/30">Pilih dari titik ISP yang sudah diatur di halaman ISP. Koordinat ISP tidak diedit dari lokasi.</p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            <button
+                                className="h-10 rounded-xl border border-white/10 bg-white/5 px-4 text-[9px] font-black uppercase tracking-widest text-white/50 transition-all hover:bg-white/10 hover:text-white disabled:opacity-40"
+                                disabled={!primarySelectedEntryPoint || routeBusy}
+                                onClick={handleApplyPrimaryEntryPointToDraft}
+                                type="button"
+                            >
+                                Terapkan Utama ke Draft
+                            </button>
+                            <button
+                                className="h-10 rounded-xl border border-gold-accent/20 bg-gold-accent/10 px-4 text-[9px] font-black uppercase tracking-widest text-gold-accent transition-all hover:bg-gold-accent hover:text-black disabled:cursor-not-allowed disabled:opacity-40"
+                                disabled={isSavingEntryPointSelection || !hasEntryPointSelectionChanges}
+                                onClick={() => void handleSaveEntryPointSelection()}
+                                type="button"
+                            >
+                                {isSavingEntryPointSelection ? "Menyimpan..." : hasEntryPointSelectionChanges ? "Simpan Pilihan" : "Tersimpan"}
+                            </button>
+                        </div>
+                    </div>
+                    {availableIspEntryPoints.length === 0 ? (
+                        <div className="mt-4 rounded-xl border border-dashed border-white/10 bg-black/20 p-5 text-center text-[10px] font-bold uppercase tracking-widest text-white/30">
+                            ISP terkait belum memiliki titik masuk FO. Atur titik masuknya terlebih dahulu dari halaman ISP.
+                        </div>
+                    ) : (
+                        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+                            {availableIspEntryPoints.map((point) => {
+                                const checked = selectedEntryPointIds.includes(Number(point.id));
+                                return (
+                                    <button
+                                        key={point.id}
+                                        className={`rounded-2xl border p-4 text-left transition-all ${checked ? "border-gold-accent/40 bg-gold-accent/10 shadow-gold-glow" : "border-white/10 bg-black/20 hover:border-white/20"}`}
+                                        onClick={() => toggleEntryPointSelection(point.id)}
+                                        type="button"
+                                    >
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div>
+                                                <p className="text-sm font-black text-white">{point.label}</p>
+                                                <p className="mt-1 text-[9px] font-bold uppercase tracking-widest text-white/35">{point.ispName}</p>
+                                            </div>
+                                            <span className={`material-symbols-outlined text-lg ${checked ? "text-gold-accent" : "text-white/20"}`}>{checked ? "check_circle" : "radio_button_unchecked"}</span>
+                                        </div>
+                                        <p className="mt-3 text-[9px] font-mono font-bold text-white/40">{point.latitude}, {point.longitude}</p>
+                                        {checked && (
+                                            <p className="mt-2 text-[8px] font-black uppercase tracking-widest text-gold-accent">
+                                                Prioritas {selectedEntryPointIds.indexOf(Number(point.id)) + 1} • {selectedEntryPointIds.indexOf(Number(point.id)) === 0 ? "Utama" : "Backup"}
+                                            </p>
+                                        )}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    )}
+                </section>
 
                 {/* Header & Mode Selector */}
                 <section className="glass-card backdrop-blur-xl rounded-premium p-8 border-white/10 shadow-glass-depth">

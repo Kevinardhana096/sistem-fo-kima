@@ -977,6 +977,54 @@ const mapRouteHistory = (history) => ({
   changeNote: history.changeNote ?? history.change_note ?? null,
 });
 
+const mapIspEntryPoint = (point) => point ? ({
+  ...point,
+  ispId: point.ispId ?? point.isp_id ?? null,
+  latitude: point.latitude ?? null,
+  longitude: point.longitude ?? null,
+  description: point.description ?? null,
+  capacityNote: point.capacityNote ?? point.capacity_note ?? null,
+  fiberType: point.fiberType ?? point.fiber_type ?? null,
+  coreCapacity: point.coreCapacity ?? point.core_capacity ?? null,
+  isDefault: point.isDefault ?? point.is_default ?? false,
+}) : point;
+
+const mapCustomerIspEntryPoint = (selection) => selection ? ({
+  ...selection,
+  customerId: selection.customerId ?? selection.customer_id ?? null,
+  ispId: selection.ispId ?? selection.isp_id ?? null,
+  ispEntryPointId: selection.ispEntryPointId ?? selection.isp_entry_point_id ?? null,
+  entryPoint: mapIspEntryPoint(selection.entryPoint ?? selection.entry_point ?? selection.ispEntryPoint ?? null),
+}) : selection;
+
+const mapIspEntryPointPayload = (point = {}, ispId = null) => {
+  const payload = {};
+  if (ispId) payload.isp_id = ispId;
+  assignIfPresent(payload, point, ['isp_id', 'ispId'], 'isp_id');
+  assignIfPresent(payload, point, ['label'], 'label', (value) => String(value || '').trim());
+  assignIfPresent(payload, point, ['latitude'], 'latitude', (value) => Number(value));
+  assignIfPresent(payload, point, ['longitude'], 'longitude', (value) => Number(value));
+  assignIfPresent(payload, point, ['status'], 'status', (value) => value || 'aktif');
+  assignIfPresent(payload, point, ['description'], 'description', (value) => value || null);
+  assignIfPresent(payload, point, ['capacity_note', 'capacityNote'], 'capacity_note', (value) => value || null);
+  assignIfPresent(payload, point, ['fiber_type', 'fiberType'], 'fiber_type', (value) => value || null);
+  assignIfPresent(payload, point, ['core_capacity', 'coreCapacity'], 'core_capacity', (value) => value === '' || value === null || value === undefined ? null : Number(value));
+  assignIfPresent(payload, point, ['is_default', 'isDefault'], 'is_default', Boolean);
+  return payload;
+};
+
+const mapCustomerIspEntryPointPayload = (selection = {}, customerId = null) => {
+  const payload = {};
+  if (customerId) payload.customer_id = customerId;
+  assignIfPresent(payload, selection, ['customer_id', 'customerId'], 'customer_id');
+  assignIfPresent(payload, selection, ['isp_id', 'ispId'], 'isp_id');
+  assignIfPresent(payload, selection, ['isp_entry_point_id', 'ispEntryPointId'], 'isp_entry_point_id');
+  assignIfPresent(payload, selection, ['priority'], 'priority', (value) => Math.max(1, Number(value || 1)));
+  assignIfPresent(payload, selection, ['role'], 'role', (value) => value || 'utama');
+  assignIfPresent(payload, selection, ['notes'], 'notes', (value) => value || null);
+  return payload;
+};
+
 const getDateValue = (value) => {
   const timestamp = value ? new Date(`${String(value).slice(0, 10)}T00:00:00.000Z`).getTime() : 0;
   return Number.isFinite(timestamp) ? timestamp : 0;
@@ -1207,6 +1255,12 @@ const mapCustomerDetail = (customer) => {
     isps: Array.isArray(customer.ispMemberships)
       ? customer.ispMemberships.map(membership => mapIsp(membership.isp)).filter(Boolean)
       : [],
+    selectedEntryPoints: Array.isArray(customer.selectedEntryPoints)
+      ? customer.selectedEntryPoints
+        .filter(selection => !(selection?.deleted_at ?? selection?.deletedAt))
+        .map(mapCustomerIspEntryPoint)
+        .sort((left, right) => Number(left.priority ?? 1) - Number(right.priority ?? 1))
+      : [],
     contracts,
     contractVersions: contracts.flatMap(contract => (
       Array.isArray(contract.versions)
@@ -1346,7 +1400,54 @@ const CUSTOMER_DETAIL_SELECT = `
       activation_fee_amount,
       activation_fee_paid_at,
       created_at,
-      updated_at
+      updated_at,
+      entryPoints:isp_entry_points(
+        id,
+        isp_id,
+        label,
+        latitude,
+        longitude,
+        status,
+        description,
+        capacity_note,
+        fiber_type,
+        core_capacity,
+        is_default,
+        created_at,
+        updated_at,
+        deleted_at,
+        deleted_by
+      )
+    )
+  ),
+  selectedEntryPoints:customer_isp_entry_points(
+    id,
+    customer_id,
+    isp_id,
+    isp_entry_point_id,
+    priority,
+    role,
+    notes,
+    created_at,
+    updated_at,
+    deleted_at,
+    deleted_by,
+    entryPoint:isp_entry_points(
+      id,
+      isp_id,
+      label,
+      latitude,
+      longitude,
+      status,
+      description,
+      capacity_note,
+      fiber_type,
+      core_capacity,
+      is_default,
+      created_at,
+      updated_at,
+      deleted_at,
+      deleted_by
     )
   ),
   contracts(
@@ -1980,6 +2081,11 @@ const mapIsp = (isp) => isp ? ({
   userId: isp.userId ?? isp.user_id ?? null,
   userEmail: isp.userEmail ?? isp.user_id ?? null,
   passwordPlain: isp.passwordPlain ?? isp.password_plain ?? null,
+  entryPoints: Array.isArray(isp.entryPoints)
+    ? isp.entryPoints.filter(point => !(point?.deleted_at ?? point?.deletedAt)).map(mapIspEntryPoint)
+    : Array.isArray(isp.isp_entry_points)
+      ? isp.isp_entry_points.filter(point => !(point?.deleted_at ?? point?.deletedAt)).map(mapIspEntryPoint)
+      : [],
   accountMappings: Array.isArray(isp.accountMappings)
     ? isp.accountMappings
     : Array.isArray(isp.isp_user_accounts)
@@ -2013,6 +2119,23 @@ const ISP_DETAIL_SELECT = `
   deleted_by,
   bak_file_url,
   bak_file_name,
+  entryPoints:isp_entry_points(
+    id,
+    isp_id,
+    label,
+    latitude,
+    longitude,
+    status,
+    description,
+    capacity_note,
+    fiber_type,
+    core_capacity,
+    is_default,
+    created_at,
+    updated_at,
+    deleted_at,
+    deleted_by
+  ),
   contractRows:isp_contract_rows(
     id,
     isp_id,
@@ -2069,6 +2192,7 @@ const ISP_DETAIL_SELECT = `
       isp_name,
       name,
       status,
+      logo_url,
       activation_fee_amount,
       activation_fee_paid_at,
       contract_start_date,
@@ -2121,7 +2245,19 @@ const ISP_DETAIL_SELECT = `
         created_at,
         updated_at,
         deleted_at,
-        deleted_by
+        deleted_by,
+        points:customer_route_points(
+          id,
+          route_version_id,
+          order_number,
+          path_name,
+          point_type,
+          note,
+          created_at,
+          updated_at,
+          deleted_at,
+          deleted_by
+        )
       )
     )
   )
@@ -2132,7 +2268,42 @@ export const ispsApi = {
   async getAll() {
     const { data, error } = await supabase
       .from('isps')
-      .select('id,name,status,logo_url,contract_reference,contract_start_date,contract_period_start,contract_period_end,bak_file_name,contract_file_name,paket,jumlah,billing_period_mode,activation_fee_amount,created_at,updated_at,user_id')
+      .select(`
+        id,
+        name,
+        status,
+        logo_url,
+        contract_reference,
+        contract_start_date,
+        contract_period_start,
+        contract_period_end,
+        bak_file_name,
+        contract_file_name,
+        paket,
+        jumlah,
+        billing_period_mode,
+        activation_fee_amount,
+        created_at,
+        updated_at,
+        user_id,
+        entryPoints:isp_entry_points(
+          id,
+          isp_id,
+          label,
+          latitude,
+          longitude,
+          status,
+          description,
+          capacity_note,
+          fiber_type,
+          core_capacity,
+          is_default,
+          created_at,
+          updated_at,
+          deleted_at,
+          deleted_by
+        )
+      `)
       .is('deleted_at', null)
       .order('name', { ascending: true });
 
@@ -3666,6 +3837,166 @@ export const customerRoutesApi = {
 // CUSTOMER ISP MEMBERSHIPS API
 // ============================================================================
 
+export const ispEntryPointsApi = {
+  async listByIsp(ispId) {
+    const { data, error } = await supabase
+      .from('isp_entry_points')
+      .select('*')
+      .eq('isp_id', ispId)
+      .is('deleted_at', null)
+      .order('is_default', { ascending: false })
+      .order('label', { ascending: true });
+
+    if (error) throw error;
+    return Array.isArray(data) ? data.map(mapIspEntryPoint) : [];
+  },
+
+  async create(pointData) {
+    const { data, error } = await supabase
+      .from('isp_entry_points')
+      .insert(withUpdatedAt(mapIspEntryPointPayload(pointData)))
+      .select()
+      .single();
+
+    if (error) throw error;
+    return mapIspEntryPoint(data);
+  },
+
+  async update(id, pointData) {
+    const { data, error } = await supabase
+      .from('isp_entry_points')
+      .update(withUpdatedAt(mapIspEntryPointPayload(pointData)))
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return mapIspEntryPoint(data);
+  },
+
+  async softDelete(id) {
+    const { user } = await getCurrentActor();
+    const { error } = await supabase
+      .from('isp_entry_points')
+      .update({ deleted_at: new Date().toISOString(), deleted_by: user?.id ?? null })
+      .eq('id', id);
+
+    if (error) throw error;
+  },
+
+  async replaceForIsp(ispId, points = []) {
+    const now = new Date().toISOString();
+    const normalizedPoints = (Array.isArray(points) ? points : [])
+      .map((point, index) => ({ ...point, isDefault: Boolean(point?.isDefault) || index === 0 }))
+      .filter((point) => String(point?.label || '').trim() && Number.isFinite(Number(point?.latitude)) && Number.isFinite(Number(point?.longitude)));
+
+    const { data: existing, error: existingError } = await supabase
+      .from('isp_entry_points')
+      .select('id')
+      .eq('isp_id', ispId)
+      .is('deleted_at', null);
+
+    if (existingError) throw existingError;
+
+    const keptIds = normalizedPoints.map((point) => Number(point.id)).filter(Number.isFinite);
+    const deletedIds = (existing || []).map((point) => Number(point.id)).filter((id) => !keptIds.includes(id));
+
+    if (deletedIds.length > 0) {
+      const { user } = await getCurrentActor();
+      const { error: deleteError } = await supabase
+        .from('isp_entry_points')
+        .update({ deleted_at: now, deleted_by: user?.id ?? null, updated_at: now })
+        .in('id', deletedIds);
+
+      if (deleteError) throw deleteError;
+    }
+
+    const savedPoints = [];
+    for (const point of normalizedPoints) {
+      const payload = withUpdatedAt(mapIspEntryPointPayload(point, ispId));
+      if (point.id && Number.isFinite(Number(point.id))) {
+        const { data, error } = await supabase
+          .from('isp_entry_points')
+          .update(payload)
+          .eq('id', point.id)
+          .select()
+          .single();
+        if (error) throw error;
+        savedPoints.push(mapIspEntryPoint(data));
+      } else {
+        const { data, error } = await supabase
+          .from('isp_entry_points')
+          .insert(payload)
+          .select()
+          .single();
+        if (error) throw error;
+        savedPoints.push(mapIspEntryPoint(data));
+      }
+    }
+
+    return savedPoints;
+  },
+};
+
+export const customerIspEntryPointsApi = {
+  async replaceForCustomer(customerId, selections = []) {
+    const now = new Date().toISOString();
+    const normalizedSelections = (Array.isArray(selections) ? selections : [])
+      .filter((selection) => Number.isFinite(Number(selection?.ispEntryPointId ?? selection?.isp_entry_point_id)))
+      .map((selection, index) => ({
+        ...selection,
+        priority: Number(selection.priority || index + 1),
+        role: selection.role || (index === 0 ? 'utama' : 'backup'),
+      }));
+
+    const { data: existing, error: existingError } = await supabase
+      .from('customer_isp_entry_points')
+      .select('id')
+      .eq('customer_id', customerId)
+      .is('deleted_at', null);
+
+    if (existingError) throw existingError;
+
+    const keptIds = normalizedSelections.map((selection) => Number(selection.id)).filter(Number.isFinite);
+    const deletedIds = (existing || []).map((selection) => Number(selection.id)).filter((id) => !keptIds.includes(id));
+
+    if (deletedIds.length > 0) {
+      const { user } = await getCurrentActor();
+      const { error: deleteError } = await supabase
+        .from('customer_isp_entry_points')
+        .update({ deleted_at: now, deleted_by: user?.id ?? null, updated_at: now })
+        .in('id', deletedIds);
+
+      if (deleteError) throw deleteError;
+    }
+
+    const savedSelections = [];
+    for (const selection of normalizedSelections) {
+      const payload = withUpdatedAt(mapCustomerIspEntryPointPayload(selection, customerId));
+      if (selection.id && Number.isFinite(Number(selection.id))) {
+        const { data, error } = await supabase
+          .from('customer_isp_entry_points')
+          .update(payload)
+          .eq('id', selection.id)
+          .select()
+          .single();
+        if (error) throw error;
+        savedSelections.push(mapCustomerIspEntryPoint(data));
+      } else {
+        const { data, error } = await supabase
+          .from('customer_isp_entry_points')
+          .insert(payload)
+          .select()
+          .single();
+        if (error) throw error;
+        savedSelections.push(mapCustomerIspEntryPoint(data));
+      }
+    }
+
+    return savedSelections;
+  },
+};
+
 export const customerIspMembershipsApi = {
   async removeByCustomer(customerId, { mode = 'selected', ispId = null, ispIds = [] } = {}) {
     let query = supabase
@@ -3977,6 +4308,8 @@ export default {
   contractVersions: contractVersionsApi,
   customerRoutes: customerRoutesApi,
   customerIspMemberships: customerIspMembershipsApi,
+  ispEntryPoints: ispEntryPointsApi,
+  customerIspEntryPoints: customerIspEntryPointsApi,
   invoiceFollowUps: invoiceFollowUpsApi,
   contractVersionRenewalFollowUps: contractVersionRenewalFollowUpsApi,
   trash: trashApi,

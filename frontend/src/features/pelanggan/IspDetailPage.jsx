@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { createPortal } from "react-dom";
 import AppShell from "../../components/layout/AppShell";
 import { StatCard } from "../../components/shared/AppShared";
+import FoRouteMultiPreview from "./components/FoRouteMultiPreview";
+import IspEntryPointMap from "./components/IspEntryPointMap";
 import {
     formatDate,
     getIspContractActionItems,
@@ -170,6 +172,10 @@ function IspDetailPage({
     const [editingRow, setEditingRow] = useState(null);
     const [risalahRows, setRisalahRows] = useState([]);
     const [risalahEditor, setRisalahEditor] = useState(null);
+
+    // Entry Point CRUD state
+    const [entryPointEditor, setEntryPointEditor] = useState(null); // null | { mode: "add"|"edit", data: {...} }
+    const [entryPointSaving, setEntryPointSaving] = useState(false);
 
     // Filtering & Sorting State for Lokasi Table
     const [tenantSearch, setTenantSearch] = useState("");
@@ -468,6 +474,45 @@ function IspDetailPage({
 
     const ispName = detail?.name ?? isp.name;
     const contractRef = detail?.contractReference ?? isp.contractReference ?? "-";
+
+    // ── Entry Point CRUD handlers ──
+    const handleSaveEntryPoint = async () => {
+        if (!entryPointEditor) return;
+        const { mode, data } = entryPointEditor;
+        const label = String(data.label ?? "").trim();
+        const lat = Number(String(data.latitude ?? "").replace(",", "."));
+        const lng = Number(String(data.longitude ?? "").replace(",", "."));
+        if (!label || !Number.isFinite(lat) || !Number.isFinite(lng)) return;
+        setEntryPointSaving(true);
+        try {
+            const payload = { ...data, ispId: isp.id, latitude: lat, longitude: lng, label };
+            if (mode === "edit" && data.id) {
+                await api.ispEntryPoints.update(data.id, payload);
+            } else {
+                await api.ispEntryPoints.create(payload);
+            }
+            setEntryPointEditor(null);
+            await loadDetail();
+        } catch { /* silent */ }
+        setEntryPointSaving(false);
+    };
+
+    const handleDeleteEntryPoint = async (pointId) => {
+        if (!window.confirm("Hapus titik masuk ini?")) return;
+        try {
+            await api.ispEntryPoints.softDelete(pointId);
+            await loadDetail();
+        } catch { /* silent */ }
+    };
+
+    const handleMoveEntryPoint = async (pointId, lat, lng) => {
+        try {
+            const point = (detail?.entryPoints || []).find((p) => p.id === pointId);
+            if (!point) return;
+            await api.ispEntryPoints.update(pointId, { ...point, ispId: isp.id, latitude: Number(lat), longitude: Number(lng) });
+            await loadDetail();
+        } catch { /* silent */ }
+    };
 
     const handleFileUpload = async (rowId, type, file, followUpId = null) => {
         if (!file) return;
@@ -897,7 +942,66 @@ function IspDetailPage({
                 document.body
             )}
 
-            {/* Background Decorative Blobs */}
+            {/* Entry Point Editor Modal */}
+            {entryPointEditor && createPortal(
+                <div className="fixed inset-0 z-[200] flex items-center justify-center px-4 backdrop-blur-md bg-black/60">
+                    <div className="w-full max-w-sm rounded-2xl glass-card backdrop-blur-xl p-5 border border-white/20 shadow-[0_0_100px_rgba(0,0,0,0.8)] relative overflow-hidden">
+                        <div className="mb-4 flex items-center justify-between">
+                            <h3 className="text-sm font-black text-white tracking-widest uppercase">
+                                {entryPointEditor.mode === "add" ? "Tambah Titik Masuk" : "Edit Titik Masuk"}
+                            </h3>
+                            <button className="w-7 h-7 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white/30 hover:text-[#ff2400] transition-all" onClick={() => setEntryPointEditor(null)} type="button">
+                                <span className="material-symbols-outlined text-[14px]">close</span>
+                            </button>
+                        </div>
+                        <div className="space-y-3">
+                            <div>
+                                <label className="block text-[9px] font-bold uppercase tracking-widest text-white/40 mb-1">Label / Nama Titik *</label>
+                                <input type="text" className="w-full rounded-lg bg-black/30 border border-white/10 px-3 py-2 text-xs text-white outline-none focus:border-gold-accent/50 transition-all" placeholder="Gerbang Utara KIMA" value={entryPointEditor.data.label} onChange={(e) => setEntryPointEditor((prev) => ({ ...prev, data: { ...prev.data, label: e.target.value } }))} />
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label className="block text-[9px] font-bold uppercase tracking-widest text-white/40 mb-1">Latitude *</label>
+                                    <input type="text" className="w-full rounded-lg bg-black/30 border border-white/10 px-3 py-2 text-xs text-white outline-none focus:border-gold-accent/50 transition-all" placeholder="-5.0929" value={entryPointEditor.data.latitude} onChange={(e) => setEntryPointEditor((prev) => ({ ...prev, data: { ...prev.data, latitude: e.target.value } }))} />
+                                </div>
+                                <div>
+                                    <label className="block text-[9px] font-bold uppercase tracking-widest text-white/40 mb-1">Longitude *</label>
+                                    <input type="text" className="w-full rounded-lg bg-black/30 border border-white/10 px-3 py-2 text-xs text-white outline-none focus:border-gold-accent/50 transition-all" placeholder="119.5018" value={entryPointEditor.data.longitude} onChange={(e) => setEntryPointEditor((prev) => ({ ...prev, data: { ...prev.data, longitude: e.target.value } }))} />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label className="block text-[9px] font-bold uppercase tracking-widest text-white/40 mb-1">Jenis Fiber</label>
+                                    <input type="text" className="w-full rounded-lg bg-black/30 border border-white/10 px-3 py-2 text-xs text-white outline-none focus:border-gold-accent/50 transition-all" placeholder="SM" value={entryPointEditor.data.fiberType} onChange={(e) => setEntryPointEditor((prev) => ({ ...prev, data: { ...prev.data, fiberType: e.target.value } }))} />
+                                </div>
+                                <div>
+                                    <label className="block text-[9px] font-bold uppercase tracking-widest text-white/40 mb-1">Core Capacity</label>
+                                    <input type="text" className="w-full rounded-lg bg-black/30 border border-white/10 px-3 py-2 text-xs text-white outline-none focus:border-gold-accent/50 transition-all" placeholder="12" value={entryPointEditor.data.coreCapacity} onChange={(e) => setEntryPointEditor((prev) => ({ ...prev, data: { ...prev.data, coreCapacity: e.target.value } }))} />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-[9px] font-bold uppercase tracking-widest text-white/40 mb-1">Status</label>
+                                <select className="w-full rounded-lg bg-black/30 border border-white/10 px-3 py-2 text-xs text-white outline-none focus:border-gold-accent/50 transition-all" value={entryPointEditor.data.status} onChange={(e) => setEntryPointEditor((prev) => ({ ...prev, data: { ...prev.data, status: e.target.value } }))}>
+                                    <option value="aktif">Aktif</option>
+                                    <option value="draft">Draft</option>
+                                    <option value="nonaktif">Nonaktif</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-[9px] font-bold uppercase tracking-widest text-white/40 mb-1">Keterangan</label>
+                                <input type="text" className="w-full rounded-lg bg-black/30 border border-white/10 px-3 py-2 text-xs text-white outline-none focus:border-gold-accent/50 transition-all" placeholder="Opsional" value={entryPointEditor.data.description} onChange={(e) => setEntryPointEditor((prev) => ({ ...prev, data: { ...prev.data, description: e.target.value } }))} />
+                            </div>
+                        </div>
+                        <div className="mt-4 flex justify-end gap-2">
+                            <button type="button" className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-[10px] font-bold text-white/50 hover:bg-white/10 transition-all" onClick={() => setEntryPointEditor(null)}>Batal</button>
+                            <button type="button" className="px-4 py-2 rounded-lg bg-gold-accent text-[10px] font-black text-[#0f141e] hover:bg-gold-accent/80 transition-all disabled:opacity-40" disabled={entryPointSaving || !entryPointEditor.data.label.trim() || !entryPointEditor.data.latitude || !entryPointEditor.data.longitude} onClick={handleSaveEntryPoint}>
+                                {entryPointSaving ? "Menyimpan..." : "Simpan"}
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
             <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
                 <div className="absolute bottom-[-5%] left-[-5%] w-[30%] h-[30%] rounded-full bg-[#ff2400]/5 blur-[100px]" />
             </div>
@@ -1107,6 +1211,70 @@ function IspDetailPage({
 
                         {activeTab === "overview" && (
                             <div className="space-y-2">
+                                <section className="glass-card backdrop-blur-xl rounded-lg p-4 border-white/10 shadow-glass-depth relative overflow-hidden">
+                                    <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-4">
+                                        <div>
+                                            <p className="text-[9px] font-black uppercase tracking-[0.3em] text-gold-accent/60">Titik Masuk FO</p>
+                                            <h3 className="mt-1 text-lg font-black text-white uppercase tracking-widest">Entry Point ISP</h3>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[9px] font-black uppercase tracking-widest text-white/50">
+                                                {(detail?.entryPoints || []).length} Titik
+                                            </span>
+                                            {!isTeknisi && (
+                                                <button
+                                                    type="button"
+                                                    className="flex items-center gap-1 rounded-lg bg-gold-accent/10 border border-gold-accent/30 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-gold-accent hover:bg-gold-accent hover:text-[#0f141e] transition-all"
+                                                    onClick={() => setEntryPointEditor({ mode: "add", data: { label: "", latitude: "", longitude: "", status: "aktif", fiberType: "", coreCapacity: "", description: "", isDefault: false } })}
+                                                >
+                                                    <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>add</span>
+                                                    Tambah Titik
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                    {(detail?.entryPoints || []).length === 0 ? (
+                                        <div className="rounded-xl border border-dashed border-white/10 bg-black/20 p-5 text-center text-[10px] font-bold uppercase tracking-widest text-white/30">
+                                            Belum ada titik masuk FO untuk ISP ini.
+                                        </div>
+                                    ) : (
+                                        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+                                            {detail.entryPoints.map((point) => (
+                                                <div key={point.id} className="rounded-xl border border-white/10 bg-black/20 p-4 backdrop-blur-md">
+                                                    <div className="mb-3 flex items-start justify-between gap-3">
+                                                        <div>
+                                                            <p className="text-sm font-black text-white">{point.label}</p>
+                                                            <p className="mt-1 text-[9px] font-bold uppercase tracking-widest text-white/35">{point.latitude}, {point.longitude}</p>
+                                                        </div>
+                                                        <div className="flex flex-col items-end gap-1">
+                                                            <span className={`rounded-full px-2 py-1 text-[8px] font-black uppercase tracking-widest ${point.status === "aktif" ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : point.status === "draft" ? "bg-amber-500/10 text-amber-400 border border-amber-500/20" : "bg-white/5 text-white/40 border border-white/10"}`}>
+                                                                {point.status}
+                                                            </span>
+                                                            {point.isDefault && <span className="rounded-full border border-gold-accent/20 bg-gold-accent/10 px-2 py-1 text-[8px] font-black uppercase tracking-widest text-gold-accent">Default</span>}
+                                                        </div>
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-2 text-[9px] font-bold uppercase tracking-widest text-white/40">
+                                                        <span>Jenis: <b className="text-white/70">{point.fiberType || "-"}</b></span>
+                                                        <span>Core: <b className="text-white/70">{point.coreCapacity ?? "-"}</b></span>
+                                                    </div>
+                                                    {(point.capacityNote || point.description) && (
+                                                        <p className="mt-3 text-[10px] font-medium leading-relaxed text-white/45">{point.capacityNote || point.description}</p>
+                                                    )}
+                                                    {!isTeknisi && (
+                                                        <div className="mt-3 flex items-center gap-2 border-t border-white/5 pt-3">
+                                                            <button type="button" className="flex items-center gap-1 text-[9px] font-bold text-white/40 hover:text-gold-accent transition-colors" onClick={() => setEntryPointEditor({ mode: "edit", data: { id: point.id, label: point.label, latitude: String(point.latitude), longitude: String(point.longitude), status: point.status, fiberType: point.fiberType || "", coreCapacity: point.coreCapacity != null ? String(point.coreCapacity) : "", description: point.description || "", isDefault: point.isDefault } })}>
+                                                                <span className="material-symbols-outlined" style={{ fontSize: "13px" }}>edit</span>Edit
+                                                            </button>
+                                                            <button type="button" className="flex items-center gap-1 text-[9px] font-bold text-white/40 hover:text-red-400 transition-colors" onClick={() => handleDeleteEntryPoint(point.id)}>
+                                                                <span className="material-symbols-outlined" style={{ fontSize: "13px" }}>delete</span>Hapus
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </section>
                                 {/* Stats Cards */}
                                 <section className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-12">
                                     {/* Card 1: Total Lokasi */}
@@ -1612,13 +1780,62 @@ function IspDetailPage({
                         )}
 
                         {activeTab === "jalur" && (
-                            <section className="glass-card backdrop-blur-xl rounded-premium p-20 flex flex-col items-center justify-center border-white/10 shadow-glass-depth">
-                                <div className="w-24 h-24 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center text-white/20 mb-8">
-                                    <span className="material-symbols-outlined text-5xl">map</span>
+                            <>
+                            <FoRouteMultiPreview
+                                tenants={allTenants}
+                                ispLogoUrl={detail?.logo_url ?? isp.logo_url ?? ""}
+                                ispName={ispName}
+                                onTenantClick={(tenantId) => {
+                                    const tenant = allTenants.find((t) => t.id === tenantId);
+                                    if (tenant) onOpenTenant(tenant, "jalur");
+                                }}
+                            />
+                            {/* Entry Points panel in Peta Jalur tab */}
+                            <section className="glass-card backdrop-blur-xl rounded-xl p-4 border-white/10 shadow-glass-depth mt-4">
+                                <div className="flex items-center justify-between mb-3">
+                                    <div className="flex items-center gap-2">
+                                        <span className="h-3.5 w-1 bg-gold-accent rounded-full" />
+                                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white">Titik Masuk FO</p>
+                                        <span className="text-[9px] font-bold text-white/30">{(detail?.entryPoints || []).length} titik</span>
+                                    </div>
+                                    {!isTeknisi && (
+                                        <button type="button" className="flex items-center gap-1 rounded-lg bg-gold-accent/10 border border-gold-accent/30 px-2.5 py-1 text-[9px] font-black uppercase tracking-widest text-gold-accent hover:bg-gold-accent hover:text-[#0f141e] transition-all" onClick={() => setEntryPointEditor({ mode: "add", data: { label: "", latitude: "", longitude: "", status: "aktif", fiberType: "", coreCapacity: "", description: "", isDefault: false } })}>
+                                            <span className="material-symbols-outlined" style={{ fontSize: "13px" }}>add</span>Tambah
+                                        </button>
+                                    )}
                                 </div>
-                                <h2 className="text-2xl font-bold text-white tracking-widest">Peta Jalur Lokasi</h2>
-                                <p className="mt-3 text-sm font-bold text-white/30 max-w-md text-center leading-relaxed">Fitur visualisasi peta untuk memantau topologi jalur semua lokasi di bawah ISP ini sedang dalam tahap pengembangan.</p>
+                                <IspEntryPointMap
+                                    entryPoints={detail?.entryPoints || []}
+                                    readOnly={isTeknisi}
+                                    onAddPoint={(lat, lng) => setEntryPointEditor({ mode: "add", data: { label: "", latitude: lat, longitude: lng, status: "aktif", fiberType: "", coreCapacity: "", description: "", isDefault: false } })}
+                                    onMovePoint={handleMoveEntryPoint}
+                                    onEditPoint={(point) => setEntryPointEditor({ mode: "edit", data: { id: point.id, label: point.label, latitude: String(point.latitude), longitude: String(point.longitude), status: point.status, fiberType: point.fiberType || "", coreCapacity: point.coreCapacity != null ? String(point.coreCapacity) : "", description: point.description || "", isDefault: point.isDefault } })}
+                                    onDeletePoint={handleDeleteEntryPoint}
+                                />
+                                {(detail?.entryPoints || []).length > 0 && (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mt-3">
+                                        {detail.entryPoints.map((point) => (
+                                            <div key={point.id} className="flex items-center justify-between gap-2 rounded-lg bg-black/20 border border-white/10 px-3 py-2">
+                                                <div className="min-w-0">
+                                                    <p className="text-[11px] font-bold text-white truncate">{point.label}</p>
+                                                    <p className="text-[9px] text-white/30">{point.latitude}, {point.longitude}</p>
+                                                </div>
+                                                {!isTeknisi && (
+                                                    <div className="flex items-center gap-1 shrink-0">
+                                                        <button type="button" className="w-6 h-6 flex items-center justify-center rounded-md text-white/30 hover:text-gold-accent transition-colors" onClick={() => setEntryPointEditor({ mode: "edit", data: { id: point.id, label: point.label, latitude: String(point.latitude), longitude: String(point.longitude), status: point.status, fiberType: point.fiberType || "", coreCapacity: point.coreCapacity != null ? String(point.coreCapacity) : "", description: point.description || "", isDefault: point.isDefault } })}>
+                                                            <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>edit</span>
+                                                        </button>
+                                                        <button type="button" className="w-6 h-6 flex items-center justify-center rounded-md text-white/30 hover:text-red-400 transition-colors" onClick={() => handleDeleteEntryPoint(point.id)}>
+                                                            <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>delete</span>
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </section>
+                            </>
                         )}
 
                         {activeTab === "contracts" && (
