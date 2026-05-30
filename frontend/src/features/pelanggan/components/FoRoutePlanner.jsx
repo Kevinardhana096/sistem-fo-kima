@@ -99,10 +99,10 @@ function createPinIcon(html) {
   });
 }
 
-function createEntryPointIcon(label, isDefault) {
+function createEntryPointIcon(label, isDefault, logoUrl = "") {
   return createPinIcon(
     makePinHtml(
-      "",
+      logoUrl,
       "ISP",
       isDefault ? "#f59e0b" : "#0ea5e9",
       label || "Titik Masuk ISP",
@@ -258,7 +258,7 @@ function buildPointLabel(point, index, total) {
   }
 
   if (index === total - 1) {
-    return "Titik B / Pelanggan";
+    return "Titik Lokasi";
   }
 
   return `Waypoint Manual ${index}`;
@@ -536,7 +536,7 @@ export default function FoRoutePlanner({
       const entryPoint = selectedProviderEntryPoints.find(
         (point) => Number(point.id) === activeProviderEntryPointId,
       );
-      return createEntryPointIcon(pointA?.label, entryPoint?.isDefault);
+      return createEntryPointIcon(pointA?.label, entryPoint?.isDefault, providerIconUrl);
     }
 
     return createCompanyIcon(providerIconUrl, pointA?.label ?? "");
@@ -896,7 +896,7 @@ export default function FoRoutePlanner({
 
   const handleGenerateManualRoute = () => {
     if (!canGenerateManualRoute) {
-      setRouteError("Tentukan Titik A dan Titik B sebelum membuat custom jalur.");
+      setRouteError("Tentukan Titik ISP (A) dan Titik Lokasi sebelum membuat custom jalur.");
       return;
     }
 
@@ -940,7 +940,7 @@ export default function FoRoutePlanner({
 
   const handleGenerateValhallaRoute = async () => {
     if (!canGenerateRoute) {
-      setRouteError("Tentukan Titik A dan Titik B sebelum menghitung jalur.");
+      setRouteError("Tentukan Titik ISP (A) dan Titik Lokasi sebelum menghitung jalur.");
       return;
     }
 
@@ -1062,7 +1062,7 @@ export default function FoRoutePlanner({
     if (role === "b") {
       setPointB(nextPoint);
       pushToast(
-        "Titik B Diperbarui",
+        "Titik Lokasi Diperbarui",
         "Koordinat pelanggan/destination berhasil ditetapkan.",
         "success",
       );
@@ -1090,7 +1090,7 @@ export default function FoRoutePlanner({
     if (placementMode !== "waypoint") {
       pushToast(
         "Pilih Mode Titik",
-        "Pilih Set A, Set B, atau Set W sebelum menempatkan titik di peta.",
+        "Pilih Klik: Lokasi atau Set W sebelum menempatkan titik di peta.",
         "info",
       );
       return;
@@ -1414,7 +1414,7 @@ export default function FoRoutePlanner({
     if (!pointA || !pointB) {
       pushToast(
         "Titik Belum Lengkap",
-        "Tentukan Titik A dan Titik B sebelum menerapkan draft.",
+        "Tentukan Titik ISP (A) dan Titik Lokasi sebelum menerapkan draft.",
         "error",
       );
       return;
@@ -1524,7 +1524,7 @@ export default function FoRoutePlanner({
                 {visiblePreviewProviderEntryPoints.map((entryPoint) => (
                   <Marker
                     key={`preview-provider-entry-marker-${entryPoint.id}`}
-                    icon={createEntryPointIcon(entryPoint.label, entryPoint.isDefault)}
+                    icon={createEntryPointIcon(entryPoint.label, entryPoint.isDefault, providerIconUrl)}
                     position={[entryPoint.lat, entryPoint.lng]}
                   >
                     <Popup>
@@ -1540,7 +1540,7 @@ export default function FoRoutePlanner({
                 {previewControlPoints.map((point, index) => {
                   const icon =
                     point.role === "provider"
-                      ? createEntryPointIcon(point.label, activeProviderEntryPointId !== null)
+                      ? createEntryPointIcon(point.label, activeProviderEntryPointId !== null, providerIconUrl)
                       : point.role === "customer"
                         ? createCustomerCompanyIcon(customerIconUrl, point.label ?? "")
                         : WAYPOINT_ICON;
@@ -1703,7 +1703,7 @@ export default function FoRoutePlanner({
           {visibleProviderEntryPoints.map((entryPoint) => (
             <Marker
               key={`provider-entry-marker-${entryPoint.id}`}
-              icon={createEntryPointIcon(entryPoint.label, entryPoint.isDefault)}
+              icon={createEntryPointIcon(entryPoint.label, entryPoint.isDefault, providerIconUrl)}
               position={[entryPoint.lat, entryPoint.lng]}
             >
               <Popup>
@@ -1762,7 +1762,7 @@ export default function FoRoutePlanner({
             >
               <Popup>
                 <div className="min-w-[150px] space-y-1 text-xs">
-                  <p className="font-bold text-slate-800">{pointB.label || "Titik B / Pelanggan"}</p>
+                  <p className="font-bold text-slate-800">{pointB.label || "Titik Lokasi"}</p>
                   <p className="text-[10px] text-slate-500">
                     {pointB.lat.toFixed(6)}, {pointB.lng.toFixed(6)}
                   </p>
@@ -1834,7 +1834,7 @@ export default function FoRoutePlanner({
                   <p className="text-[10px] text-white/90 font-medium leading-tight mb-2">{result.display_name}</p>
                   <div className="flex gap-1.5">
                     <button className="flex-1 bg-white/10 py-1 rounded text-[9px] font-bold uppercase text-white/70 hover:text-white backdrop-blur-md" onClick={() => handlePickSearchResult(result, "a")}>Set A</button>
-                    <button className="flex-1 bg-white/10 py-1 rounded text-[9px] font-bold uppercase text-white/70 hover:text-white backdrop-blur-md" onClick={() => handlePickSearchResult(result, "b")}>Set B</button>
+                    <button className="flex-1 bg-white/10 py-1 rounded text-[9px] font-bold uppercase text-white/70 hover:text-white backdrop-blur-md" onClick={() => handlePickSearchResult(result, "b")}>Paste ke Lokasi</button>
                     {customRouteMode && <button className="flex-1 bg-white/10 py-1 rounded text-[9px] font-bold uppercase text-white/70 hover:text-white backdrop-blur-md" onClick={() => handlePickSearchResult(result, "waypoint")}>+W</button>}
                   </div>
                 </div>
@@ -1920,9 +1920,7 @@ export default function FoRoutePlanner({
 
               <div className="mt-3 flex flex-wrap gap-2">
                 {[
-                  { value: "auto", label: "Auto A/B" },
-                  { value: "a", label: "Target A" },
-                  { value: "b", label: "Target B" },
+                  { value: "b", label: "Paste ke Lokasi" },
                   { value: "waypoint", label: "Waypoint" },
                 ].map((option) => (
                   <button
@@ -1939,11 +1937,9 @@ export default function FoRoutePlanner({
                   </button>
                 ))}
                 <span className="ml-auto rounded-full border border-sky-300/20 bg-slate-950/40 px-2.5 py-1 text-[9px] font-black uppercase tracking-widest text-sky-200">
-                  {activeCoordinateImportTarget === "a"
-                    ? "A aktif"
-                    : activeCoordinateImportTarget === "b"
-                      ? "B aktif"
-                      : "Waypoint aktif"}
+                  {activeCoordinateImportTarget === "b"
+                    ? "Lokasi aktif"
+                    : "Waypoint aktif"}
                 </span>
               </div>
 
@@ -1973,11 +1969,9 @@ export default function FoRoutePlanner({
                       <p className="text-[10px] leading-relaxed text-white/60">
                         Jika diterapkan sekarang, data akan masuk ke{" "}
                         <span className="font-bold text-white">
-                          {activeCoordinateImportTarget === "a"
-                            ? "A / Provider"
-                            : activeCoordinateImportTarget === "b"
-                              ? "B / Pelanggan"
-                              : "Waypoint berikutnya"}
+                          {activeCoordinateImportTarget === "b"
+                            ? "Lokasi"
+                            : "Waypoint berikutnya"}
                         </span>.
                       </p>
                     </div>
@@ -1989,30 +1983,23 @@ export default function FoRoutePlanner({
                 </div>
               </div>
 
-              <div className="mt-2.5 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+              <div className="mt-2.5 grid grid-cols-3 gap-1.5">
                 <button
-                  className="rounded-lg border border-sky-300/20 bg-sky-500/20 px-2 py-1.5 text-[8px] font-black uppercase tracking-widest text-sky-100 transition hover:bg-sky-500/30"
-                  onClick={() => handlePasteImportedCoordinate("a")}
+                  className="col-span-3 rounded-lg border border-emerald-400/30 bg-emerald-500/20 px-2 py-2 text-[9px] font-black uppercase tracking-widest text-emerald-100 transition hover:bg-emerald-500/30"
+                  onClick={() => handlePasteImportedCoordinate()}
                   type="button"
                 >
-                  Tempel ke A
+                  NEXT — Tempel Otomatis
                 </button>
                 <button
                   className="rounded-lg border border-sky-300/20 bg-sky-500/20 px-2 py-1.5 text-[8px] font-black uppercase tracking-widest text-sky-100 transition hover:bg-sky-500/30"
                   onClick={() => handlePasteImportedCoordinate("b")}
                   type="button"
                 >
-                  Tempel ke B
+                  Tempel ke Lokasi
                 </button>
                 <button
-                  className="rounded-lg border border-sky-300/20 bg-sky-500/20 px-2 py-1.5 text-[8px] font-black uppercase tracking-widest text-sky-100 transition hover:bg-sky-500/30"
-                  onClick={() => handlePasteImportedCoordinate()}
-                  type="button"
-                >
-                  Tempel Otomatis
-                </button>
-                <button
-                  className="rounded-lg border border-sky-300/20 bg-sky-500/20 px-2 py-1.5 text-[8px] font-black uppercase tracking-widest text-sky-100 transition hover:bg-sky-500/30"
+                  className="col-span-2 rounded-lg border border-sky-300/20 bg-sky-500/20 px-2 py-1.5 text-[8px] font-black uppercase tracking-widest text-sky-100 transition hover:bg-sky-500/30"
                   onClick={handleApplyImportedCoordinate}
                   type="button"
                 >
@@ -2027,18 +2014,11 @@ export default function FoRoutePlanner({
 
             <div className="mt-2 grid grid-cols-2 gap-1.5">
               <button
-                className={`px-2.5 py-1.5 rounded-lg border text-[9px] font-bold uppercase transition ${placementMode === "a" ? "bg-primary border-primary text-white" : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10"}`}
-                onClick={() => setPlacementMode("a")}
-                type="button"
-              >
-                Set A
-              </button>
-              <button
                 className={`px-2.5 py-1.5 rounded-lg border text-[9px] font-bold uppercase transition ${placementMode === "b" ? "bg-primary border-primary text-white" : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10"}`}
                 onClick={() => setPlacementMode("b")}
                 type="button"
               >
-                Set B
+                Klik: Lokasi
               </button>
               <button
                 className={`px-2.5 py-1.5 rounded-lg border text-[9px] font-bold uppercase transition ${customRouteMode ? "bg-amber-500 border-amber-500 text-white" : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10"}`}
@@ -2053,14 +2033,6 @@ export default function FoRoutePlanner({
                 type="button"
               >
                 Set W
-              </button>
-              <button
-                className="col-span-2 flex items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-[9px] font-bold uppercase text-white/80 transition hover:bg-white/10 backdrop-blur-md"
-                onClick={handleRecenterToKima}
-                type="button"
-              >
-                <span className="material-symbols-outlined text-[12px]">my_location</span>
-                Pusatkan KIMA
               </button>
             </div>
 
@@ -2135,7 +2107,7 @@ export default function FoRoutePlanner({
             </div>
 
             <div className="flex-1 overflow-auto space-y-2 pr-1 custom-scrollbar">
-              {/* Point A */}
+              {/* Point A — read-only, diatur dari ISP */}
               <div className="flex flex-col gap-2 rounded-xl bg-blue-500/10 border border-blue-500/20 p-3 backdrop-blur-md">
                 <div className="flex items-center gap-3">
                   <div className="h-7 w-7 rounded-lg bg-blue-500 flex items-center justify-center font-black text-white text-[11px] shadow-lg shadow-blue-500/20">A</div>
@@ -2143,25 +2115,6 @@ export default function FoRoutePlanner({
                     <p className="text-[9px] font-black uppercase text-blue-400">Titik A (Provider)</p>
                     <p className="text-[11px] font-mono text-white/90 truncate">{pointA ? `${pointA.lat.toFixed(5)}, ${pointA.lng.toFixed(5)}` : "Belum ditentukan"}</p>
                   </div>
-                </div>
-
-                <div className="flex gap-2 items-center">
-                  <input
-                    className="flex-1 bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-[9px] font-mono text-white outline-none focus:border-blue-500/50 backdrop-blur-md"
-                    onBlur={() => commitManualCoordinate("a")}
-                    onChange={(e) => handleManualCoordinateChange("a", null, "lat", e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && commitManualCoordinate("a")}
-                    placeholder="Latitude"
-                    value={manualInput["a-static-lat"] ?? (pointA?.lat ?? "")}
-                  />
-                  <input
-                    className="flex-1 bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-[9px] font-mono text-white outline-none focus:border-blue-500/50 backdrop-blur-md"
-                    onBlur={() => commitManualCoordinate("a")}
-                    onChange={(e) => handleManualCoordinateChange("a", null, "lng", e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && commitManualCoordinate("a")}
-                    placeholder="Longitude"
-                    value={manualInput["a-static-lng"] ?? (pointA?.lng ?? "")}
-                  />
                 </div>
               </div>
 
@@ -2266,7 +2219,7 @@ export default function FoRoutePlanner({
                     <div className="flex items-center gap-3">
                       <div className="h-7 w-7 rounded-lg bg-pink-500 flex items-center justify-center font-black text-white text-[11px] shadow-lg shadow-pink-500/20">B</div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[9px] font-black uppercase text-pink-400">Titik B (Pelanggan)</p>
+                        <p className="text-[9px] font-black uppercase text-pink-400">Titik Lokasi</p>
                         <p className="text-[11px] font-mono text-white/90 truncate">{pointB ? `${pointB.lat.toFixed(5)}, ${pointB.lng.toFixed(5)}` : "Belum ditentukan"}</p>
                       </div>
                     </div>
@@ -2298,7 +2251,7 @@ export default function FoRoutePlanner({
                   <div className="flex items-center gap-3">
                     <div className="h-7 w-7 rounded-lg bg-pink-500 flex items-center justify-center font-black text-white text-[11px] shadow-lg shadow-pink-500/20">B</div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[9px] font-black uppercase text-pink-400">Titik B (Pelanggan)</p>
+                      <p className="text-[9px] font-black uppercase text-pink-400">Titik Lokasi</p>
                       <p className="text-[11px] font-mono text-white/90 truncate">Belum ditentukan</p>
                     </div>
                   </div>

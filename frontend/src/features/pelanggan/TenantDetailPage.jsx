@@ -2143,7 +2143,7 @@ function TenantDetailPage({
         contract_number: contract?.contractNumber ?? contract?.contract_number ?? null,
         jenis_dokumen: documentDraft.jenisDokumen,
         nomor_dokumen: documentDraft.nomorDokumen.trim() || null,
-        tanggal_dokumen: documentDraft.tanggalDokumen || null,
+        tanggal_dokumen: documentDraft.tanggalDokumen || todayIso,
         file_url: fileUrl,
       });
       setDocumentFeedback("Dokumen berhasil diunggah.");
