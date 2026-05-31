@@ -1,16 +1,42 @@
-# React + Vite
+# Frontend - Sistem FO KIMA
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Aplikasi web (React + Vite) untuk arsip dokumen dan monitoring tenant KIMA. Frontend mengakses Supabase secara langsung (Auth, Database/REST/RPC, Storage); tidak ada backend terpisah.
 
-Currently, two official plugins are available:
+## Menjalankan
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+```bash
+npm install
+npm run dev      # http://localhost:5173
+```
 
-## React Compiler
+Konfigurasi environment ada di `.env.development` / `.env.production`. Salin dari [`.env.example`](.env.example) dan isi nilainya (jangan commit file `.env` berisi rahasia).
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Perintah
 
-## Expanding the ESLint configuration
+| Perintah | Fungsi |
+| --- | --- |
+| `npm run dev` | Vite dev server |
+| `npm run build` | Build production ke `dist/` |
+| `npm run preview` | Preview hasil build |
+| `npm run lint` | ESLint |
+| `npm run test` | Unit test (Vitest) sekali jalan |
+| `npm run test:watch` | Vitest mode watch |
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Struktur
+
+```text
+src/
+├── app/          # utilities & shared app logic (termasuk session)
+├── components/   # komponen UI bersama (layout, shared, ErrorBoundary)
+├── features/     # halaman per fitur: dashboard, monitoring, pelanggan, login, dll.
+├── lib/          # akses Supabase & API mapper (api.js, supabase.js, files.js)
+└── roles/        # konfigurasi route/menu per role (admin, teknisi, isp)
+```
+
+## Dokumentasi
+
+Lihat dokumentasi project di root repo:
+
+- [`../DEV_GUIDE.md`](../DEV_GUIDE.md) - panduan development
+- [`../docs/INDEX.md`](../docs/INDEX.md) - peta dokumentasi lengkap
+- [`../prd/PRD-sistem-arsip-kima.md`](../prd/PRD-sistem-arsip-kima.md) - Product Requirements Document
