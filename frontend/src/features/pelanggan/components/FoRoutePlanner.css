@@ -149,32 +149,41 @@
     z-index: 800;
 }
 
+/* Hide default top-left zoom control completely */
+.leaflet-top.leaflet-left .leaflet-control-zoom {
+    display: none !important;
+}
+
 .leaflet-control-zoom {
-    margin: 0 !important;
-    margin-bottom: 256px !important;
+    margin: 16px !important;
+    margin-top: 40px !important;
     border: 1px solid rgba(255,255,255,0.1) !important;
-    border-radius: 16px !important;
+    border-radius: 12px !important;
     background-color: rgba(15, 23, 42, 0.8) !important;
     backdrop-filter: blur(12px) !important;
-    padding: 8px !important;
+    padding: 6px !important;
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
     width: max-content !important;
-    gap: 6px !important;
+    gap: 4px !important;
     box-shadow: none !important;
 }
 
+.isp-mini-map .leaflet-control-zoom {
+    margin-right: 8px !important;
+}
+
 .leaflet-control-zoom a {
-    width: 40px !important;
-    height: 40px !important;
-    line-height: 40px !important;
-    border-radius: 12px !important;
+    width: 28px !important;
+    height: 28px !important;
+    line-height: 28px !important;
+    border-radius: 8px !important;
     background-color: rgba(255,255,255,0.05) !important;
     color: rgba(255,255,255,0.4) !important;
     border: 1px solid rgba(255,255,255,0.05) !important;
     transition: all 0.2s !important;
-    font-size: 20px !important;
+    font-size: 16px !important;
     font-weight: 400 !important;
     display: flex !important;
     align-items: center !important;

@@ -3339,39 +3339,6 @@ function TenantDetailPage({
         full={true}
       >
         <div className="relative h-dvh w-full overflow-hidden bg-slate-950 font-manrope antialiased">
-          {/* Combined Top Overlay UI - Optimized for Mobile */}
-          <div className="absolute inset-x-0 top-0 z-[1000] flex items-start justify-center pointer-events-none pt-4 md:pt-6 pb-4 md:pb-6 pl-4 sm:pl-[332px] lg:pl-[362px] xl:pl-[392px] pr-[120px] sm:pr-[160px]">
-            {/* Back Button - Positioned to the right */}
-            <div className="absolute right-4 top-4 md:right-6 md:top-6">
-              <button
-                className="pointer-events-auto inline-flex h-10 items-center gap-2 rounded-2xl glass-card backdrop-blur-xl border border-white/10 px-4 font-black text-white shadow-glass-depth transition-all hover:border-gold-accent hover:text-gold-accent hover:scale-105 active:scale-95 md:h-12 md:px-5"
-                onClick={onBack}
-                type="button"
-              >
-                <span className="hidden sm:block text-[10px] uppercase tracking-widest md:text-sm">Kembali</span>
-                <span className="material-symbols-outlined text-lg md:text-xl">
-                  arrow_back
-                </span>
-              </button>
-            </div>
-
-            {/* Header Info Panel - Centered and more compact */}
-            <header className="pointer-events-auto flex flex-col items-center gap-0.5 rounded-2xl bg-slate-900/80 px-4 py-2 shadow-2xl backdrop-blur-md border border-white/10 md:p-4 min-w-0 max-w-[calc(100vw-180px)] sm:max-w-[280px] md:max-w-[260px] lg:max-w-[420px] xl:max-w-[560px] 2xl:max-w-none">
-              <h1 className="text-[10px] md:text-sm font-black text-white uppercase tracking-[0.1em] md:tracking-[0.2em] truncate max-w-full text-center">
-                {tenantName}
-              </h1>
-              <div className="flex items-center gap-1.5 md:gap-3 text-[8px] md:text-[10px] font-bold text-white/60 max-w-full">
-                <span className="rounded bg-primary/20 px-1.5 py-0.5 text-primary border border-primary/30 uppercase tracking-tighter shrink-0">
-                  {(detail?.paket || customer?.paket || "CORE")}
-                </span>
-                <span className="hidden md:block w-1 h-1 rounded-full bg-white/20 backdrop-blur-md shrink-0"></span>
-                <span className="uppercase tracking-widest hidden md:block truncate">
-                  ISP: {isps.length > 0 ? isps.map((item) => item.name).join(", ") : "-"}
-                </span>
-              </div>
-            </header>
-          </div>
-
           {/* Map Container */}
           <div className="h-full w-full">
             <FoRoutePlanner
@@ -3387,6 +3354,34 @@ function TenantDetailPage({
               mode="full"
               providerIconUrl={isps[0]?.logoUrl || ""}
               customerIconUrl={detail?.logo_url || ""}
+              customHeaderInfo={
+                <header className="pointer-events-auto hidden sm:flex flex-col items-end gap-0.5 rounded-xl bg-slate-900/80 px-4 py-1.5 shadow-2xl backdrop-blur-md border border-white/10 max-w-[240px] md:max-w-[300px] text-right shrink-0">
+                  <h1 className="text-[10px] md:text-xs font-black text-white uppercase tracking-[0.1em] truncate w-full">
+                    {tenantName}
+                  </h1>
+                  <div className="flex items-center justify-end gap-1.5 md:gap-2 text-[8px] md:text-[9px] font-bold text-white/60 w-full">
+                    <span className="rounded bg-primary/20 px-1 py-0.5 text-primary border border-primary/30 uppercase tracking-tighter shrink-0">
+                      {(detail?.paket || customer?.paket || "CORE")}
+                    </span>
+                    <span className="w-1 h-1 rounded-full bg-white/20 backdrop-blur-md shrink-0"></span>
+                    <span className="uppercase tracking-widest truncate">
+                      {isps.length > 0 ? isps.map((item) => item.name).join(", ") : "-"}
+                    </span>
+                  </div>
+                </header>
+              }
+              customExitButton={
+                <button
+                  className="pointer-events-auto flex w-9 h-9 md:w-10 md:h-10 shrink-0 items-center justify-center rounded-xl bg-slate-900/80 backdrop-blur-xl border border-rose-500/20 text-rose-400 hover:bg-rose-500 hover:text-white hover:border-rose-500 shadow-glass-depth transition-all"
+                  onClick={onBack}
+                  title="Tutup Planner"
+                  type="button"
+                >
+                  <span className="material-symbols-outlined text-base md:text-lg">
+                    meeting_room
+                  </span>
+                </button>
+              }
             />
           </div>
         </div>
@@ -3418,17 +3413,7 @@ function TenantDetailPage({
 
                 {!isTeknisi && (
                     <div className="flex items-center gap-2">
-                        {!isPlannerJalurView && onOpenRoutePlanner && (
-                            <button
-                                className="h-7 px-3 flex items-center gap-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white transition-all shadow-sm text-[8px] font-black uppercase tracking-widest backdrop-blur-md"
-                                onClick={() => onOpenRoutePlanner?.(detail ?? customer)}
-                                title="Buka planner jalur FO"
-                                type="button"
-                            >
-                                <span className="material-symbols-outlined text-[10px]">route</span>
-                                Atur Jalur FO
-                            </button>
-                        )}
+
                         <button
                             className="h-7 px-3 flex items-center gap-1.5 rounded-lg bg-white/5 border border-white/10 text-white/60 hover:bg-white/10 hover:text-white transition-all shadow-sm group text-[8px] font-black uppercase tracking-widest backdrop-blur-md"
                             onClick={() => void Promise.all([loadDetail(), onRefreshAll?.()])}
@@ -3782,10 +3767,10 @@ function TenantDetailPage({
                     {[
                         { id: "overview", label: "Ringkasan", icon: "dashboard" },
                         { id: "contracts", label: "Kontrak", icon: "description" },
+                        { id: "invoices", label: "Invoice", icon: "receipt_long" },
+                        { id: "jalur", label: "Jalur", icon: "map" },
                         { id: "documents", label: "Dokumen", icon: "inventory_2" },
-                        { id: "invoices", label: "Invoice & Penagihan", icon: "receipt_long" },
                         { id: "timeline", label: "Timeline", icon: "history" },
-                        { id: "jalur", label: "Peta Jalur FO", icon: "map" },
                     ]
                     // If teknisi, hide some tabs
                     .filter(tab => !(isTeknisi && (tab.id === "documents" || tab.id === "invoices" || tab.id === "timeline")))
@@ -4087,411 +4072,368 @@ function TenantDetailPage({
                     customerIconUrl={detail?.logo_url || ""}
                 />
 
-                <section className="glass-card backdrop-blur-xl rounded-premium p-6 border-white/10 shadow-glass-depth">
-                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                        <div>
-                            <p className="text-[9px] font-black uppercase tracking-[0.3em] text-gold-accent/60">Titik Masuk ISP</p>
-                            <h2 className="mt-1 text-lg font-black uppercase tracking-widest text-white">Pilihan Redundansi Jalur</h2>
-                            <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-white/30">Pilih dari titik ISP yang sudah diatur di halaman ISP. Koordinat ISP tidak diedit dari lokasi.</p>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                            <button
-                                className="h-10 rounded-xl border border-white/10 bg-white/5 px-4 text-[9px] font-black uppercase tracking-widest text-white/50 transition-all hover:bg-white/10 hover:text-white disabled:opacity-40"
-                                disabled={!primarySelectedEntryPoint || routeBusy}
-                                onClick={handleApplyPrimaryEntryPointToDraft}
-                                type="button"
-                            >
-                                Terapkan Utama ke Draft
-                            </button>
-                            <button
-                                className="h-10 rounded-xl border border-gold-accent/20 bg-gold-accent/10 px-4 text-[9px] font-black uppercase tracking-widest text-gold-accent transition-all hover:bg-gold-accent hover:text-black disabled:cursor-not-allowed disabled:opacity-40"
-                                disabled={isSavingEntryPointSelection || !hasEntryPointSelectionChanges}
-                                onClick={() => void handleSaveEntryPointSelection()}
-                                type="button"
-                            >
-                                {isSavingEntryPointSelection ? "Menyimpan..." : hasEntryPointSelectionChanges ? "Simpan Pilihan" : "Tersimpan"}
-                            </button>
-                        </div>
-                    </div>
-                    {availableIspEntryPoints.length === 0 ? (
-                        <div className="mt-4 rounded-xl border border-dashed border-white/10 bg-black/20 p-5 text-center text-[10px] font-bold uppercase tracking-widest text-white/30">
-                            ISP terkait belum memiliki titik masuk FO. Atur titik masuknya terlebih dahulu dari halaman ISP.
-                        </div>
-                    ) : (
-                        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-                            {availableIspEntryPoints.map((point) => {
-                                const checked = selectedEntryPointIds.includes(Number(point.id));
-                                return (
-                                    <button
-                                        key={point.id}
-                                        className={`rounded-2xl border p-4 text-left transition-all ${checked ? "border-gold-accent/40 bg-gold-accent/10 shadow-gold-glow" : "border-white/10 bg-black/20 hover:border-white/20"}`}
-                                        onClick={() => toggleEntryPointSelection(point.id)}
-                                        type="button"
-                                    >
-                                        <div className="flex items-start justify-between gap-3">
-                                            <div>
-                                                <p className="text-sm font-black text-white">{point.label}</p>
-                                                <p className="mt-1 text-[9px] font-bold uppercase tracking-widest text-white/35">{point.ispName}</p>
-                                            </div>
-                                            <span className={`material-symbols-outlined text-lg ${checked ? "text-gold-accent" : "text-white/20"}`}>{checked ? "check_circle" : "radio_button_unchecked"}</span>
-                                        </div>
-                                        <p className="mt-3 text-[9px] font-mono font-bold text-white/40">{point.latitude}, {point.longitude}</p>
-                                        {checked && (
-                                            <p className="mt-2 text-[8px] font-black uppercase tracking-widest text-gold-accent">
-                                                Prioritas {selectedEntryPointIds.indexOf(Number(point.id)) + 1} • {selectedEntryPointIds.indexOf(Number(point.id)) === 0 ? "Utama" : "Backup"}
-                                            </p>
-                                        )}
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    )}
-                </section>
-
-                {/* Header & Mode Selector */}
-                <section className="glass-card backdrop-blur-xl rounded-premium p-8 border-white/10 shadow-glass-depth">
-                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
-                        <div className="space-y-2">
-                            <h2 className="text-xl font-black text-white tracking-tight uppercase">Manajemen Jalur Lintasan</h2>
-                            <p className="text-[10px] font-bold text-white/20 tracking-[0.2em] uppercase">Konfigurasi infrastruktur fiber optik tenant</p>
-                        </div>
-                                <div className="flex flex-wrap items-center gap-3">
-                                    {!isRouteDrafting ? (
-                                        <>
-                                            {!isPlannerJalurView && (
-                                                <button
-                                                    className="h-12 px-6 flex items-center gap-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white transition-all shadow-sm text-[10px] font-black uppercase tracking-widest group backdrop-blur-md"
-                                                    onClick={() => onOpenRoutePlanner?.(detail ?? customer)}
-                                                    type="button"
-                                                >
-                                                    <span className="material-symbols-outlined text-lg group-hover:rotate-12 transition-transform">route</span>
-                                                    Buka Planner Jalur
-                                                </button>
-                                            )}
-
-                                            <button
-                                                className="h-12 px-6 flex items-center gap-3 rounded-xl bg-gold-accent/10 border border-gold-accent/20 text-gold-accent hover:bg-gold-accent hover:text-[#0f141e] transition-all shadow-sm text-[10px] font-black uppercase tracking-widest backdrop-blur-md"
-                                                onClick={startDraftingSession}
-                                                type="button"
-                                            >
-                                                <span className="material-symbols-outlined text-lg">alt_route</span>
-                                                Atur Struktur Jalur
-                                            </button>
-                                        </>
-                                    ) : (
-                                        <div className="flex items-center gap-4 animate-in fade-in slide-in-from-right-4">
-                                            <div className="flex flex-col items-end mr-4">
-                                                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-gold-accent animate-pulse">Sesi Penyuntingan Draft</span>
-                                                <span className="text-[8px] font-bold text-white/20 uppercase">Jalur lama tetap aktif hingga disimpan</span>
-                                            </div>
-                                            <button
-                                                className="h-12 px-6 rounded-xl border border-white/10 bg-white/5 text-white/40 text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all backdrop-blur-md"
-                                                onClick={cancelDraftingSession}
-                                                type="button"
-                                            >
-                                                Batalkan
-                                            </button>
-                                            <button
-                                                className="h-12 px-8 rounded-xl bg-emerald-500 text-[#0f141e] text-[10px] font-black uppercase tracking-widest shadow-emerald-glow hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
-                                                onClick={() => void handleCommitDraft()}
-                                                disabled={routeBusy}
-                                                type="button"
-                                            >
-                                                <span className="material-symbols-outlined text-lg mr-2">verified</span>
-                                                {routeBusy ? "Menyimpan..." : "Aktifkan Jalur Baru"}
-                                            </button>
-                                        </div>
-                                    )}
+                {/* Unified Route Management Card */}
+                <section className="glass-card backdrop-blur-xl rounded-xl border border-white/10 shadow-glass-depth overflow-hidden relative mt-6 bg-white/[0.02]">
+                    <div className="absolute -right-24 -top-24 h-64 w-64 rounded-full bg-blue-500/5 blur-3xl pointer-events-none" />
+                    
+                    {/* Header Section */}
+                    <div className="px-5 py-4 border-b border-white/5 bg-white/[0.02]">
+                        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                            <div className="flex items-center gap-3">
+                                <span className="material-symbols-outlined text-lg text-blue-400 drop-shadow-md">conversion_path</span>
+                                <div className="space-y-0.5">
+                                    <h3 className="text-[13px] font-black uppercase tracking-[0.1em] text-white drop-shadow-md">Manajemen Jalur Lintasan</h3>
+                                    <p className="text-[9px] font-bold text-white/40 tracking-wide">Konfigurasi infrastruktur fiber optik</p>
                                 </div>
                             </div>
-
-              {isRouteDrafting && (
-                <div className="mt-4 rounded-xl border-2 border-amber-400 bg-amber-50/80 p-5 animate-in zoom-in-95 duration-300 shadow-inner">
-                  <div className="flex items-center gap-3 text-amber-900 border-b border-amber-200 pb-3 mb-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-200 text-amber-700">
-                      <span className="material-symbols-outlined">
-                        edit_square
-                      </span>
-                    </div>
-                    <div>
-                      <p className="text-base font-black">
-                        Mode Penyuntingan Struktur Jalur
-                      </p>
-                      <p className="text-xs text-amber-700 font-medium italic">
-                        Menyimpan akan membuat riwayat (versi) baru dan secara
-                        otomatis mengaktifkan struktur ini sebagai jalur utama
-                        tenant.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="ml-0 max-w-2xl">
-                    <label className="mb-1.5 block text-[11px] font-black uppercase tracking-widest text-amber-800">
-                      Alasan Perubahan / Catatan Riwayat (Wajib)
-                    </label>
-                    <div className="flex gap-2">
-                      <span className="material-symbols-outlined text-amber-400 mt-1.5">
-                        draw
-                      </span>
-                      <input
-                        className="w-full rounded-xl border-2 border-amber-200 bg-white px-4 py-3 text-sm font-semibold text-amber-900 focus:border-amber-500 focus:outline-none shadow-sm transition-all placeholder:text-amber-300"
-                        onChange={(event) =>
-                          setRouteChangeNote(event.target.value)
-                        }
-                        placeholder="Contoh: Penyesuaian jalur akibat pembangunan jalan baru atau upgrade kabel..."
-                        type="text"
-                        value={routeChangeNote}
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-            </section>
-
-            <div className="flex flex-col gap-8">
-              <div className="space-y-8">
-                {(routeError || routeFeedback) && (
-                  <div
-                    className={`rounded-lg border px-4 py-3 text-sm font-semibold animate-in slide-in-from-top-2 duration-300 shadow-sm ${routeError ? "border-rose-200 bg-rose-50 text-rose-700" : "border-emerald-200 bg-emerald-50 text-emerald-700"}`}
-                  >
-                    {routeError || routeFeedback}
-                  </div>
-                )}
-
-
-                                <div className="mt-8 space-y-8">
-                                    <div className="glass-card backdrop-blur-xl rounded-[2rem] border border-white/10 overflow-hidden shadow-glass-depth">
-                                        <div className="px-8 py-6 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
-                                            <div className="flex items-center gap-3">
-                                                <span className="material-symbols-outlined text-gold-accent">list_alt</span>
-                                                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-white">Lineage Titik Jalur</h3>
-                                            </div>
-                                            <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[9px] font-black text-white/40 uppercase tracking-widest backdrop-blur-md">
-                                                { (isRouteDrafting ? draftRoutePoints : routePoints).length } Titik
-                                            </span>
-                                        </div>
-                                        <div className="overflow-x-auto">
-                                            <table className="w-full text-left">
-                                                <thead>
-                                                    <tr className="bg-white/[0.01] border-b border-white/5">
-                                                        <th className="px-8 py-4 text-[9px] font-black uppercase tracking-[0.2em] text-white/30">#</th>
-                                                        <th className="px-8 py-4 text-[9px] font-black uppercase tracking-[0.2em] text-white/30">Identitas Titik</th>
-                                                        <th className="px-8 py-4 text-[9px] font-black uppercase tracking-[0.2em] text-white/30">Klasifikasi</th>
-                                                        <th className="px-8 py-4 text-[9px] font-black uppercase tracking-[0.2em] text-white/30">Catatan / Metadata</th>
-                                                        <th className="px-8 py-4 text-[9px] font-black uppercase tracking-[0.2em] text-white/30 text-right">Aksi</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-white/5">
-                                                    {(isRouteDrafting ? draftRoutePoints : routePoints).map((point) => (
-                                                        <tr key={point.id} className="hover:bg-white/[0.02] transition-colors group/row">
-                                                            <td className="px-8 py-5 text-xs font-black text-white/20 group-hover/row:text-gold-accent transition-colors">{point.orderNumber}</td>
-                                                            <td className="px-8 py-5">
-                                                                <p className="text-sm font-black text-white uppercase tracking-tight">{point.pathName}</p>
-                                                                <p className="text-[9px] font-bold text-white/20 uppercase tracking-widest mt-1">ID: {point.id}</p>
-                                                            </td>
-                                                            <td className="px-8 py-5">
-                                                                <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border text-[9px] font-black uppercase tracking-widest ${
-                                                                    point.pointType === "awal" ? "bg-blue-500/10 border-blue-500/20 text-blue-400" :
-                                                                    point.pointType === "tujuan" ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" :
-                                                                    "bg-white/5 border-white/10 text-white/40"
-                                                                }`}>
-                                                                    <span className="material-symbols-outlined text-sm">{routePointTypeMeta[point.pointType]?.icon}</span>
-                                                                    {routePointTypeLabelMap[point.pointType]}
-                                                                </div>
-                                                            </td>
-                                                            <td className="px-8 py-5">
-                                                                <p className="text-xs font-bold text-white/30 italic group-hover/row:text-white/60 transition-colors">
-                                                                    {splitRoutePointNote(point.note).displayNote || "—"}
-                                                                </p>
-                                                            </td>
-                                                            <td className="px-8 py-5 text-right">
-                                                                <div className="flex items-center justify-end gap-2">
-                                                                    <button
-                                                                        className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white/20 hover:text-white hover:bg-white/10 transition-all disabled:opacity-20 backdrop-blur-md"
-                                                                        disabled={routeBusy || point.pointType !== "transit"}
-                                                                        onClick={() => handleMoveRoutePoint(point.id, "up")}
-                                                                    >
-                                                                        <span className="material-symbols-outlined text-base">expand_less</span>
-                                                                    </button>
-                                                                    <button
-                                                                        className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white/20 hover:text-white hover:bg-white/10 transition-all disabled:opacity-20 backdrop-blur-md"
-                                                                        disabled={routeBusy || point.pointType !== "transit"}
-                                                                        onClick={() => handleMoveRoutePoint(point.id, "down")}
-                                                                    >
-                                                                        <span className="material-symbols-outlined text-base">expand_more</span>
-                                                                    </button>
-                                                                    <button
-                                                                        className="w-8 h-8 rounded-lg bg-[#ff2400]/10 border border-[#ff2400]/20 flex items-center justify-center text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all disabled:opacity-20"
-                                                                        disabled={routeBusy || point.pointType !== "transit"}
-                                                                        onClick={() => void handleDeleteRoutePoint(point.id)}
-                                                                    >
-                                                                        <span className="material-symbols-outlined text-base">delete</span>
-                                                                    </button>
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                </div>
-
-                        {/* Daftar Ruas Jalan */}
-                        {displayNamedRoads.length > 0 && (
-                            <section className="glass-card backdrop-blur-xl rounded-[2rem] border border-white/10 overflow-hidden shadow-glass-depth mt-8">
-                                <div className="px-8 py-6 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <span className="material-symbols-outlined text-blue-400">alt_route</span>
-                                        <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-white">Topologi Ruas Jalan {isRouteDrafting ? "(DRAFT)" : "Aktif"}</h3>
-                                    </div>
-                                    <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[9px] font-black text-white/40 uppercase tracking-widest backdrop-blur-md">
-                                        {displayNamedRoads.length} Ruas Terdeteksi
+                            <div className="flex flex-wrap items-center gap-2.5">
+                                <div className="flex items-center gap-1.5 mr-2">
+                                    <span className="text-[8px] font-black text-white/30 bg-white/5 px-2 py-0.5 rounded uppercase tracking-widest border border-white/5">
+                                        {(isRouteDrafting ? draftRoutePoints : routePoints).length} Titik
+                                    </span>
+                                    <span className="text-[8px] font-black text-blue-400/50 bg-blue-500/10 px-2 py-0.5 rounded uppercase tracking-widest border border-blue-500/10">
+                                        {displayNamedRoads.length} Ruas Aktif
                                     </span>
                                 </div>
-                                <div className="overflow-x-auto">
+                                {!isRouteDrafting ? (
+                                    <>
+                                        {!isPlannerJalurView && (
+                                            <button
+                                                className="h-8 px-4 flex items-center gap-2 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white transition-all shadow-sm text-[9px] font-black uppercase tracking-widest group"
+                                                onClick={() => onOpenRoutePlanner?.(detail ?? customer)}
+                                                type="button"
+                                            >
+                                                <span className="material-symbols-outlined text-[15px] group-hover:rotate-12 transition-transform">route</span>
+                                                Atur Jalur
+                                            </button>
+                                        )}
+                                    </>
+                                ) : (
+                                    <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-4">
+                                        <div className="flex flex-col items-end mr-1">
+                                            <span className="text-[8px] font-black uppercase tracking-[0.2em] text-gold-accent animate-pulse">Mode Draft Aktif</span>
+                                        </div>
+                                        <button
+                                            className="h-7 px-3 rounded-lg border border-white/10 bg-white/5 text-white/40 text-[8px] font-black uppercase tracking-widest hover:bg-white/10 transition-all"
+                                            onClick={cancelDraftingSession}
+                                            type="button"
+                                        >
+                                            Batal
+                                        </button>
+                                        <button
+                                            className="h-7 px-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[8px] font-black uppercase tracking-widest hover:bg-emerald-500 hover:text-[#0f141e] transition-all disabled:opacity-50 flex items-center gap-1.5"
+                                            onClick={() => void handleCommitDraft()}
+                                            disabled={routeBusy}
+                                            type="button"
+                                        >
+                                            <span className="material-symbols-outlined text-[14px]">verified</span>
+                                            {routeBusy ? "Menyimpan..." : "Aktifkan"}
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {isRouteDrafting && (
+                            <div className="mt-3 rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 animate-in zoom-in-95 duration-300 shadow-inner">
+                                <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+                                    <div className="flex-1 w-full space-y-1">
+                                        <label className="block text-[8px] font-black uppercase tracking-widest text-amber-400/80">Alasan Perubahan / Catatan (Wajib)</label>
+                                        <div className="relative group">
+                                            <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-amber-500/50 text-[14px]">draw</span>
+                                            <input
+                                                className="w-full rounded-lg border border-amber-500/20 bg-black/40 pl-8 pr-3 py-1.5 text-[9px] font-semibold text-white focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 shadow-inner transition-all placeholder:text-white/20"
+                                                onChange={(event) => setRouteChangeNote(event.target.value)}
+                                                placeholder="Contoh: Penyesuaian jalur akibat pembangunan jalan baru atau upgrade kabel..."
+                                                type="text"
+                                                value={routeChangeNote}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                        {(routeError || routeFeedback) && (
+                            <div className={`mt-3 rounded-lg border px-3 py-2 text-[9px] font-black uppercase tracking-widest animate-in slide-in-from-top-2 shadow-sm flex items-center gap-2 ${routeError ? "border-rose-500/20 bg-rose-500/10 text-rose-400" : "border-emerald-500/20 bg-emerald-500/10 text-emerald-400"}`}>
+                                <span className="material-symbols-outlined text-[14px]">{routeError ? 'error' : 'check_circle'}</span>
+                                {routeError || routeFeedback}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Content Section */}
+                    <div className="relative bg-black/40">
+                        <div className="absolute inset-0 bg-gradient-to-b from-white/[0.02] to-transparent pointer-events-none" />
+                        <div className="overflow-x-auto relative z-10 pb-2">
+                            {(() => {
+                                const activePoints = isRouteDrafting ? draftRoutePoints : routePoints;
+                                const startPoints = activePoints.filter(p => p.pointType === "awal");
+                                const transitPoints = activePoints.filter(p => p.pointType === "transit");
+                                const endPoints = activePoints.filter(p => p.pointType === "tujuan");
+                                
+                                const combinedItems = [
+                                    ...startPoints.map(p => ({ ...p, _rowType: 'point' })),
+                                    ...transitPoints.map(p => ({ ...p, _rowType: 'point' })),
+                                    ...displayNamedRoads.map((r, i) => ({ ...r, _rowType: 'road', _index: i })),
+                                    ...endPoints.map(p => ({ ...p, _rowType: 'point' }))
+                                ];
+
+                                if (combinedItems.length === 0) {
+                                    return (
+                                        <div className="flex flex-col items-center justify-center min-h-[160px] text-center px-4">
+                                            <span className="material-symbols-outlined text-3xl text-white/10 mb-2">linear_scale</span>
+                                            <p className="text-[9px] font-black text-white/20 uppercase tracking-widest">Belum ada topologi jalur</p>
+                                        </div>
+                                    );
+                                }
+
+                                return (
                                     <table className="w-full text-left">
-                                        <thead>
-                                            <tr className="bg-white/[0.01] border-b border-white/5">
-                                                <th className="px-8 py-4 text-[9px] font-black uppercase tracking-[0.2em] text-white/30">#</th>
-                                                <th className="px-8 py-4 text-[9px] font-black uppercase tracking-[0.2em] text-white/30">Nama Ruas Jalan</th>
-                                                <th className="px-8 py-4 text-[9px] font-black uppercase tracking-[0.2em] text-white/30">Panduan Lintasan</th>
-                                                <th className="px-8 py-4 text-[9px] font-black uppercase tracking-[0.2em] text-white/30 text-right">Jarak</th>
+                                        <thead className="bg-white/[0.03] border-b border-white/5">
+                                            <tr>
+                                                <th className="pl-5 py-3 text-[11px] font-black uppercase tracking-[0.1em] text-white/50 w-40">Status</th>
+                                                <th className="px-4 py-3 text-[11px] font-black uppercase tracking-[0.1em] text-white/50">Nama Lokasi</th>
+                                                <th className="px-4 py-3 text-[11px] font-black uppercase tracking-[0.1em] text-white/50">Panduan</th>
+                                                <th className="px-4 py-3 text-[11px] font-black uppercase tracking-[0.1em] text-white/50 w-28">Jarak</th>
+                                                <th className="pr-5 py-3 text-[11px] font-black uppercase tracking-[0.1em] text-white/50 text-right w-24">Aksi</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-white/5">
-                                            {displayNamedRoads.map((road, index) => (
-                                                <tr key={road?.id ?? `display-road-${index}`} className="hover:bg-white/[0.02] transition-colors group/row">
-                                                    <td className="px-8 py-4 text-xs font-black text-white/20">{index + 1}</td>
-                                                    <td className="px-8 py-4">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="h-2 w-2 rounded-full bg-blue-400 animate-pulse" />
-                                                            <span className="text-sm font-black text-white uppercase tracking-tight">{road.name}</span>
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-8 py-4 text-xs font-bold text-white/30 italic group-hover/row:text-white/60 transition-colors">
-                                                        {road?.instruction || "—"}
-                                                    </td>
-                                                    <td className="px-8 py-4 text-right text-xs font-mono font-black text-gold-accent/60">
-                                                        {Number.isFinite(Number(road?.distance)) && Number(road.distance) > 0 ? `${(Number(road.distance) / 1000).toFixed(2)} km` : "—"}
-                                                    </td>
-                                                </tr>
-                                            ))}
+                                        <tbody className="divide-y divide-white/[0.02]">
+                                            {combinedItems.map((item, index) => {
+                                                if (item._rowType === 'point') {
+                                                    const point = item;
+                                                    return (
+                                                            <tr key={`point-${point.id}`} className="hover:bg-white/[0.03] transition-colors group/row relative">
+                                                                <td className="pl-5 py-3 align-middle">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <div className={`w-7 h-7 shrink-0 rounded border flex items-center justify-center shadow-sm ${
+                                                                            point.pointType === 'awal' ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' :
+                                                                            point.pointType === 'tujuan' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-white/5 border-white/10 text-white/40'
+                                                                        }`}>
+                                                                            <span className="material-symbols-outlined text-[14px]">{routePointTypeMeta[point.pointType]?.icon}</span>
+                                                                        </div>
+                                                                        <span className={`text-[10px] font-black uppercase tracking-widest ${
+                                                                            point.pointType === "awal" ? "text-blue-400" :
+                                                                            point.pointType === "tujuan" ? "text-emerald-400" :
+                                                                            "text-white/50"
+                                                                        }`}>
+                                                                            {routePointTypeLabelMap[point.pointType]}
+                                                                        </span>
+                                                                    </div>
+                                                                </td>
+                                                                <td className="px-4 py-3 min-w-[200px] align-middle">
+                                                                    <p className="text-[11px] font-black text-white tracking-tight">
+                                                                        {point.pointType === 'tujuan' ? (tenantName || point.pathName) :
+                                                                         point.pointType === 'awal' ? (isps.length > 0 ? `ISP: ${isps.map(i => i.name).join(', ')}` : point.pathName) :
+                                                                         point.pathName}
+                                                                    </p>
+                                                                </td>
+                                                                <td className="px-4 py-3 align-middle">
+                                                                    <p className="text-[10px] font-bold text-white/40 italic group-hover/row:text-white/70 transition-colors max-w-[200px] truncate">
+                                                                        {splitRoutePointNote(point.note).displayNote || "—"}
+                                                                    </p>
+                                                                </td>
+                                                                <td className="px-4 py-3 align-middle">
+                                                                    <span className="text-[11px] font-bold text-white/20">—</span>
+                                                                </td>
+                                                                <td className="pr-5 py-3 text-right align-middle">
+                                                                    <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover/row:opacity-100 transition-opacity">
+                                                                        <button
+                                                                            className="w-7 h-7 rounded bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-all disabled:opacity-10 backdrop-blur-md"
+                                                                            disabled={routeBusy || point.pointType !== "transit"}
+                                                                            onClick={() => handleMoveRoutePoint(point.id, "up")}
+                                                                            title="Geser ke atas"
+                                                                        >
+                                                                            <span className="material-symbols-outlined text-[15px]">expand_less</span>
+                                                                        </button>
+                                                                        <button
+                                                                            className="w-7 h-7 rounded bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-all disabled:opacity-10 backdrop-blur-md"
+                                                                            disabled={routeBusy || point.pointType !== "transit"}
+                                                                            onClick={() => handleMoveRoutePoint(point.id, "down")}
+                                                                            title="Geser ke bawah"
+                                                                        >
+                                                                            <span className="material-symbols-outlined text-[15px]">expand_more</span>
+                                                                        </button>
+                                                                        <div className="w-px h-4 bg-white/10 mx-0.5" />
+                                                                        <button
+                                                                            className="w-7 h-7 rounded bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 hover:bg-rose-500 hover:text-white transition-all disabled:opacity-10"
+                                                                            disabled={routeBusy || point.pointType !== "transit"}
+                                                                            onClick={() => void handleDeleteRoutePoint(point.id)}
+                                                                            title="Hapus titik"
+                                                                        >
+                                                                            <span className="material-symbols-outlined text-[14px]">delete</span>
+                                                                        </button>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    } else {
+                                                        const road = item;
+                                                        return (
+                                                            <tr key={`road-${road.id || index}`} className="hover:bg-white/[0.03] transition-colors group/row bg-blue-500/[0.02]">
+                                                                <td className="pl-5 py-2.5 align-middle">
+                                                                    <div className="flex items-center gap-2 pl-2">
+                                                                        <div className="flex flex-col items-center justify-center gap-1 w-3 opacity-40 group-hover/row:opacity-100 transition-opacity">
+                                                                            <div className="w-[1.5px] h-1.5 bg-blue-400/30 rounded-full" />
+                                                                            <div className="w-2 h-2 rounded-full bg-blue-400 shadow-[0_0_6px_rgba(96,165,250,0.6)]" />
+                                                                            <div className="w-[1.5px] h-1.5 bg-blue-400/30 rounded-full" />
+                                                                        </div>
+                                                                        <span className="text-[10px] font-black text-blue-400/60 uppercase tracking-widest opacity-60 group-hover/row:opacity-100 transition-opacity ml-1.5">
+                                                                            Ruas Jalan
+                                                                        </span>
+                                                                    </div>
+                                                                </td>
+                                                                <td className="px-4 py-2.5 min-w-[200px] align-middle">
+                                                                    <div className="flex items-center gap-2 opacity-80 group-hover/row:opacity-100 transition-opacity">
+                                                                        <span className="text-[11px] font-black text-blue-200 tracking-tight">{road.name}</span>
+                                                                    </div>
+                                                                </td>
+                                                                <td className="px-4 py-2.5 align-middle">
+                                                                    <span className="text-[10px] font-bold text-white/40 italic group-hover/row:text-white/70 transition-colors uppercase tracking-widest max-w-[250px] truncate block">
+                                                                        {road?.instruction || "—"}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="px-4 py-2.5 align-middle">
+                                                                    <span className="text-[11px] font-mono font-black text-blue-400/70 group-hover/row:text-blue-400 transition-colors">
+                                                                        {Number.isFinite(Number(road?.distance)) && Number(road.distance) > 0 ? `${(Number(road.distance) / 1000).toFixed(2)} km` : "—"}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="pr-5 py-2.5 text-right align-middle">
+                                                                    <div className="flex items-center justify-end opacity-0 group-hover/row:opacity-100 transition-opacity">
+                                                                        <button
+                                                                            className="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 hover:bg-blue-500 hover:text-white transition-all disabled:opacity-10 backdrop-blur-md"
+                                                                            onClick={() => {
+                                                                                alert(`Fitur ubah penamaan ruas jalan (${road.name}) tanpa mengubah titik koordinat akan segera tersedia.`);
+                                                                            }}
+                                                                            title="Ubah Nama Jalan"
+                                                                        >
+                                                                            <span className="material-symbols-outlined text-[14px]">edit</span>
+                                                                        </button>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                }
+                                            })}
                                         </tbody>
                                     </table>
-                                </div>
-                            </section>
+                                );
+                            })()}
+                        </div>
+                    </div>
+                </section>
+                {/* Riwayat Jalur Section */}
+                <section className="glass-card backdrop-blur-xl rounded-3xl border border-white/10 shadow-glass-depth mt-6 overflow-hidden relative">
+                    <div className="absolute -right-24 -top-24 h-64 w-64 rounded-full bg-amber-500/5 blur-3xl pointer-events-none" />
+                    
+                    <div className="px-5 py-4 border-b border-white/5 bg-white/[0.02] flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-10">
+                        <div className="flex items-center gap-3">
+                            <span className="material-symbols-outlined text-lg text-amber-400 drop-shadow-md">history_edu</span>
+                            <div className="space-y-0.5">
+                                <h2 className="text-[13px] font-black text-white tracking-[0.1em] uppercase drop-shadow-md">Ledger Perubahan Jalur</h2>
+                                <p className="text-[9px] font-bold text-white/40 tracking-wide">Jejak audit & histori topologi</p>
+                            </div>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <div className="flex -space-x-px shadow-sm">
+                                <div className="h-8 px-3 rounded-l-lg bg-white/5 border border-white/10 flex items-center text-[9px] font-black text-white/40 uppercase tracking-widest backdrop-blur-md z-10 relative">{routeHistoryRows.length} Log</div>
+                                <div className="h-8 px-3 rounded-r-lg bg-amber-500/10 border border-amber-500/20 flex items-center text-[9px] font-black text-amber-400 uppercase tracking-widest relative">{routeVersions.length} Versi</div>
+                            </div>
+                            <button
+                                className="h-8 px-4 rounded-lg border border-rose-500/20 bg-rose-500/5 text-rose-400 text-[9px] font-black uppercase tracking-widest hover:bg-rose-500 hover:text-white transition-all disabled:opacity-30 disabled:hover:bg-rose-500/5 disabled:hover:text-rose-400 backdrop-blur-md shadow-sm"
+                                disabled={routeBusy || routeHistoryRows.length === 0}
+                                onClick={() => void handleDeleteAllHistory()}
+                                type="button"
+                            >
+                                Reset Ledger
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="max-h-[500px] overflow-y-auto custom-scrollbar relative z-10 p-4 bg-black/40">
+                        <div className="absolute inset-0 bg-gradient-to-b from-white/[0.02] to-transparent pointer-events-none" />
+                        {routeHistoryRows.length === 0 ? (
+                            <div className="py-12 flex flex-col items-center justify-center text-center border border-dashed border-white/10 rounded-2xl bg-white/[0.01]">
+                                <span className="material-symbols-outlined text-3xl text-white/10 mb-2">history_toggle_off</span>
+                                <p className="text-[9px] font-black text-white/20 uppercase tracking-widest">Arsip riwayat masih kosong</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {routeHistoryRows.map((item) => {
+                                    const isExpanded = expandedHistoryIds.includes(item.id);
+                                    return (
+                                        <div key={item.id} className={`rounded-xl transition-all duration-300 border ${isExpanded ? 'bg-white/[0.03] border-white/10 shadow-sm' : 'bg-white/[0.01] border-white/5 hover:border-white/10'}`}>
+                                            <div 
+                                                className="px-4 py-3 flex flex-wrap items-center justify-between gap-4 cursor-pointer group/header"
+                                                onClick={() => toggleHistoryExpand(item.id)}
+                                            >
+                                                <div className="flex items-center gap-3.5">
+                                                    <div className={`h-8 w-8 shrink-0 rounded-lg flex items-center justify-center transition-all ${isExpanded ? 'bg-amber-500 text-[#0f141e] shadow-sm' : 'bg-white/5 border border-white/10 text-white/40 group-hover/header:text-white group-hover/header:border-white/20'}`}>
+                                                        <span className="text-[10px] font-black uppercase tracking-tight">V{item.changeNumber}</span>
+                                                    </div>
+                                                    <div>
+                                                        <h4 className={`text-[11px] font-black uppercase tracking-tight transition-colors ${isExpanded ? 'text-amber-400' : 'text-white group-hover/header:text-amber-400'}`}>
+                                                            {item.changeReason || "Pemutakhiran Jalur Rutin"}
+                                                        </h4>
+                                                        <p className="text-[8px] font-black text-white/30 uppercase tracking-[0.2em] mt-0.5">{formatDateTime(item.createdAt)}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    <div className="text-right hidden sm:block">
+                                                        <p className="text-[8px] font-black text-white/20 uppercase tracking-widest">Operator</p>
+                                                        <p className="text-[9px] font-bold text-white/60 uppercase tracking-tight mt-0.5">{item.actorName || "SYSTEM"}</p>
+                                                    </div>
+                                                    <div className={`w-7 h-7 rounded-md flex items-center justify-center border transition-all ${isExpanded ? 'bg-white/10 border-white/20 text-white rotate-180' : 'bg-white/5 border-white/10 text-white/30 group-hover/header:text-white group-hover/header:border-white/20'}`}>
+                                                        <span className="material-symbols-outlined text-[14px]">expand_more</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {isExpanded && (
+                                                <div className="px-4 pb-4 animate-in slide-in-from-top-2 duration-300">
+                                                    <div className="h-px bg-white/5 mb-4 w-full" />
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                                        <div className="space-y-2.5">
+                                                            <div className="flex items-center gap-2 mb-2">
+                                                                <span className="material-symbols-outlined text-gold-accent text-[12px]">alt_route</span>
+                                                                <p className="text-[8px] font-black text-gold-accent uppercase tracking-widest">Topologi Lintasan</p>
+                                                            </div>
+                                                            <div className="relative pl-3 ml-1.5 space-y-2 border-l-2 border-white/5">
+                                                                {item.points.map((p, idx) => (
+                                                                    <div key={p.id} className="relative flex items-center gap-2.5 group/p">
+                                                                        <div className={`absolute -left-[16px] w-1.5 h-1.5 rounded-full border border-[#0f141e] ${idx === 0 ? 'bg-blue-400 shadow-[0_0_8px_rgba(96,165,250,0.6)]' : idx === item.points.length - 1 ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]' : 'bg-white/30'}`} />
+                                                                        <div className="flex-1 px-2.5 py-1.5 rounded-md bg-white/[0.02] border border-white/5 group-hover/p:bg-white/[0.04] transition-colors">
+                                                                            <div className="flex items-center justify-between gap-2">
+                                                                                <span className="text-[9px] font-black text-white/60 uppercase tracking-tight truncate">{p.pathName}</span>
+                                                                                <span className="text-[7px] font-bold text-white/20 uppercase tracking-widest shrink-0">{routePointTypeLabelMap[p.pointType]}</span>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                        <div>
+                                                            <div className="flex items-center gap-2 mb-2">
+                                                                <span className="material-symbols-outlined text-blue-400 text-[12px]">info</span>
+                                                                <p className="text-[8px] font-black text-blue-400 uppercase tracking-widest">Informasi Tambahan</p>
+                                                            </div>
+                                                            <div className="p-3 rounded-lg bg-white/[0.02] border border-white/5">
+                                                                <p className="text-[7px] font-black text-white/20 uppercase tracking-widest mb-1.5">Metadata Perubahan</p>
+                                                                <p className="text-[9px] font-bold text-white/50 leading-relaxed italic">
+                                                                    {item.changeDescription || "Tidak ada catatan untuk revisi rute ini."}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         )}
-              </div>
-
-              {/* Riwayat Jalur Section */}
-              <section className="glass-card backdrop-blur-xl rounded-premium p-8 border-white/10 shadow-glass-depth mt-12 overflow-hidden relative">
-                  <div className="absolute -right-24 -top-24 h-64 w-64 rounded-full bg-amber-500/5 blur-3xl" />
-                  
-                  <div className="flex flex-wrap items-center justify-between gap-6 mb-10">
-                      <div className="flex items-center gap-4">
-                          <div className="h-12 w-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
-                              <span className="material-symbols-outlined text-2xl">history_edu</span>
-                          </div>
-                          <div>
-                              <h2 className="text-xl font-black text-white tracking-tight uppercase">Ledger Perubahan Jalur</h2>
-                              <p className="text-[10px] font-bold text-white/20 tracking-[0.2em] uppercase">Jejak audit topologi fiber optik</p>
-                          </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                          <div className="flex -space-x-2">
-                              <div className="h-8 px-3 rounded-l-xl bg-white/5 border border-white/10 flex items-center text-[9px] font-black text-white/40 uppercase tracking-widest backdrop-blur-md">{routeHistoryRows.length} Log</div>
-                              <div className="h-8 px-3 rounded-r-xl bg-amber-500/20 border border-amber-500/20 flex items-center text-[9px] font-black text-amber-400 uppercase tracking-widest">{routeVersions.length} Versi</div>
-                          </div>
-                          <button
-                              className="h-10 px-4 rounded-xl border border-[#ff2400]/20 bg-[#ff2400]/5 text-[#ff2400] text-[9px] font-black uppercase tracking-widest hover:bg-[#ff2400] hover:text-white transition-all"
-                              disabled={routeBusy || routeHistoryRows.length === 0}
-                              onClick={() => void handleDeleteAllHistory()}
-                              type="button"
-                          >
-                              Reset Ledger
-                          </button>
-                      </div>
-                  </div>
-
-                  <div className="space-y-6 max-h-[1000px] overflow-y-auto pr-4 no-scrollbar">
-                      {routeHistory.length === 0 ? (
-                          <div className="py-20 text-center border-2 border-dashed border-white/5 rounded-[3rem]">
-                              <span className="material-symbols-outlined text-5xl text-white/5 mb-4">history_toggle_off</span>
-                              <p className="text-[10px] font-bold text-white/20 uppercase tracking-[0.3em]">Arsip riwayat masih kosong</p>
-                          </div>
-                      ) : (
-                          routeHistoryRows.map((item) => {
-                              const isExpanded = expandedHistoryIds.includes(item.id);
-                              return (
-                                  <div key={item.id} className={`rounded-2xl transition-all duration-500 border ${isExpanded ? 'bg-white/[0.03] border-white/10 shadow-glass-depth' : 'bg-transparent border-white/5 hover:border-white/10'}`}>
-                                      <div 
-                                          className="p-6 flex flex-wrap items-center justify-between gap-4 cursor-pointer group/header"
-                                          onClick={() => toggleHistoryExpand(item.id)}
-                                      >
-                                          <div className="flex items-center gap-6">
-                                              <div className={`h-12 w-12 rounded-xl flex items-center justify-center transition-all ${isExpanded ? 'bg-amber-500 text-[#0f141e] shadow-gold-glow' : 'bg-white/5 text-white/20 group-hover/header:text-white'}`}>
-                                                  <span className="text-sm font-black uppercase">V{item.changeNumber}</span>
-                                              </div>
-                                              <div>
-                                                  <p className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em]">{formatDateTime(item.createdAt)}</p>
-                                                  <h4 className="text-sm font-black text-white uppercase tracking-tight group-hover/header:text-gold-accent transition-colors">
-                                                      {item.changeReason || "Pemutakhiran Jalur Rutin"}
-                                                  </h4>
-                                              </div>
-                                          </div>
-                                          <div className="flex items-center gap-4">
-                                              <div className="text-right hidden md:block">
-                                                  <p className="text-[9px] font-black text-white/20 uppercase tracking-widest">Operator</p>
-                                                  <p className="text-[10px] font-bold text-white/60 uppercase">{item.actorName || "SYSTEM"}</p>
-                                              </div>
-                                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${isExpanded ? 'bg-white/10 text-white rotate-180' : 'bg-white/5 text-white/20 group-hover/header:text-white'}`}>
-                                                  <span className="material-symbols-outlined text-lg">expand_more</span>
-                                              </div>
-                                          </div>
-                                      </div>
-
-                                      {isExpanded && (
-                                          <div className="px-6 pb-8 animate-in slide-in-from-top-4 duration-500">
-                                              <div className="h-px bg-white/5 mb-8 backdrop-blur-md" />
-                                              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                                  <div className="space-y-4">
-                                                      <p className="text-[9px] font-black text-gold-accent uppercase tracking-widest mb-4">Topologi Lintasan</p>
-                                                      <div className="relative pl-4 space-y-4 border-l border-white/5">
-                                                          {item.points.map((p, idx) => (
-                                                              <div key={p.id} className="relative flex items-center gap-4 group/p">
-                                                                  <div className={`absolute -left-[21px] w-2.5 h-2.5 rounded-full border-2 border-[#0f141e] ${idx === 0 ? 'bg-blue-400 shadow-blue-glow' : idx === item.points.length - 1 ? 'bg-emerald-400 shadow-emerald-glow' : 'bg-white/20'}`} />
-                                                                  <div className="flex-1 p-3 rounded-xl bg-white/[0.02] border border-white/5 group-hover/p:bg-white/[0.05] transition-all">
-                                                                      <div className="flex items-center justify-between">
-                                                                          <span className="text-[10px] font-black text-white/60 uppercase tracking-tight">{p.pathName}</span>
-                                                                          <span className="text-[8px] font-bold text-white/20 uppercase tracking-widest">{routePointTypeLabelMap[p.pointType]}</span>
-                                                                      </div>
-                                                                  </div>
-                                                              </div>
-                                                          ))}
-                                                      </div>
-                                                  </div>
-                                                  <div>
-                                                      <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest mb-4">Informasi Tambahan</p>
-                                                      <div className="space-y-4">
-                                                          <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/5">
-                                                              <p className="text-[9px] font-black text-white/20 uppercase tracking-widest mb-2">Metadata Perubahan</p>
-                                                              <p className="text-[11px] font-medium text-white/40 leading-relaxed italic">
-                                                                  {item.changeDescription || "Tidak ada deskripsi teknis mendalam untuk versi ini."}
-                                                              </p>
-                                                          </div>
-                                                      </div>
-                                                  </div>
-                                              </div>
-                                          </div>
-                                      )}
-                                  </div>
-                              );
-                          })
-                      )}
-                  </div>
-              </section>
-            </div>
+                    </div>
+                </section>
           </div>
         )}
              {activeTab === "contracts" && (

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap, ZoomControl } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -81,27 +81,29 @@ export default function IspEntryPointMap({
   };
 
   return (
-    <div className="relative rounded-xl overflow-hidden border border-white/10 h-[320px]">
+    <div className="isp-mini-map relative rounded-xl overflow-hidden border border-white/10 h-[320px]">
       {!readOnly && (
-        <div className="absolute top-2 left-2 z-[1000] rounded-lg bg-slate-900/90 backdrop-blur-sm border border-white/10 px-2.5 py-1.5 text-[9px] font-bold text-white/60">
+        <div className="absolute top-2 left-2 right-2 z-[1000] rounded-lg bg-slate-900/90 backdrop-blur-sm border border-white/10 px-2.5 py-1.5 text-[9px] font-bold text-white/60 text-center">
           <span className="text-gold-accent">Klik peta</span> untuk tambah titik • <span className="text-sky-400">Drag marker</span> untuk pindah
         </div>
       )}
       <button
-        className="absolute bottom-2 right-2 z-[1000] w-8 h-8 rounded-lg border border-gold-accent/30 bg-slate-900/80 backdrop-blur-md text-gold-accent hover:bg-gold-accent hover:text-[#0f141e] transition shadow-lg flex items-center justify-center"
+        className="absolute bottom-5 right-2 z-[1000] w-8 h-8 rounded-lg border border-gold-accent/30 bg-slate-900/80 backdrop-blur-md text-gold-accent hover:bg-gold-accent hover:text-[#0f141e] transition shadow-lg flex items-center justify-center"
         onClick={() => mapRef.current?.flyTo(KIMA_CENTER, DEFAULT_ZOOM, { duration: 0.8 })}
         title="Pusatkan ke KIMA"
         type="button"
       >
-        <span className="material-symbols-outlined text-sm">my_location</span>
+        <span className="material-symbols-outlined text-[12px]">my_location</span>
       </button>
       <MapContainer
         attributionControl={false}
+        zoomControl={false}
         center={KIMA_CENTER}
         className="h-full w-full"
         scrollWheelZoom
         zoom={DEFAULT_ZOOM}
       >
+        <ZoomControl position="topright" />
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
         <MapCapture onReady={(map) => { mapRef.current = map; }} />
         {bounds && <FitBounds bounds={bounds} />}

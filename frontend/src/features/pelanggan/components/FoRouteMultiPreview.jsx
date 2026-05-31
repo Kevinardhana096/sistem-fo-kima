@@ -6,6 +6,7 @@ import {
   Marker,
   TileLayer,
   useMap,
+  ZoomControl,
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -174,23 +175,25 @@ export default function FoRouteMultiPreview({ tenants = [], ispLogoUrl = "", isp
   return (
     <section className="space-y-4">
       {/* Map */}
-      <div className="relative overflow-hidden rounded-2xl border border-white/10 h-[560px]">
+      <div className="relative overflow-hidden rounded-2xl border border-white/10 h-[560px] group hover:border-gold-accent/40 transition-all duration-500 hover:shadow-[0_0_20px_rgba(255,215,0,0.1)]">
         {/* Tombol Pusatkan KIMA */}
         <button
-          className="absolute bottom-3 right-3 z-[1000] w-9 h-9 rounded-xl border border-gold-accent/30 bg-slate-900/80 backdrop-blur-md text-gold-accent hover:bg-gold-accent hover:text-[#0f141e] transition shadow-lg flex items-center justify-center"
+          className="absolute bottom-6 right-6 z-[1000] w-9 h-9 rounded-xl border border-gold-accent/30 bg-slate-900/80 backdrop-blur-md text-gold-accent hover:bg-gold-accent hover:text-[#0f141e] transition shadow-lg flex items-center justify-center"
           onClick={() => mapRef.current?.flyTo(KIMA_CENTER, DEFAULT_ZOOM, { duration: 1.2 })}
           title="Pusatkan ke KIMA"
           type="button"
         >
-          <span className="material-symbols-outlined text-base">my_location</span>
+          <span className="material-symbols-outlined text-[14px]">my_location</span>
         </button>
         <MapContainer
           attributionControl={false}
+          zoomControl={false}
           center={KIMA_CENTER}
           className="h-full w-full"
           scrollWheelZoom
           zoom={DEFAULT_ZOOM}
         >
+          <ZoomControl position="topright" />
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

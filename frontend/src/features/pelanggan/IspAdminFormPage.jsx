@@ -1,85 +1,7 @@
 import { useEffect, useState, useRef } from "react";
-import { MapContainer, Marker, TileLayer, useMapEvents } from "react-leaflet";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
 import AppShell from "../../components/layout/AppShell";
 import api, { getApiErrorDetails } from "../../lib/api";
 import { uploadFileForRecord } from "../../lib/files";
-
-const KIMA_CENTER = [-5.0929568, 119.5018379];
-
-const ISP_ENTRY_POINT_ICON = L.divIcon({
-    className: "",
-    html: `<div style="width:28px;height:28px;border-radius:999px;background:#d4a937;border:3px solid white;box-shadow:0 0 18px rgba(212,169,55,.65);display:flex;align-items:center;justify-content:center;color:#111827;font-size:10px;font-weight:900;">FO</div>`,
-    iconSize: [28, 28],
-    iconAnchor: [14, 14],
-});
-
-function EntryPointMapClickHandler({ onPick }) {
-    useMapEvents({
-        click(event) {
-            onPick(event.latlng.lat, event.latlng.lng);
-        },
-    });
-    return null;
-}
-
-function EntryPointMapPicker({ points, selectedIndex, onSelectIndex, onPickCoordinate }) {
-    const selectedPoint = points[selectedIndex] ?? null;
-    const center = selectedPoint?.latitude && selectedPoint?.longitude
-        ? [Number(selectedPoint.latitude), Number(selectedPoint.longitude)]
-        : KIMA_CENTER;
-
-    return (
-        <div className="overflow-hidden rounded-2xl border border-white/10 bg-black/30">
-            <div className="flex flex-col gap-2 border-b border-white/10 bg-black/30 p-3 md:flex-row md:items-center md:justify-between">
-                <div>
-                    <p className="text-[9px] font-black uppercase tracking-[0.3em] text-gold-accent/70">Peta Titik ISP</p>
-                    <p className="mt-1 text-[10px] font-bold text-white/40">Pilih baris titik, lalu klik peta untuk mengatur koordinatnya.</p>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                    {points.map((point, index) => (
-                        <button
-                            key={point.id ?? `map-point-${index}`}
-                            className={`rounded-lg border px-3 py-1.5 text-[8px] font-black uppercase tracking-widest transition-all ${selectedIndex === index ? "border-gold-accent/40 bg-gold-accent/20 text-gold-accent" : "border-white/10 bg-white/5 text-white/45 hover:text-white"}`}
-                            onClick={() => onSelectIndex(index)}
-                            type="button"
-                        >
-                            {point.label || `Titik #${index + 1}`}
-                        </button>
-                    ))}
-                </div>
-            </div>
-            <div className="h-[360px]">
-                <MapContainer center={center} className="h-full w-full" scrollWheelZoom zoom={15}>
-                    <TileLayer attribution="&copy; OpenStreetMap" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                    <EntryPointMapClickHandler onPick={onPickCoordinate} />
-                    {points.map((point, index) => {
-                        const lat = Number(point.latitude);
-                        const lng = Number(point.longitude);
-                        if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
-                        return (
-                            <Marker
-                                key={point.id ?? `entry-marker-${index}`}
-                                draggable
-                                eventHandlers={{
-                                    click: () => onSelectIndex(index),
-                                    dragend: (event) => {
-                                        const position = event.target.getLatLng();
-                                        onSelectIndex(index);
-                                        onPickCoordinate(position.lat, position.lng, index);
-                                    },
-                                }}
-                                icon={ISP_ENTRY_POINT_ICON}
-                                position={[lat, lng]}
-                            />
-                        );
-                    })}
-                </MapContainer>
-            </div>
-        </div>
-    );
-}
 
 const GlassFieldInput = ({ label, type = "text", value, onChange, placeholder = "", icon, error = "" }) => {
     return (
@@ -221,65 +143,6 @@ const deriveOperationalStatus = (contractPeriodStart, fallbackStatus = "aktif") 
 
 const mapPackageName = (value) => String(value || "").toLowerCase() === "shared" ? "Shared" : "Core";
 
-const createEntryPointDraft = () => ({
-    id: null,
-    label: "",
-    latitude: "",
-    longitude: "",
-    status: "aktif",
-    description: "",
-    capacityNote: "",
-    fiberType: "",
-    coreCapacity: "",
-    isDefault: false,
-});
-
-const normalizeEntryPointDraft = (point = {}) => ({
-    id: point.id ?? null,
-    label: point.label ?? "",
-    latitude: point.latitude ?? "",
-    longitude: point.longitude ?? "",
-    status: point.status ?? "aktif",
-    description: point.description ?? "",
-    capacityNote: point.capacityNote ?? point.capacity_note ?? "",
-    fiberType: point.fiberType ?? point.fiber_type ?? "",
-    coreCapacity: point.coreCapacity ?? point.core_capacity ?? "",
-    isDefault: Boolean(point.isDefault ?? point.is_default),
-});
-
-const validateEntryPointDrafts = (entryPoints = []) => {
-    const errors = {};
-    entryPoints.forEach((point, index) => {
-        const hasAnyValue = [
-            point.label,
-            point.latitude,
-            point.longitude,
-            point.description,
-            point.capacityNote,
-            point.fiberType,
-            point.coreCapacity,
-        ].some((value) => String(value ?? "").trim());
-        if (!hasAnyValue) return;
-
-        const label = String(point.label ?? "").trim();
-        const latitude = Number(String(point.latitude ?? "").replace(",", "."));
-        const longitude = Number(String(point.longitude ?? "").replace(",", "."));
-        const coreCapacity = String(point.coreCapacity ?? "").trim() ? Number(point.coreCapacity) : null;
-
-        if (!label) errors[`entryPoints.${index}.label`] = "Nama titik wajib diisi.";
-        if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90) {
-            errors[`entryPoints.${index}.latitude`] = "Latitude harus antara -90 sampai 90.";
-        }
-        if (!Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
-            errors[`entryPoints.${index}.longitude`] = "Longitude harus antara -180 sampai 180.";
-        }
-        if (coreCapacity !== null && (!Number.isFinite(coreCapacity) || coreCapacity < 0)) {
-            errors[`entryPoints.${index}.coreCapacity`] = "Kapasitas core tidak boleh negatif.";
-        }
-    });
-    return errors;
-};
-
 function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNavigate, onSaved }) {
     const [form, setForm] = useState({
         name: "",
@@ -297,12 +160,10 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
         logoFileDataUrl: "",
         packageName: "Core",
         packageQuantity: "",
-        entryPoints: [],
     });
     const [submitError, setSubmitError] = useState("");
     const [fieldErrors, setFieldErrors] = useState({});
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [selectedEntryPointIndex, setSelectedEntryPointIndex] = useState(0);
     const isEditMode = mode === "edit";
 
     useEffect(() => {
@@ -326,52 +187,8 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
             contractFileDataUrl: initialData.contractFileUrl ?? initialData.contract_file_url ?? "",
             packageName: mapPackageName(initialData.packageName ?? initialData.paket),
             packageQuantity: initialData.packageQuantity ?? initialData.jumlah ?? "",
-            entryPoints: Array.isArray(initialData.entryPoints)
-                ? initialData.entryPoints.map(normalizeEntryPointDraft)
-                : [],
         }));
     }, [initialData]);
-
-    const updateEntryPoint = (index, updates) => {
-        setForm((previous) => ({
-            ...previous,
-            entryPoints: previous.entryPoints.map((point, pointIndex) => (
-                pointIndex === index ? { ...point, ...updates } : point
-            )),
-        }));
-        setFieldErrors((errors) => {
-            const nextErrors = { ...errors };
-            Object.keys(updates).forEach((key) => {
-                delete nextErrors[`entryPoints.${index}.${key}`];
-            });
-            return nextErrors;
-        });
-    };
-
-    const setDefaultEntryPoint = (index) => {
-        setForm((previous) => ({
-            ...previous,
-            entryPoints: previous.entryPoints.map((point, pointIndex) => ({
-                ...point,
-                isDefault: pointIndex === index,
-            })),
-        }));
-    };
-
-    const removeEntryPoint = (index) => {
-        setForm((previous) => ({
-            ...previous,
-            entryPoints: previous.entryPoints.filter((_, pointIndex) => pointIndex !== index),
-        }));
-        setSelectedEntryPointIndex((previous) => Math.max(0, Math.min(previous, form.entryPoints.length - 2)));
-    };
-
-    const pickEntryPointCoordinate = (latitude, longitude, targetIndex = selectedEntryPointIndex) => {
-        updateEntryPoint(targetIndex, {
-            latitude: latitude.toFixed(6),
-            longitude: longitude.toFixed(6),
-        });
-    };
 
     const handleSubmit = async (event) => {
         event.preventDefault();
@@ -386,12 +203,7 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
             setFieldErrors({ contractPeriodStart: "Periksa tanggal mulai.", contractPeriodEnd: "Periksa tanggal akhir." });
             return;
         }
-        const entryPointErrors = validateEntryPointDrafts(form.entryPoints);
-        if (Object.keys(entryPointErrors).length > 0) {
-            setSubmitError("Periksa kembali data titik masuk FO yang ditandai.");
-            setFieldErrors(entryPointErrors);
-            return;
-        }
+
 
         setIsSubmitting(true);
         setSubmitError("");
@@ -418,10 +230,7 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
                 ? await api.isps.update(initialData.id, payload)
                 : await api.isps.create(payload);
 
-            if (result?.id) {
-                const savedEntryPoints = await api.ispEntryPoints.replaceForIsp(result.id, form.entryPoints);
-                result.entryPoints = savedEntryPoints;
-            }
+
 
             if (onSaved) await onSaved(result);
         } catch (error) {
@@ -700,94 +509,7 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
                             </div>
                         )}
 
-                        <div className="glass-card backdrop-blur-xl rounded-2xl p-5 border-white/20 shadow-glass-depth relative z-10">
-                            <div className="flex flex-col gap-3 mb-4 md:flex-row md:items-center md:justify-between">
-                                <div className="flex items-center gap-3">
-                                    <span className="h-5 w-1.5 bg-gold-accent rounded-full shadow-gold-glow"></span>
-                                    <div>
-                                        <h3 className="text-base font-black text-white uppercase tracking-widest">Titik Masuk FO</h3>
-                                        <p className="mt-1 text-[10px] font-bold tracking-wide text-white/40">Opsional. Tambahkan satu atau beberapa titik masuk ISP ke wilayah KIMA.</p>
-                                    </div>
-                                </div>
-                                <button
-                                    className="h-9 rounded-xl border border-gold-accent/30 bg-gold-accent/10 px-4 text-[9px] font-black uppercase tracking-[0.2em] text-gold-accent transition-all hover:bg-gold-accent hover:text-black"
-                                    onClick={() => setForm((previous) => {
-                                        setSelectedEntryPointIndex(previous.entryPoints.length);
-                                        return { ...previous, entryPoints: [...previous.entryPoints, createEntryPointDraft()] };
-                                    })}
-                                    type="button"
-                                >
-                                    Tambah Titik
-                                </button>
-                            </div>
 
-                            {form.entryPoints.length === 0 ? (
-                                <div className="rounded-xl border border-dashed border-white/10 bg-black/20 p-5 text-center text-[10px] font-bold uppercase tracking-widest text-white/35 backdrop-blur-md">
-                                    Belum ada titik masuk FO. Tambahkan titik lalu klik peta untuk menentukan koordinatnya.
-                                </div>
-                            ) : (
-                                <div className="space-y-3">
-                                    <EntryPointMapPicker
-                                        points={form.entryPoints}
-                                        selectedIndex={selectedEntryPointIndex}
-                                        onSelectIndex={setSelectedEntryPointIndex}
-                                        onPickCoordinate={pickEntryPointCoordinate}
-                                    />
-                                    {form.entryPoints.map((point, index) => (
-                                        <div key={point.id ?? `entry-${index}`} className={`rounded-2xl border bg-black/20 p-4 backdrop-blur-md ${selectedEntryPointIndex === index ? "border-gold-accent/40 shadow-gold-glow" : "border-white/10"}`}>
-                                            <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                                                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-white/50">Titik #{index + 1}</p>
-                                                <div className="flex flex-wrap gap-2">
-                                                    <button
-                                                        className={`rounded-lg border px-3 py-1.5 text-[8px] font-black uppercase tracking-widest transition-all ${selectedEntryPointIndex === index ? "border-blue-400/40 bg-blue-500/20 text-blue-300" : "border-white/10 bg-white/5 text-white/40 hover:text-white"}`}
-                                                        onClick={() => setSelectedEntryPointIndex(index)}
-                                                        type="button"
-                                                    >
-                                                        Pilih di Peta
-                                                    </button>
-                                                    <button
-                                                        className={`rounded-lg border px-3 py-1.5 text-[8px] font-black uppercase tracking-widest transition-all ${point.isDefault ? "border-gold-accent/40 bg-gold-accent/20 text-gold-accent" : "border-white/10 bg-white/5 text-white/40 hover:text-white"}`}
-                                                        onClick={() => setDefaultEntryPoint(index)}
-                                                        type="button"
-                                                    >
-                                                        Default
-                                                    </button>
-                                                    <button
-                                                        className="rounded-lg border border-rose-500/20 bg-rose-500/10 px-3 py-1.5 text-[8px] font-black uppercase tracking-widest text-rose-400 transition-all hover:bg-rose-500 hover:text-white"
-                                                        onClick={() => removeEntryPoint(index)}
-                                                        type="button"
-                                                    >
-                                                        Hapus
-                                                    </button>
-                                                </div>
-                                            </div>
-                                            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                                                <GlassFieldInput label="Nama Titik" icon="place" placeholder={`Titik Masuk #${index + 1}`} value={point.label} error={fieldErrors[`entryPoints.${index}.label`]} onChange={(value) => updateEntryPoint(index, { label: value })} />
-                                                <GlassFieldInput label="Latitude" icon="my_location" placeholder="-5.0929" value={point.latitude} error={fieldErrors[`entryPoints.${index}.latitude`]} onChange={(value) => updateEntryPoint(index, { latitude: value })} />
-                                                <GlassFieldInput label="Longitude" icon="explore" placeholder="119.5018" value={point.longitude} error={fieldErrors[`entryPoints.${index}.longitude`]} onChange={(value) => updateEntryPoint(index, { longitude: value })} />
-                                                <GlassCustomSelect
-                                                    label="Status"
-                                                    icon="toggle_on"
-                                                    value={point.status}
-                                                    onChange={(value) => updateEntryPoint(index, { status: value })}
-                                                    options={[
-                                                        { value: "aktif", label: "AKTIF" },
-                                                        { value: "draft", label: "DRAFT" },
-                                                        { value: "nonaktif", label: "NONAKTIF" },
-                                                    ]}
-                                                />
-                                                <GlassFieldInput label="Jenis Kabel" icon="cable" placeholder="Opsional" value={point.fiberType} onChange={(value) => updateEntryPoint(index, { fiberType: value })} />
-                                                <GlassFieldInput label="Kapasitas Core" icon="hub" placeholder="Opsional" type="number" value={point.coreCapacity} error={fieldErrors[`entryPoints.${index}.coreCapacity`]} onChange={(value) => updateEntryPoint(index, { coreCapacity: value })} />
-                                            </div>
-                                            <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
-                                                <GlassFieldInput label="Catatan Kapasitas" icon="notes" placeholder="Opsional" value={point.capacityNote} onChange={(value) => updateEntryPoint(index, { capacityNote: value })} />
-                                                <GlassFieldInput label="Keterangan" icon="description" placeholder="Opsional" value={point.description} onChange={(value) => updateEntryPoint(index, { description: value })} />
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
 
                         {/* Section: Akun Akses ISP - Only in Add Mode */}
                         {!isEditMode && (

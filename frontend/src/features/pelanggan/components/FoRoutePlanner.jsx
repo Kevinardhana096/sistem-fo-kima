@@ -468,6 +468,8 @@ export default function FoRoutePlanner({
   customerIconUrl = "",
   providerEntryPoints = [],
   selectedProviderEntryPointIds = [],
+  customHeaderInfo,
+  customExitButton,
 }) {
   const [basemap, setBasemap] = useState("osm");
   const [profile, setProfile] = useState("driving");
@@ -493,6 +495,7 @@ export default function FoRoutePlanner({
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isRoadPanelOpen, setIsRoadPanelOpen] = useState(true);
   const [sidebarMaxHeight, setSidebarMaxHeight] = useState("calc(100vh - 2rem)");
+  const [editReason, setEditReason] = useState("");
   const skipNextRouteResetRef = useRef(false);
   const initialPlannerStateRef = useRef(null);
 
@@ -1077,6 +1080,12 @@ export default function FoRoutePlanner({
       return;
     }
 
+    // Auto-close search results when interacting with the map
+    if (searchResults.length > 0 || searchError) {
+      setSearchResults([]);
+      setSearchError(null);
+    }
+
     if (placementMode === "a") {
       assignPoint("a", latlng.lat, latlng.lng, "Provider");
       return;
@@ -1445,6 +1454,7 @@ export default function FoRoutePlanner({
       duration: routeData?.duration ?? 0,
       geometryCoordinates: routeData?.geometryCoordinates ?? [],
       roads: plannerRoads,
+      editReason: editReason,
     });
     pushToast(
       "Draft Jalur Diperbarui",
@@ -1466,27 +1476,29 @@ export default function FoRoutePlanner({
 
   if (isPreviewMode) {
     return (
-      <section className="rounded-2xl glass-card border border-white/10 p-6 shadow-glass-depth">
-        <div className="mb-6 flex items-start justify-between gap-3">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gold-accent/70">
-              Preview Jalur
-            </p>
-            <h3 className="mt-1 text-xl font-black text-white tracking-tight">
-              Peta Lintasan Tenant
-            </h3>
-            <p className="mt-1 text-sm text-white/40">
-              Klik peta untuk membuka halaman planner lengkap.
-            </p>
+      <section className="rounded-xl glass-card border border-white/10 shadow-glass-depth overflow-hidden bg-white/[0.02]">
+        <div className="px-5 py-4 border-b border-white/5 bg-white/[0.02] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="material-symbols-outlined text-lg text-gold-accent drop-shadow-md">map</span>
+            <div className="space-y-0.5">
+              <h3 className="text-[13px] font-black uppercase tracking-[0.1em] text-white drop-shadow-md">
+                Peta Lintasan Tenant
+              </h3>
+              <p className="text-[9px] font-bold tracking-wide text-white/40">
+                Klik peta untuk membuka halaman planner lengkap.
+              </p>
+            </div>
           </div>
-          <span className="rounded-full bg-white/5 border border-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white/40">
+          <span className="h-8 px-4 rounded-lg bg-white/5 border border-white/10 flex items-center text-[9px] font-black uppercase tracking-widest text-white/40 shadow-sm self-start sm:self-auto">
             View Only
           </span>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+        <div className="p-4 grid grid-cols-1 gap-4 lg:grid-cols-5 bg-black/40 relative">
+          <div className="absolute inset-0 bg-gradient-to-b from-white/[0.02] to-transparent pointer-events-none" />
+          
           {/* Left Column: Map Preview */}
-          <div className="relative overflow-hidden rounded-2xl border border-white/10 lg:col-span-3 h-[500px]">
+          <div className="relative overflow-hidden rounded-xl border border-white/10 lg:col-span-3 min-h-[250px] shadow-sm z-10 h-full w-full">
             <button
               aria-label="Buka halaman planner jalur"
               className="absolute inset-0 z-[450] cursor-pointer bg-transparent"
@@ -1502,7 +1514,7 @@ export default function FoRoutePlanner({
             >
               <span className="material-symbols-outlined text-base">my_location</span>
             </button>
-            <div className="relative z-10 h-full">
+            <div className="absolute inset-0 z-10">
               <MapContainer
                 attributionControl={false}
                 center={DEFAULT_CENTER}
@@ -1514,7 +1526,6 @@ export default function FoRoutePlanner({
                   attribution={selectedBasemap.attribution}
                   url={selectedBasemap.url}
                 />
-                <AttributionControl position="bottomleft" />
                 {/* Adjust viewport based on preview or actual route */}
                 <MapViewportController
                   fitCoordinates={previewFitCoordinates}
@@ -1580,10 +1591,7 @@ export default function FoRoutePlanner({
             </div>
 
             <div className="absolute bottom-4 left-4 z-[450] flex flex-wrap items-center gap-2">
-              <span className="rounded-full bg-slate-900/80 backdrop-blur-sm px-3 py-1.5 text-xs font-bold text-white/70 shadow-sm border border-white/10">
-                Titik: {previewControlPoints.length}
-              </span>
-              <span className={`rounded-full backdrop-blur-sm px-3 py-1.5 text-xs font-bold shadow-sm border ${previewRouteGeoJson ? "bg-emerald-500/20 border-emerald-500/30 text-emerald-400" : "bg-slate-900/80 border-white/10 text-white/40"}`}>
+              <span className={`rounded-full px-3 py-1.5 text-[10px] uppercase tracking-widest font-black shadow-sm border ${previewRouteGeoJson ? "bg-emerald-500 border-emerald-500 text-white" : "bg-slate-900/80 border-white/10 text-white/40"}`}>
                 {previewRouteGeoJson ? "Jalur Aktif" : "Tanpa Koordinat"}
               </span>
             </div>
@@ -1614,56 +1622,56 @@ export default function FoRoutePlanner({
 
           {/* Right Column: Insights */}
           <div className="flex flex-col lg:col-span-2">
-            <div className="flex flex-col h-full rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-md p-6">
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gold-accent/70">
+            <div className="flex flex-col h-full rounded-xl border border-white/10 bg-white/[0.03] backdrop-blur-md p-4">
+              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-gold-accent/70">
                 Insights
               </p>
-              <h3 className="mt-1 text-xl font-black text-white tracking-tight">
+              <h3 className="mt-0.5 text-[13px] font-black text-white tracking-[0.1em] uppercase">
                 Glosarium Jenis Titik
               </h3>
-              <p className="mt-2 text-sm text-white/40 leading-relaxed">
+              <p className="mt-1 text-[9px] font-bold tracking-wide text-white/40 leading-relaxed">
                 Legenda simbol yang digunakan pada peta lintasan fiber optik.
               </p>
 
-              <div className="mt-8 space-y-5 flex-1">
-                <div className="flex items-start gap-4">
-                  <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400">
-                    <span className="material-symbols-outlined text-xl">router</span>
+              <div className="mt-4 space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400">
+                    <span className="material-symbols-outlined text-[15px]">router</span>
                   </div>
                   <div>
-                    <h4 className="text-sm font-black text-white">Titik Awal</h4>
-                    <p className="mt-0.5 text-xs text-white/40">Manhole Utama / ODP (Optical Distribution Point)</p>
+                    <h4 className="text-[11px] font-black text-white tracking-tight uppercase">Titik Awal</h4>
+                    <p className="mt-0.5 text-[9px] font-bold text-white/40">Manhole Utama / ODP (Optical Distribution Point)</p>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-4">
-                  <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400">
-                    <span className="material-symbols-outlined text-xl">lan</span>
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400">
+                    <span className="material-symbols-outlined text-[15px]">lan</span>
                   </div>
                   <div>
-                    <h4 className="text-sm font-black text-white">Titik Transit</h4>
-                    <p className="mt-0.5 text-xs text-white/40">Tiang Tumpuan / Jalur Lintasan Kabel</p>
+                    <h4 className="text-[11px] font-black text-white tracking-tight uppercase">Titik Transit</h4>
+                    <p className="mt-0.5 text-[9px] font-bold text-white/40">Tiang Tumpuan / Jalur Lintasan Kabel</p>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-4">
-                  <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
-                    <span className="material-symbols-outlined text-xl">home_work</span>
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                    <span className="material-symbols-outlined text-[15px]">business</span>
                   </div>
                   <div>
-                    <h4 className="text-sm font-black text-white">Titik Tujuan</h4>
-                    <p className="mt-0.5 text-xs text-white/40">Lokasi Akhir Perangkat Tenant (ONT/Modem)</p>
+                    <h4 className="text-[11px] font-black text-white tracking-tight uppercase">Titik Tujuan</h4>
+                    <p className="mt-0.5 text-[9px] font-bold text-white/40">ONT / Perangkat Klien Akhir</p>
                   </div>
                 </div>
               </div>
 
-              <div className="mt-6 rounded-xl bg-sky-500/10 border border-sky-500/20 p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="material-symbols-outlined text-lg text-sky-400">info</span>
-                  <span className="text-[10px] font-black uppercase tracking-widest text-sky-400">Info Jalur</span>
+              <div className="mt-4 rounded-lg bg-sky-500/10 border border-sky-500/20 p-2.5">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className="material-symbols-outlined text-[13px] text-sky-400">info</span>
+                  <span className="text-[8px] font-black uppercase tracking-widest text-sky-400">Info Jalur</span>
                 </div>
-                <p className="text-xs text-white/50 leading-relaxed">
-                  Garis biru bercahaya menunjukkan estimasi jalur kabel FO yang akan digelar dari provider hingga ke titik tujuan tenant.
+                <p className="text-[8px] font-bold text-white/50 leading-relaxed">
+                  Garis biru bercahaya menunjukkan estimasi jalur kabel FO yang akan digelar dari provider hingga ke titik tujuan.
                 </p>
               </div>
             </div>
@@ -1807,42 +1815,66 @@ export default function FoRoutePlanner({
         </MapContainer>
       </div>
 
-      <div className="pointer-events-none absolute right-4 top-20 z-[1001] w-[min(280px,calc(100%-2rem))] sm:w-[320px] md:right-6 md:top-24 md:w-[380px] xl:w-[460px]">
-        <section className="pointer-events-auto rounded-[1.75rem] border border-white/10 bg-slate-900/88 p-4 shadow-2xl backdrop-blur-md">
-          <form className="flex gap-2" onSubmit={handleSearch}>
-            <div className="relative flex-1">
-              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
-              <input
-                className="w-full rounded-xl border border-white/10 bg-white/5 pl-9 pr-3 py-1.5 text-[11px] text-white outline-none focus:border-primary/50 transition backdrop-blur-md"
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Cari lokasi penarikan..."
-                type="text"
-                value={searchQuery}
-              />
-            </div>
-            <button className="rounded-xl bg-primary px-3 py-1.5 text-[9px] font-bold text-white uppercase" disabled={isSearching}>
-              {isSearching ? "..." : "Cari"}
-            </button>
-          </form>
-          {searchError && (
-            <p className="mt-2 text-[10px] text-rose-400 font-medium px-1">{searchError}</p>
-          )}
-          {searchResults.length > 0 && (
-            <div className="mt-2.5 max-h-[145px] overflow-auto space-y-1.5 pr-1 custom-scrollbar">
-              {searchResults.map((result) => (
-                <div key={result.place_id} className="rounded-lg bg-white/5 p-2 border border-white/5 hover:bg-white/10 transition backdrop-blur-md">
-                  <p className="text-[10px] text-white/90 font-medium leading-tight mb-2">{result.display_name}</p>
-                  <div className="flex gap-1.5">
-                    <button className="flex-1 bg-white/10 py-1 rounded text-[9px] font-bold uppercase text-white/70 hover:text-white backdrop-blur-md" onClick={() => handlePickSearchResult(result, "a")}>Set A</button>
-                    <button className="flex-1 bg-white/10 py-1 rounded text-[9px] font-bold uppercase text-white/70 hover:text-white backdrop-blur-md" onClick={() => handlePickSearchResult(result, "b")}>Paste ke Lokasi</button>
-                    {customRouteMode && <button className="flex-1 bg-white/10 py-1 rounded text-[9px] font-bold uppercase text-white/70 hover:text-white backdrop-blur-md" onClick={() => handlePickSearchResult(result, "waypoint")}>+W</button>}
-                  </div>
+      {/* Top Overlay Controls: Data Info, Search, and Exit Button */}
+      <div className={`absolute top-4 inset-x-4 md:top-6 md:inset-x-6 z-[1002] pointer-events-none transition-all duration-500 ease-in-out ${isSidebarOpen ? 'sm:pl-[316px] lg:pl-[346px] xl:pl-[376px]' : 'pl-0'}`}>
+        
+        {/* Center: Data Info (Perfectly centered in the remaining viewport) */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 pointer-events-auto flex justify-center shrink-0 w-max z-10">
+          {customHeaderInfo}
+        </div>
+
+        {/* Right: Search and Exit Button */}
+        <div className="absolute top-0 right-0 flex justify-end gap-2 md:gap-3 items-start pointer-events-none">
+          <div className="pointer-events-auto w-[220px] sm:w-[300px] shrink-0">
+            <section className="w-full rounded-xl border border-white/10 bg-slate-900/80 p-1 shadow-2xl backdrop-blur-md">
+              <form className="flex gap-1" onSubmit={handleSearch}>
+                <div className="relative flex-1">
+                  <input
+                    className="w-full h-7 sm:h-8 rounded-lg border border-white/5 bg-white/5 px-3 text-[10px] sm:text-[11px] text-white outline-none focus:border-primary/50 transition backdrop-blur-md"
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Telusuri lokasi disini"
+                    type="text"
+                    value={searchQuery}
+                  />
                 </div>
-              ))}
-            </div>
-          )}
-        </section>
+                <button className="h-7 sm:h-8 w-8 flex items-center justify-center shrink-0 rounded-lg bg-primary text-white transition-transform active:scale-95 hover:bg-primary-hover disabled:opacity-50" disabled={isSearching} title="Cari lokasi" type="submit">
+                  {isSearching ? (
+                    <span className="material-symbols-outlined text-[14px] animate-spin">autorenew</span>
+                  ) : (
+                    <span className="material-symbols-outlined text-[14px]">search</span>
+                  )}
+                </button>
+              </form>
+              {searchError && (
+                <p className="mt-1 text-[9px] text-rose-400 font-medium px-1">{searchError}</p>
+              )}
+              {searchResults.length > 0 && (
+                <div className="mt-2 max-h-[145px] overflow-auto space-y-1.5 pr-1 custom-scrollbar">
+                  {searchResults.map((result) => (
+                    <button
+                      key={result.place_id}
+                      className="w-full text-left rounded-lg bg-white/5 p-2.5 border border-white/5 hover:bg-white/10 transition backdrop-blur-md flex items-start gap-2 group"
+                      onClick={() => {
+                        setFlyTarget({ lat: Number(result.lat), lng: Number(result.lon), zoom: 18 });
+                        setSearchResults([]);
+                      }}
+                      type="button"
+                    >
+                      <span className="material-symbols-outlined text-sky-400 text-[16px] shrink-0 mt-0.5 group-hover:scale-110 transition-transform">location_on</span>
+                      <p className="text-[10px] text-white/90 font-medium leading-relaxed">{result.display_name}</p>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </section>
+          </div>
+          
+          <div className="pointer-events-auto shrink-0">
+            {customExitButton}
+          </div>
+        </div>
       </div>
+
 
       {/* Floating Sidebar - Responsive Card Style */}
       <aside
@@ -1859,37 +1891,63 @@ export default function FoRoutePlanner({
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Points Console</p>
-                <h3 className="text-base font-black text-white leading-tight mt-1">Points & Waypoints</h3>
+                <h3 className="text-base font-black text-white leading-tight mt-1">Route & Waypoints</h3>
               </div>
               <div className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.2em] text-white/70">
-                <span className={`h-1.5 w-1.5 rounded-full ${activeRouteModeLabel === "Custom" ? "bg-amber-400" : "bg-emerald-400"}`} />
-                {activeRouteModeLabel}
+                <span className={`h-1.5 w-1.5 rounded-full ${customRouteMode ? "bg-amber-400" : "bg-emerald-400"}`} />
+                {customRouteMode ? "Custom Mode" : "Auto Mode"}
               </div>
             </div>
 
-            <div className="mt-3 grid grid-cols-3 gap-2">
-              <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+            <div className="mt-4 grid grid-cols-3 gap-2">
+              <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-center">
                 <p className="text-[9px] font-black uppercase tracking-widest text-white/45">Provider</p>
-                <p className="mt-1 text-sm font-black text-white">{pointSummary.provider}</p>
+                <p className="mt-1 text-[11px] font-black text-white truncate">{pointSummary.provider}</p>
               </div>
-              <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+              <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-center">
                 <p className="text-[9px] font-black uppercase tracking-widest text-white/45">Customer</p>
-                <p className="mt-1 text-sm font-black text-white">{pointSummary.customer}</p>
+                <p className="mt-1 text-[11px] font-black text-white truncate">{pointSummary.customer}</p>
               </div>
-              <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+              <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-center">
                 <p className="text-[9px] font-black uppercase tracking-widest text-white/45">Waypoint</p>
-                <p className="mt-1 text-sm font-black text-white">{pointSummary.waypoint}</p>
+                <p className="mt-1 text-[11px] font-black text-white truncate">{pointSummary.waypoint}</p>
               </div>
             </div>
 
-            {selectedProviderEntryPoints.length > 0 && (
-              <div className="mt-3 rounded-[1.25rem] border border-gold-accent/25 bg-gold-accent/10 p-3 backdrop-blur-md">
-                <p className="text-[9px] font-black uppercase tracking-[0.25em] text-gold-accent/80">Titik Masuk ISP</p>
-                <div className="mt-2 space-y-1.5">
+            {/* Mode Switcher */}
+            <div className="mt-4 flex rounded-xl bg-slate-950/50 p-1 border border-white/5 shadow-inner">
+              <button
+                className={`flex-1 rounded-lg py-1.5 text-[10px] font-black uppercase tracking-widest transition-all ${!customRouteMode ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'text-white/40 hover:text-white/80 hover:bg-white/5'}`}
+                onClick={() => setCustomRouteMode(false)}
+                type="button"
+              >
+                Otomatis
+              </button>
+              <button
+                className={`flex-1 rounded-lg py-1.5 text-[10px] font-black uppercase tracking-widest transition-all ${customRouteMode ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20' : 'text-white/40 hover:text-white/80 hover:bg-white/5'}`}
+                onClick={() => setCustomRouteMode(true)}
+                type="button"
+              >
+                Custom
+              </button>
+            </div>
+          </header>
+
+          {/* Configuration Steps */}
+          <section className="relative mt-2.5 flex min-h-0 flex-1 flex-col rounded-2xl border-white/10 sm:border sm:bg-slate-900/80 sm:p-3 sm:shadow-xl sm:backdrop-blur-md overflow-y-auto custom-scrollbar space-y-3">
+            
+            {/* Step 1: Titik Awal */}
+            <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary/20 text-[9px] font-black text-primary">1</span>
+                <p className="text-[10px] font-black uppercase tracking-widest text-white/80">Pilih Titik Awal (ISP)</p>
+              </div>
+              {selectedProviderEntryPoints.length > 0 ? (
+                <div className="space-y-1.5">
                   {selectedProviderEntryPoints.slice(0, 4).map((entryPoint, index) => (
                     <button
                       key={entryPoint.id}
-                      className="w-full rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-left transition hover:border-gold-accent/40 hover:bg-gold-accent/10"
+                      className={`w-full rounded-lg border px-3 py-2 text-left transition ${pointA?.id === entryPoint.id ? 'border-primary bg-primary/10' : 'border-white/10 bg-black/20 hover:border-gold-accent/40'}`}
                       onClick={() => applyProviderEntryPoint(entryPoint)}
                       type="button"
                     >
@@ -1897,446 +1955,215 @@ export default function FoRoutePlanner({
                         <span className="truncate text-[10px] font-black text-white">{entryPoint.label}</span>
                         <span className="text-[8px] font-black uppercase tracking-widest text-gold-accent">{index === 0 ? "Utama" : `Backup ${index}`}</span>
                       </div>
-                      <p className="mt-1 text-[9px] font-mono text-white/40">{entryPoint.lat.toFixed(6)}, {entryPoint.lng.toFixed(6)}</p>
                     </button>
                   ))}
                 </div>
-              </div>
-            )}
-
-            <div className="mt-3 rounded-[1.25rem] border border-sky-400/30 bg-gradient-to-br from-sky-500/15 to-cyan-500/10 p-3 backdrop-blur-md shadow-[0_0_0_1px_rgba(125,211,252,0.08)]">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[14px] text-sky-300">content_paste_go</span>
-                    <p className="text-[9px] font-black uppercase tracking-[0.25em] text-sky-200">Input koordinat</p>
-                  </div>
-                  <p className="mt-1 text-[10px] font-medium leading-relaxed text-sky-50/70">
-                    Tempel URL Google Maps penuh atau koordinat mentah.
-                    Mode otomatis akan mengisi A lalu B lalu waypoint.
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-3 flex flex-wrap gap-2">
-                {[
-                  { value: "b", label: "Paste ke Lokasi" },
-                  { value: "waypoint", label: "Waypoint" },
-                ].map((option) => (
-                  <button
-                    key={option.value}
-                    className={`rounded-full border px-3 py-1.5 text-[9px] font-black uppercase tracking-widest transition ${
-                      coordinateImportTarget === option.value
-                        ? "border-sky-300/40 bg-sky-400/20 text-sky-50"
-                        : "border-white/10 bg-slate-950/55 text-white/60 hover:bg-white/10"
-                    }`}
-                    onClick={() => setCoordinateImportTarget(option.value)}
-                    type="button"
-                  >
-                    {option.label}
-                  </button>
-                ))}
-                <span className="ml-auto rounded-full border border-sky-300/20 bg-slate-950/40 px-2.5 py-1 text-[9px] font-black uppercase tracking-widest text-sky-200">
-                  {activeCoordinateImportTarget === "b"
-                    ? "Lokasi aktif"
-                    : "Waypoint aktif"}
-                </span>
-              </div>
-
-              <div className="mt-2.5 grid gap-2 md:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
-                <textarea
-                  className="min-h-[80px] rounded-xl border border-white/10 bg-slate-950/65 px-3 py-2 text-[10px] font-mono leading-relaxed text-white outline-none placeholder:text-white/30 resize-none"
-                  onChange={(e) => setCoordinateImportValue(e.target.value)}
-                  placeholder="Tempel URL Maps atau koordinat seperti: https://www.google.com/maps/@-5.09,119.50,17z"
-                  rows={3}
-                  value={coordinateImportValue}
-                  spellCheck={false}
-                />
-                <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                  <p className="text-[9px] font-black uppercase tracking-[0.24em] text-white/45">
-                    Preview Deteksi
-                  </p>
-                  {importedCoordinatePreview ? (
-                    <div className="mt-2 space-y-2">
-                      <div className="rounded-lg border border-emerald-400/20 bg-emerald-400/10 px-3 py-2">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-200">
-                          Terdeteksi
-                        </p>
-                        <p className="mt-1 text-[11px] font-mono text-white">
-                          {importedCoordinatePreview.lat.toFixed(7)}, {importedCoordinatePreview.lng.toFixed(7)}
-                        </p>
-                      </div>
-                      <p className="text-[10px] leading-relaxed text-white/60">
-                        Jika diterapkan sekarang, data akan masuk ke{" "}
-                        <span className="font-bold text-white">
-                          {activeCoordinateImportTarget === "b"
-                            ? "Lokasi"
-                            : "Waypoint berikutnya"}
-                        </span>.
-                      </p>
-                    </div>
-                  ) : (
-                    <p className="mt-2 text-[10px] leading-relaxed text-white/55">
-                      Belum ada koordinat valid. Tempel tautan Google Maps penuh atau pasangan angka lat/lng.
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="mt-2.5 grid grid-cols-3 gap-1.5">
-                <button
-                  className="col-span-3 rounded-lg border border-emerald-400/30 bg-emerald-500/20 px-2 py-2 text-[9px] font-black uppercase tracking-widest text-emerald-100 transition hover:bg-emerald-500/30"
-                  onClick={() => handlePasteImportedCoordinate()}
-                  type="button"
-                >
-                  NEXT — Tempel Otomatis
-                </button>
-                <button
-                  className="rounded-lg border border-sky-300/20 bg-sky-500/20 px-2 py-1.5 text-[8px] font-black uppercase tracking-widest text-sky-100 transition hover:bg-sky-500/30"
-                  onClick={() => handlePasteImportedCoordinate("b")}
-                  type="button"
-                >
-                  Tempel ke Lokasi
-                </button>
-                <button
-                  className="col-span-2 rounded-lg border border-sky-300/20 bg-sky-500/20 px-2 py-1.5 text-[8px] font-black uppercase tracking-widest text-sky-100 transition hover:bg-sky-500/30"
-                  onClick={handleApplyImportedCoordinate}
-                  type="button"
-                >
-                  Terapkan Teks
-                </button>
-              </div>
-
-              <p className="mt-1.5 text-[8px] font-medium text-sky-50/55">
-                Contoh: `-5.0929568, 119.5018379`, `@-5.09,119.50`, atau link `google.com/maps`.
-              </p>
-            </div>
-
-            <div className="mt-2 grid grid-cols-2 gap-1.5">
-              <button
-                className={`px-2.5 py-1.5 rounded-lg border text-[9px] font-bold uppercase transition ${placementMode === "b" ? "bg-primary border-primary text-white" : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10"}`}
-                onClick={() => setPlacementMode("b")}
-                type="button"
-              >
-                Klik: Lokasi
-              </button>
-              <button
-                className={`px-2.5 py-1.5 rounded-lg border text-[9px] font-bold uppercase transition ${customRouteMode ? "bg-amber-500 border-amber-500 text-white" : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10"}`}
-                onClick={() => setCustomRouteMode(!customRouteMode)}
-                type="button"
-              >
-                {customRouteMode ? "Mode Custom" : "Mode Otomatis"}
-              </button>
-              <button
-                className={`px-2.5 py-1.5 rounded-lg border text-[9px] font-bold uppercase transition ${placementMode === "waypoint" ? "bg-emerald-500 border-emerald-500 text-white" : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10"}`}
-                onClick={() => setPlacementMode("waypoint")}
-                type="button"
-              >
-                Set W
-              </button>
-            </div>
-
-            {/* Toggle Button moved outside aside */}
-          </header>
-
-          {/* Scrollable Waypoint List */}
-          <section className="relative mt-2.5 flex min-h-0 flex-1 flex-col rounded-2xl border-white/10 sm:mt-0 sm:border sm:bg-slate-900/80 sm:p-3 sm:shadow-xl sm:backdrop-blur-md">
-            {namedPlannerRoads.length > 0 && (
-              <>
-                {isRoadPanelOpen && (
-                  <section className="flex max-h-[30vh] flex-col rounded-2xl border border-white/10 bg-slate-900/85 p-3 shadow-2xl backdrop-blur-md pointer-events-auto mb-2">
-                    <div className="mb-2 flex items-center justify-between">
-                      <p className="text-[9px] font-black uppercase tracking-widest text-sky-400">Ruas Jalan</p>
-                      <div className="flex items-center gap-1.5">
-                        <span className="rounded-full bg-sky-500/20 px-2 py-0.5 text-[9px] font-black text-sky-300">
-                          {namedPlannerRoads.length} ruas
-                        </span>
-                        <button
-                          className="flex h-6 w-6 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/70 transition hover:text-white backdrop-blur-md"
-                          onClick={() => setIsRoadPanelOpen(false)}
-                          title="Tutup panel ruas jalan"
-                          type="button"
-                        >
-                          <span className="material-symbols-outlined text-sm">close</span>
-                        </button>
-                      </div>
-                    </div>
-                    <div className="flex-1 space-y-1 overflow-auto pr-1 custom-scrollbar">
-                      {namedPlannerRoads.map((road, index) => (
-                        <div
-                          key={road.id ?? `named-road-${index}`}
-                          className="flex items-center justify-between gap-2 rounded-lg bg-white/5 px-2.5 py-1.5 backdrop-blur-md"
-                        >
-                          <div className="min-w-0 flex items-center gap-2">
-                            <span className="material-symbols-outlined shrink-0 text-[13px] text-gold-accent/70">route</span>
-                            <p className="truncate text-[10px] font-semibold text-white/90">{road.name}</p>
-                          </div>
-                          <span className="shrink-0 text-[9px] font-mono text-white/40">
-                            {Number.isFinite(Number(road.distance)) && Number(road.distance) > 0
-                              ? `${(Number(road.distance) / 1000).toFixed(2)} km`
-                              : ""}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </section>
-                )}
-                {!isRoadPanelOpen && (
-                  <button
-                    className="inline-flex items-center gap-1.5 rounded-xl glass-card backdrop-blur-xl border border-white/10 px-3 py-2 text-[10px] font-black uppercase tracking-wide text-white/70 shadow-glass-depth transition hover:border-gold-accent hover:text-gold-accent pointer-events-auto mb-2"
-                    onClick={() => setIsRoadPanelOpen(true)}
-                    type="button"
-                  >
-                    <span className="material-symbols-outlined text-sm">route</span>
-                    Ruas Jalan
-                  </button>
-                )}
-              </>
-            )}
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="text-[11px] font-black uppercase tracking-[0.15em] text-white/90">Points & Waypoints</h4>
-              <select
-                className="bg-white/5 border border-white/10 rounded-lg text-[9px] font-bold text-white/60 outline-none cursor-pointer px-2 py-1"
-                onChange={(e) => setProfile(e.target.value)}
-                value={profile}
-              >
-                <option value="driving">Driving</option>
-                <option value="cycling">Cycling</option>
-                <option value="foot">Walking</option>
-              </select>
-            </div>
-
-            <div className="flex-1 overflow-auto space-y-2 pr-1 custom-scrollbar">
-              {/* Point A — read-only, diatur dari ISP */}
-              <div className="flex flex-col gap-2 rounded-xl bg-blue-500/10 border border-blue-500/20 p-3 backdrop-blur-md">
-                <div className="flex items-center gap-3">
-                  <div className="h-7 w-7 rounded-lg bg-blue-500 flex items-center justify-center font-black text-white text-[11px] shadow-lg shadow-blue-500/20">A</div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[9px] font-black uppercase text-blue-400">Titik A (Provider)</p>
-                    <p className="text-[11px] font-mono text-white/90 truncate">{pointA ? `${pointA.lat.toFixed(5)}, ${pointA.lng.toFixed(5)}` : "Belum ditentukan"}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Waypoints with road segments */}
-              {manualWaypoints.map((point, index) => {
-                const roadToThis = plannerRoads.find(r => r.id === `manual-${index}` || r.id?.startsWith(`${index}-`));
-
-                return (
-                  <div key={point.id} className="space-y-2">
-                    {roadToThis && (
-                      <div className="mx-6 flex items-center gap-2 border-l-2 border-dashed border-white/10 py-1 pl-4">
-                        <span className="material-symbols-outlined text-[12px] text-gold-accent/70">route</span>
-                        <p className="text-[9px] font-medium text-white/40 truncate">{roadToThis.name}</p>
-                        <span className="text-[8px] font-mono text-white/30 shrink-0">
-                          {Number.isFinite(Number(roadToThis.distance)) && Number(roadToThis.distance) > 0
-                            ? `${(Number(roadToThis.distance) / 1000).toFixed(2)} km`
-                            : ""}
-                        </span>
-                      </div>
-                    )}
-                    
-                    <div className="group flex flex-col gap-2 rounded-xl bg-white/5 border border-white/10 p-3 hover:border-primary/30 transition backdrop-blur-md">
-                      <div className="flex items-center gap-3">
-                        <div className="h-7 w-7 rounded-lg bg-emerald-500 flex items-center justify-center font-black text-white text-[11px] shadow-lg shadow-emerald-500/20">{index + 1}</div>
-                        <div className="flex-1 min-w-0">
-                          <input
-                            className="bg-transparent w-full text-[10px] font-bold text-white outline-none mb-0.5"
-                            onChange={(e) => handleWaypointLabelChange(point.id, e.target.value)}
-                            placeholder={`Waypoint ${index + 1}`}
-                            value={point.label}
-                          />
-                          <p className="text-[9px] font-mono text-white/50">{point.lat.toFixed(5)}, {point.lng.toFixed(5)}</p>
-                        </div>
-                        <div className="flex flex-col gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition">
-                          <button
-                            className="p-1 text-white/40 hover:text-white hover:bg-white/10 rounded transition backdrop-blur-md"
-                            onClick={() => handleWaypointMove(point.id, "up")}
-                            title="Pindahkan ke atas"
-                            type="button"
-                          >
-                            <span className="material-symbols-outlined text-[14px]">keyboard_arrow_up</span>
-                          </button>
-                          <button
-                            className="p-1 text-white/40 hover:text-white hover:bg-white/10 rounded transition backdrop-blur-md"
-                            onClick={() => handleWaypointMove(point.id, "down")}
-                            title="Pindahkan ke bawah"
-                            type="button"
-                          >
-                            <span className="material-symbols-outlined text-[14px]">keyboard_arrow_down</span>
-                          </button>
-                        </div>
-                        <button className="opacity-100 sm:opacity-0 group-hover:opacity-100 p-1 text-rose-400 hover:bg-rose-500/20 rounded transition" onClick={() => handleWaypointDelete(point.id)}>
-                          <span className="material-symbols-outlined text-sm">delete</span>
-                        </button>
-                      </div>
-
-                      <div className="flex gap-2 items-center">
-                        <input
-                          className="flex-1 bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-[9px] font-mono text-white outline-none focus:border-emerald-500/50 backdrop-blur-md"
-                          onBlur={() => commitManualCoordinate("waypoint", point.id)}
-                          onChange={(e) => handleManualCoordinateChange("waypoint", point.id, "lat", e.target.value)}
-                          onKeyDown={(e) => e.key === "Enter" && commitManualCoordinate("waypoint", point.id)}
-                          placeholder="Latitude"
-                          value={manualInput[`waypoint-${point.id}-lat`] ?? point.lat}
-                        />
-                        <input
-                          className="flex-1 bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-[9px] font-mono text-white outline-none focus:border-emerald-500/50 backdrop-blur-md"
-                          onBlur={() => commitManualCoordinate("waypoint", point.id)}
-                          onChange={(e) => handleManualCoordinateChange("waypoint", point.id, "lng", e.target.value)}
-                          onKeyDown={(e) => e.key === "Enter" && commitManualCoordinate("waypoint", point.id)}
-                          placeholder="Longitude"
-                          value={manualInput[`waypoint-${point.id}-lng`] ?? point.lng}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-
-              {/* Point B */}
-              {pointB && (
-                <div className="space-y-2">
-                  {(() => {
-                    const lastIndex = manualWaypoints.length;
-                    const roadToB = plannerRoads.find(r => r.id === `manual-${lastIndex}` || r.id?.startsWith(`${lastIndex}-`));
-                    if (!roadToB) return null;
-                    
-                    return (
-                      <div className="mx-6 flex items-center gap-2 border-l-2 border-dashed border-white/10 py-1 pl-4">
-                        <span className="material-symbols-outlined text-[12px] text-gold-accent/70">route</span>
-                        <p className="text-[9px] font-medium text-white/40 truncate">{roadToB.name}</p>
-                        <span className="text-[8px] font-mono text-white/30 shrink-0">
-                          {Number.isFinite(Number(roadToB.distance)) && Number(roadToB.distance) > 0
-                            ? `${(Number(roadToB.distance) / 1000).toFixed(2)} km`
-                            : ""}
-                        </span>
-                      </div>
-                    );
-                  })()}
-                  
-                  <div className="flex flex-col gap-2 rounded-xl bg-pink-500/10 border border-pink-500/20 p-3">
-                    <div className="flex items-center gap-3">
-                      <div className="h-7 w-7 rounded-lg bg-pink-500 flex items-center justify-center font-black text-white text-[11px] shadow-lg shadow-pink-500/20">B</div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[9px] font-black uppercase text-pink-400">Titik Lokasi</p>
-                        <p className="text-[11px] font-mono text-white/90 truncate">{pointB ? `${pointB.lat.toFixed(5)}, ${pointB.lng.toFixed(5)}` : "Belum ditentukan"}</p>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2 items-center">
-                      <input
-                        className="flex-1 bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-[9px] font-mono text-white outline-none focus:border-pink-500/50 backdrop-blur-md"
-                        onBlur={() => commitManualCoordinate("b")}
-                        onChange={(e) => handleManualCoordinateChange("b", null, "lat", e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && commitManualCoordinate("b")}
-                        placeholder="Latitude"
-                        value={manualInput["b-static-lat"] ?? (pointB?.lat ?? "")}
-                      />
-                      <input
-                        className="flex-1 bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-[9px] font-mono text-white outline-none focus:border-pink-500/50 backdrop-blur-md"
-                        onBlur={() => commitManualCoordinate("b")}
-                        onChange={(e) => handleManualCoordinateChange("b", null, "lng", e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && commitManualCoordinate("b")}
-                        placeholder="Longitude"
-                        value={manualInput["b-static-lng"] ?? (pointB?.lng ?? "")}
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              {!pointB && (
-                <div className="flex flex-col gap-2 rounded-xl bg-pink-500/10 border border-pink-500/20 p-3">
-                  <div className="flex items-center gap-3">
-                    <div className="h-7 w-7 rounded-lg bg-pink-500 flex items-center justify-center font-black text-white text-[11px] shadow-lg shadow-pink-500/20">B</div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[9px] font-black uppercase text-pink-400">Titik Lokasi</p>
-                      <p className="text-[11px] font-mono text-white/90 truncate">Belum ditentukan</p>
-                    </div>
-                  </div>
-                </div>
+              ) : (
+                <p className="text-[9px] text-white/40 font-medium">Belum ada titik masuk ISP yang tersedia.</p>
               )}
             </div>
 
-            {/* Bottom Actions */}
-            <div className="mt-3 pt-3 border-t border-white/10 space-y-2.5 shrink-0">
-              {/* Valhalla status indicator */}
-              {valhallaStatus === "offline" ? (
-                <div className="flex items-center gap-2 rounded-lg bg-rose-500/10 border border-rose-500/20 px-2.5 py-2">
-                  <span className="h-2 w-2 rounded-full bg-rose-400 shrink-0" />
-                  <span className="text-[9px] font-black uppercase tracking-widest text-rose-400 leading-tight">
-                    Valhalla Offline — pakai Custom Jalur
-                  </span>
+            {/* Step 2: Titik Tujuan */}
+            <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+              <div className="flex items-center justify-between gap-2 mb-3">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary/20 text-[9px] font-black text-primary">2</span>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-white/80">Pilih Titik Tujuan</p>
                 </div>
-              ) : valhallaStatus === "online" ? (
-                <div className="flex items-center gap-2 px-0.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shrink-0" />
-                  <span className="text-[9px] font-bold uppercase tracking-widest text-emerald-400/70">Valhalla Online</span>
+                <div className="flex rounded-md bg-slate-950/50 p-0.5 border border-white/5">
+                  <button
+                    className={`px-2 py-1 rounded text-[8px] font-black uppercase tracking-widest transition-all ${placementMode === 'b' ? 'bg-primary text-white shadow-md' : 'text-white/40 hover:text-white/80'}`}
+                    onClick={() => {
+                      setPlacementMode('b');
+                      setCoordinateImportTarget('b');
+                    }}
+                    type="button"
+                  >
+                    Klik
+                  </button>
+                  <button
+                    className={`px-2 py-1 rounded text-[8px] font-black uppercase tracking-widest transition-all ${coordinateImportTarget === 'b' && placementMode !== 'b' ? 'bg-sky-500 text-white shadow-md' : 'text-white/40 hover:text-white/80'}`}
+                    onClick={() => {
+                      setPlacementMode('none');
+                      setCoordinateImportTarget('b');
+                    }}
+                    type="button"
+                  >
+                    Paste
+                  </button>
+                </div>
+              </div>
+
+              {placementMode === 'b' ? (
+                <div className="rounded-lg bg-primary/10 p-2.5 border border-primary/20 text-center animate-fade-in-up">
+                  <span className="material-symbols-outlined text-primary mb-1 text-lg">location_on</span>
+                  <p className="text-[9px] text-primary/90 leading-relaxed font-medium">
+                    Klik pada peta untuk memilih titik lokasi tujuan.
+                  </p>
+                  <p className="text-[8px] text-primary/50 mt-1">
+                    Jika lokasi tidak bisa terdeteksi, silakan gunakan fitur Paste.
+                  </p>
+                </div>
+              ) : coordinateImportTarget === 'b' ? (
+                <div className="space-y-2 animate-fade-in-up">
+                  <textarea
+                    className="w-full min-h-[60px] rounded-lg border border-white/10 bg-slate-950/65 px-2.5 py-2 text-[10px] font-mono leading-relaxed text-white outline-none resize-none placeholder-white/30 transition focus:border-sky-500/50"
+                    onChange={(e) => setCoordinateImportValue(e.target.value)}
+                    placeholder="Tempel URL Maps atau koordinat"
+                    value={coordinateImportValue}
+                  />
+                  <button
+                    className="w-full rounded-md bg-sky-500/20 border border-sky-400/30 py-2 text-[9px] font-black text-sky-200 uppercase tracking-widest hover:bg-sky-500/30 transition-all active:scale-[0.98]"
+                    onClick={() => handlePasteImportedCoordinate("b")}
+                    type="button"
+                  >
+                    Terapkan Paste
+                  </button>
                 </div>
               ) : (
-                <div className="flex items-center gap-2 px-0.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
-                  <span className="text-[9px] font-bold uppercase tracking-widest text-white/30">Memeriksa server...</span>
+                <div className="rounded-lg border border-white/5 bg-slate-950/40 p-2.5 text-center">
+                  <p className="text-[9px] text-white/40 font-medium">Pilih metode penentuan lokasi di atas.</p>
                 </div>
               )}
-              <div className="grid grid-cols-[1fr_1fr_auto_auto] gap-2">
-                <button
-                  className="btn-premium text-[9px] font-black uppercase tracking-widest py-2.5 px-2.5 rounded-xl transition disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:transform-none"
-                  disabled={!canGenerateRoute || isCalculating || valhallaStatus === "offline"}
-                  onClick={() => void handleGenerateValhallaRoute()}
-                  title={valhallaStatus === "offline" ? "Server Valhalla tidak aktif" : "Hitung jalur otomatis via Valhalla"}
-                  type="button"
-                >
-                  {isCalculating ? "Calculating..." : "Jalur Otomatis"}
-                </button>
-                <button
-                  className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-md px-2.5 py-2.5 text-[9px] font-black uppercase tracking-widest text-white/80 transition hover:border-gold-accent/40 hover:bg-white/10 hover:text-gold-accent disabled:opacity-30 disabled:cursor-not-allowed"
-                  disabled={!canGenerateManualRoute || isCalculating}
-                  onClick={handleGenerateManualRoute}
-                  type="button"
-                >
-                  Custom Jalur
-                </button>
-                <button
-                  className="p-2.5 bg-white/5 border border-white/10 text-white/70 hover:text-white rounded-xl transition backdrop-blur-md"
-                  onClick={handleUndoToInitial}
-                  title="Undo ke setelan awal"
-                  type="button"
-                >
-                  <span className="material-symbols-outlined text-sm">undo</span>
-                </button>
-                <button
-                  className="p-2.5 bg-white/5 border border-white/10 text-white/70 hover:text-white rounded-xl transition backdrop-blur-md"
-                  onClick={handleResetPlanner}
-                  title="Reset"
-                  type="button"
-                >
-                  <span className="material-symbols-outlined text-sm">restart_alt</span>
-                </button>
-              </div>
-              <button
-                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-[9px] font-black uppercase py-2.5 rounded-xl transition shadow-lg shadow-emerald-900/20 disabled:opacity-50"
-                disabled={!routeData?.geometryCoordinates || routeData.geometryCoordinates.length < 2 || isCalculating}
-                onClick={handleApplyPlanner}
-                type="button"
-              >
-                Terapkan Draft
-              </button>
             </div>
 
+            {/* Step 3: Waypoint (Custom Mode Only) */}
+            {customRouteMode && (
+              <div className="rounded-xl border border-white/10 bg-white/5 p-3 animate-fade-in-up">
+                <div className="flex items-center justify-between gap-2 mb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-amber-500/20 text-[9px] font-black text-amber-500">3</span>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-white/80">Set Waypoint</p>
+                  </div>
+                  <button
+                    className={`px-3 py-1 rounded-md text-[8px] font-black uppercase tracking-widest transition-all ${placementMode === 'waypoint' ? 'bg-amber-500 text-white shadow-md' : 'bg-slate-950/50 text-white/40 border border-white/5 hover:text-white/80'}`}
+                    onClick={() => {
+                      setPlacementMode('waypoint');
+                      setCoordinateImportTarget('waypoint');
+                    }}
+                    type="button"
+                  >
+                    {placementMode === 'waypoint' ? 'Aktif' : 'Aktifkan'}
+                  </button>
+                </div>
+
+                {placementMode === 'waypoint' ? (
+                  <div className="rounded-lg bg-amber-500/10 p-2.5 border border-amber-500/20 text-center animate-fade-in-up">
+                    <span className="material-symbols-outlined text-amber-500 mb-1 text-lg">add_location_alt</span>
+                    <p className="text-[9px] text-amber-500/90 leading-relaxed font-medium">
+                      Klik pada peta untuk menambahkan titik lintasan (waypoint).
+                    </p>
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-white/5 bg-slate-950/40 p-2.5 text-center">
+                    <p className="text-[9px] text-white/40 font-medium">Klik tombol Aktifkan di atas untuk mulai menambah Waypoint di peta.</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Step 4: Lihat Jalur */}
+            <div className="mt-2">
+              <button
+                className={`w-full rounded-xl py-2 text-[9px] font-black uppercase tracking-widest text-white shadow-lg transition-all flex justify-center items-center gap-2 active:scale-[0.98] ${
+                  isCalculating 
+                    ? 'bg-slate-700 text-white/50 cursor-not-allowed' 
+                    : !pointA || !pointB
+                    ? 'bg-primary/50 text-white/40 cursor-not-allowed'
+                    : 'bg-primary hover:bg-primary-hover shadow-primary/30'
+                }`}
+                onClick={customRouteMode ? handleGenerateManualRoute : () => void handleGenerateValhallaRoute()}
+                disabled={isCalculating || !pointA || !pointB || (!customRouteMode && valhallaStatus === "offline")}
+                type="button"
+              >
+                {isCalculating ? (
+                  <>
+                    <span className="material-symbols-outlined text-[12px] animate-spin">autorenew</span>
+                    Menghitung...
+                  </>
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined text-[12px]">route</span>
+                    Lihat Jalur
+                  </>
+                )}
+              </button>
+              {!customRouteMode && valhallaStatus === "offline" && (
+                <p className="text-center text-[9px] text-rose-400 mt-2 font-medium">
+                  Server otomatis sedang offline. Silakan gunakan mode Custom.
+                </p>
+              )}
+            </div>
+
+            {/* Step 5: Terapkan Jalur */}
+            {routeData?.geometryCoordinates?.length > 1 && (
+              <div className="mt-3 pt-3 border-t border-white/10 space-y-3 animate-fade-in-up">
+                {/* Route Result Summary */}
+                <div className="flex items-center justify-between rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[14px] text-emerald-400">check_circle</span>
+                    <span className="text-[9px] font-black uppercase tracking-widest text-emerald-400">Jalur Tersedia</span>
+                  </div>
+                  <span className="text-[10px] font-mono font-bold text-white">
+                    {(Number(routeData.distance) / 1000).toFixed(2)} km
+                  </span>
+                </div>
+
+                {/* Edit Reason Input (Only if editing an existing route) */}
+                {initialControlPoints.length > 0 && (
+                  <div>
+                    <label className="mb-1.5 block text-[9px] font-black uppercase tracking-widest text-white/60">Alasan Ubah Jalur</label>
+                    <textarea 
+                      className="w-full min-h-[60px] rounded-xl border border-white/10 bg-slate-950/65 px-3 py-2 text-[10px] font-medium leading-relaxed text-white outline-none placeholder:text-white/30 resize-none focus:border-amber-500/50 transition-colors"
+                      placeholder="Masukkan alasan mengapa jalur ini diubah..."
+                      value={editReason}
+                      onChange={(e) => setEditReason(e.target.value)}
+                    />
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  <button
+                    className="py-1.5 px-2 bg-white/5 border border-white/10 text-white/70 hover:text-white rounded-xl transition backdrop-blur-md flex justify-center items-center gap-1.5 text-[8px] font-black uppercase tracking-widest"
+                    onClick={handleUndoToInitial}
+                    title="Undo ke setelan awal"
+                    type="button"
+                  >
+                    <span className="material-symbols-outlined text-[12px]">undo</span> Undo
+                  </button>
+                  <button
+                    className="py-1.5 px-2 bg-white/5 border border-white/10 text-white/70 hover:text-rose-400 hover:border-rose-400/30 rounded-xl transition backdrop-blur-md flex justify-center items-center gap-1.5 text-[8px] font-black uppercase tracking-widest"
+                    onClick={handleResetPlanner}
+                    title="Reset Semua"
+                    type="button"
+                  >
+                    <span className="material-symbols-outlined text-[12px]">restart_alt</span> Reset
+                  </button>
+                </div>
+
+                <button
+                  className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-[9px] font-black uppercase tracking-widest py-2 rounded-xl transition shadow-lg shadow-emerald-900/20 disabled:opacity-50 flex items-center justify-center gap-2 active:scale-[0.98]"
+                  disabled={!routeData?.geometryCoordinates || routeData.geometryCoordinates.length < 2 || isCalculating || (initialControlPoints.length > 0 && editReason.trim() === '')}
+                  onClick={handleApplyPlanner}
+                  type="button"
+                >
+                  <span className="material-symbols-outlined text-[12px]">save</span>
+                  {initialControlPoints.length > 0 ? "Terapkan Perubahan" : "Terapkan Jalur"}
+                </button>
+              </div>
+            )}
           </section>
         </div>
       </aside>
 
       {/* Desktop Sidebar Toggle Button (Outside aside to avoid overflow clipping) */}
       <button
-        className={`hidden sm:flex absolute z-[1001] top-1/2 -translate-y-1/2 h-10 w-10 items-center justify-center rounded-r-xl border border-l-0 border-white/10 bg-slate-900/80 text-white shadow-2xl backdrop-blur-md transition-all duration-500 ease-in-out hover:bg-primary pointer-events-auto ${isSidebarOpen ? "left-[calc(theme(spacing.4)+300px)] lg:left-[calc(theme(spacing.4)+330px)] xl:left-[calc(theme(spacing.4)+360px)]" : "left-4"}`}
+        className={`hidden sm:flex absolute z-[1001] top-1/2 -translate-y-1/2 h-14 w-6 items-center justify-center rounded-r-xl border border-l-0 border-white/10 bg-slate-900/80 text-white/70 hover:text-white shadow-[4px_0_15px_rgba(0,0,0,0.5)] backdrop-blur-md transition-all duration-500 ease-in-out hover:bg-slate-800/90 pointer-events-auto ${isSidebarOpen ? "left-[calc(theme(spacing.4)+300px)] lg:left-[calc(theme(spacing.4)+330px)] xl:left-[calc(theme(spacing.4)+360px)]" : "left-4"}`}
         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
         title={isSidebarOpen ? "Hide Sidebar" : "Show Sidebar"}
         type="button"
       >
-        <span className="material-symbols-outlined">
+        <span className="material-symbols-outlined text-lg">
           {isSidebarOpen ? "chevron_left" : "chevron_right"}
         </span>
       </button>
@@ -2352,50 +2179,96 @@ export default function FoRoutePlanner({
         </span>
       </button>
 
-      {/* Basemap Switcher Overlay - Bottom Right */}
-      <div className="absolute bottom-3 right-3 sm:bottom-6 sm:right-6 z-[800] flex flex-col gap-1.5 sm:gap-2 pointer-events-none transition-opacity duration-500" style={{ opacity: isSidebarOpen && window.innerWidth < 640 ? 0 : 1 }}>
-        <div className="flex flex-col gap-1 sm:gap-1.5 p-1.5 sm:p-2 rounded-2xl border border-white/10 bg-slate-900/80 backdrop-blur-md pointer-events-auto">
-          {/* Zoom Controls */}
+      {/* Top Right Controls - Below Exit Button */}
+      <div className="absolute top-16 right-4 sm:top-[88px] md:right-6 z-[800] flex flex-col items-end gap-2 pointer-events-none transition-opacity duration-500" style={{ opacity: isSidebarOpen && window.innerWidth < 640 ? 0 : 1 }}>
+        {/* Zoom Controls */}
+        <div className="flex flex-col rounded-xl border border-white/10 bg-slate-900/80 backdrop-blur-md pointer-events-auto shadow-xl overflow-hidden w-9 sm:w-10">
           <button
-            className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl border border-white/10 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white transition flex items-center justify-center"
+            className="w-full h-9 sm:h-10 text-white/70 hover:bg-white/10 hover:text-white transition flex items-center justify-center"
             onClick={() => mapInstance && mapInstance.zoomIn()}
             title="Perbesar"
             type="button"
           >
             <span className="material-symbols-outlined text-base sm:text-lg">add</span>
           </button>
+          <div className="h-px bg-white/10 w-full" />
           <button
-            className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl border border-white/10 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white transition flex items-center justify-center"
+            className="w-full h-9 sm:h-10 text-white/70 hover:bg-white/10 hover:text-white transition flex items-center justify-center"
             onClick={() => mapInstance && mapInstance.zoomOut()}
             title="Perkecil"
             type="button"
           >
             <span className="material-symbols-outlined text-base sm:text-lg">remove</span>
           </button>
-          <div className="h-px bg-white/10 mx-1" />
-          {/* Tombol Pusat KIMA - di dalam grup */}
-          <button
-            className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl border border-gold-accent/30 flex items-center justify-center transition text-gold-accent hover:bg-gold-accent hover:text-[#0f141e] bg-white/5"
-            onClick={handleRecenterToKima}
-            title="Pusatkan ke KIMA"
-          >
-            <span className="material-symbols-outlined text-base sm:text-lg">my_location</span>
-          </button>
-          <div className="h-px bg-white/10 mx-1" />
-          {BASEMAP_OPTIONS.map((option) => (
-            <button
-              key={option.key}
-              className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl border flex items-center justify-center transition ${basemap === option.key ? "bg-primary border-primary text-white" : "bg-white/5 border-white/5 text-white/40 hover:bg-white/10 hover:text-white"}`}
-              onClick={() => setBasemap(option.key)}
-              title={option.label}
-            >
-              <span className="material-symbols-outlined text-base sm:text-lg">
-                {option.key === 'satellite' ? 'satellite_alt' : option.key === 'osm' ? 'map' : 'dark_mode'}
-              </span>
-            </button>
-          ))}
         </div>
-        <button className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl border border-white/10 bg-slate-900/80 backdrop-blur-md text-white/70 hover:text-white transition pointer-events-auto flex items-center justify-center" onClick={handleExportGeoJson} title="Export GeoJSON">
+
+        {/* Map Type Dropdown */}
+        <div className="relative group pointer-events-auto focus-within:z-10" tabIndex={-1}>
+          <button
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl border-2 border-white/20 bg-slate-900 shadow-xl overflow-hidden transition-all focus:outline-none focus:border-primary relative block group-focus-within:ring-2 group-focus-within:ring-primary/50"
+            title="Ubah Mode Peta"
+            type="button"
+          >
+            <div 
+              className="absolute inset-0 bg-cover bg-center transition-transform hover:scale-110"
+              style={{
+                backgroundImage: basemap === 'satellite' 
+                  ? 'url(https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/4/8/13)'
+                  : basemap === 'osm'
+                  ? 'url(https://a.tile.openstreetmap.org/4/13/8.png)'
+                  : basemap === 'light'
+                  ? 'url(https://a.basemaps.cartocdn.com/light_all/4/13/8.png)'
+                  : 'url(https://a.basemaps.cartocdn.com/dark_all/4/13/8.png)'
+              }}
+            />
+          </button>
+          
+          {/* Dropdown menu appearing on click (focus-within) */}
+          <div className="absolute right-0 top-full mt-2 flex flex-col gap-1 opacity-0 pointer-events-none group-focus-within:opacity-100 group-focus-within:pointer-events-auto transition-all origin-top scale-95 group-focus-within:scale-100 z-50">
+            {BASEMAP_OPTIONS.filter(o => o.key !== basemap).map((option) => (
+              <button
+                key={option.key}
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl border border-white/10 hover:border-primary bg-slate-900 shadow-xl overflow-hidden relative transition-all block"
+                onClick={() => setBasemap(option.key)}
+                title={option.label}
+                type="button"
+              >
+                <div 
+                  className="absolute inset-0 bg-cover bg-center transition-transform hover:scale-110"
+                  style={{
+                    backgroundImage: option.key === 'satellite' 
+                      ? 'url(https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/4/8/13)'
+                      : option.key === 'osm'
+                      ? 'url(https://a.tile.openstreetmap.org/4/13/8.png)'
+                      : option.key === 'light'
+                      ? 'url(https://a.basemaps.cartocdn.com/light_all/4/13/8.png)'
+                      : 'url(https://a.basemaps.cartocdn.com/dark_all/4/13/8.png)'
+                  }}
+                />
+                <div className="absolute inset-0 bg-black/10 transition-opacity hover:bg-transparent" />
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom Right Controls */}
+      <div className="absolute bottom-4 right-4 sm:bottom-6 sm:right-6 z-[800] flex flex-col items-end gap-2 pointer-events-none transition-opacity duration-500" style={{ opacity: isSidebarOpen && window.innerWidth < 640 ? 0 : 1 }}>
+        <button
+          className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl border border-gold-accent/30 flex items-center justify-center transition text-gold-accent hover:bg-gold-accent hover:text-[#0f141e] bg-slate-900/80 backdrop-blur-md pointer-events-auto shadow-xl"
+          onClick={handleRecenterToKima}
+          title="Pusatkan ke KIMA"
+          type="button"
+        >
+          <span className="material-symbols-outlined text-base sm:text-lg">my_location</span>
+        </button>
+        
+        <button 
+          className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl border border-white/10 bg-slate-900/80 backdrop-blur-md text-white/70 hover:text-white hover:border-white/20 transition pointer-events-auto flex items-center justify-center shadow-xl" 
+          onClick={handleExportGeoJson} 
+          title="Export GeoJSON"
+          type="button"
+        >
           <span className="material-symbols-outlined text-base sm:text-lg">download</span>
         </button>
       </div>

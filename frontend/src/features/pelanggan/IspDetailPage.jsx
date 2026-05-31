@@ -1211,70 +1211,7 @@ function IspDetailPage({
 
                         {activeTab === "overview" && (
                             <div className="space-y-2">
-                                <section className="glass-card backdrop-blur-xl rounded-lg p-4 border-white/10 shadow-glass-depth relative overflow-hidden">
-                                    <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-4">
-                                        <div>
-                                            <p className="text-[9px] font-black uppercase tracking-[0.3em] text-gold-accent/60">Titik Masuk FO</p>
-                                            <h3 className="mt-1 text-lg font-black text-white uppercase tracking-widest">Entry Point ISP</h3>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[9px] font-black uppercase tracking-widest text-white/50">
-                                                {(detail?.entryPoints || []).length} Titik
-                                            </span>
-                                            {!isTeknisi && (
-                                                <button
-                                                    type="button"
-                                                    className="flex items-center gap-1 rounded-lg bg-gold-accent/10 border border-gold-accent/30 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-gold-accent hover:bg-gold-accent hover:text-[#0f141e] transition-all"
-                                                    onClick={() => setEntryPointEditor({ mode: "add", data: { label: "", latitude: "", longitude: "", status: "aktif", fiberType: "", coreCapacity: "", description: "", isDefault: false } })}
-                                                >
-                                                    <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>add</span>
-                                                    Tambah Titik
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
-                                    {(detail?.entryPoints || []).length === 0 ? (
-                                        <div className="rounded-xl border border-dashed border-white/10 bg-black/20 p-5 text-center text-[10px] font-bold uppercase tracking-widest text-white/30">
-                                            Belum ada titik masuk FO untuk ISP ini.
-                                        </div>
-                                    ) : (
-                                        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-                                            {detail.entryPoints.map((point) => (
-                                                <div key={point.id} className="rounded-xl border border-white/10 bg-black/20 p-4 backdrop-blur-md">
-                                                    <div className="mb-3 flex items-start justify-between gap-3">
-                                                        <div>
-                                                            <p className="text-sm font-black text-white">{point.label}</p>
-                                                            <p className="mt-1 text-[9px] font-bold uppercase tracking-widest text-white/35">{point.latitude}, {point.longitude}</p>
-                                                        </div>
-                                                        <div className="flex flex-col items-end gap-1">
-                                                            <span className={`rounded-full px-2 py-1 text-[8px] font-black uppercase tracking-widest ${point.status === "aktif" ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : point.status === "draft" ? "bg-amber-500/10 text-amber-400 border border-amber-500/20" : "bg-white/5 text-white/40 border border-white/10"}`}>
-                                                                {point.status}
-                                                            </span>
-                                                            {point.isDefault && <span className="rounded-full border border-gold-accent/20 bg-gold-accent/10 px-2 py-1 text-[8px] font-black uppercase tracking-widest text-gold-accent">Default</span>}
-                                                        </div>
-                                                    </div>
-                                                    <div className="grid grid-cols-2 gap-2 text-[9px] font-bold uppercase tracking-widest text-white/40">
-                                                        <span>Jenis: <b className="text-white/70">{point.fiberType || "-"}</b></span>
-                                                        <span>Core: <b className="text-white/70">{point.coreCapacity ?? "-"}</b></span>
-                                                    </div>
-                                                    {(point.capacityNote || point.description) && (
-                                                        <p className="mt-3 text-[10px] font-medium leading-relaxed text-white/45">{point.capacityNote || point.description}</p>
-                                                    )}
-                                                    {!isTeknisi && (
-                                                        <div className="mt-3 flex items-center gap-2 border-t border-white/5 pt-3">
-                                                            <button type="button" className="flex items-center gap-1 text-[9px] font-bold text-white/40 hover:text-gold-accent transition-colors" onClick={() => setEntryPointEditor({ mode: "edit", data: { id: point.id, label: point.label, latitude: String(point.latitude), longitude: String(point.longitude), status: point.status, fiberType: point.fiberType || "", coreCapacity: point.coreCapacity != null ? String(point.coreCapacity) : "", description: point.description || "", isDefault: point.isDefault } })}>
-                                                                <span className="material-symbols-outlined" style={{ fontSize: "13px" }}>edit</span>Edit
-                                                            </button>
-                                                            <button type="button" className="flex items-center gap-1 text-[9px] font-bold text-white/40 hover:text-red-400 transition-colors" onClick={() => handleDeleteEntryPoint(point.id)}>
-                                                                <span className="material-symbols-outlined" style={{ fontSize: "13px" }}>delete</span>Hapus
-                                                            </button>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </section>
+
                                 {/* Stats Cards */}
                                 <section className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-12">
                                     {/* Card 1: Total Lokasi */}
@@ -1780,62 +1717,112 @@ function IspDetailPage({
                         )}
 
                         {activeTab === "jalur" && (
-                            <>
-                            <FoRouteMultiPreview
-                                tenants={allTenants}
-                                ispLogoUrl={detail?.logo_url ?? isp.logo_url ?? ""}
-                                ispName={ispName}
-                                onTenantClick={(tenantId) => {
-                                    const tenant = allTenants.find((t) => t.id === tenantId);
-                                    if (tenant) onOpenTenant(tenant, "jalur");
-                                }}
-                            />
-                            {/* Entry Points panel in Peta Jalur tab */}
-                            <section className="glass-card backdrop-blur-xl rounded-xl p-4 border-white/10 shadow-glass-depth mt-4">
-                                <div className="flex items-center justify-between mb-3">
-                                    <div className="flex items-center gap-2">
-                                        <span className="h-3.5 w-1 bg-gold-accent rounded-full" />
-                                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white">Titik Masuk FO</p>
-                                        <span className="text-[9px] font-bold text-white/30">{(detail?.entryPoints || []).length} titik</span>
+                            <div className="space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                                {/* Header Section */}
+                                <section className="glass-card backdrop-blur-xl rounded-xl p-4 border-white/10 shadow-glass-depth relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 w-32 h-32 bg-gold-accent/5 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+                                    <div className="relative z-10 flex flex-col lg:flex-row lg:items-end justify-between gap-3">
+                                        <div className="space-y-1.5">
+                                            <div className="flex items-center gap-2">
+                                                <span className="h-4 w-1 bg-gold-accent rounded-full" />
+                                                <h2 className="text-[12px] font-black text-white tracking-widest uppercase">Pemetaan Jalur FO</h2>
+                                            </div>
+                                            <p className="text-[9px] font-bold text-white/30 tracking-wider">Visualisasi rute layanan ke lokasi dan manajemen titik masuk ISP.</p>
+                                        </div>
                                     </div>
-                                    {!isTeknisi && (
-                                        <button type="button" className="flex items-center gap-1 rounded-lg bg-gold-accent/10 border border-gold-accent/30 px-2.5 py-1 text-[9px] font-black uppercase tracking-widest text-gold-accent hover:bg-gold-accent hover:text-[#0f141e] transition-all" onClick={() => setEntryPointEditor({ mode: "add", data: { label: "", latitude: "", longitude: "", status: "aktif", fiberType: "", coreCapacity: "", description: "", isDefault: false } })}>
-                                            <span className="material-symbols-outlined" style={{ fontSize: "13px" }}>add</span>Tambah
-                                        </button>
-                                    )}
-                                </div>
-                                <IspEntryPointMap
-                                    entryPoints={detail?.entryPoints || []}
-                                    readOnly={isTeknisi}
-                                    onAddPoint={(lat, lng) => setEntryPointEditor({ mode: "add", data: { label: "", latitude: lat, longitude: lng, status: "aktif", fiberType: "", coreCapacity: "", description: "", isDefault: false } })}
-                                    onMovePoint={handleMoveEntryPoint}
-                                    onEditPoint={(point) => setEntryPointEditor({ mode: "edit", data: { id: point.id, label: point.label, latitude: String(point.latitude), longitude: String(point.longitude), status: point.status, fiberType: point.fiberType || "", coreCapacity: point.coreCapacity != null ? String(point.coreCapacity) : "", description: point.description || "", isDefault: point.isDefault } })}
-                                    onDeletePoint={handleDeleteEntryPoint}
-                                />
-                                {(detail?.entryPoints || []).length > 0 && (
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mt-3">
-                                        {detail.entryPoints.map((point) => (
-                                            <div key={point.id} className="flex items-center justify-between gap-2 rounded-lg bg-black/20 border border-white/10 px-3 py-2">
-                                                <div className="min-w-0">
-                                                    <p className="text-[11px] font-bold text-white truncate">{point.label}</p>
-                                                    <p className="text-[9px] text-white/30">{point.latitude}, {point.longitude}</p>
-                                                </div>
-                                                {!isTeknisi && (
-                                                    <div className="flex items-center gap-1 shrink-0">
-                                                        <button type="button" className="w-6 h-6 flex items-center justify-center rounded-md text-white/30 hover:text-gold-accent transition-colors" onClick={() => setEntryPointEditor({ mode: "edit", data: { id: point.id, label: point.label, latitude: String(point.latitude), longitude: String(point.longitude), status: point.status, fiberType: point.fiberType || "", coreCapacity: point.coreCapacity != null ? String(point.coreCapacity) : "", description: point.description || "", isDefault: point.isDefault } })}>
-                                                            <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>edit</span>
-                                                        </button>
-                                                        <button type="button" className="w-6 h-6 flex items-center justify-center rounded-md text-white/30 hover:text-red-400 transition-colors" onClick={() => handleDeleteEntryPoint(point.id)}>
-                                                            <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>delete</span>
-                                                        </button>
+                                </section>
+
+                                {/* Main Map & Entry Points Grid */}
+                                <div className="grid grid-cols-1 xl:grid-cols-12 gap-5">
+                                    {/* Main Route Map */}
+                                    <div className="xl:col-span-8 flex flex-col">
+                                        <FoRouteMultiPreview
+                                            tenants={allTenants}
+                                            ispLogoUrl={detail?.logo_url ?? isp.logo_url ?? ""}
+                                            ispName={ispName}
+                                            onTenantClick={(tenantId) => {
+                                                const tenant = allTenants.find((t) => t.id === tenantId);
+                                                if (tenant) onOpenTenant(tenant, "jalur");
+                                            }}
+                                        />
+                                    </div>
+
+                                    {/* Entry Points Panel */}
+                                    <div className="xl:col-span-4 flex flex-col">
+                                        <section className="glass-card backdrop-blur-xl rounded-xl border border-white/10 shadow-glass-depth flex flex-col flex-1 max-h-[720px] overflow-hidden bg-white/[0.02]">
+                                            <div className="px-3 py-2 border-b border-white/5 bg-white/[0.02]">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="material-symbols-outlined text-[14px] text-gold-accent drop-shadow-md">pin_drop</span>
+                                                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-white drop-shadow-md">Titik Masuk ISP</h3>
                                                     </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-[8px] font-black text-white/50 uppercase tracking-widest shadow-inner-glass">
+                                                            {(detail?.entryPoints || []).length} Titik
+                                                        </span>
+                                                        {!isTeknisi && (
+                                                            <button 
+                                                                type="button" 
+                                                                className="flex items-center justify-center w-6 h-6 rounded-md bg-gold-accent/10 border border-gold-accent/20 text-gold-accent hover:bg-gold-accent hover:text-[#0f141e] transition-all shadow-sm" 
+                                                                onClick={() => setEntryPointEditor({ mode: "add", data: { label: "", latitude: "", longitude: "", status: "aktif", fiberType: "", coreCapacity: "", description: "", isDefault: false } })}
+                                                                title="Tambah Titik"
+                                                            >
+                                                                <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>add</span>
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Map Container */}
+                                            <div className="p-2 border-b border-white/5 bg-black/20">
+                                                <IspEntryPointMap
+                                                    entryPoints={detail?.entryPoints || []}
+                                                    readOnly={isTeknisi}
+                                                    onAddPoint={(lat, lng) => setEntryPointEditor({ mode: "add", data: { label: "", latitude: lat, longitude: lng, status: "aktif", fiberType: "", coreCapacity: "", description: "", isDefault: false } })}
+                                                    onMovePoint={handleMoveEntryPoint}
+                                                    onEditPoint={(point) => setEntryPointEditor({ mode: "edit", data: { id: point.id, label: point.label, latitude: String(point.latitude), longitude: String(point.longitude), status: point.status, fiberType: point.fiberType || "", coreCapacity: point.coreCapacity != null ? String(point.coreCapacity) : "", description: point.description || "", isDefault: point.isDefault } })}
+                                                    onDeletePoint={handleDeleteEntryPoint}
+                                                />
+                                            </div>
+
+                                            {/* List of Entry Points */}
+                                            <div className="p-2 flex-1 overflow-y-auto space-y-1.5 relative z-10 custom-scrollbar bg-transparent">
+                                                {(detail?.entryPoints || []).length === 0 ? (
+                                                    <div className="flex flex-col items-center justify-center h-full py-12 opacity-30">
+                                                        <span className="material-symbols-outlined text-3xl mb-3">location_off</span>
+                                                        <p className="text-[10px] font-bold uppercase tracking-widest text-center">Belum Ada Titik</p>
+                                                    </div>
+                                                ) : (
+                                                    detail.entryPoints.map((point) => (
+                                                        <div key={point.id} className="group flex items-center justify-between gap-3 rounded-xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] hover:border-white/10 p-3 transition-all">
+                                                            <div className="min-w-0 flex-1">
+                                                                <div className="flex items-center gap-2 mb-1.5">
+                                                                    {point.isDefault && (
+                                                                        <span className="w-2 h-2 rounded-full bg-gold-accent shadow-[0_0_8px_rgba(255,215,0,0.5)]"></span>
+                                                                    )}
+                                                                    <p className="text-[11px] font-black text-white uppercase tracking-widest truncate">{point.label}</p>
+                                                                </div>
+                                                                <p className="text-[9px] font-bold text-white/40 font-mono truncate tracking-wider">{point.latitude}, {point.longitude}</p>
+                                                            </div>
+                                                            {!isTeknisi && (
+                                                                <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                    <button type="button" className="w-7 h-7 flex items-center justify-center rounded-md bg-white/5 border border-white/5 hover:bg-gold-accent/10 hover:border-gold-accent/20 text-white/40 hover:text-gold-accent transition-all shadow-sm" onClick={() => setEntryPointEditor({ mode: "edit", data: { id: point.id, label: point.label, latitude: String(point.latitude), longitude: String(point.longitude), status: point.status, fiberType: point.fiberType || "", coreCapacity: point.coreCapacity != null ? String(point.coreCapacity) : "", description: point.description || "", isDefault: point.isDefault } })}>
+                                                                        <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>edit</span>
+                                                                    </button>
+                                                                    <button type="button" className="w-7 h-7 flex items-center justify-center rounded-md bg-white/5 border border-white/5 hover:bg-red-400/10 hover:border-red-400/20 text-white/40 hover:text-red-400 transition-all shadow-sm" onClick={() => handleDeleteEntryPoint(point.id)}>
+                                                                        <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>delete</span>
+                                                                    </button>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ))
                                                 )}
                                             </div>
-                                        ))}
+                                        </section>
                                     </div>
-                                )}
-                            </section>
-                            </>
+                                </div>
+                            </div>
                         )}
 
                         {activeTab === "contracts" && (
