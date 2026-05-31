@@ -101,9 +101,9 @@ Buka **Database** → **Tables** → pilih table → tab **Policies** untuk meli
 ### **3.1. Test Login via Frontend**
 1. Buka frontend development: `npm run dev`
 2. Klik salah satu Dev Quick Access button:
-   - **Admin**: admin@kima.local / Admin@2026
-   - **Teknisi**: teknisi@kima.local / Teknisi@2026
-   - **ISP**: isp@kima.local / Isp@2026
+   - **Admin**: admin@kima.local / <lihat password manager>
+   - **Teknisi**: teknisi@kima.local / <lihat password manager>
+   - **ISP**: isp@kima.local / <lihat password manager>
 
 ### **3.2. Expected Behavior**
 - ✅ Login berhasil
@@ -157,7 +157,7 @@ WHERE schemaname = 'public';
 **Solution:**
 1. Check di **Authentication** → **Users**
 2. Re-run `create-supabase-auth-users.sql` jika perlu
-3. Pastikan password sesuai: Admin@2026, Teknisi@2026, Isp@2026
+3. Pastikan password sesuai: <lihat password manager>, <lihat password manager>, <lihat password manager>
 
 ### **Problem: User bisa lihat data yang seharusnya tidak bisa**
 **Cause:** RLS policy terlalu permissive.

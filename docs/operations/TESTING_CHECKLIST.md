@@ -11,9 +11,9 @@
 ### **1. Authentication** ✅ CRITICAL
 
 #### Login
-- [ ] Login dengan `admin@kima.local` / `Admin@2026`
-- [ ] Login dengan `teknisi@kima.local` / `Teknisi@2026`
-- [ ] Login dengan `isp@kima.local` / `Isp@2026`
+- [ ] Login dengan `admin@kima.local` / `<lihat password manager>`
+- [ ] Login dengan `teknisi@kima.local` / `<lihat password manager>`
+- [ ] Login dengan `isp@kima.local` / `<lihat password manager>`
 - [ ] Dev quick access buttons working
 - [ ] Error handling untuk wrong credentials
 - [ ] Error handling untuk network issues
@@ -266,9 +266,9 @@
 - **Auth:** Supabase Auth
 
 ### Test Data
-- **Admin:** admin@kima.local / Admin@2026
-- **Teknisi:** teknisi@kima.local / Teknisi@2026
-- **ISP:** isp@kima.local / Isp@2026
+- **Admin:** admin@kima.local / <lihat password manager>
+- **Teknisi:** teknisi@kima.local / <lihat password manager>
+- **ISP:** isp@kima.local / <lihat password manager>
 
 ### How to Test
 1. Start frontend: `cd frontend && npm run dev`

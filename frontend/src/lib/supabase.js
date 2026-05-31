@@ -1,8 +1,14 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Supabase configuration
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://jkzjqzskrzcdmahrikwm.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImprempxenNrcnpjZG1haHJpa3dtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1MzE1NzIsImV4cCI6MjA5NDEwNzU3Mn0.hyvzRM5Fxk0ZKikabyy0uK08q6rf9hK61R9VSz3YzkU';
+// Supabase configuration (must be provided via env; see frontend/.env.example)
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error(
+    'Supabase belum dikonfigurasi. Set VITE_SUPABASE_URL dan VITE_SUPABASE_ANON_KEY di frontend/.env.development atau .env.production (lihat frontend/.env.example).'
+  );
+}
 
 // Create Supabase client
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {

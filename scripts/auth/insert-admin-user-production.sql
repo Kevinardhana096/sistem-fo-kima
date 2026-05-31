@@ -4,6 +4,10 @@
 -- Tanggal: 2026-05-12
 -- Database: Supabase PostgreSQL (Production)
 -- Cara Pakai: Copy-paste script ini ke Supabase SQL Editor dan Run
+--
+-- SECURITY: TEMPLATE. Ganti REPLACE_WITH_BCRYPT_HASH dengan bcrypt hash dari
+-- password yang kuat & unik sebelum dijalankan, dan JANGAN commit hash/password
+-- aslinya. Rotasi kredensial apa pun yang pernah ter-commit atau dibagikan.
 -- ============================================================================
 
 BEGIN;
@@ -21,9 +25,8 @@ INSERT INTO users (
 ) VALUES (
   'admin',
   'admin@kima.local',
-  -- Password: Admin@2026
-  -- Hash menggunakan bcrypt (10 rounds)
-  '$2b$10$tQfpWsjzRlzt.h6fN8QnA.v2Swv8Fg.WfSVlYLMBXfd6DZOV0wtgC',
+  -- bcrypt hash dari password admin (jangan simpan password plaintext di sini)
+  'REPLACE_WITH_BCRYPT_HASH',
   'admin',
   'Administrator',
   true,
@@ -46,7 +49,7 @@ COMMIT;
 -- KREDENSIAL ADMIN
 -- ============================================================================
 -- Username: admin
--- Password: Admin@2026
 -- Email: admin@kima.local
 -- Role: admin
+-- Password: set saat menjalankan script (jangan dicatat di repo).
 -- ============================================================================

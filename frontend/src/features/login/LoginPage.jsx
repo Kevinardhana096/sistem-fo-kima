@@ -1,11 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { signIn } from "@/lib/supabase";
 
+// Dev-only quick login. Credentials are read from local env vars (VITE_DEV_*)
+// and are NEVER hardcoded or committed (see frontend/.env.example).
+// An account only appears when both its email and password env vars are set,
+// and the panel is rendered only in development builds.
 const devQuickAccounts = [
-    { key: "admin", label: "Admin", description: "Akses penuh", email: "admin@kima.local", password: "Admin@2026" },
-    { key: "teknisi", label: "Teknisi", description: "Operasional lapangan", email: "teknisi@kima.local", password: "Teknisi@2026" },
-    { key: "isp", label: "ISP", description: "Mitra ISP", email: "isp@kima.local", password: "Isp@2026" },
-];
+    { key: "admin", label: "Admin", description: "Akses penuh", email: import.meta.env.VITE_DEV_ADMIN_EMAIL, password: import.meta.env.VITE_DEV_ADMIN_PASSWORD },
+    { key: "teknisi", label: "Teknisi", description: "Operasional lapangan", email: import.meta.env.VITE_DEV_TEKNISI_EMAIL, password: import.meta.env.VITE_DEV_TEKNISI_PASSWORD },
+    { key: "isp", label: "ISP", description: "Mitra ISP", email: import.meta.env.VITE_DEV_ISP_EMAIL, password: import.meta.env.VITE_DEV_ISP_PASSWORD },
+].filter((account) => account.email && account.password);
 
 function normalizeWhatsAppNumber(rawNumber) {
     const trimmed = String(rawNumber ?? "").trim();
@@ -206,7 +210,7 @@ export default function LoginPage({ onLoginSuccess }) {
                                 <label style={{ display: "block", fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.12em", color: "rgba(255,255,255,0.85)", marginBottom: "0.5rem" }}>Email</label>
                                 <input
                                     type="email"
-                                    placeholder="admin@kima.local"
+                                    placeholder="nama@kima.co.id"
                                     value={form.email}
                                     onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
                                     style={inputStyle}
@@ -262,7 +266,7 @@ export default function LoginPage({ onLoginSuccess }) {
                             </button>
                         </form>
 
-                        {isDevelopment && (
+                        {isDevelopment && devQuickAccounts.length > 0 && (
                             <div style={{ marginTop: "1.25rem", borderRadius: "1rem", padding: "1rem", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}>
                                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.75rem" }}>
                                     <div>
