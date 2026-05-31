@@ -1,8 +1,8 @@
 # Product Requirements Document
 # Sistem FO KIMA — Document Archiving & Tenant Monitoring System
 
-**Versi:** 1.3  
-**Tanggal:** 2026-05-18  
+**Versi:** 1.4  
+**Tanggal:** 2026-05-31  
 **Status:** Active Development
 
 ---
@@ -207,6 +207,7 @@ Detail pelanggan terdiri dari tab:
 | Entitas | Deskripsi |
 | --- | --- |
 | `users` / Supabase Auth | Akun pengguna dan role akses |
+| `isp_user_accounts` | Mapping akun login Supabase Auth ke entitas ISP (`1 akun ISP = 1 entitas ISP`) sebagai dasar pembatasan akses data untuk role ISP |
 | `isps` | Data ISP mitra, paket, periode, status, dan metadata billing |
 | `isp_contract_rows` | Baris kontrak/periode ISP bila tersedia |
 | `isp_renewal_follow_ups` | Follow-up renewal kontrak ISP |
@@ -448,6 +449,17 @@ frontend/src/
 | Performa | List dan monitoring harus memakai index, batching, dan pagination agar tidak menarik payload besar sekaligus |
 | Operasional | Script production dijalankan manual dan hati-hati melalui Supabase SQL Editor |
 
+### 8.1 Penanganan Kredensial Akun ISP
+
+> **Risiko diketahui:** field `public.isps.password_plain` menyimpan password operasional akun ISP dalam bentuk **plaintext**. Ini adalah keputusan desain sementara, bukan praktik yang direkomendasikan.
+
+Ketentuan dan mitigasi yang berlaku selama field ini masih dipakai:
+
+- `password_plain` hanya menyimpan **credential awal/operasional** agar admin dapat membuat dan menyetel ulang akun Auth ISP melalui script provisioning. Sumber kebenaran autentikasi tetap **Supabase Auth** (hash dikelola Supabase), bukan field ini.
+- Akses baca terhadap kolom `password_plain` harus dibatasi ketat melalui Row Level Security sehingga hanya role Admin yang dapat melihatnya; role ISP/Teknisi tidak boleh memiliki akses baca ke kolom ini.
+- Nilai `password_plain` **tidak boleh** ditampilkan di log, pesan error, hasil export, atau dibagikan di luar kanal operasional yang aman.
+- **Arah perbaikan (roadmap):** hentikan penyimpanan password plaintext dengan beralih ke alur reset/invite Supabase Auth (admin memicu undangan/reset, tanpa menyimpan password), atau minimal mengenkripsi kolom dan menghapus nilai setelah akun Auth berhasil dibuat.
+
 ---
 
 ## 9. Batasan & Asumsi
@@ -547,6 +559,6 @@ npm --prefix frontend run build
 
 ---
 
-**Dokumen ini terakhir diperbarui:** 2026-05-18  
-**Versi:** 1.3  
+**Dokumen ini terakhir diperbarui:** 2026-05-31  
+**Versi:** 1.4  
 **Status:** Active Development

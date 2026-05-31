@@ -101,6 +101,6 @@ Konfigurasi Valhalla berada di `infra/valhalla/`. Layanan ini hanya diperlukan u
 
 ## Status
 
-**Last Updated:** 2026-05-13  
-**Version:** 1.2  
+**Last Updated:** 2026-05-31  
+**Version:** 1.4  
 **Status:** Active Development
