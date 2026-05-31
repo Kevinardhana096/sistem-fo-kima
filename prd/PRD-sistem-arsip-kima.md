@@ -196,9 +196,12 @@ Detail pelanggan terdiri dari tab:
 
 ### 5.6 Tempat Sampah
 
-- Modul Tempat Sampah saat ini masih berupa tampilan placeholder/mock untuk rancangan UX.
-- Operasi production saat ini belum memakai soft delete menyeluruh untuk semua entitas.
-- Implementasi final perlu menambahkan kolom/status arsip, restore flow, dan hard-delete policy yang eksplisit sebelum fitur ini dipakai sebagai sumber data operasional.
+- Modul Tempat Sampah sudah terhubung ke database (bukan lagi mock). Penghapusan entitas utama memakai **soft delete** via kolom `deleted_at` dan `deleted_by`.
+- Soft delete diterapkan pada entitas utama: `isps`, `customers`, `contracts`, `contract_versions`, `invoices`, `documents`, `customer_route_versions`, `customer_route_points`, dan `isp_contract_rows`.
+- Semua query list/monitoring utama memfilter `deleted_at IS NULL` sehingga item terhapus tidak muncul di tampilan aktif.
+- Halaman Tempat Sampah mendukung **lihat item terhapus, pulihkan (restore), hapus permanen (hard delete), dan kosongkan sampah**, dengan statistik per jenis entitas.
+- Menghapus ISP melakukan **cascade soft delete** ke pelanggan terkait. Audit penghapusan tersimpan pada `deleted_at`/`deleted_by`.
+- Belum termasuk (lihat roadmap): auto-cleanup item lama, soft delete untuk seluruh tabel relasi anak, dan operasi bulk restore/delete.
 
 ---
 
@@ -516,7 +519,7 @@ npm --prefix frontend run build
 - [x] CRUD pelanggan dan ISP.
 - [x] Arsip dokumen pelanggan.
 - [x] Monitoring billing.
-- [ ] Soft delete/tempat sampah production.
+- [x] Soft delete/tempat sampah production.
 
 ### Fase 2 — Kontrak, Invoice, dan Route
 
@@ -533,7 +536,8 @@ npm --prefix frontend run build
 - [ ] Timeline aktivitas yang lebih detail.
 - [ ] Laporan/analitik dokumen dan billing.
 - [ ] Search/filter server-side global untuk workspace pelanggan saat jumlah data melampaui batch awal.
-- [ ] Soft delete production dan restore flow untuk Tempat Sampah.
+- [x] Soft delete production dan restore flow untuk Tempat Sampah.
+- [ ] Penyempurnaan Tempat Sampah: auto-cleanup item lama, soft delete untuk seluruh tabel relasi anak, dan bulk restore/delete.
 - [ ] Notifikasi terjadwal bila dibutuhkan.
 
 ---

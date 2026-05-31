@@ -103,8 +103,7 @@ Dokumen di bawah ini menggambarkan keadaan pada saat ditulis. **Jangan** dijadik
 
 | Dokumen | Deskripsi |
 | --- | --- |
-| [implementation-status/2026-05-18-soft-delete-implementation.md](implementation-status/2026-05-18-soft-delete-implementation.md) | Status implementasi soft delete. |
-| [implementation-status/2026-05-18-trash-cascade-delete.md](implementation-status/2026-05-18-trash-cascade-delete.md) | Status implementasi cascade delete Tempat Sampah. |
+| [implementation-status/2026-05-18-soft-delete-implementation.md](implementation-status/2026-05-18-soft-delete-implementation.md) | Status implementasi soft delete & Tempat Sampah (fitur sudah rilis). |
 
 ### Laporan (Reports)
 
@@ -120,11 +119,8 @@ Dokumen di bawah ini menggambarkan keadaan pada saat ditulis. **Jangan** dijadik
 
 | Dokumen | Deskripsi |
 | --- | --- |
-| [analysis/analisis-mapping-spreadsheet.md](analysis/analisis-mapping-spreadsheet.md) | Analisis mapping spreadsheet. |
-| [analysis/document-archiving-tenant-monitoring-system-design.md](analysis/document-archiving-tenant-monitoring-system-design.md) | Desain document archiving dan tenant monitoring. |
-| [analysis/field-baru-monitoring.md](analysis/field-baru-monitoring.md) | Catatan field baru monitoring. |
-| [analysis/fix-frontend-api-connection.md](analysis/fix-frontend-api-connection.md) | Catatan perbaikan koneksi API frontend. |
-| [refactor-supabase-direct-access.md](refactor-supabase-direct-access.md) | Catatan refactor ke Supabase direct access. |
+| [analysis/document-archiving-tenant-monitoring-system-design.md](analysis/document-archiving-tenant-monitoring-system-design.md) | Desain awal sistem (rationale bisnis masih relevan; bagian backend NestJS sudah usang). |
+| [refactor-supabase-direct-access.md](refactor-supabase-direct-access.md) | Catatan refactor ke Supabase direct access (menjelaskan asal arsitektur sekarang). |
 
 ---
 

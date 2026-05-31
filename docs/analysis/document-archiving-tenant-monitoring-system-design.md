@@ -1,5 +1,7 @@
 # Document Archiving and Tenant Monitoring System Design
 
+> **Catatan historis (dokumen desain awal).** Dokumen ini adalah visi desain awal sistem dan masih relevan untuk *rationale* alur bisnis (arsip berbasis pelanggan, otomatisasi dokumen, alert). Namun bagian implementasi teknis yang mengasumsikan **backend NestJS** dan **REST API kustom** (lihat §10 Backend Module Structure dan §11 API Structure) **sudah usang**: arsitektur saat ini adalah frontend React/Vite yang mengakses **Supabase secara langsung**. Untuk arsitektur dan model data yang berlaku, rujuk [PRD](../../prd/PRD-sistem-arsip-kima.md).
+
 ## 1. Objective
 Design a modern internal web system that remains simple for a single operator, while keeping business flow structured and scalable.
 
