@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, useMemo } from "react";
+import { logger } from "@/lib/logger";
 import AppShell from "../../components/layout/AppShell";
 import api from "../../lib/api";
 import {
@@ -85,7 +86,7 @@ export default function DashboardPage({
             const metricsResult = await api.monitoring.getDashboardMetrics({ year: Number(year) });
             setDashboardMetrics(metricsResult ?? null);
         } catch (error) {
-            console.error("Dashboard load error:", error);
+            logger.error("Dashboard load error:", error);
         } finally {
             setIsLoadingOperational(false);
         }
@@ -243,7 +244,7 @@ export default function DashboardPage({
             const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
             downloadBlob(blob, getExportFilename(years, "csv"));
         } catch (error) {
-            console.error("Core trend export error:", error);
+            logger.error("Core trend export error:", error);
         } finally {
             setIsExportingCoreTrend(false);
         }
@@ -287,7 +288,7 @@ export default function DashboardPage({
             const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
             downloadBlob(blob, getExportFilename(years, "xlsx"));
         } catch (error) {
-            console.error("Core trend XLSX export error:", error);
+            logger.error("Core trend XLSX export error:", error);
         } finally {
             setIsExportingCoreTrendXlsx(false);
         }

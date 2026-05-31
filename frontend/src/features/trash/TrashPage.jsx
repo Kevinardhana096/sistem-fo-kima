@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { logger } from "@/lib/logger";
 import AppShell from "../../components/layout/AppShell";
 import { formatDate } from "../../app/utils";
 import api from "../../lib/api";
@@ -137,7 +138,7 @@ export default function TrashPage({ activeSection, onNavigate, onLogout: _onLogo
             setTrashItems(items);
             setDeletionStats(stats);
         } catch (error) {
-            console.error('Failed to load trash:', error);
+            logger.error('Failed to load trash:', error);
             alert('Gagal memuat data tempat sampah');
         } finally {
             setIsLoading(false);
@@ -171,7 +172,7 @@ export default function TrashPage({ activeSection, onNavigate, onLogout: _onLogo
             alert('Data berhasil dipulihkan');
             loadTrashData();
         } catch (error) {
-            console.error(error);
+            logger.error(error);
             alert('Gagal memulihkan data');
         }
     };
@@ -184,7 +185,7 @@ export default function TrashPage({ activeSection, onNavigate, onLogout: _onLogo
             alert('Data berhasil dihapus permanen');
             loadTrashData();
         } catch (error) {
-            console.error(error);
+            logger.error(error);
             alert('Gagal menghapus data');
         }
     };
@@ -197,7 +198,7 @@ export default function TrashPage({ activeSection, onNavigate, onLogout: _onLogo
             alert('Tempat sampah berhasil dikosongkan');
             loadTrashData();
         } catch (error) {
-            console.error(error);
+            logger.error(error);
             alert('Gagal mengosongkan tempat sampah');
         }
     };

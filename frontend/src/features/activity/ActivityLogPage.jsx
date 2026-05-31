@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState, useRef } from "react";
+import { logger } from "@/lib/logger";
 import { createPortal } from "react-dom";
 import AppShell from "../../components/layout/AppShell";
 import api from "../../lib/api";
@@ -205,7 +206,7 @@ export default function ActivityLogPage({ activeSection, onNavigate, onLogout, c
             });
             setLogs(data);
         } catch (err) {
-            console.error("Failed to load activity logs:", err);
+            logger.error("Failed to load activity logs:", err);
             setError(err instanceof Error ? err.message : "Gagal memuat activity log.");
         } finally {
             setIsLoading(false);

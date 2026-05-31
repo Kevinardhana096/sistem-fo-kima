@@ -1,4 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { logger } from "@/lib/logger";
 import AppShell from "./components/layout/AppShell";
 import { sectionMeta } from "./app/constants";
 import { mapCustomerToRow } from "./app/utils";
@@ -444,7 +445,7 @@ function App() {
         try {
             await signOut();
         } catch (error) {
-            console.error('Logout error:', error);
+            logger.error('Logout error:', error);
         } finally {
             // Clear role and redirect to login
             setCurrentRole(APP_ROLES.admin);

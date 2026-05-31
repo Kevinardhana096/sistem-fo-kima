@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { logger } from "@/lib/logger";
 import { getSectionPath } from "../../app/routes";
 import { getRoleConfig } from "../../roles";
 import api from "../../lib/api";
@@ -186,7 +187,7 @@ function TopNav({ isSidebarCollapsed, onToggleMenu, onLogout, roleConfig, onEdit
             try {
                 await api.notifications.markRead(notification.id);
             } catch (error) {
-                console.error("Failed to mark notification as read:", error);
+                logger.error("Failed to mark notification as read:", error);
             }
         }
         setIsNotificationsOpen(false);
@@ -202,7 +203,7 @@ function TopNav({ isSidebarCollapsed, onToggleMenu, onLogout, roleConfig, onEdit
             await api.notifications.markRead(notification.id);
             await loadNotifications();
         } catch (error) {
-            console.error("Failed to mark notification as read:", error);
+            logger.error("Failed to mark notification as read:", error);
         }
     };
 
@@ -212,7 +213,7 @@ function TopNav({ isSidebarCollapsed, onToggleMenu, onLogout, roleConfig, onEdit
             await api.notifications.markResolved(notification.id);
             await loadNotifications();
         } catch (error) {
-            console.error("Failed to resolve notification:", error);
+            logger.error("Failed to resolve notification:", error);
         }
     };
 

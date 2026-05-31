@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect, useRef } from "react";
+import { logger } from "@/lib/logger";
 import AppShell from "../../components/layout/AppShell";
 import { SummaryCard, StatCard } from "../../components/shared/AppShared";
 import api from "../../lib/api";
@@ -383,7 +384,7 @@ function CustomerWorkspacePage({
             
             onRefresh?.();
         } catch (error) {
-            console.error(error);
+            logger.error(error);
             alert(error instanceof Error ? error.message : "Gagal menghapus ISP.");
         }
     };
@@ -399,7 +400,7 @@ function CustomerWorkspacePage({
             alert("Lokasi berhasil dipindahkan ke sampah.");
             onRefresh?.();
         } catch (error) {
-            console.error(error);
+            logger.error(error);
             alert(error instanceof Error ? error.message : "Terjadi kesalahan saat mengarsipkan lokasi.");
         }
     };

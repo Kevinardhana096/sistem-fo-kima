@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { logger } from "@/lib/logger";
 import AppShell from "../../components/layout/AppShell";
 import api, { getApiErrorDetails } from "../../lib/api";
 import { uploadFileForRecord } from "../../lib/files";
@@ -223,7 +224,7 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
 
             if (onSaved) await onSaved(result);
         } catch (requestError) {
-            console.error(requestError);
+            logger.error(requestError);
             const errorDetails = getApiErrorDetails(requestError, `Gagal ${isEditMode ? "memperbarui" : "menyimpan"} data lokasi.`);
             setSubmitError(errorDetails.message);
             setFieldErrors(Object.fromEntries(errorDetails.fields.map((field) => [field, "Periksa field ini."])));

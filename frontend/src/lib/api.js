@@ -1,4 +1,5 @@
 import { buildInvoiceScheduleRows } from '../app/utils';
+import { logger } from './logger';
 import { supabase } from './supabase';
 
 /**
@@ -211,7 +212,7 @@ const createActivityLog = async ({ metadata = {}, ...payload }) => {
     if (error) throw error;
     return data;
   } catch (error) {
-    console.error('Failed to write activity log:', error);
+    logger.error('Failed to write activity log:', error);
     return null;
   }
 };
@@ -2418,12 +2419,12 @@ export const ispsApi = {
           p_name: ispData.name || data.name
         });
         if (rpcError) {
-          console.error('Failed to upsert ISP account via RPC:', rpcError);
+          logger.error('Failed to upsert ISP account via RPC:', rpcError);
           throw new Error('Gagal sinkronisasi akun login: ' + rpcError.message);
         }
         authAccountSynced = true;
       } catch (err) {
-        console.error('Failed to upsert ISP account via RPC (exception):', err);
+        logger.error('Failed to upsert ISP account via RPC (exception):', err);
         throw err instanceof Error ? err : new Error('Gagal sinkronisasi akun login.');
       }
     }

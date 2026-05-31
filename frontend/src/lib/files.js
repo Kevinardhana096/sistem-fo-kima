@@ -1,4 +1,5 @@
 import { readFileAsDataUrl } from "../app/utils";
+import { logger } from "./logger";
 import { supabase } from "./supabase";
 
 const STORAGE_BUCKET = typeof import.meta.env.VITE_SUPABASE_STORAGE_BUCKET === "string"
@@ -41,7 +42,7 @@ export const uploadFileForRecord = async (file, pathParts = []) => {
     });
 
   if (error) {
-    console.warn("Supabase Storage upload failed, falling back to Data URL:", error);
+    logger.warn("Supabase Storage upload failed, falling back to Data URL:", error);
     return readFileAsDataUrl(file);
   }
 

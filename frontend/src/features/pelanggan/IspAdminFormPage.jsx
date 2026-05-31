@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { logger } from "@/lib/logger";
 import { MapContainer, Marker, TileLayer, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -425,7 +426,7 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
 
             if (onSaved) await onSaved(result);
         } catch (error) {
-            console.error(error);
+            logger.error(error);
             const errorDetails = getApiErrorDetails(error, `Gagal ${isEditMode ? "memperbarui" : "menyimpan"} data ISP.`);
             setSubmitError(errorDetails.message);
             const mappedFieldErrors = Object.fromEntries(

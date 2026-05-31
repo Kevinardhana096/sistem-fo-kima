@@ -1,3 +1,5 @@
+import { logger } from "@/lib/logger";
+
 const normalizeApiOrigin = (value) => {
     const normalizedValue = value.replace(/\/$/, "");
 
@@ -360,7 +362,7 @@ export const openSafeFile = (fileUrl, fileName = "dokumen.pdf") => {
                 link.click();
             }
         } catch (e) {
-            console.error("Gagal membuka file:", e);
+            logger.error("Gagal membuka file:", e);
             alert("Gagal membuka berkas. Format data tidak valid.");
         }
         return;
