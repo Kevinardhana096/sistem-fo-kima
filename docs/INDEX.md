@@ -1,91 +1,151 @@
-# Dokumentasi Sistem FO KIMA
+# Peta Dokumentasi Sistem FO KIMA
 
-Indeks dokumentasi utama untuk setup, operasi, deployment, analisis, dan pengembangan Sistem FO KIMA.
+Halaman ini adalah **satu-satunya titik masuk** untuk seluruh dokumentasi. Jika bingung harus mulai dari mana, mulai di sini.
 
-## Quick Start
+Dokumen dikelompokkan ke dalam tiga tingkat agar jelas mana yang masih berlaku dan mana yang hanya catatan historis:
+
+| Tingkat | Arti | Boleh dijadikan acuan kondisi terkini? |
+| --- | --- | --- |
+| 📌 **Kanonik** | Sumber kebenaran yang selalu dijaga tetap mutakhir | Ya |
+| 📖 **Panduan & Referensi** | Cara melakukan sesuatu (setup, deploy, operasi) | Ya, untuk prosedur |
+| 🗄️ **Historis / Bertanggal** | Snapshot per tanggal (laporan, changelog, status, analisis lama) | **Tidak** — hanya konteks/riwayat |
+
+> **Aturan singkat:** kalau sebuah dokumen punya **tanggal di nama file** (mis. `2026-05-18-...`) atau berada di `reports/`, `changelog/`, `implementation-status/`, atau `analysis/`, anggap itu **historis** — menggambarkan keadaan pada saat ditulis, bukan kondisi sistem sekarang.
+
+---
+
+## 🚦 Mulai Dari Sini (jalur baca per peran)
+
+**Saya developer baru:**
+1. [../README.md](../README.md) — overview & quick start
+2. [../DEV_GUIDE.md](../DEV_GUIDE.md) — setup development lokal
+3. [../prd/PRD-sistem-arsip-kima.md](../prd/PRD-sistem-arsip-kima.md) — apa yang dibangun & aturan bisnis
+4. [../CLAUDE.md](../CLAUDE.md) — konvensi akses Supabase & aturan implementasi
+5. [../scripts/README.md](../scripts/README.md) — script operasional
+
+**Saya operator / admin data:**
+1. [guides/supabase-setup-guide.md](guides/supabase-setup-guide.md) — setup Auth & RLS
+2. [operations/panduan-insert-production.md](operations/panduan-insert-production.md) — cara insert data production
+3. [operations/TESTING_CHECKLIST.md](operations/TESTING_CHECKLIST.md) — verifikasi sebelum rilis
+4. [deployment/DEPLOYMENT_GUIDE.md](deployment/DEPLOYMENT_GUIDE.md) — langkah deploy
+
+**Saya ingin memahami produk / proses bisnis:**
+1. [../prd/PRD-sistem-arsip-kima.md](../prd/PRD-sistem-arsip-kima.md) — PRD lengkap
+2. [../prd/business-flow.png](../prd/business-flow.png) — diagram alur bisnis
+3. [../prd/sequence-diagram-komprehensif.md](../prd/sequence-diagram-komprehensif.md) — sequence diagram
+
+**Saya AI agent / asisten coding:**
+1. [../CLAUDE.md](../CLAUDE.md) → 2. [../prd/PRD-sistem-arsip-kima.md](../prd/PRD-sistem-arsip-kima.md) → 3. [../DEV_GUIDE.md](../DEV_GUIDE.md)
+
+---
+
+## 📌 Kanonik (sumber kebenaran)
 
 | Dokumen | Deskripsi |
 | --- | --- |
-| [README.md](../README.md) | Overview project dan quick start. |
-| [DEV_GUIDE.md](../DEV_GUIDE.md) | Panduan development. |
-| [guides/QUICK_REFERENCE.md](guides/QUICK_REFERENCE.md) | Referensi command harian. |
+| [../README.md](../README.md) | Overview project, arsitektur, dan quick start. |
+| [../prd/PRD-sistem-arsip-kima.md](../prd/PRD-sistem-arsip-kima.md) | Product Requirements Document — flow bisnis, model data, dan aturan schema. |
+| [../DEV_GUIDE.md](../DEV_GUIDE.md) | Panduan development lokal (Supabase-only). |
+| [../CLAUDE.md](../CLAUDE.md) | Aturan akses Supabase & konvensi implementasi untuk kontributor/agent. |
 
-## Product Requirements
+---
 
-| Dokumen | Deskripsi |
-| --- | --- |
-| [prd/PRD-sistem-arsip-kima.md](../prd/PRD-sistem-arsip-kima.md) | Product Requirements Document dan flow bisnis utama. |
-| [prd/sequence-diagram-komprehensif.md](../prd/sequence-diagram-komprehensif.md) | Sequence diagram sistem. |
-| [prd/business-flow.png](../prd/business-flow.png) | Diagram business flow. |
+## 📖 Panduan & Referensi
 
-## Guides
+### Setup & Operasi Harian
 
 | Dokumen | Deskripsi |
 | --- | --- |
-| [guides/supabase-setup-guide.md](guides/supabase-setup-guide.md) | Setup Supabase Auth dan RLS. |
 | [guides/QUICK_REFERENCE.md](guides/QUICK_REFERENCE.md) | Referensi command dan alur harian. |
+| [guides/supabase-setup-guide.md](guides/supabase-setup-guide.md) | Setup Supabase Auth dan RLS. |
+| [operations/panduan-insert-production.md](operations/panduan-insert-production.md) | Panduan insert data production. |
+| [operations/TESTING_CHECKLIST.md](operations/TESTING_CHECKLIST.md) | Checklist pengujian manual. |
+| [operations/BUG_TRACKING.md](operations/BUG_TRACKING.md) | Catatan bug dan tracking. |
+| [operations/kredensial-admin.md](operations/kredensial-admin.md) | Catatan kredensial admin untuk operasional. |
 
-## Deployment
+### Deployment
 
 | Dokumen | Deskripsi |
 | --- | --- |
 | [deployment/DEPLOYMENT_GUIDE.md](deployment/DEPLOYMENT_GUIDE.md) | Checklist dan langkah deployment. |
 | [deployment/status-koneksi-supabase.md](deployment/status-koneksi-supabase.md) | Status koneksi Supabase dan catatan environment. |
 
-## Operations
+### Arsitektur, Diagram & Schema
 
 | Dokumen | Deskripsi |
 | --- | --- |
-| [operations/TESTING_CHECKLIST.md](operations/TESTING_CHECKLIST.md) | Checklist pengujian manual. |
-| [operations/BUG_TRACKING.md](operations/BUG_TRACKING.md) | Catatan bug dan tracking. |
-| [operations/kredensial-admin.md](operations/kredensial-admin.md) | Catatan kredensial admin untuk kebutuhan operasional. |
-| [operations/panduan-insert-production.md](operations/panduan-insert-production.md) | Panduan insert data production. |
+| [../prd/sequence-diagram-komprehensif.md](../prd/sequence-diagram-komprehensif.md) | Sequence diagram sistem. |
+| [../prd/business-flow.png](../prd/business-flow.png) | Diagram business flow. |
+| [database/document-schema.sql](database/document-schema.sql) | Referensi schema dokumen (pendukung). |
 
-## Analysis dan Referensi Teknis
+### README Komponen
 
 | Dokumen | Deskripsi |
 | --- | --- |
-| [analysis/analisis-mapping-spreadsheet.md](analysis/analisis-mapping-spreadsheet.md) | Analisis mapping spreadsheet. |
-| [analysis/document-archiving-tenant-monitoring-system-design.md](analysis/document-archiving-tenant-monitoring-system-design.md) | Desain document archiving dan tenant monitoring. |
-| [analysis/field-baru-monitoring.md](analysis/field-baru-monitoring.md) | Catatan field baru monitoring. |
-| [analysis/fix-frontend-api-connection.md](analysis/fix-frontend-api-connection.md) | Catatan perbaikan koneksi API frontend. |
-| [database/document-schema.sql](database/document-schema.sql) | Referensi schema dokumen lama/pendukung. |
+| [../scripts/README.md](../scripts/README.md) | Indeks script operasional Supabase/SQL/dev. |
+| [../frontend/README.md](../frontend/README.md) | Catatan khusus aplikasi frontend. |
+| [../infra/valhalla/README.md](../infra/valhalla/README.md) | Konfigurasi layanan Valhalla (route planner). |
 
-## Scripts
+---
 
-Script operasional tersedia di folder `scripts/` dan diindeks di [scripts/README.md](../scripts/README.md).
+## 🗄️ Historis / Bertanggal (konteks & riwayat — bukan kondisi terkini)
 
-| Script | Deskripsi |
+Dokumen di bawah ini menggambarkan keadaan pada saat ditulis. **Jangan** dijadikan acuan kondisi sistem sekarang; gunakan PRD/README untuk itu. **Jangan** diedit untuk "memperbarui" — buat catatan baru bila perlu.
+
+### Changelog
+
+| Dokumen | Deskripsi |
 | --- | --- |
-| [scripts/dev/dev-frontend.sh](../scripts/dev/dev-frontend.sh) | Menjalankan frontend development. |
-| [scripts/auth/create-supabase-auth-users.sql](../scripts/auth/create-supabase-auth-users.sql) | Membuat user Supabase Auth. |
-| [scripts/auth/create-isp-auth-accounts-from-isps.sql](../scripts/auth/create-isp-auth-accounts-from-isps.sql) | Membuat/memperbarui akun Auth ISP dari credential di data ISP. |
-| [scripts/auth/insert-admin-user-production.sql](../scripts/auth/insert-admin-user-production.sql) | Insert user admin legacy/operasional. |
-| [scripts/rls/setup-supabase-rls-policies.sql](../scripts/rls/setup-supabase-rls-policies.sql) | Setup Row Level Security policies. |
-| [scripts/seed/seed-cendikia-supabase-full.sql](../scripts/seed/seed-cendikia-supabase-full.sql) | Seed data Cendikia/customer demo production. |
-| [scripts/seed/rollback-cendikia-supabase.sql](../scripts/seed/rollback-cendikia-supabase.sql) | Rollback seed Cendikia. |
-| [scripts/seed/insert-charoen-pokphand-production.sql](../scripts/seed/insert-charoen-pokphand-production.sql) | Insert data PT Charoen Pokphand. |
-| [scripts/maintenance/fix-customer-contract-package-data.sql](../scripts/maintenance/fix-customer-contract-package-data.sql) | Koreksi data paket kontrak customer. |
-| [scripts/maintenance/clarify-customer-contract-schema.sql](../scripts/maintenance/clarify-customer-contract-schema.sql) | Comment, constraint, dan audit schema kontrak customer. |
+| [changelog/2026-05-18-dashboard-remove-financial-cards.md](changelog/2026-05-18-dashboard-remove-financial-cards.md) | Perubahan dashboard: hapus kartu finansial. |
+| [changelog/2026-05-18-monitoring-pagination.md](changelog/2026-05-18-monitoring-pagination.md) | Penambahan pagination pada monitoring. |
 
-## Arsitektur Saat Ini
+### Status Implementasi
 
-- Frontend: React + Vite.
-- Backend aplikasi utama: Supabase direct access dari frontend.
-- Database/Auth/API: Supabase Cloud.
-- Keamanan akses data: Supabase Row Level Security.
-- Route planner: Valhalla, jika fitur routing lokal digunakan.
+| Dokumen | Deskripsi |
+| --- | --- |
+| [implementation-status/2026-05-18-soft-delete-implementation.md](implementation-status/2026-05-18-soft-delete-implementation.md) | Status implementasi soft delete & Tempat Sampah (fitur sudah rilis). |
 
-## Development Singkat
+### Laporan (Reports)
 
-```bash
-npm --prefix frontend run dev
-```
+| Dokumen | Deskripsi |
+| --- | --- |
+| [reports/contract-renewal/RINGKASAN_LENGKAP.md](reports/contract-renewal/RINGKASAN_LENGKAP.md) | Ringkasan lengkap fitur perpanjangan kontrak. |
+| [reports/contract-renewal/ANALISIS_PERPANJANGAN_KONTRAK.md](reports/contract-renewal/ANALISIS_PERPANJANGAN_KONTRAK.md) | Analisis perpanjangan kontrak. |
+| [reports/contract-renewal/IMPLEMENTASI_PERINGATAN_INVOICE.md](reports/contract-renewal/IMPLEMENTASI_PERINGATAN_INVOICE.md) | Implementasi peringatan invoice. |
+| [reports/contract-renewal/LAPORAN_TESTING_PERPANJANGAN_KONTRAK.md](reports/contract-renewal/LAPORAN_TESTING_PERPANJANGAN_KONTRAK.md) | Laporan testing perpanjangan kontrak. |
+| [reports/contract-renewal/TEST_REPORT_CONTRACT_CHANGE.md](reports/contract-renewal/TEST_REPORT_CONTRACT_CHANGE.md) | Laporan test perubahan kontrak. |
 
-Aplikasi development berjalan di `http://localhost:5173`.
+### Analisis & Catatan Desain (pendukung/lama)
 
-## Testing dan Deployment
+| Dokumen | Deskripsi |
+| --- | --- |
+| [analysis/document-archiving-tenant-monitoring-system-design.md](analysis/document-archiving-tenant-monitoring-system-design.md) | Desain awal sistem (rationale bisnis masih relevan; bagian backend NestJS sudah usang). |
+| [refactor-supabase-direct-access.md](refactor-supabase-direct-access.md) | Catatan refactor ke Supabase direct access (menjelaskan asal arsitektur sekarang). |
 
-1. Jalankan lint/build frontend.
-2. Ikuti [operations/TESTING_CHECKLIST.md](operations/TESTING_CHECKLIST.md).
-3. Ikuti [deployment/DEPLOYMENT_GUIDE.md](deployment/DEPLOYMENT_GUIDE.md) untuk rilis production.
+---
+
+## 📂 Ke Mana Dokumen Baru Harus Diletakkan?
+
+Agar dokumentasi tidak kembali berantakan, ikuti panduan ini saat membuat dokumen baru:
+
+| Jenis dokumen | Lokasi | Konvensi nama |
+| --- | --- | --- |
+| Sumber kebenaran produk/teknis | update file **kanonik** yang sudah ada (PRD/README/DEV_GUIDE) | — |
+| Panduan cara melakukan sesuatu | `docs/guides/`, `docs/deployment/`, atau `docs/operations/` | nama deskriptif |
+| Catatan perubahan rilis | `docs/changelog/` | `YYYY-MM-DD-deskripsi.md` |
+| Status implementasi fitur | `docs/implementation-status/` | `YYYY-MM-DD-deskripsi.md` |
+| Laporan/analisis sekali pakai | `docs/reports/<topik>/` atau `docs/analysis/` | nama deskriptif |
+
+Prinsip: **utamakan memperbarui dokumen kanonik** daripada membuat file baru. Buat file historis bertanggal hanya untuk merekam kejadian/keputusan pada satu titik waktu — dan setelah ditulis, biarkan sebagai arsip.
+
+---
+
+## Ringkasan Arsitektur
+
+- **Frontend:** React + Vite.
+- **Backend utama:** Supabase direct access dari frontend (tanpa NestJS).
+- **Database/Auth/API:** Supabase Cloud (PostgreSQL + Auth + REST/RPC + Storage).
+- **Keamanan akses data:** Supabase Row Level Security.
+- **Route planner:** Valhalla (opsional, untuk fitur peta/jalur FO).
+
+Detail lengkap ada di [../prd/PRD-sistem-arsip-kima.md](../prd/PRD-sistem-arsip-kima.md) bagian Arsitektur Teknis.

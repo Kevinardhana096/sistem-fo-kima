@@ -1,8 +1,8 @@
 # Product Requirements Document
 # Sistem FO KIMA — Document Archiving & Tenant Monitoring System
 
-**Versi:** 1.3  
-**Tanggal:** 2026-05-18  
+**Versi:** 1.4  
+**Tanggal:** 2026-05-31  
 **Status:** Active Development
 
 ---
@@ -196,9 +196,12 @@ Detail pelanggan terdiri dari tab:
 
 ### 5.6 Tempat Sampah
 
-- Modul Tempat Sampah saat ini masih berupa tampilan placeholder/mock untuk rancangan UX.
-- Operasi production saat ini belum memakai soft delete menyeluruh untuk semua entitas.
-- Implementasi final perlu menambahkan kolom/status arsip, restore flow, dan hard-delete policy yang eksplisit sebelum fitur ini dipakai sebagai sumber data operasional.
+- Modul Tempat Sampah sudah terhubung ke database (bukan lagi mock). Penghapusan entitas utama memakai **soft delete** via kolom `deleted_at` dan `deleted_by`.
+- Soft delete diterapkan pada entitas utama: `isps`, `customers`, `contracts`, `contract_versions`, `invoices`, `documents`, `customer_route_versions`, `customer_route_points`, dan `isp_contract_rows`.
+- Semua query list/monitoring utama memfilter `deleted_at IS NULL` sehingga item terhapus tidak muncul di tampilan aktif.
+- Halaman Tempat Sampah mendukung **lihat item terhapus, pulihkan (restore), hapus permanen (hard delete), dan kosongkan sampah**, dengan statistik per jenis entitas.
+- Menghapus ISP melakukan **cascade soft delete** ke pelanggan terkait. Audit penghapusan tersimpan pada `deleted_at`/`deleted_by`.
+- Belum termasuk (lihat roadmap): auto-cleanup item lama, soft delete untuk seluruh tabel relasi anak, dan operasi bulk restore/delete.
 
 ---
 
@@ -207,6 +210,7 @@ Detail pelanggan terdiri dari tab:
 | Entitas | Deskripsi |
 | --- | --- |
 | `users` / Supabase Auth | Akun pengguna dan role akses |
+| `isp_user_accounts` | Mapping akun login Supabase Auth ke entitas ISP (`1 akun ISP = 1 entitas ISP`) sebagai dasar pembatasan akses data untuk role ISP |
 | `isps` | Data ISP mitra, paket, periode, status, dan metadata billing |
 | `isp_contract_rows` | Baris kontrak/periode ISP bila tersedia |
 | `isp_renewal_follow_ups` | Follow-up renewal kontrak ISP |
@@ -448,6 +452,17 @@ frontend/src/
 | Performa | List dan monitoring harus memakai index, batching, dan pagination agar tidak menarik payload besar sekaligus |
 | Operasional | Script production dijalankan manual dan hati-hati melalui Supabase SQL Editor |
 
+### 8.1 Penanganan Kredensial Akun ISP
+
+> **Risiko diketahui:** field `public.isps.password_plain` menyimpan password operasional akun ISP dalam bentuk **plaintext**. Ini adalah keputusan desain sementara, bukan praktik yang direkomendasikan.
+
+Ketentuan dan mitigasi yang berlaku selama field ini masih dipakai:
+
+- `password_plain` hanya menyimpan **credential awal/operasional** agar admin dapat membuat dan menyetel ulang akun Auth ISP melalui script provisioning. Sumber kebenaran autentikasi tetap **Supabase Auth** (hash dikelola Supabase), bukan field ini.
+- Akses baca terhadap kolom `password_plain` harus dibatasi ketat melalui Row Level Security sehingga hanya role Admin yang dapat melihatnya; role ISP/Teknisi tidak boleh memiliki akses baca ke kolom ini.
+- Nilai `password_plain` **tidak boleh** ditampilkan di log, pesan error, hasil export, atau dibagikan di luar kanal operasional yang aman.
+- **Arah perbaikan (roadmap):** hentikan penyimpanan password plaintext dengan beralih ke alur reset/invite Supabase Auth (admin memicu undangan/reset, tanpa menyimpan password), atau minimal mengenkripsi kolom dan menghapus nilai setelah akun Auth berhasil dibuat.
+
 ---
 
 ## 9. Batasan & Asumsi
@@ -504,7 +519,7 @@ npm --prefix frontend run build
 - [x] CRUD pelanggan dan ISP.
 - [x] Arsip dokumen pelanggan.
 - [x] Monitoring billing.
-- [ ] Soft delete/tempat sampah production.
+- [x] Soft delete/tempat sampah production.
 
 ### Fase 2 — Kontrak, Invoice, dan Route
 
@@ -521,7 +536,8 @@ npm --prefix frontend run build
 - [ ] Timeline aktivitas yang lebih detail.
 - [ ] Laporan/analitik dokumen dan billing.
 - [ ] Search/filter server-side global untuk workspace pelanggan saat jumlah data melampaui batch awal.
-- [ ] Soft delete production dan restore flow untuk Tempat Sampah.
+- [x] Soft delete production dan restore flow untuk Tempat Sampah.
+- [ ] Penyempurnaan Tempat Sampah: auto-cleanup item lama, soft delete untuk seluruh tabel relasi anak, dan bulk restore/delete.
 - [ ] Notifikasi terjadwal bila dibutuhkan.
 
 ---
@@ -547,6 +563,6 @@ npm --prefix frontend run build
 
 ---
 
-**Dokumen ini terakhir diperbarui:** 2026-05-18  
-**Versi:** 1.3  
+**Dokumen ini terakhir diperbarui:** 2026-05-31  
+**Versi:** 1.4  
 **Status:** Active Development
