@@ -1,8 +1,9 @@
 {
+  "_comment": "Template MCP config. Copy to .mcp.json and fill in secrets locally. NEVER commit real keys (.mcp.json is gitignored). Rotate any key that has ever been committed.",
   "mcpServers": {
     "serena": {
       "type": "stdio",
-      "command": "/home/asus_vivobook/.local/bin/serena",
+      "command": "serena",
       "args": [
         "start-mcp-server",
         "--project-from-cwd"
@@ -16,10 +17,10 @@
         "supabase-mcp-claude"
       ],
       "env": {
-        "SUPABASE_URL": "https://jkzjqzskrzcdmahrikwm.supabase.co",
-        "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImprempxenNrcnpjZG1haHJpa3dtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1MzE1NzIsImV4cCI6MjA5NDEwNzU3Mn0.hyvzRM5Fxk0ZKikabyy0uK08q6rf9hK61R9VSz3YzkU",
-        "SUPABASE_SERVICE_ROLE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImprempxenNrcnpjZG1haHJpa3dtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODUzMTU3MiwiZXhwIjoyMDk0MTA3NTcyfQ.5Quqs7E0ItDXISV8XvLNg0Nx23_ZM8izPYGnef4_pdc",
-        "MCP_API_KEY": "b02b53e859f7a8eba653837960a6a599b609e95465b9a22f06f3c5ec8e7ca494"
+        "SUPABASE_URL": "https://<project-ref>.supabase.co",
+        "SUPABASE_ANON_KEY": "<set-locally-do-not-commit>",
+        "SUPABASE_SERVICE_ROLE_KEY": "<set-locally-do-not-commit>",
+        "MCP_API_KEY": "<set-locally-do-not-commit>"
       }
     },
     "playwright": {
@@ -28,8 +29,7 @@
       "args": [
         "-y",
         "@playwright/mcp@latest",
-        "--browser=chrome",
-        "--executable-path=/usr/bin/google-chrome-stable"
+        "--browser=chrome"
       ],
       "env": {
         "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD": "1"

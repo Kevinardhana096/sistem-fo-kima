@@ -1,5 +1,10 @@
 # 🔐 Kredensial Admin - Production Supabase
 
+> **CATATAN KEAMANAN.** Jangan menyimpan password atau hash asli di file ini
+> atau di mana pun dalam repository. Simpan kredensial nyata di password manager
+> tim. Placeholder `<lihat password manager>` di bawah sengaja dipakai sebagai
+> pengganti nilai rahasia.
+
 **Tanggal Dibuat:** 2026-05-12  
 **Status:** Ready to Deploy
 
@@ -11,7 +16,7 @@
 
 ```
 Username: admin
-Password: Admin@2026
+Password: <lihat password manager>
 Email: admin@kima.local
 Role: admin
 ```
@@ -23,7 +28,7 @@ Role: admin
 ### **STEP 1: Login ke Supabase Dashboard**
 1. Buka https://supabase.com
 2. Login dengan akun Anda
-3. Pilih project: **sistem-fo-kima** (jkzjqzskrzcdmahrikwm)
+3. Pilih project: **sistem-fo-kima** (<project-ref>)
 4. Klik menu **SQL Editor** di sidebar kiri
 
 ### **STEP 2: Jalankan Script Insert Admin**
@@ -64,7 +69,7 @@ id | username | email              | role  | display_name  | is_active
 2. Masuk ke halaman login
 3. Masukkan kredensial:
    - Username: `admin`
-   - Password: `Admin@2026`
+   - Password: `<lihat password manager>`
 4. Klik Login
 5. Harus redirect ke Dashboard dengan full access
 
@@ -74,7 +79,7 @@ curl -X POST "https://[your-api-url]/api/auth/login" \
   -H "Content-Type: application/json" \
   -d '{
     "username": "admin",
-    "password": "Admin@2026"
+    "password": "<lihat password manager>"
   }'
 ```
 
@@ -105,7 +110,7 @@ curl -X POST "https://[your-api-url]/api/auth/login" \
 ### **Password Hash:**
 - Algoritma: bcrypt
 - Rounds: 10
-- Hash: `$2b$10$tQfpWsjzRlzt.h6fN8QnA.v2Swv8Fg.WfSVlYLMBXfd6DZOV0wtgC`
+- Hash: `<bcrypt hash - jangan simpan di repo>`
 
 ### **⚠️ PENTING - Ganti Password Setelah Login Pertama!**
 
@@ -132,14 +137,14 @@ Jika perlu akun untuk role lain:
 ### **ISP User:**
 ```
 Username: isp_user
-Password: Isp@2026
+Password: <lihat password manager>
 Role: isp
 ```
 
 ### **Teknisi User:**
 ```
 Username: teknisi
-Password: Teknisi@2026
+Password: <lihat password manager>
 Role: teknisi
 ```
 
@@ -191,7 +196,7 @@ Lalu jalankan ulang script insert.
 **Kredensial Default:**
 ```
 Username: admin
-Password: Admin@2026
+Password: <lihat password manager>
 ```
 
 **⚠️ WAJIB GANTI PASSWORD SETELAH LOGIN PERTAMA!**

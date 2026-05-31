@@ -41,9 +41,9 @@
 - [ ] Login page displays correctly
 
 ### **2. Authentication Test**
-- [ ] Login with admin@kima.local / Admin@2026
-- [ ] Login with teknisi@kima.local / Teknisi@2026
-- [ ] Login with isp@kima.local / Isp@2026
+- [ ] Login with admin@kima.local / <lihat password manager>
+- [ ] Login with teknisi@kima.local / <lihat password manager>
+- [ ] Login with isp@kima.local / <lihat password manager>
 - [ ] Dev quick access buttons work
 - [ ] Logout works
 - [ ] Session persists after refresh
@@ -102,9 +102,9 @@
 - **OS:** Linux WSL2
 
 ### Test Credentials
-- **Admin:** admin@kima.local / Admin@2026
-- **Teknisi:** teknisi@kima.local / Teknisi@2026
-- **ISP:** isp@kima.local / Isp@2026
+- **Admin:** admin@kima.local / <lihat password manager>
+- **Teknisi:** teknisi@kima.local / <lihat password manager>
+- **ISP:** isp@kima.local / <lihat password manager>
 
 ---
 

@@ -120,7 +120,7 @@ Known limitations:
 
 Breaking changes:
 - Auth: username/password → email/password
-- Credentials: admin@kima.local / Admin@2026
+- Credentials: admin@kima.local / <lihat password manager>
 - API: fetchJson() → api.customers.getAll()
 
 Tested:
@@ -152,9 +152,9 @@ git push origin main
 ### **Step 6: Test Production** (10 min)
 1. Open production URL
 2. Test login with all roles:
-   - admin@kima.local / Admin@2026
-   - teknisi@kima.local / Teknisi@2026
-   - isp@kima.local / Isp@2026
+   - admin@kima.local / <lihat password manager>
+   - teknisi@kima.local / <lihat password manager>
+   - isp@kima.local / <lihat password manager>
 3. Test core features:
    - View customers list
    - View ISPs list

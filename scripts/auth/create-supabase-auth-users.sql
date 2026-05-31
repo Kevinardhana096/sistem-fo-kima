@@ -1,5 +1,10 @@
 -- Create Supabase Auth Users
 -- Run this in Supabase SQL Editor
+--
+-- SECURITY: This is a TEMPLATE. Replace every REPLACE_WITH_* placeholder with a
+-- strong, unique password BEFORE running, and do NOT commit the filled-in values.
+-- Use a dedicated DEV Supabase project for test accounts; never reuse production
+-- passwords. Rotate any password that has ever been committed or shared.
 
 -- Note: Supabase Auth users are created in auth.users table
 -- Password will be hashed automatically by Supabase
@@ -9,7 +14,6 @@
 
 -- 1. Admin User
 -- Email: admin@kima.local
--- Password: Admin@2026
 -- Role: admin
 
 INSERT INTO auth.users (
@@ -35,7 +39,7 @@ SELECT
   'authenticated',
   'authenticated',
   'admin@kima.local',
-  crypt('Admin@2026', gen_salt('bf')),
+  crypt('REPLACE_WITH_ADMIN_PASSWORD', gen_salt('bf')),
   NOW(),
   '{"provider":"email","providers":["email"]}',
   '{"role":"admin","display_name":"Administrator"}',
@@ -53,7 +57,6 @@ WHERE NOT EXISTS (
 
 -- 2. Teknisi User
 -- Email: teknisi@kima.local
--- Password: Teknisi@2026
 -- Role: teknisi
 
 INSERT INTO auth.users (
@@ -79,7 +82,7 @@ SELECT
   'authenticated',
   'authenticated',
   'teknisi@kima.local',
-  crypt('Teknisi@2026', gen_salt('bf')),
+  crypt('REPLACE_WITH_TEKNISI_PASSWORD', gen_salt('bf')),
   NOW(),
   '{"provider":"email","providers":["email"]}',
   '{"role":"teknisi","display_name":"Teknisi"}',
@@ -97,7 +100,6 @@ WHERE NOT EXISTS (
 
 -- 3. ISP User
 -- Email: isp@kima.local
--- Password: Isp@2026
 -- Role: isp
 
 INSERT INTO auth.users (
@@ -123,7 +125,7 @@ SELECT
   'authenticated',
   'authenticated',
   'isp@kima.local',
-  crypt('Isp@2026', gen_salt('bf')),
+  crypt('REPLACE_WITH_ISP_PASSWORD', gen_salt('bf')),
   NOW(),
   '{"provider":"email","providers":["email"]}',
   '{"role":"isp","display_name":"ISP User"}',
