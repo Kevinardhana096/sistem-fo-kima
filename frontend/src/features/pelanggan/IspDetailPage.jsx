@@ -1151,7 +1151,7 @@ function IspDetailPage({
                                         <p className="text-[11px] font-black text-white tracking-wide uppercase">
                                             {(() => {
                                                 const packageQty = detail?.packageQuantity ?? isp.packageQuantity ?? detail?.jumlah ?? isp.jumlah;
-                                                return packageQty ? `Core ${packageQty} Core` : "Core -";
+                                                return packageQty ? `${packageQty} Core` : "- Core";
                                             })()}
                                         </p>
                                     </div>
@@ -1184,7 +1184,7 @@ function IspDetailPage({
                                 onClick={() => handleTabChange(tab.id)}
                                 type="button"
                             >
-                                <span className={`material-symbols-outlined relative z-10 ${activeTab === tab.id ? "scale-110 text-white" : ""}`} style={{ fontSize: "18px" }}>{tab.icon}</span>
+                                <span className={`material-symbols-outlined relative z-10 ${activeTab === tab.id ? "scale-110 text-white" : ""}`} style={{ fontSize: "14px" }}>{tab.icon}</span>
                                 <span className="relative z-10">{tab.label}</span>
                             </button>
                         ))}
@@ -1204,7 +1204,7 @@ function IspDetailPage({
                     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
                         {error && (
                             <div className="rounded-premium bg-[#ff2400]/10 border border-[#ff2400]/20 p-6 flex items-center gap-4 mb-8">
-                                <span className="material-symbols-outlined text-[#ff2400] text-3xl">report</span>
+                                <span className="material-symbols-outlined text-[#ff2400] text-[16px]">report</span>
                                 <p className="text-xs font-bold text-white/80">{error}</p>
                             </div>
                         )}
@@ -1218,8 +1218,8 @@ function IspDetailPage({
                                     <div className="md:col-span-2 lg:col-span-2 glass-card backdrop-blur-xl rounded-lg p-3 border-white/10 shadow-glass-depth relative overflow-hidden group hover:border-gold-accent/30 transition-all duration-500 border-l-2 border-l-gold-accent">
                                         <div className="absolute top-0 right-0 w-32 h-32 bg-gold-accent/5 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 group-hover:bg-gold-accent/10 transition-colors duration-500" />
                                         <div className="flex flex-col h-full justify-center text-center relative z-10">
-                                            <p className="text-[9px] font-bold text-white/50 uppercase tracking-[0.2em] mb-1">Total Lokasi</p>
-                                            <span className="text-3xl font-black text-white tracking-tighter drop-shadow-md">{summary.tenantCount ?? allTenants.length}</span>
+                                            <p className="text-[10px] font-bold text-white/50 uppercase tracking-[0.2em] mb-1">Total Lokasi</p>
+                                            <span className="text-4xl font-black text-white tracking-tighter drop-shadow-md">{summary.tenantCount ?? allTenants.length}</span>
                                         </div>
                                     </div>
 
@@ -1238,27 +1238,27 @@ function IspDetailPage({
                                             <div className="grid grid-cols-2 gap-2">
                                                 <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-emerald-400/5 border border-emerald-400/10 hover:bg-emerald-400/10 transition-colors">
                                                     <div className="flex items-center gap-1.5">
-                                                        <span className="text-[7px] font-bold text-white/70 uppercase tracking-widest">Beroperasi</span>
+                                                        <span className="text-[9px] font-bold text-white/70 uppercase tracking-widest">Beroperasi</span>
                                                     </div>
-                                                    <span className="text-sm font-black text-emerald-400">{statusBeroperasiCount}</span>
+                                                    <span className="text-base font-black text-emerald-400">{statusBeroperasiCount}</span>
                                                 </div>
                                                 <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-sky-400/5 border border-sky-400/10 hover:bg-sky-400/10 transition-colors">
                                                     <div className="flex items-center gap-1.5 min-w-0">
-                                                        <span className="text-[7px] font-bold text-white/70 uppercase tracking-widest truncate">Belum Beroperasi</span>
+                                                        <span className="text-[9px] font-bold text-white/70 uppercase tracking-widest truncate">Belum Beroperasi</span>
                                                     </div>
-                                                    <span className="text-sm font-black text-sky-400 shrink-0 ml-1">{statusBelumBeroperasiCount}</span>
+                                                    <span className="text-base font-black text-sky-400 shrink-0 ml-1">{statusBelumBeroperasiCount}</span>
                                                 </div>
                                                 <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-[#ff2400]/5 border border-[#ff2400]/10 hover:bg-[#ff2400]/10 transition-colors">
                                                     <div className="flex items-center gap-1.5 min-w-0">
-                                                        <span className="text-[7px] font-bold text-white/70 uppercase tracking-widest truncate">Belum Diperpanjang</span>
+                                                        <span className="text-[9px] font-bold text-white/70 uppercase tracking-widest truncate">Belum Diperpanjang</span>
                                                     </div>
-                                                    <span className="text-sm font-black text-[#ff2400] shrink-0 ml-1">{statusBelumDiperpanjangCount}</span>
+                                                    <span className="text-base font-black text-[#ff2400] shrink-0 ml-1">{statusBelumDiperpanjangCount}</span>
                                                 </div>
                                                 <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
                                                     <div className="flex items-center gap-1.5">
-                                                        <span className="text-[7px] font-bold text-white/70 uppercase tracking-widest">Berhenti</span>
+                                                        <span className="text-[9px] font-bold text-white/70 uppercase tracking-widest">Berhenti</span>
                                                     </div>
-                                                    <span className="text-sm font-black text-white/60">{statusBerhentiCount}</span>
+                                                    <span className="text-base font-black text-white/60">{statusBerhentiCount}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -1279,27 +1279,27 @@ function IspDetailPage({
                                             <div className="grid grid-cols-2 gap-2">
                                                 <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-emerald-400/5 border border-emerald-400/10 hover:bg-emerald-400/10 transition-colors">
                                                     <div className="flex items-center gap-1.5">
-                                                        <span className="text-[7px] font-bold text-white/70 uppercase tracking-widest">Aktif</span>
+                                                        <span className="text-[9px] font-bold text-white/70 uppercase tracking-widest">Aktif</span>
                                                     </div>
-                                                    <span className="text-sm font-black text-emerald-400">{pathAktifCount}</span>
+                                                    <span className="text-base font-black text-emerald-400">{pathAktifCount}</span>
                                                 </div>
                                                 <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-[#ff2400]/5 border border-[#ff2400]/10 hover:bg-[#ff2400]/10 transition-colors">
                                                     <div className="flex items-center gap-1.5">
-                                                        <span className="text-[7px] font-bold text-white/70 uppercase tracking-widest">Gangguan</span>
+                                                        <span className="text-[9px] font-bold text-white/70 uppercase tracking-widest">Gangguan</span>
                                                     </div>
-                                                    <span className="text-sm font-black text-[#ff2400]">{pathGangguanCount}</span>
+                                                    <span className="text-base font-black text-[#ff2400]">{pathGangguanCount}</span>
                                                 </div>
                                                 <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-amber-400/5 border border-amber-400/10 hover:bg-amber-400/10 transition-colors">
                                                     <div className="flex items-center gap-1.5">
-                                                        <span className="text-[7px] font-bold text-white/70 uppercase tracking-widest">Perbaikan</span>
+                                                        <span className="text-[9px] font-bold text-white/70 uppercase tracking-widest">Perbaikan</span>
                                                     </div>
-                                                    <span className="text-sm font-black text-amber-400">{pathPerbaikanCount}</span>
+                                                    <span className="text-base font-black text-amber-400">{pathPerbaikanCount}</span>
                                                 </div>
                                                 <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
                                                     <div className="flex items-center gap-1.5">
-                                                        <span className="text-[7px] font-bold text-white/70 uppercase tracking-widest">Nonaktif</span>
+                                                        <span className="text-[9px] font-bold text-white/70 uppercase tracking-widest">Nonaktif</span>
                                                     </div>
-                                                    <span className="text-sm font-black text-white/60">{pathNonaktifCount}</span>
+                                                    <span className="text-base font-black text-white/60">{pathNonaktifCount}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -1314,8 +1314,8 @@ function IspDetailPage({
                                             <div className="absolute -right-24 -top-24 h-64 w-64 rounded-full bg-gold-accent/5 blur-3xl transition-all duration-700 group-hover/isp-actions:bg-gold-accent/10" />
 
                                             <div className="flex items-center justify-between mb-4">
-                                                <h3 className="text-sm md:text-base font-bold text-white tracking-widest flex items-center gap-3">
-                                                    <span className="material-symbols-outlined text-gold-accent text-lg">admin_panel_settings</span>
+                                                <h3 className="text-xs md:text-sm font-bold text-white tracking-widest flex items-center gap-2">
+                                                    <span className="material-symbols-outlined text-gold-accent" style={{ fontSize: "19px" }}>admin_panel_settings</span>
                                                     Tindak Lanjut ISP
                                                 </h3>
                                                 <div className="flex items-center justify-center min-w-[24px] h-6 px-2 rounded-full bg-gold-accent/10 border border-gold-accent/20 text-gold-accent text-[10px] font-black shadow-sm">
@@ -1349,8 +1349,8 @@ function IspDetailPage({
                                                         return (
                                                             <div key={itemKey} className={`flex flex-col lg:flex-row lg:items-center justify-between gap-2 rounded-sm p-2 border transition-all hover:scale-[1.01] hover:shadow-lg ${toneStyle}`}>
                                                                 <div className="space-y-1">
-                                                                    <div className="flex items-center gap-2">
-                                                                        <span className="material-symbols-outlined text-base">contract_edit</span>
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <span className="material-symbols-outlined" style={{ fontSize: "15px" }}>contract_edit</span>
                                                                         <h4 className="text-xs font-bold">{itemTitle}</h4>
                                                                         {item.id && <span className="h-1.5 w-1.5 rounded-full bg-current opacity-60" title={statusLabel} />}
                                                                     </div>
@@ -1369,8 +1369,8 @@ function IspDetailPage({
                                             <div className="absolute -right-24 -top-24 h-64 w-64 rounded-full bg-[#ff2400]/5 blur-3xl transition-all duration-700 group-hover/lokasi-actions:bg-[#ff2400]/10" />
 
                                             <div className="flex items-center justify-between mb-4">
-                                                <h3 className="text-sm md:text-base font-bold text-white tracking-widest flex items-center gap-3">
-                                                    <span className="material-symbols-outlined text-[#ff2400] text-lg">location_away</span>
+                                                <h3 className="text-xs md:text-sm font-bold text-white tracking-widest flex items-center gap-2">
+                                                    <span className="material-symbols-outlined text-[#ff2400]" style={{ fontSize: "19px" }}>location_away</span>
                                                     Tindak Lanjut Lokasi
                                                 </h3>
                                                 <div className="flex items-center justify-center min-w-[24px] h-6 px-2 rounded-full bg-[#ff2400]/10 border border-[#ff2400]/20 text-[#ff2400] text-[10px] font-black shadow-sm">
@@ -1396,8 +1396,8 @@ function IspDetailPage({
                                                                 onClick={() => onOpenTenant(t, isGangguan ? "jalur" : "overview")}
                                                             >
                                                                 <div className="space-y-1">
-                                                                    <div className="flex items-center gap-2">
-                                                                        <span className="material-symbols-outlined text-base">{isGangguan ? "router" : "warning"}</span>
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <span className="material-symbols-outlined" style={{ fontSize: "15px" }}>{isGangguan ? "router" : "warning"}</span>
                                                                         <h4 className="text-xs font-bold">{t.name}</h4>
                                                                     </div>
                                                                     <p className="text-[9px] font-bold opacity-70">
@@ -1419,8 +1419,8 @@ function IspDetailPage({
                                     <div className="space-y-2">
 
                                         <div className="glass-card backdrop-blur-xl rounded-lg p-3 border-white/10 shadow-glass-depth">
-                                            <h3 className="text-sm md:text-base font-bold text-white tracking-widest mb-5 flex items-center gap-2.5">
-                                                <span className="material-symbols-outlined text-blue-400 text-lg">history</span>
+                                            <h3 className="text-xs md:text-sm font-bold text-white tracking-widest mb-5 flex items-center gap-2">
+                                                <span className="material-symbols-outlined text-blue-400" style={{ fontSize: "19px" }}>history</span>
                                                 Aktivitas Terkini
                                             </h3>
                                             <div className="space-y-1.5">
@@ -1428,16 +1428,16 @@ function IspDetailPage({
                                                     <div key={e.id} className="group/history py-2 border-b border-white/5 last:border-0 relative">
                                                         <div className="flex items-start gap-3">
                                                             <div className={`mt-0.5 w-6 h-6 rounded flex items-center justify-center shrink-0 ${e.bg || 'bg-white/5'} ${e.color || 'text-white/60'} group-hover/history:scale-105 transition-transform duration-300`}>
-                                                                <span className="material-symbols-outlined text-[12px]">{e.icon}</span>
+                                                                <span className="material-symbols-outlined text-[10px]">{e.icon}</span>
                                                             </div>
                                                             <div className="flex-1 min-w-0">
                                                                 <div className="flex items-start justify-between gap-2 mb-1">
-                                                                    <p className="text-[10px] font-bold text-white/90 truncate group-hover/history:text-gold-accent transition-colors">{e.title}</p>
-                                                                    <span className="text-[8px] font-black text-white/30 uppercase shrink-0">
+                                                                    <p className="text-[12px] font-bold text-white/90 truncate group-hover/history:text-gold-accent transition-colors">{e.title}</p>
+                                                                    <span className="text-[10px] font-black text-white/30 uppercase shrink-0">
                                                                         {new Date(e.date).toLocaleString('id-ID', {day: 'numeric', month: 'short', hour: '2-digit', minute:'2-digit'}).replace(',', ' •')}
                                                                     </span>
                                                                 </div>
-                                                                <p className="text-[8px] font-bold text-white/40 leading-relaxed group-hover/history:text-white/60 transition-colors">{e.description}</p>
+                                                                <p className="text-[10px] font-bold text-white/40 leading-relaxed group-hover/history:text-white/60 transition-colors">{e.description}</p>
                                                             </div>
                                                         </div>
                                                     </div>

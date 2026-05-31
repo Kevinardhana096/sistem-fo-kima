@@ -811,7 +811,7 @@ function CustomerWorkspacePage({
                                                                                     type="button"
                                                                                 >
                                                                                     <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>route</span>
-                                                                                    Atur Jalur
+                                                                                    Jalur
                                                                                 </button>
                                                                                 <button
                                                                                     className="h-7 inline-flex items-center gap-1.5 rounded-lg bg-white/5 border border-white/10 px-2.5 text-[9px] font-black uppercase tracking-widest text-white hover:border-gold-accent hover:text-gold-accent transition-all active:scale-95 shadow-glass-depth backdrop-blur-md"

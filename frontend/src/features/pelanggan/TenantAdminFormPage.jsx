@@ -250,10 +250,10 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                             </p>
                         </div>
                         <h1 className="text-3xl md:text-4xl xl:text-5xl font-black text-white tracking-tight leading-tight">
-                            {isEditMode ? "Edit" : "Daftar"} <span className="text-gold-accent italic">Lokasi Baru</span>
+                            {isEditMode ? "Edit" : "Daftar"} <span className="text-gold-accent italic">Lokasi</span>
                         </h1>
                         <p className="mt-1 max-w-xl text-[11px] font-bold text-white/40">
-                            Silakan lengkapi data administratif dan konfigurasi layanan untuk {isEditMode ? "memperbarui lokasi" : "mendaftarkan titik lokasi baru"}.
+                            Silakan lengkapi data administratif dan konfigurasi layanan untuk {isEditMode ? "memperbarui lokasi" : "mendaftarkan titik lokasi"}.
                         </p>
                     </div>
 
@@ -293,7 +293,7 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
                     {/* Left Column - Core Info */}
-                    <div className="lg:col-span-8 space-y-4">
+                    <div className={`${isEditMode ? "lg:col-span-12" : "lg:col-span-8"} space-y-4`}>
                         {/* Section: Identitas Lokasi */}
                         <div className="glass-card backdrop-blur-xl rounded-2xl p-5 border-white/20 shadow-glass-depth relative z-40">
                             <div className="flex items-center gap-3 mb-4">
