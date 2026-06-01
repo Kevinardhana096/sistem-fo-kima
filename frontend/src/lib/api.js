@@ -3775,8 +3775,65 @@ export const contractVersionsApi = {
 // CUSTOMER ROUTES API
 // ============================================================================
 
+const ROUTE_META_PREFIX = '[FO_ROUTE_META]';
+
+// Decode the base64 [FO_ROUTE_META] block embedded in a route point note.
+// Returns the parsed planner meta object, or null. Never throws.
+function decodeRoutePlannerMetaFromNote(note) {
+  if (typeof note !== 'string') return null;
+  const idx = note.indexOf(ROUTE_META_PREFIX);
+  if (idx < 0) return null;
+  const encoded = note.slice(idx + ROUTE_META_PREFIX.length).trim();
+  if (!encoded) return null;
+  try {
+    return JSON.parse(decodeURIComponent(escape(atob(encoded))));
+  } catch {
+    return null;
+  }
+}
+
+// Parse "lat, lng" from the human-readable portion of a note (meta block stripped).
+function parseCoordinatesFromNote(note) {
+  if (typeof note !== 'string') return null;
+  const display = note.split(ROUTE_META_PREFIX)[0];
+  const match = display.match(/(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)/);
+  if (!match) return null;
+  const lat = Number(match[1]);
+  const lng = Number(match[2]);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
+  return { lat, lng };
+}
+
+// Prefer explicit structured coordinates on the point; fall back to the note text.
+function resolvePointCoordinates(point) {
+  const explicitLat = Number(point?.latitude ?? point?.lat);
+  const explicitLng = Number(point?.longitude ?? point?.lng);
+  if (Number.isFinite(explicitLat) && Number.isFinite(explicitLng)) {
+    return { lat: explicitLat, lng: explicitLng };
+  }
+  return parseCoordinatesFromNote(point?.note);
+}
+
+// True when Supabase/PostgREST rejects a write because a column is missing,
+// e.g. the Phase 1 migration (add-route-point-coordinates.sql) is not applied yet.
+function isUnknownColumnError(error) {
+  if (!error) return false;
+  const code = String(error.code ?? '');
+  const message = String(error.message ?? '').toLowerCase();
+  return (
+    code === 'PGRST204' ||
+    code === '42703' ||
+    (message.includes('column') &&
+      (message.includes('schema cache') || message.includes('does not exist')))
+  );
+}
+
 export const customerRoutesApi = {
-  async replace(customerId, { flowStatus = 'aktif', changeNote = null, points = [] } = {}) {
+  async replace(
+    customerId,
+    { flowStatus = 'aktif', changeNote = null, points = [], routeMeta = null } = {},
+  ) {
     const now = new Date().toISOString();
     const { data: latestVersions, error: latestVersionError } = await supabase
       .from('customer_route_versions')
@@ -3788,34 +3845,83 @@ export const customerRoutesApi = {
     if (latestVersionError) throw latestVersionError;
     const nextVersionNumber = Number(latestVersions?.[0]?.version_number ?? 0) + 1;
 
-    const { data: version, error: versionError } = await supabase
+    // Derive route-level geometry/meta: prefer an explicit routeMeta argument,
+    // otherwise decode it from the embedded [FO_ROUTE_META] block on any point
+    // (legacy storage). This keeps callers unchanged while populating the new
+    // structured columns (dual-write — Fase 2).
+    const meta =
+      routeMeta ??
+      points.map((point) => decodeRoutePlannerMetaFromNote(point?.note)).find(Boolean) ??
+      null;
+    const geometryCoordinates = Array.isArray(meta?.geometryCoordinates)
+      ? meta.geometryCoordinates
+      : null;
+
+    const baseVersionPayload = {
+      customer_id: customerId,
+      version_number: nextVersionNumber,
+      flow_status: flowStatus,
+      change_mode: nextVersionNumber === 1 ? 'initial' : 'ubah_jalur',
+      change_note: changeNote,
+      updated_at: now,
+    };
+    const structuredVersionPayload = {
+      ...baseVersionPayload,
+      route_geometry: geometryCoordinates,
+      road_segments: Array.isArray(meta?.roads) ? meta.roads : null,
+      route_source: typeof meta?.source === 'string' ? meta.source : null,
+      route_mode: typeof meta?.mode === 'string' ? meta.mode : null,
+      route_profile: typeof meta?.profile === 'string' ? meta.profile : null,
+      distance_meters: Number.isFinite(Number(meta?.distance)) ? Number(meta.distance) : null,
+      duration_seconds: Number.isFinite(Number(meta?.duration)) ? Number(meta.duration) : null,
+    };
+
+    // Try the structured payload; fall back to legacy-only if the new columns
+    // are not present yet (migration not applied in this environment).
+    let version;
+    const structuredVersion = await supabase
       .from('customer_route_versions')
-      .insert({
-        customer_id: customerId,
-        version_number: nextVersionNumber,
-        flow_status: flowStatus,
-        change_mode: nextVersionNumber === 1 ? 'initial' : 'ubah_jalur',
-        change_note: changeNote,
-        updated_at: now,
-      })
+      .insert(structuredVersionPayload)
       .select()
       .single();
-
-    if (versionError) throw versionError;
+    if (structuredVersion.error) {
+      if (!isUnknownColumnError(structuredVersion.error)) throw structuredVersion.error;
+      const legacyVersion = await supabase
+        .from('customer_route_versions')
+        .insert(baseVersionPayload)
+        .select()
+        .single();
+      if (legacyVersion.error) throw legacyVersion.error;
+      version = legacyVersion.data;
+    } else {
+      version = structuredVersion.data;
+    }
 
     if (points.length > 0) {
-      const { error: pointsError } = await supabase
-        .from('customer_route_points')
-        .insert(points.map((point, index) => ({
+      const buildPoint = (point, index, withCoords) => {
+        const base = {
           route_version_id: version.id,
           path_name: point.pathName ?? point.path_name ?? null,
           point_type: point.pointType ?? point.point_type ?? null,
           note: point.note ?? null,
           order_number: point.orderNumber ?? point.order_number ?? index + 1,
           updated_at: now,
-        })));
+        };
+        if (!withCoords) return base;
+        const coords = resolvePointCoordinates(point);
+        return { ...base, latitude: coords?.lat ?? null, longitude: coords?.lng ?? null };
+      };
 
-      if (pointsError) throw pointsError;
+      const structuredPoints = await supabase
+        .from('customer_route_points')
+        .insert(points.map((point, index) => buildPoint(point, index, true)));
+      if (structuredPoints.error) {
+        if (!isUnknownColumnError(structuredPoints.error)) throw structuredPoints.error;
+        const legacyPoints = await supabase
+          .from('customer_route_points')
+          .insert(points.map((point, index) => buildPoint(point, index, false)));
+        if (legacyPoints.error) throw legacyPoints.error;
+      }
     }
 
     return version;

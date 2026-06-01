@@ -376,7 +376,7 @@ Bagian ini mendokumentasikan aturan database production yang harus diikuti oleh 
 - `customer_route_versions`, `customer_route_points`, dan `customer_route_history` menyimpan versi jalur, titik jalur, status flow, dan riwayat perubahan route FO.
 - `customer_route_history` production memakai kolom `operation`, `note`, `snapshot_before`, dan `snapshot_after`.
 - **Koordinat & geometri terstruktur (Fase 1+):** `customer_route_points` memiliki kolom `latitude`/`longitude` (`double precision`), dan `customer_route_versions` memiliki `route_geometry` (JSONB array `[lng,lat]`), `road_segments` (JSONB), `route_source`, `route_mode`, `route_profile`, `distance_meters`, `duration_seconds`. Skema ditambahkan via `scripts/maintenance/add-route-point-coordinates.sql`.
-- **Transisi (deprecated):** sebelumnya koordinat titik disimpan sebagai teks di `customer_route_points.note` dan metadata rute (geometri/roads) di-base64 dengan prefix `[FO_ROUTE_META]` pada `note` titik pertama. Pola ini sedang dimigrasikan ke kolom terstruktur di atas; `note` akan kembali menjadi catatan tampilan saja setelah dual-write/read selesai.
+- **Transisi (deprecated):** sebelumnya koordinat titik disimpan sebagai teks di `customer_route_points.note` dan metadata rute (geometri/roads) di-base64 dengan prefix `[FO_ROUTE_META]` pada `note` titik pertama. **Fase 2 (dual-write) sudah aktif:** `api.customerRoutes.replace` menulis kolom terstruktur di atas **sekaligus** mempertahankan `note` lama untuk kompatibilitas pembacaan. Pembacaan akan dialihkan ke kolom terstruktur pada Fase 3, lalu embedding meta di `note` dihentikan pada Fase 4.
 
 ### 6.2 Aturan Script Production
 
