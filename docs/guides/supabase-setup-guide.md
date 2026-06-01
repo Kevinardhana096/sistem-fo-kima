@@ -234,7 +234,7 @@ git commit -m "feat: refactor to Supabase direct access with RLS"
 git push origin main
 ```
 
-2. Netlify akan auto-deploy frontend
+2. Vercel akan auto-deploy frontend (sesuai `vercel.json`)
 3. Test production URL
 4. Monitor logs untuk errors
 

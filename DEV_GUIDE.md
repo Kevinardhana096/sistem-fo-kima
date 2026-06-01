@@ -47,7 +47,11 @@ Alternatif, gunakan script helper yang otomatis meng-install dependency bila bel
 
 Frontend membaca environment Vite dari `frontend/.env.development` (untuk `npm run dev`) atau `frontend/.env.production` (untuk build production). File ini **berisi kredensial dan tidak boleh di-commit** — perlakukan sebagai rahasia.
 
-> Repo belum menyediakan `.env.example`. Saat menyiapkan environment baru, salin dari file yang sudah ada lalu ganti nilainya, atau minta nilai ke admin project. **Jangan** membagikan nilai key di chat, commit, atau log.
+> Gunakan `frontend/.env.example` sebagai template: salin ke `frontend/.env.development` (untuk `npm run dev`) atau `frontend/.env.production` (untuk build), lalu isi nilainya. Gunakan Supabase project **terpisah** untuk development dan production. **Jangan** membagikan nilai key di chat, commit, atau log.
+
+```bash
+cp frontend/.env.example frontend/.env.development
+```
 
 Variabel yang digunakan aplikasi:
 
@@ -59,6 +63,11 @@ Variabel yang digunakan aplikasi:
 | `VITE_VALHALLA_HOST` | Opsional | Host layanan Valhalla untuk fitur route planner FO. |
 | `VITE_ADMIN_WHATSAPP_NUMBER` | Opsional | Nomor WhatsApp admin untuk fitur notifikasi/kontak. |
 | `VITE_API_BASE_URL` | Opsional | Base URL API tambahan (dipakai pada konfigurasi production tertentu). |
+| `VITE_DEV_ADMIN_EMAIL` / `VITE_DEV_ADMIN_PASSWORD` | Opsional (dev) | Kredensial tombol "Quick login" Admin — hanya muncul di build development. |
+| `VITE_DEV_TEKNISI_EMAIL` / `VITE_DEV_TEKNISI_PASSWORD` | Opsional (dev) | Kredensial Quick login Teknisi (development saja). |
+| `VITE_DEV_ISP_EMAIL` / `VITE_DEV_ISP_PASSWORD` | Opsional (dev) | Kredensial Quick login ISP (development saja). |
+
+> Variabel `VITE_DEV_*` hanya untuk **development lokal**, harus diarahkan ke akun pada Supabase project DEV (bukan production), dan tidak boleh diset di environment production.
 
 Contoh kerangka `frontend/.env.development` (isi nilai sendiri):
 

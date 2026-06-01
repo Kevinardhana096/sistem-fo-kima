@@ -1,303 +1,134 @@
-# Deployment Guide - Supabase Refactor
+# Deployment Guide — Sistem FO KIMA
 
-**Tanggal:** 2026-05-13  
-**Status:** Ready for Deployment  
-**Progress:** 75% Complete
+Panduan deploy production untuk Sistem FO KIMA: frontend **React + Vite** yang mengakses **Supabase** secara langsung (Auth, Database/REST/RPC, Storage). Tidak ada service backend NestJS yang perlu dideploy.
 
----
-
-## 🎯 Deployment Strategy
-
-### **Option A: Deploy Core Features Now** ✅ RECOMMENDED
-Deploy dengan fitur yang sudah working:
-- ✅ Authentication (Supabase Auth)
-- ✅ Customers list & CRUD
-- ✅ ISPs list & CRUD
-- ✅ Monitoring billing
-- ✅ Role-based access (simplified)
-
-**Timeline:** 15-30 menit  
-**Risk:** Low (core features tested)  
-**Benefit:** Users can start using the system
-
-### **Option B: Complete All Features First**
-Selesaikan detail pages dulu (Task #10):
-- ⏳ TenantDetailPage (~14 fetchJson calls)
-- ⏳ IspDetailPage (not started)
-- ⏳ Advanced features (documents, invoices, routes)
-
-**Timeline:** 2-3 jam lagi  
-**Risk:** Medium (more code changes)  
-**Benefit:** Full feature parity
+> Dokumen ini adalah **panduan prosedur** (lihat `docs/INDEX.md`). Jaga tetap mutakhir; jangan mencantumkan kredensial/nilai key asli di sini.
 
 ---
 
-## 📋 Pre-Deployment Checklist
+## 1. Arsitektur Deploy
 
-### **1. Code Review** ✅
-- [x] All imports updated
-- [x] No console.errors in production code
-- [x] Environment variables set correctly
-- [x] API endpoints using Supabase
-- [x] Authentication using Supabase Auth
-
-### **2. Database** ✅
-- [x] Supabase Auth users created
-- [x] RLS policies enabled
-- [x] Test data exists
-- [x] Migrations applied
-
-### **3. Environment Variables** ✅
-```env
-# frontend/.env.production
-VITE_SUPABASE_URL=https://jkzjqzskrzcdmahrikwm.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJhbGc...
+```text
+Vercel (static build frontend/dist)
+        |
+        v
+Supabase Cloud (Auth + PostgreSQL + RLS + Storage + REST/RPC)
+        |
+        v
+Valhalla (opsional, hanya untuk route planner FO)
 ```
 
-### **4. Testing** ⏳
-- [ ] Manual testing completed (see ../operations/TESTING_CHECKLIST.md)
-- [ ] Critical bugs fixed
-- [ ] Authentication working
-- [ ] Core CRUD working
+- **Host frontend:** Vercel (static hosting + SPA rewrite). Konfigurasi build ada di `vercel.json` di root repo.
+- **Backend/data:** Supabase Cloud. Tidak ada server aplikasi terpisah.
+- **Script SQL production:** dijalankan **manual** via Supabase SQL Editor setelah direview.
+
+`vercel.json` saat ini:
+
+```json
+{
+  "installCommand": "cd frontend && npm ci",
+  "buildCommand": "cd frontend && npm run build",
+  "outputDirectory": "frontend/dist",
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+}
+```
+
+Rewrite ke `/index.html` diperlukan agar routing SPA berfungsi pada refresh halaman dalam.
 
 ---
 
-## 🚀 Deployment Steps
+## 2. Pra-Deploy Checklist
 
-### **Step 1: Final Code Review** (5 min)
+### 2.1 Database / Supabase
+- [ ] Project Supabase **production** sudah disiapkan (terpisah dari project development).
+- [ ] User Supabase Auth + role sudah dibuat (`scripts/auth/`).
+- [ ] RLS aktif dan policy ter-setup (`scripts/rls/setup-supabase-rls-policies.sql`).
+- [ ] Index performa dijalankan bila perlu (`scripts/maintenance/add-performance-indexes.sql`).
+- [ ] Akun ISP ter-provision (`scripts/auth/create-isp-auth-accounts-from-isps.sql`) dan mapping `public.isp_user_accounts` terisi.
+
+Detail langkah Supabase: [../guides/supabase-setup-guide.md](../guides/supabase-setup-guide.md).
+
+### 2.2 Kode & Build
+- [ ] `npm --prefix frontend run lint` lulus.
+- [ ] `npm --prefix frontend run test` lulus.
+- [ ] `npm --prefix frontend run build` sukses tanpa error.
+- [ ] Pengujian manual sesuai [../operations/TESTING_CHECKLIST.md](../operations/TESTING_CHECKLIST.md).
+
+### 2.3 Environment Variables (di Vercel Project Settings)
+Set environment variables berikut pada scope **Production** (dan **Preview** bila dipakai). **Jangan** commit nilainya ke repo.
+
+| Variabel | Wajib | Keterangan |
+| --- | --- | --- |
+| `VITE_SUPABASE_URL` | Ya | URL Supabase project production. |
+| `VITE_SUPABASE_ANON_KEY` | Ya | Supabase anon/public key project production. |
+| `VITE_SUPABASE_STORAGE_BUCKET` | Opsional | Nama bucket Storage dokumen (bila berbeda dari default). |
+| `VITE_VALHALLA_HOST` | Opsional | Host Valhalla untuk route planner FO. |
+| `VITE_ADMIN_WHATSAPP_NUMBER` | Opsional | Nomor WhatsApp admin untuk tautan bantuan akses di halaman login. |
+| `VITE_API_BASE_URL` | Opsional | Base URL API tambahan bila dipakai. |
+
+> Variabel `VITE_DEV_*` (quick login) **hanya** untuk development lokal dan tidak boleh diset di production. Lihat `frontend/.env.example`.
+
+---
+
+## 3. Langkah Deploy (Vercel)
+
+### Opsi A — Git Integration (direkomendasikan)
+1. Hubungkan repo ke Vercel (import project). Vercel membaca `vercel.json` otomatis.
+2. Set environment variables (lihat §2.3) di **Project Settings → Environment Variables**.
+3. Push ke branch yang ditarget. Buka Pull Request ke `main`.
+4. Vercel membuat **Preview Deployment** per PR untuk verifikasi.
+5. Setelah PR di-merge ke `main`, Vercel menjalankan **Production Deployment** otomatis.
+6. Tunggu status **Ready**, lalu lakukan smoke test (§4).
+
+### Opsi B — Vercel CLI (manual)
 ```bash
-# Check for any remaining fetchJson calls in critical files
-grep -r "fetchJson" frontend/src/App.jsx
-grep -r "fetchJson" frontend/src/features/login/
-grep -r "fetchJson" frontend/src/features/monitoring/MonitoringSpreadsheetPage.jsx
-
-# Check for API_BASE_URL usage (should be minimal)
-grep -r "API_BASE_URL" frontend/src --include="*.jsx" --include="*.js" | grep -v "node_modules" | wc -l
+# dari root repo
+npx vercel            # deploy preview
+npx vercel --prod     # deploy production
 ```
 
-### **Step 2: Build Test** (2 min)
-```bash
-cd frontend
-npm run build
-
-# Check for build errors
-# Check bundle size
-```
-
-### **Step 3: Git Commit** (3 min)
-```bash
-git add .
-git status
-
-# Review changes
-git diff --cached --stat
-
-# Commit
-git commit -m "feat: refactor to Supabase direct access (75% complete)
-
-Core features implemented:
-- Supabase Auth with email/password
-- RLS policies (role-based, simplified)
-- Customers CRUD operations
-- ISPs CRUD operations
-- Monitoring billing page
-- API service layer (api.js)
-
-Components updated:
-- App.jsx (loadCustomers, loadIsps)
-- LoginPage.jsx (Supabase Auth)
-- MonitoringSpreadsheetPage.jsx
-- CustomerWorkspacePage.jsx
-- TenantAdminFormPage.jsx
-- IspAdminFormPage.jsx
-- TenantDetailPage.jsx (partial)
-
-Known limitations:
-- Detail pages partially refactored (Task #10)
-- Timeline API not implemented
-- Archive API uses status update
-- RLS policies simplified (ISP sees all data)
-
-Breaking changes:
-- Auth: username/password → email/password
-- Credentials: admin@kima.local / <lihat password manager>
-- API: fetchJson() → api.customers.getAll()
-
-Tested:
-- Authentication flow
-- Core CRUD operations
-- Monitoring page
-- Role-based access
-
-Co-Authored-By: Claude Sonnet 4 <noreply@anthropic.com>
-"
-```
-
-### **Step 4: Push to Git** (2 min)
-```bash
-# Push to main branch
-git push origin main
-
-# Monitor push
-# Check GitHub/GitLab for successful push
-```
-
-### **Step 5: Monitor Netlify Deployment** (5-10 min)
-1. Open Netlify dashboard: https://app.netlify.com
-2. Find project: `sistem-fo-kima`
-3. Watch deployment progress
-4. Check build logs for errors
-5. Wait for "Published" status
-
-### **Step 6: Test Production** (10 min)
-1. Open production URL
-2. Test login with all roles:
-   - admin@kima.local / <lihat password manager>
-   - teknisi@kima.local / <lihat password manager>
-   - isp@kima.local / <lihat password manager>
-3. Test core features:
-   - View customers list
-   - View ISPs list
-   - View monitoring page
-4. Check browser console for errors
-5. Check network tab for API calls
-
-### **Step 7: Monitor Logs** (5 min)
-1. Supabase Dashboard → Logs
-2. Check for:
-   - Authentication errors
-   - RLS policy violations
-   - API errors
-3. Netlify Dashboard → Functions (if any)
-4. Browser console errors
+> Build dijalankan oleh Vercel sesuai `vercel.json` (`cd frontend && npm ci` lalu `npm run build`, output `frontend/dist`). Tidak perlu commit folder `dist`.
 
 ---
 
-## 🐛 Rollback Plan
+## 4. Smoke Test Setelah Deploy
 
-### **If Critical Bug Found:**
-
-**Option 1: Quick Fix**
-```bash
-# Fix the bug locally
-# Test the fix
-git add .
-git commit -m "fix: [description]"
-git push origin main
-# Wait for Netlify redeploy
-```
-
-**Option 2: Revert**
-```bash
-# Revert to previous commit
-git revert HEAD
-git push origin main
-# Wait for Netlify redeploy
-```
-
-**Option 3: Manual Rollback**
-1. Go to Netlify Dashboard
-2. Find previous successful deployment
-3. Click "Publish deploy"
-4. Confirm rollback
+1. Buka production URL.
+2. Login untuk tiap role (Admin, Teknisi, ISP) dengan akun yang ada di Supabase production. **Kredensial diambil dari password manager / kanal operasional aman — bukan dari dokumen ini.**
+3. Verifikasi fitur inti:
+   - Dashboard tampil.
+   - Workspace Pelanggan: list + detail + pagination "Muat Lagi".
+   - Manajemen ISP: list + detail.
+   - Monitoring billing: spreadsheet per tahun/ISP.
+   - Tindak Lanjut & Log Aktivitas terisi.
+   - Tempat Sampah: lihat/pulihkan/hapus permanen.
+   - Route planner FO (jika Valhalla aktif).
+4. Cek console browser & tab network: tidak ada error 401/403/5xx yang tidak terduga.
+5. Supabase Dashboard → Logs: pantau error Auth/RLS/API.
 
 ---
 
-## 📊 Post-Deployment Monitoring
+## 5. Rollback
 
-### **First 1 Hour**
-- [ ] Check Supabase Auth logs
-- [ ] Check Supabase API logs
-- [ ] Monitor error rate
-- [ ] Check user feedback
-
-### **First 24 Hours**
-- [ ] Monitor authentication success rate
-- [ ] Monitor API response times
-- [ ] Check for RLS violations
-- [ ] Collect user feedback
-
-### **First Week**
-- [ ] Analyze usage patterns
-- [ ] Identify missing features
-- [ ] Plan iteration for detail pages
-- [ ] Optimize performance
+- **Via Vercel Dashboard:** buka tab **Deployments**, pilih deployment production sebelumnya yang sehat, lalu **Promote to Production** / **Rollback**.
+- **Via Git:** buat commit revert pada `main` (mis. `git revert <sha>`), push, dan biarkan Vercel redeploy.
+- **Perubahan data Supabase:** rollback data memakai script yang relevan (mis. `scripts/seed/rollback-*.sql`) dan harus direview sebelum dijalankan. Soft delete (Tempat Sampah) menyediakan restore untuk penghapusan entitas, bukan untuk rollback skema.
 
 ---
 
-## 📝 Known Issues & Workarounds
+## 6. Pasca-Deploy
 
-### **1. Timeline Not Working**
-**Issue:** Recent activities empty  
-**Workaround:** Temporarily disabled  
-**Fix:** Implement timeline API (Task #10)
-
-### **2. Detail Pages Incomplete**
-**Issue:** Some operations in detail pages not working  
-**Workaround:** Use list view for CRUD  
-**Fix:** Complete refactor (Task #10)
-
-### **3. ISP Can See All Data**
-**Issue:** RLS policies simplified, ISP not filtered by ownership  
-**Workaround:** Trust-based access  
-**Fix:** Add auth_user_id mapping (future iteration)
+- Pantau Supabase Auth/API logs pada jam-jam pertama.
+- Pantau RLS violations dan response time query monitoring.
+- Catat bug pada [../operations/BUG_TRACKING.md](../operations/BUG_TRACKING.md).
+- Jalankan/tinjau ulang `scripts/maintenance/add-performance-indexes.sql` jika query terasa lambat saat data membesar.
 
 ---
 
-## 🎯 Success Metrics
+## 7. Referensi
 
-### **Deployment Success**
-- ✅ Build succeeds
-- ✅ No critical errors in logs
-- ✅ Authentication working
-- ✅ Core features accessible
-
-### **User Success**
-- ✅ Users can login
-- ✅ Users can view data
-- ✅ Users can create/edit records
-- ✅ No data loss
-
----
-
-## 📞 Support
-
-### **If Issues Found:**
-1. Check browser console for errors
-2. Check Supabase logs
-3. Check Netlify deployment logs
-4. Create GitHub issue with:
-   - Error message
-   - Steps to reproduce
-   - Browser/environment info
-   - Screenshots
-
-### **Emergency Contacts:**
-- Developer: [Your contact]
-- Supabase Support: https://supabase.com/support
-- Netlify Support: https://www.netlify.com/support
-
----
-
-## 🔄 Next Iteration (Post-Deployment)
-
-### **Priority 1: Complete Detail Pages** (Task #10)
-- TenantDetailPage remaining operations
-- IspDetailPage full refactor
-- Timeline API implementation
-
-### **Priority 2: Improve RLS**
-- Add auth_user_id to users/isps tables
-- Update RLS policies for proper ISP filtering
-- Test role-based access thoroughly
-
-### **Priority 3: Performance**
-- Optimize API queries
-- Add caching where appropriate
-- Monitor and optimize slow queries
-
----
-
-**Last Updated:** 2026-05-13 00:38  
-**Deployment Status:** Ready  
-**Next Action:** Run testing checklist, then deploy
+- [../../DEV_GUIDE.md](../../DEV_GUIDE.md) — setup development & perintah npm.
+- [../guides/supabase-setup-guide.md](../guides/supabase-setup-guide.md) — setup Auth & RLS.
+- [../operations/TESTING_CHECKLIST.md](../operations/TESTING_CHECKLIST.md) — checklist pengujian manual.
+- [deployment/status-koneksi-supabase.md](status-koneksi-supabase.md) — status koneksi Supabase.
+- [../../prd/PRD-sistem-arsip-kima.md](../../prd/PRD-sistem-arsip-kima.md) — PRD (§10 Deployment & Operations).
