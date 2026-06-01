@@ -37,6 +37,7 @@ Urutan setup environment baru (ringkas): **auth users → RLS → kolom/feature 
 | [maintenance/add-notification-states.sql](maintenance/add-notification-states.sql) | Membuat state baca/selesai notifikasi per user untuk fitur Tindak Lanjut. |
 | [maintenance/add-isp-document-columns.sql](maintenance/add-isp-document-columns.sql) | Menambahkan kolom metadata file BAK & kontrak ISP yang dipakai frontend. |
 | [maintenance/add-isp-entry-points.sql](maintenance/add-isp-entry-points.sql) | Menambahkan titik entry FO ISP dan pilihan redundansi customer opsional (aman rerun). |
+| [maintenance/add-route-point-coordinates.sql](maintenance/add-route-point-coordinates.sql) | Menambahkan kolom koordinat terstruktur (`latitude`/`longitude`) pada titik jalur dan geometri/metadata rute pada versi jalur + backfill dari `note` (Fase 1 migrasi FO planner). |
 | [maintenance/add-customer-logo-url.sql](maintenance/add-customer-logo-url.sql) | Menambahkan kolom `logo_url` (opsional) pada `customers`. |
 | [maintenance/add-contract-version-contract-number.sql](maintenance/add-contract-version-contract-number.sql) | Menambahkan kolom `contract_number` pada `contract_versions`. |
 
