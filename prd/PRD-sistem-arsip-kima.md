@@ -31,7 +31,7 @@ Operasional sebelumnya tersebar di dokumen, spreadsheet, dan pencatatan manual. 
 | Peran | Deskripsi | Kapabilitas Utama |
 | --- | --- | --- |
 | **Admin** | Pengelola penuh sistem | CRUD ISP, CRUD pelanggan, kelola kontrak, dokumen, invoice, route, monitoring, dan akses rancangan tempat sampah |
-| **Teknisi** | Staf operasional/lapangan | Melihat data pelanggan, route planner FO, monitoring operasional |
+| **Teknisi** | Staf operasional/lapangan | Melihat data pelanggan dan monitoring operasional, route planner FO, dan akses **Tempat Sampah** (lihat item terhapus) — tanpa hak buat/ubah/hapus entitas |
 | **ISP** | Mitra ISP | Melihat data terkait ISP dan pelanggan yang relevan secara read-only |
 
 Autentikasi menggunakan Supabase Auth. Akses aplikasi dibatasi berdasarkan role di frontend dan Supabase Row Level Security. Untuk role ISP, akses data dibatasi berdasarkan mapping `1 akun ISP = 1 entitas ISP` melalui tabel `public.isp_user_accounts`.
@@ -202,6 +202,20 @@ Detail pelanggan terdiri dari tab:
 - Halaman Tempat Sampah mendukung **lihat item terhapus, pulihkan (restore), hapus permanen (hard delete), dan kosongkan sampah**, dengan statistik per jenis entitas.
 - Menghapus ISP melakukan **cascade soft delete** ke pelanggan terkait. Audit penghapusan tersimpan pada `deleted_at`/`deleted_by`.
 - Belum termasuk (lihat roadmap): auto-cleanup item lama, soft delete untuk seluruh tabel relasi anak, dan operasi bulk restore/delete.
+
+### 5.7 Tindak Lanjut (Pusat Notifikasi/Aksi)
+
+- Pusat notifikasi operasional terpusat yang mengumpulkan hal-hal yang perlu dibaca atau ditindaklanjuti, dibangun di atas `api.notifications.*` (state notifikasi pada database; lihat `scripts/maintenance/add-notification-states.sql`).
+- Sumber notifikasi mencakup: kontrak mendekati/lewat periode, invoice perlu perhatian/belum di-setup/belum diupload/jatuh tempo, jalur FO perlu perhatian/setup, biaya aktivasi, serta kontrak/dokumen/perpanjangan ISP.
+- Tiap item punya tingkat keparahan (`critical`/`warning`/`info`) dan status baca/selesai (`unread`/`read`/`resolved`), dengan aksi **Buka** (navigasi ke entitas terkait), **Tandai Dibaca**, dan **Tandai Selesai**.
+- Mendukung pencarian, filter berdasarkan tipe/status, dan pagination.
+
+### 5.8 Log Aktivitas (Audit Trail)
+
+- Riwayat audit aksi penting pengguna pada entitas utama, dibangun di atas `api.activityLogs.*` (tabel `activity_logs`; lihat `scripts/maintenance/add-activity-logs.sql`).
+- Mencatat aksi seperti pembuatan/perubahan/penghapusan dan pemulihan (restore) untuk pelanggan, ISP, kontrak, invoice, dokumen, dan jalur.
+- Untuk aksi perubahan, menyimpan ringkasan diff **sebelum/sesudah** per field yang berubah sehingga perubahan data dapat ditelusuri.
+- Menjadi implementasi dari kebutuhan keterlacakan; tab **Timeline** pada detail pelanggan (§5.3) menampilkan aktivitas yang relevan dengan pelanggan tersebut.
 
 ---
 
@@ -434,7 +448,7 @@ sistem-fo-kima/
 frontend/src/
 ├── app/                   # Utilities dan shared app logic
 ├── components/            # Shared UI components
-├── features/              # Feature pages: pelanggan, monitoring, dashboard, login
+├── features/              # Feature pages: dashboard, login, pelanggan, monitoring, todos (Tindak Lanjut), activity (Log Aktivitas), trash (Tempat Sampah)
 ├── lib/                   # API/Supabase access layer
 └── roles/                 # Route/menu per role
 ```
@@ -497,8 +511,9 @@ http://localhost:5173
 
 ### 10.2 Production
 
-- Frontend dapat dideploy ke Netlify atau hosting static lain.
+- Frontend dideploy ke **Vercel** sebagai static build (`frontend/dist`); konfigurasi build ada di `vercel.json` di root repo. Hosting static lain dapat dipakai selama mendukung SPA rewrite ke `index.html`.
 - Backend/data menggunakan Supabase.
+- Langkah deploy lengkap ada di `docs/deployment/DEPLOYMENT_GUIDE.md`.
 - Script SQL production dijalankan manual melalui Supabase SQL Editor setelah direview.
 - Index performa production tersedia di `scripts/maintenance/add-performance-indexes.sql` dan perlu dijalankan setelah review bila database mulai besar atau query monitoring terasa lambat.
 
@@ -532,8 +547,10 @@ npm --prefix frontend run build
 
 - [x] Index query untuk list, monitoring, kontrak, invoice, route, dan follow-up.
 - [x] Batching query dan pagination server-side bertahap pada list pelanggan.
+- [x] Pusat Tindak Lanjut: notifikasi operasional terpusat dengan tingkat keparahan dan status baca/selesai (§5.7).
+- [x] Log Aktivitas/audit trail: pencatatan aksi entitas utama dengan diff sebelum/sesudah (§5.8).
 - [ ] Alert dashboard yang lebih lengkap.
-- [ ] Timeline aktivitas yang lebih detail.
+- [ ] Timeline aktivitas per pelanggan yang lebih detail.
 - [ ] Laporan/analitik dokumen dan billing.
 - [ ] Search/filter server-side global untuk workspace pelanggan saat jumlah data melampaui batch awal.
 - [x] Soft delete production dan restore flow untuk Tempat Sampah.

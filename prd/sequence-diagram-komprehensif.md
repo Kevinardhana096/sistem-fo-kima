@@ -241,4 +241,4 @@ sequenceDiagram
 - Semua operasi data utama melewati Supabase client dan mapper di `frontend/src/lib/api.js`.
 - List pelanggan memakai pagination server-side bertahap dengan batch awal 500 data.
 - Query monitoring dan list memecah nested query besar menjadi beberapa query terbatched agar payload lebih kecil dan lebih ramah rate limit.
-- Tempat Sampah masih placeholder/mock dan belum merepresentasikan soft-delete production.
+- Tempat Sampah sudah terhubung ke database production dan memakai **soft delete** (kolom `deleted_at`/`deleted_by`) pada entitas utama (`isps`, `customers`, `contracts`, `contract_versions`, `invoices`, `documents`, `customer_route_versions`, `customer_route_points`, `isp_contract_rows`). Query list/monitoring memfilter `deleted_at IS NULL`, dan halaman Tempat Sampah mendukung lihat/pulihkan/hapus permanen/kosongkan. Lihat PRD §5.6.
