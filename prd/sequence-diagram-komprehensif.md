@@ -231,6 +231,46 @@ sequenceDiagram
         DB-->>API: OK
         API-->>FE: Versi jalur baru tersimpan
     end
+
+    %% ─────────────────────────────────────────
+    %% BLOK 9: SOFT DELETE & TEMPAT SAMPAH
+    %% ─────────────────────────────────────────
+    rect rgb(255, 235, 235)
+        Note over Admin, VH: BLOK 9 — SOFT DELETE DAN TEMPAT SAMPAH
+
+        Admin->>FE: Hapus entitas (ISP/pelanggan/kontrak/invoice/dokumen/jalur)
+        FE->>API: api.<entity>.delete(id)
+        API->>DB: UPDATE <table> SET deleted_at=now(), deleted_by=user
+        opt Hapus ISP (cascade soft delete)
+            API->>DB: UPDATE customers SET deleted_at/deleted_by untuk pelanggan terkait via memberships
+        end
+        API->>DB: INSERT activity_logs (action '<entity>.deleted' + snapshot before)
+        DB-->>API: OK
+        API-->>FE: Item hilang dari list (semua query utama memfilter deleted_at IS NULL)
+
+        Admin->>FE: Buka Tempat Sampah
+        FE->>API: trash.list() + trash.getStats()
+        API->>DB: SELECT * WHERE deleted_at IS NOT NULL per tabel utama
+        DB-->>API: Item terhapus + statistik per jenis entitas
+        API-->>FE: Daftar item dan breakdown (ISP/Lokasi/Kontrak/Invoice/Dokumen/Jalur)
+        FE-->>Admin: Tempat Sampah tampil
+        Note over Teknisi, FE: Teknisi dapat melihat item terhapus (tanpa hak ubah/pulihkan)
+
+        alt Pulihkan (restore)
+            Admin->>FE: Pulihkan item
+            FE->>API: trash.restore(table, id)
+            API->>DB: UPDATE <table> SET deleted_at=NULL, deleted_by=NULL
+            API->>DB: INSERT activity_logs (action '<entity>.restored')
+            DB-->>API: OK
+            API-->>FE: Item kembali ke list aktif
+        else Hapus permanen / kosongkan sampah
+            Admin->>FE: Hapus permanen item atau kosongkan sampah
+            FE->>API: trash.deletePermanently(table, id) / trash.emptyTrash()
+            API->>DB: DELETE permanen row terkait
+            DB-->>API: OK
+            API-->>FE: Item terhapus permanen
+        end
+    end
 ```
 
 ---
@@ -242,3 +282,4 @@ sequenceDiagram
 - List pelanggan memakai pagination server-side bertahap dengan batch awal 500 data.
 - Query monitoring dan list memecah nested query besar menjadi beberapa query terbatched agar payload lebih kecil dan lebih ramah rate limit.
 - Tempat Sampah sudah terhubung ke database production dan memakai **soft delete** (kolom `deleted_at`/`deleted_by`) pada entitas utama (`isps`, `customers`, `contracts`, `contract_versions`, `invoices`, `documents`, `customer_route_versions`, `customer_route_points`, `isp_contract_rows`). Query list/monitoring memfilter `deleted_at IS NULL`, dan halaman Tempat Sampah mendukung lihat/pulihkan/hapus permanen/kosongkan. Lihat PRD §5.6.
+- Penghapusan dan pemulihan entitas dicatat ke `activity_logs` (Log Aktivitas, PRD §5.8); menghapus ISP melakukan cascade soft delete ke pelanggan terkait via membership. Lihat BLOK 9.

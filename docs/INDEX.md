@@ -56,7 +56,6 @@ Dokumen dikelompokkan ke dalam tiga tingkat agar jelas mana yang masih berlaku d
 
 | Dokumen | Deskripsi |
 | --- | --- |
-| [guides/QUICK_REFERENCE.md](guides/QUICK_REFERENCE.md) | Referensi command dan alur harian. |
 | [guides/supabase-setup-guide.md](guides/supabase-setup-guide.md) | Setup Supabase Auth dan RLS. |
 | [operations/panduan-insert-production.md](operations/panduan-insert-production.md) | Panduan insert data production. |
 | [operations/TESTING_CHECKLIST.md](operations/TESTING_CHECKLIST.md) | Checklist pengujian manual. |
@@ -67,8 +66,7 @@ Dokumen dikelompokkan ke dalam tiga tingkat agar jelas mana yang masih berlaku d
 
 | Dokumen | Deskripsi |
 | --- | --- |
-| [deployment/DEPLOYMENT_GUIDE.md](deployment/DEPLOYMENT_GUIDE.md) | Checklist dan langkah deployment. |
-| [deployment/status-koneksi-supabase.md](deployment/status-koneksi-supabase.md) | Status koneksi Supabase dan catatan environment. |
+| [deployment/DEPLOYMENT_GUIDE.md](deployment/DEPLOYMENT_GUIDE.md) | Langkah deploy production (Vercel + Supabase). |
 
 ### Arsitektur, Diagram & Schema
 
@@ -104,6 +102,15 @@ Dokumen di bawah ini menggambarkan keadaan pada saat ditulis. **Jangan** dijadik
 | Dokumen | Deskripsi |
 | --- | --- |
 | [implementation-status/2026-05-18-soft-delete-implementation.md](implementation-status/2026-05-18-soft-delete-implementation.md) | Status implementasi soft delete & Tempat Sampah (fitur sudah rilis). |
+
+### Snapshot Setup & Deployment Lama
+
+> Dokumen ini mendeskripsikan arsitektur lama (NestJS/Prisma/`backend-supabase/`) yang **sudah tidak dipakai**. Gunakan README/PRD/DEV_GUIDE untuk kondisi terkini.
+
+| Dokumen | Deskripsi |
+| --- | --- |
+| [deployment/status-koneksi-supabase.md](deployment/status-koneksi-supabase.md) | Snapshot pengecekan koneksi Supabase (2026-05-12); project ref telah diredaksi. |
+| [guides/QUICK_REFERENCE.md](guides/QUICK_REFERENCE.md) | Referensi command deployment Cendikia versi lama (backend/Prisma). |
 
 ### Laporan (Reports)
 
