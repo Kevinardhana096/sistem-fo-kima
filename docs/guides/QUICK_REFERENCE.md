@@ -1,5 +1,7 @@
 # 🚀 QUICK REFERENCE - PT Cendikia Deployment
 
+> ⚠️ **DOKUMEN HISTORIS / BERTANGGAL (2026-05-12).** Mereferensikan arsitektur lama (`backend/`, `backend-supabase/`, Prisma, NestJS, `deploy-production.sh`) yang **sudah tidak ada** di repo ini. Untuk perintah & setup terkini gunakan `DEV_GUIDE.md`, `scripts/README.md`, dan `docs/deployment/DEPLOYMENT_GUIDE.md`. Path seed Cendikia yang benar saat ini: `scripts/seed/seed-cendikia-supabase-full.sql`. Nilai key pada template `.env` di bawah hanyalah placeholder.
+
 ## ⚡ Quick Commands
 
 ### Local Database

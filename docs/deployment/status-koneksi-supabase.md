@@ -3,15 +3,17 @@
 **Tanggal Pengecekan:** 2026-05-12  
 **Status:** ✅ **TERHUBUNG**
 
+> ⚠️ **DOKUMEN HISTORIS / BERTANGGAL (2026-05-12).** Ini snapshot pengecekan koneksi pada saat itu dan **mendeskripsikan arsitektur lama** (NestJS/Prisma/`backend-supabase/`/Edge Functions) yang **sudah tidak dipakai**. Arsitektur sekarang: frontend React/Vite mengakses Supabase secara langsung — acuan terkini ada di `prd/PRD-sistem-arsip-kima.md` dan `README.md`. Project ref asli telah diganti placeholder `<project-ref>`; ambil nilai sebenarnya dari Supabase Dashboard / password manager, bukan dari dokumen ini.
+
 ---
 
 ## ✅ Koneksi Supabase Production
 
 ### **Informasi Project:**
-- **Project ID:** `jkzjqzskrzcdmahrikwm`
+- **Project ID:** `<project-ref>`
 - **Region:** AWS ap-southeast-1 (Singapore)
-- **Supabase URL:** `https://jkzjqzskrzcdmahrikwm.supabase.co`
-- **Database Host:** `db.jkzjqzskrzcdmahrikwm.supabase.co:5432`
+- **Supabase URL:** `https://<project-ref>.supabase.co`
+- **Database Host:** `db.<project-ref>.supabase.co:5432`
 - **Database Name:** `postgres`
 
 ### **Kredensial (dari .env):**
@@ -45,7 +47,7 @@ backend-supabase/
 
 ### **Test 1: Supabase REST API**
 ```bash
-curl "https://jkzjqzskrzcdmahrikwm.supabase.co/rest/v1/customers?select=id,name&limit=1" \
+curl "https://<project-ref>.supabase.co/rest/v1/customers?select=id,name&limit=1" \
   -H "apikey: [ANON_KEY]" \
   -H "Authorization: Bearer [ANON_KEY]"
 ```
@@ -116,7 +118,7 @@ Berdasarkan test API, production database sudah memiliki data:
 ## 🚀 Cara Akses Supabase Dashboard
 
 1. **Login:** https://supabase.com
-2. **Project:** sistem-fo-kima (jkzjqzskrzcdmahrikwm)
+2. **Project:** sistem-fo-kima (<project-ref>)
 3. **SQL Editor:** Untuk menjalankan migration dan insert script
 4. **Table Editor:** Untuk melihat data secara visual
 5. **Database:** Untuk melihat schema dan struktur
