@@ -56,6 +56,13 @@ function App() {
     const [ispsError, setIspsError] = useState("");
     const [hasRequestedIsps, setHasRequestedIsps] = useState(false);
     const [notifications, setNotifications] = useState([]);
+    const [dashboardRefreshToken, setDashboardRefreshToken] = useState(0);
+    const [customerDetailRecord, setCustomerDetailRecord] = useState(null);
+    const [customerDetailLoading, setCustomerDetailLoading] = useState(false);
+    const [customerDetailError, setCustomerDetailError] = useState("");
+    const [ispDetailRecord, setIspDetailRecord] = useState(null);
+    const [ispDetailLoading, setIspDetailLoading] = useState(false);
+    const [ispDetailError, setIspDetailError] = useState("");
     const route = useMemo(
         () => parseAppRoute(locationState.pathname, locationState.search, currentRole),
         [currentRole, locationState.pathname, locationState.search],
@@ -178,6 +185,15 @@ function App() {
             setNotifications([]);
         }
     }, []);
+
+    const refreshDashboardMetrics = useCallback(() => {
+        setDashboardRefreshToken((previousToken) => previousToken + 1);
+    }, []);
+
+    const refreshAppData = useCallback(async () => {
+        await Promise.all([loadCustomers(), loadIsps(), loadNotifications()]);
+        refreshDashboardMetrics();
+    }, [loadCustomers, loadIsps, loadNotifications, refreshDashboardMetrics]);
 
     useEffect(() => {
         if (route.type !== "login") {
@@ -308,27 +324,118 @@ function App() {
         || route.type === "customer-jalur-fullscreen"
         ? resolveCustomerByIdentifier(customers, route.customerId)
         : null;
+    const resolvedCustomerDetail = selectedCustomer ?? customerDetailRecord;
     const selectedCustomerContextIsp = route.contextIspId
         ? resolveIspByIdentifier(isps, route.contextIspId)
         : null;
     const selectedIsp = route.type === "isp-detail" || route.type === "isp-edit"
         ? resolveIspByIdentifier(isps, route.ispId)
         : null;
+    const resolvedIspDetail = selectedIsp ?? ispDetailRecord;
     const createTenantContextIsp = route.type === "customer-create"
         ? resolveIspByIdentifier(isps, route.contextIspId)
         : null;
-    const editingCustomer = route.type === "customer-edit" ? selectedCustomer : null;
-    const editingIsp = route.type === "isp-edit" ? selectedIsp : null;
+    const editingCustomer = route.type === "customer-edit" ? resolvedCustomerDetail : null;
+    const editingIsp = route.type === "isp-edit" ? resolvedIspDetail : null;
     const customerDetailReady = route.type !== "customer-detail"
         && route.type !== "customer-edit"
         && route.type !== "customer-jalur"
         && route.type !== "customer-jalur-planner"
         && route.type !== "customer-jalur-fullscreen"
         ? true
-        : Boolean(selectedCustomer) || (hasRequestedCustomers && !isLoadingCustomers);
+        : Boolean(resolvedCustomerDetail) || (hasRequestedCustomers && !isLoadingCustomers && !customerDetailLoading);
     const ispDetailReady = route.type !== "isp-detail" && route.type !== "isp-edit"
         ? true
-        : Boolean(selectedIsp) || (hasRequestedIsps && !isLoadingIsps);
+        : Boolean(resolvedIspDetail) || (hasRequestedIsps && !isLoadingIsps && !ispDetailLoading);
+
+    useEffect(() => {
+        let isActive = true;
+
+        const shouldLoadCustomerDetail = (
+            route.type === "customer-detail"
+            || route.type === "customer-edit"
+            || route.type === "customer-jalur"
+            || route.type === "customer-jalur-planner"
+            || route.type === "customer-jalur-fullscreen"
+        ) && !selectedCustomer && Number.isFinite(Number(route.customerId));
+
+        if (!shouldLoadCustomerDetail) {
+            setCustomerDetailRecord(null);
+            setCustomerDetailError("");
+            setCustomerDetailLoading(false);
+            return undefined;
+        }
+
+        setCustomerDetailLoading(true);
+        setCustomerDetailError("");
+
+        void (async () => {
+            try {
+                const record = await api.customers.getById(Number(route.customerId));
+                if (!isActive) return;
+                setCustomerDetailRecord(record);
+            } catch (error) {
+                if (!isActive) return;
+                setCustomerDetailError(
+                    error instanceof Error
+                        ? error.message
+                        : "Terjadi kesalahan saat memuat detail tenant.",
+                );
+                setCustomerDetailRecord(null);
+            } finally {
+                if (isActive) {
+                    setCustomerDetailLoading(false);
+                }
+            }
+        })();
+
+        return () => {
+            isActive = false;
+        };
+    }, [route.customerId, route.type, selectedCustomer]);
+
+    useEffect(() => {
+        let isActive = true;
+
+        const shouldLoadIspDetail = (
+            route.type === "isp-detail"
+            || route.type === "isp-edit"
+        ) && !selectedIsp && Number.isFinite(Number(route.ispId));
+
+        if (!shouldLoadIspDetail) {
+            setIspDetailRecord(null);
+            setIspDetailError("");
+            setIspDetailLoading(false);
+            return undefined;
+        }
+
+        setIspDetailLoading(true);
+        setIspDetailError("");
+
+        void (async () => {
+            try {
+                const record = await api.isps.getById(Number(route.ispId));
+                if (!isActive) return;
+                setIspDetailRecord(record);
+            } catch (error) {
+                if (!isActive) return;
+                setIspDetailError(
+                    error instanceof Error
+                        ? error.message
+                        : "Terjadi kesalahan saat memuat detail ISP.",
+                );
+                setIspDetailRecord(null);
+            } finally {
+                if (isActive) {
+                    setIspDetailLoading(false);
+                }
+            }
+        })();
+
+        return () => {
+            isActive = false;
+        };
+    }, [route.ispId, route.type, selectedIsp]);
 
     const handleNavigate = useCallback((sectionKey) => {
         const targetPath = {
@@ -387,18 +494,18 @@ function App() {
     }, [appPaths, navigateTo]);
 
     const handleCancelCreate = useCallback(() => {
-        if (route.type === "customer-edit" && selectedCustomer) {
-            navigateTo(appPaths.customerDetail(selectedCustomer.id), { replace: true });
+        if (route.type === "customer-edit" && resolvedCustomerDetail) {
+            navigateTo(appPaths.customerDetail(resolvedCustomerDetail.id), { replace: true });
             return;
         }
 
-        if (route.type === "isp-edit" && selectedIsp) {
-            navigateTo(appPaths.ispDetail(selectedIsp.id), { replace: true });
+        if (route.type === "isp-edit" && resolvedIspDetail) {
+            navigateTo(appPaths.ispDetail(resolvedIspDetail.id), { replace: true });
             return;
         }
 
         navigateTo(appPaths.customers, { replace: true });
-    }, [appPaths, navigateTo, route.type, selectedCustomer, selectedIsp]);
+    }, [appPaths, navigateTo, resolvedCustomerDetail, resolvedIspDetail, route.type]);
 
     const handleOpenEditIsp = useCallback((isp) => {
         const resolvedIspId = Number(isp?.id);
@@ -421,7 +528,7 @@ function App() {
     }, [appPaths, navigateTo]);
 
     const handleEntitySaved = useCallback(async (savedEntity, type) => {
-        await Promise.all([loadCustomers(), loadIsps(), loadNotifications()]);
+        await refreshAppData();
 
         if (type === "isp") {
             const savedIspId = Number(savedEntity?.id);
@@ -438,7 +545,7 @@ function App() {
         }
 
         navigateTo(appPaths.customers, { replace: true });
-    }, [appPaths, loadCustomers, loadIsps, loadNotifications, navigateTo]);
+    }, [appPaths, navigateTo, refreshAppData]);
 
     const handleLogout = useCallback(async () => {
         try {
@@ -504,7 +611,7 @@ function App() {
                         setCustomersError("");
                         setIspsError("");
                         navigateTo(landingPath, { replace: true });
-                        void Promise.all([loadCustomers(), loadIsps(), loadNotifications()]);
+                        void refreshAppData();
                     }}
                 />
             </Suspense>
@@ -523,6 +630,7 @@ function App() {
                     currentRole={currentRole}
                     onNavigate={handleNavigate}
                     onLogout={handleLogout}
+                    refreshToken={dashboardRefreshToken}
                 />
             </Suspense>
         );
@@ -661,7 +769,7 @@ function App() {
                     onNavigate={handleNavigate}
                     onLogout={handleLogout}
                     onSaved={async () => {
-                        await Promise.all([loadCustomers(), loadIsps()]);
+                        await refreshAppData();
                         navigateTo(appPaths.customerDetail(editingCustomer.id), { replace: true });
                     }}
                 />
@@ -704,7 +812,7 @@ function App() {
                     onNavigate={handleNavigate}
                     onLogout={handleLogout}
                     onSaved={async () => {
-                        await Promise.all([loadCustomers(), loadIsps()]);
+                        await refreshAppData();
                         navigateTo(appPaths.ispDetail(editingIsp.id), { replace: true });
                     }}
                 />
@@ -724,14 +832,14 @@ function App() {
             );
         }
 
-        if (!selectedIsp) {
+        if (!resolvedIspDetail) {
             return (
                 <RouteMissingPage
                     activeSection={activeSection}
                     currentRole={currentRole}
                     onNavigate={handleNavigate}
                     title="ISP tidak ditemukan"
-                    description="Data ISP yang Anda buka belum tersedia."
+                    description={ispDetailError || "Data ISP yang Anda buka belum tersedia."}
                 />
             );
         }
@@ -739,7 +847,7 @@ function App() {
         return (
             <Suspense fallback={<RouteLoadingPage activeSection={activeSection} currentRole={currentRole} onNavigate={handleNavigate} onLogout={handleLogout} message="Memuat detail ISP..." />}>
                 <IspDetailPage
-                    isp={selectedIsp}
+                    isp={resolvedIspDetail}
                     currentRole={currentRole}
                     initialTab={route.initialTab}
                     onBack={() => navigateTo(appPaths.customers, { replace: true })}
@@ -748,13 +856,13 @@ function App() {
                     onLogout={handleLogout}
                     onOpenCreateTenant={handleOpenCreateTenantFromIsp}
                     onOpenTenant={(tenant, initialTab = "overview") =>
-                        handleOpenTenantDetail(tenant, initialTab, selectedIsp)}
+                        handleOpenTenantDetail(tenant, initialTab, resolvedIspDetail)}
                     onTabChange={(nextTab) => {
-                        navigateTo(appPaths.ispDetail(selectedIsp.id, { tab: nextTab }), { replace: true });
+                        navigateTo(appPaths.ispDetail(resolvedIspDetail.id, { tab: nextTab }), { replace: true });
                     }}
-                    notifications={notificationsByIspId[Number(selectedIsp.id)] ?? []}
+                    notifications={notificationsByIspId[Number(resolvedIspDetail.id)] ?? []}
                     onRefreshAll={async () => {
-                        await Promise.all([loadCustomers(), loadIsps(), loadNotifications()]);
+                        await refreshAppData();
                     }}
                     canCreateTenant={roleCapabilities.canCreateTenant}
                     canDeleteIsp={roleCapabilities.canDeleteIsp}
@@ -778,14 +886,14 @@ function App() {
             );
         }
 
-        if (!selectedCustomer) {
+        if (!resolvedCustomerDetail) {
             return (
                 <RouteMissingPage
                     activeSection={activeSection}
                     currentRole={currentRole}
                     onNavigate={handleNavigate}
                     title="Tenant tidak ditemukan"
-                    description="Data tenant yang Anda buka belum tersedia."
+                    description={customerDetailError || "Data tenant yang Anda buka belum tersedia."}
                 />
             );
         }
@@ -793,7 +901,7 @@ function App() {
         return (
             <Suspense fallback={<RouteLoadingPage activeSection={activeSection} currentRole={currentRole} onNavigate={handleNavigate} onLogout={handleLogout} message="Memuat detail tenant..." />}>
                 <TenantDetailPage
-                    customer={selectedCustomer}
+                    customer={resolvedCustomerDetail}
                     contextIsp={selectedCustomerContextIsp}
                     initialTab={route.initialTab}
                     currentRole={currentRole}
@@ -805,21 +913,21 @@ function App() {
                     onNavigate={handleNavigate}
                     onLogout={handleLogout}
                     onRefreshAll={async () => {
-                        await Promise.all([loadCustomers(), loadIsps(), loadNotifications()]);
+                        await refreshAppData();
                     }}
                     onTabChange={(nextTab) => {
                         if (nextTab === "jalur") {
-                            navigateTo(appPaths.customerJalur(selectedCustomer.id), { replace: true });
+                            navigateTo(appPaths.customerJalur(resolvedCustomerDetail.id), { replace: true });
                             return;
                         }
 
-                        navigateTo(appPaths.customerDetail(selectedCustomer.id, {
+                        navigateTo(appPaths.customerDetail(resolvedCustomerDetail.id, {
                             tab: nextTab,
                             ispId: selectedCustomerContextIsp?.id ?? null,
                         }), { replace: true });
                     }}
                     onOpenRoutePlanner={(tenant) => {
-                        const resolvedCustomerId = Number(tenant?.id ?? selectedCustomer.id);
+                        const resolvedCustomerId = Number(tenant?.id ?? resolvedCustomerDetail.id);
                         if (!Number.isFinite(resolvedCustomerId) || resolvedCustomerId <= 0) {
                             setCustomersError("Data tenant tidak valid. ID tenant tidak ditemukan.");
                             return;
@@ -846,14 +954,14 @@ function App() {
             );
         }
 
-        if (!selectedCustomer) {
+        if (!resolvedCustomerDetail) {
             return (
                 <RouteMissingPage
                     activeSection={activeSection}
                     currentRole={currentRole}
                     onNavigate={handleNavigate}
                     title="Tenant tidak ditemukan"
-                    description="Data tenant yang Anda buka belum tersedia."
+                    description={customerDetailError || "Data tenant yang Anda buka belum tersedia."}
                 />
             );
         }
@@ -861,21 +969,21 @@ function App() {
         return (
             <Suspense fallback={<RouteLoadingPage activeSection={activeSection} currentRole={currentRole} onNavigate={handleNavigate} onLogout={handleLogout} message="Memuat tampilan jalur..." />}>
                 <TenantDetailPage
-                    customer={selectedCustomer}
+                    customer={resolvedCustomerDetail}
                     initialTab="jalur"
                     currentRole={currentRole}
                     backLabel="Kembali ke Detail Tenant"
                     onBack={() => {
-                        navigateTo(appPaths.customerDetail(selectedCustomer.id), { replace: true });
+                        navigateTo(appPaths.customerDetail(resolvedCustomerDetail.id), { replace: true });
                     }}
                     onEditTenant={handleOpenEditTenant}
                     onNavigate={handleNavigate}
                     onLogout={handleLogout}
                     onRefreshAll={async () => {
-                        await Promise.all([loadCustomers(), loadIsps(), loadNotifications()]);
+                        await refreshAppData();
                     }}
                     onOpenRoutePlanner={(tenant) => {
-                        const resolvedCustomerId = Number(tenant?.id ?? selectedCustomer.id);
+                        const resolvedCustomerId = Number(tenant?.id ?? resolvedCustomerDetail.id);
                         if (!Number.isFinite(resolvedCustomerId) || resolvedCustomerId <= 0) return;
                         navigateTo(appPaths.customerJalurPlanner(resolvedCustomerId));
                     }}
@@ -900,14 +1008,14 @@ function App() {
             );
         }
 
-        if (!selectedCustomer) {
+        if (!resolvedCustomerDetail) {
             return (
                 <RouteMissingPage
                     activeSection={activeSection}
                     currentRole={currentRole}
                     onNavigate={handleNavigate}
                     title="Tenant tidak ditemukan"
-                    description="Data tenant yang Anda buka belum tersedia."
+                    description={customerDetailError || "Data tenant yang Anda buka belum tersedia."}
                 />
             );
         }
@@ -915,21 +1023,21 @@ function App() {
         return (
             <Suspense fallback={<RouteLoadingPage activeSection={activeSection} currentRole={currentRole} onNavigate={handleNavigate} onLogout={handleLogout} message="Memuat pengaturan jalur..." />}>
                 <TenantDetailPage
-                    customer={selectedCustomer}
+                    customer={resolvedCustomerDetail}
                     initialTab="jalur"
                     currentRole={currentRole}
                     backLabel="Kembali ke Detail Tenant"
                     onBack={() => {
-                        navigateTo(appPaths.customerDetail(selectedCustomer.id), { replace: true });
+                        navigateTo(appPaths.customerDetail(resolvedCustomerDetail.id), { replace: true });
                     }}
                     onEditTenant={handleOpenEditTenant}
                     onNavigate={handleNavigate}
                     onLogout={handleLogout}
                     onRefreshAll={async () => {
-                        await Promise.all([loadCustomers(), loadIsps(), loadNotifications()]);
+                        await refreshAppData();
                     }}
                     onOpenRoutePlanner={(tenant) => {
-                        const resolvedCustomerId = Number(tenant?.id ?? selectedCustomer.id);
+                        const resolvedCustomerId = Number(tenant?.id ?? resolvedCustomerDetail.id);
                         if (!Number.isFinite(resolvedCustomerId) || resolvedCustomerId <= 0) {
                             setCustomersError("Data tenant tidak valid. ID tenant tidak ditemukan.");
                             return;
@@ -957,14 +1065,14 @@ function App() {
             );
         }
 
-        if (!selectedCustomer) {
+        if (!resolvedCustomerDetail) {
             return (
                 <RouteMissingPage
                     activeSection={activeSection}
                     currentRole={currentRole}
                     onNavigate={handleNavigate}
                     title="Tenant tidak ditemukan"
-                    description="Data tenant yang Anda buka belum tersedia."
+                    description={customerDetailError || "Data tenant yang Anda buka belum tersedia."}
                 />
             );
         }
@@ -972,18 +1080,18 @@ function App() {
         return (
             <Suspense fallback={<RouteLoadingPage activeSection={activeSection} currentRole={currentRole} onNavigate={handleNavigate} onLogout={handleLogout} message="Memuat route planner..." />}>
                 <TenantDetailPage
-                    customer={selectedCustomer}
+                    customer={resolvedCustomerDetail}
                     initialTab="jalur"
                     currentRole={currentRole}
                     backLabel="Kembali ke Halaman Jalur"
                     onBack={() => {
-                        navigateTo(appPaths.customerJalur(selectedCustomer.id), { replace: true });
+                        navigateTo(appPaths.customerJalur(resolvedCustomerDetail.id), { replace: true });
                     }}
                     onEditTenant={handleOpenEditTenant}
                     onNavigate={handleNavigate}
                     onLogout={handleLogout}
                     onRefreshAll={async () => {
-                        await Promise.all([loadCustomers(), loadIsps(), loadNotifications()]);
+                        await refreshAppData();
                     }}
                     routeViewMode="planner"
                     canDeleteTenant={roleCapabilities.canDeleteTenant}
@@ -1025,7 +1133,7 @@ function App() {
                 onOpenCreateTenant={handleOpenCreateTenant}
                 onOpenCreateIsp={handleOpenCreateIsp}
                 onRefresh={async () => {
-                    await Promise.all([loadCustomers(), loadIsps(), loadNotifications()]);
+                    await refreshAppData();
                 }}
                 onLoadMoreCustomers={loadMoreCustomers}
                 canCreateIsp={roleCapabilities.canCreateIsp}

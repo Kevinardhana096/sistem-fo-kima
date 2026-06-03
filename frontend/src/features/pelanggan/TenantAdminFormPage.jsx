@@ -2,8 +2,10 @@ import { useEffect, useState, useRef } from "react";
 import AppShell from "../../components/layout/AppShell";
 import api, { getApiErrorDetails } from "../../lib/api";
 import { uploadFileForRecord } from "../../lib/files";
+import DateInput from "../../components/shared/DateInput";
 
 const GlassFieldInput = ({ label, type = "text", value, onChange, placeholder = "", icon, min, onKeyDown, error = "" }) => {
+    const inputClass = `w-full h-9 rounded-xl bg-black/20 border backdrop-blur-md ${error ? "border-rose-500/70 ring-2 ring-rose-500/10" : "border-white/10 focus:border-gold-accent/40 focus:ring-2 focus:ring-gold-accent/10"} ${icon ? "pl-9" : "px-3"} pr-3 text-[10px] font-bold text-white placeholder:text-white/20 outline-none transition-all focus:bg-black/40 shadow-inner-glass [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`;
     return (
         <div className="space-y-1.5">
             <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-gold-accent/60 ml-1">
@@ -15,19 +17,24 @@ const GlassFieldInput = ({ label, type = "text", value, onChange, placeholder = 
                         {icon}
                     </span>
                 )}
-                <input
-                    className={`w-full h-9 rounded-xl bg-black/20 border backdrop-blur-md ${error ? "border-rose-500/70 ring-2 ring-rose-500/10" : "border-white/10 focus:border-gold-accent/40 focus:ring-2 focus:ring-gold-accent/10"} ${icon ? "pl-9" : "px-3"} pr-3 text-[10px] font-bold placeholder:text-white/20 outline-none transition-all focus:bg-black/40 shadow-inner-glass ${type === "date" ? "text-white/40 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer" : "text-white"} [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
-                    onChange={(event) => onChange(event.target.value)}
-                    onKeyDown={(e) => {
-                        if (type === "date") e.preventDefault();
-                        if (onKeyDown) onKeyDown(e);
-                    }}
-                    onClick={(e) => type === "date" && e.target.showPicker && e.target.showPicker()}
-                    placeholder={placeholder}
-                    type={type}
-                    value={value}
-                    min={min}
-                />
+                {type === "date" ? (
+                    <DateInput
+                        value={value}
+                        onChange={onChange}
+                        className="w-full h-9 rounded-xl bg-black/20 border backdrop-blur-md shadow-inner-glass transition-all focus-within:bg-black/40 focus-within:ring-2 focus-within:ring-gold-accent/10 focus-within:border-gold-accent/40 border-white/10"
+                        inputClass={`w-full h-full bg-transparent ${icon ? "pl-9" : "px-3"} pr-9 text-[10px] font-bold text-white placeholder:text-white/20 outline-none ${error ? "border-rose-500/70 ring-2 ring-rose-500/10 rounded-xl" : ""}`}
+                    />
+                ) : (
+                    <input
+                        className={inputClass}
+                        onChange={(event) => onChange(event.target.value)}
+                        onKeyDown={onKeyDown}
+                        placeholder={placeholder}
+                        type={type}
+                        value={value}
+                        min={min}
+                    />
+                )}
             </div>
             {error && <p className="text-[10px] font-black uppercase tracking-widest text-rose-400">{error}</p>}
         </div>
@@ -250,7 +257,7 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                             </p>
                         </div>
                         <h1 className="text-3xl md:text-4xl xl:text-5xl font-black text-white tracking-tight leading-tight">
-                            {isEditMode ? "Edit" : "Daftar"} <span className="text-gold-accent italic">Lokasi</span>
+                            {isEditMode ? "Edit" : "Daftar Lokasi Baru"}
                         </h1>
                         <p className="mt-1 max-w-xl text-[11px] font-bold text-white/40">
                             Silakan lengkapi data administratif dan konfigurasi layanan untuk {isEditMode ? "memperbarui lokasi" : "mendaftarkan titik lokasi"}.

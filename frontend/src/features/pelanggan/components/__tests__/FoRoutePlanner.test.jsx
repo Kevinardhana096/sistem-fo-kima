@@ -233,6 +233,10 @@ describe("FoRoutePlanner - Utility Functions", () => {
       expect(mapProfileToValhallaCosting("foot")).toBe("pedestrian");
     });
 
+    it("maps 'walking' to 'pedestrian'", () => {
+      expect(mapProfileToValhallaCosting("walking")).toBe("pedestrian");
+    });
+
     it("maps 'driving' to 'auto'", () => {
       expect(mapProfileToValhallaCosting("driving")).toBe("auto");
     });

@@ -7,6 +7,7 @@ import {
   SummaryCard,
 } from "../../components/shared/AppShared";
 import FoRoutePlanner from "./components/FoRoutePlanner";
+import DateInput from "../../components/shared/DateInput";
 import {
   documentTypeLabelMap,
   timelineIconMap,
@@ -18,6 +19,7 @@ import {
   formatDate,
   formatDateTime,
   formatPackageRatio,
+  getNextMonthIsoDate,
   isOpenableFileUrl,
   resolveCustomerContractPeriodInfo,
   resolveCustomerPackageInfo,
@@ -170,84 +172,6 @@ function normalizeDraftRoutePoints(points) {
     note: typeof point?.note === "string" ? point.note : "",
     orderNumber: Number(point?.orderNumber ?? index + 1),
   }));
-}
-
-function toUtcDate(dateValue) {
-  if (!dateValue) return null;
-  const date = new Date(`${String(dateValue).slice(0, 10)}T00:00:00.000Z`);
-  return Number.isNaN(date.getTime()) ? null : date;
-}
-
-function toIsoDate(date) {
-  return date instanceof Date && !Number.isNaN(date.getTime())
-    ? date.toISOString().slice(0, 10)
-    : "";
-}
-
-function getMonthlyPeriodsBetween(startDate, endDate) {
-  const start = toUtcDate(startDate);
-  const end = toUtcDate(endDate);
-
-  if (!start || !end || start.getTime() > end.getTime()) {
-    return [];
-  }
-
-  const periods = [];
-  let cursorStart = new Date(start.getTime());
-
-  while (cursorStart.getTime() <= end.getTime()) {
-    const nextMonthStart = new Date(Date.UTC(
-      cursorStart.getUTCFullYear(),
-      cursorStart.getUTCMonth() + 1,
-      cursorStart.getUTCDate(),
-    ));
-    const cursorEnd = new Date(Math.min(
-      end.getTime(),
-      nextMonthStart.getTime() - 86400000,
-    ));
-
-    periods.push({
-      periodStartDate: toIsoDate(cursorStart),
-      periodEndDate: toIsoDate(cursorEnd),
-      periodYear: cursorStart.getUTCFullYear(),
-      periodMonth: cursorStart.getUTCMonth() + 1,
-    });
-
-    cursorStart = new Date(nextMonthStart.getTime());
-  }
-
-  return periods;
-}
-
-function buildHistoricalInvoiceNumber(baseInvoiceNumber, period, shouldAppendPeriodSuffix) {
-  const normalizedBase = String(baseInvoiceNumber ?? "").trim();
-
-  if (!normalizedBase) return "";
-  if (!shouldAppendPeriodSuffix) return normalizedBase;
-
-  const suffix = `${period.periodYear}${String(period.periodMonth).padStart(2, "0")}`;
-  if (normalizedBase.endsWith(`-${suffix}`)) {
-    return normalizedBase;
-  }
-
-  return `${normalizedBase}-${suffix}`;
-}
-
-function alignRecurringDateToPeriod(period, templateDate, fallbackDate) {
-  const template = toUtcDate(templateDate);
-  const periodEnd = toUtcDate(period?.periodEndDate);
-  const fallback = String(fallbackDate ?? "").trim() || period?.periodEndDate || "";
-
-  if (!template || !periodEnd) {
-    return fallback;
-  }
-
-  const targetYear = periodEnd.getUTCFullYear();
-  const targetMonth = periodEnd.getUTCMonth();
-  const maxDay = new Date(Date.UTC(targetYear, targetMonth + 1, 0)).getUTCDate();
-  const targetDay = Math.min(template.getUTCDate(), maxDay);
-
-  return new Date(Date.UTC(targetYear, targetMonth, targetDay)).toISOString().slice(0, 10);
 }
 
 function getInvoiceFollowUps(invoice) {
@@ -528,6 +452,8 @@ function GlassSelect({ label, value, onChange, options, placeholder = "Pilih ops
 }
 
 function GlassInput({ label, icon, ...props }) {
+  const isDate = props.type === "date";
+  const { type, value, onChange, disabled, ...rest } = props;
   return (
     <div className="relative space-y-1.5">
       {label && (
@@ -536,10 +462,24 @@ function GlassInput({ label, icon, ...props }) {
         </label>
       )}
       <div className="group relative">
-        <input
-          {...props}
-          className={`h-10 w-full rounded-xl border border-white/5 bg-white/[0.01] backdrop-blur-3xl ${icon ? "pl-10" : "px-3"} pr-3 text-[10px] placeholder:text-[9px] placeholder:tracking-wider font-black uppercase tracking-widest text-white outline-none transition-all focus:border-gold-accent/40 focus:bg-white/[0.04] ${props.type === "date" ? "[color-scheme:dark]" : ""}`}
-        />
+        {isDate ? (
+          <DateInput
+            value={value ?? ""}
+            onChange={(val) => onChange?.({ target: { value: val } })}
+            disabled={disabled}
+            className={`h-10 w-full rounded-xl border border-white/5 bg-white/[0.01] backdrop-blur-3xl ${icon ? "pl-10" : ""} transition-all focus-within:border-gold-accent/40 focus-within:bg-white/[0.04]`}
+            inputClass={`w-full h-full bg-transparent ${icon ? "pl-10" : "px-3"} pr-9 text-[10px] placeholder:text-[9px] placeholder:tracking-wider font-black uppercase tracking-widest text-white outline-none`}
+          />
+        ) : (
+          <input
+            {...rest}
+            type={type}
+            value={value}
+            onChange={onChange}
+            disabled={disabled}
+            className={`h-10 w-full rounded-xl border border-white/5 bg-white/[0.01] backdrop-blur-3xl ${icon ? "pl-10" : "px-3"} pr-3 text-[10px] placeholder:text-[9px] placeholder:tracking-wider font-black uppercase tracking-widest text-white outline-none transition-all focus:border-gold-accent/40 focus:bg-white/[0.04]`}
+          />
+        )}
         {icon && (
           <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-white/20 transition-colors group-focus-within:text-gold-accent pointer-events-none" style={{ fontSize: "16px" }}>
             {icon}
@@ -598,11 +538,12 @@ function TenantDetailPage({
   const [documentSearch, setDocumentSearch] = useState("");
   const [documentSort, setDocumentSort] = useState("desc");
   const [isUploadingDocument, setIsUploadingDocument] = useState(false);
-  const [isUploadingContractFile, setIsUploadingContractFile] = useState(false);
-  const [isUploadingBakFile, setIsUploadingBakFile] = useState(false);
   const [versionEditor, setVersionEditor] = useState(null);
   const [versionError, setVersionError] = useState("");
   const [isSubmittingVersion, setIsSubmittingVersion] = useState(false);
+  const [contractRowEditor, setContractRowEditor] = useState(null);
+  const [isDeletingContractRow, setIsDeletingContractRow] = useState(false);
+  const [isSavingContractRow, setIsSavingContractRow] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [ispPopupOpen, setIspPopupOpen] = useState(false);
   const [deleteError, setDeleteError] = useState("");
@@ -616,26 +557,12 @@ function TenantDetailPage({
   const [invoiceFeedback, setInvoiceFeedback] = useState("");
   const [isSavingInvoice, setIsSavingInvoice] = useState(false);
   const [invoiceEditingId, setInvoiceEditingId] = useState(null);
-  const [historicalArchiveDraft, setHistoricalArchiveDraft] = useState({
-    periodStartDate: "",
-    periodEndDate: "",
-    contractNumber: "",
-    invoiceNumber: "",
-    dueDate: "",
-    paidAt: "",
-    amount: "250000",
-    packageType: "sharing_core",
-    ratio: "1:32",
-    coreTotal: "",
-    remarks: "",
-  });
   const [billingEditor, setBillingEditor] = useState(null);
   const [billingError, setBillingError] = useState("");
   const [isSavingBilling, setIsSavingBilling] = useState(false);
   const [isMarkingActivationFeePaid, setIsMarkingActivationFeePaid] = useState(false);
   const [contractNumberInputs, setContractNumberInputs] = useState({});
   const [isSavingContractNumber, setIsSavingContractNumber] = useState(false);
-  const [editingContractNumberRows, setEditingContractNumberRows] = useState({});
   const [emptyContractNumberRows, setEmptyContractNumberRows] = useState({});
   const [emptyBakRows, setEmptyBakRows] = useState({});
   const [routeBusy, setRouteBusy] = useState(false);
@@ -646,8 +573,6 @@ function TenantDetailPage({
   const [draftRoutePoints, setDraftRoutePoints] = useState([]);
   const [draftRouteStatus, setDraftRouteStatus] = useState("aktif");
   const [selectedEntryPointIds, setSelectedEntryPointIds] = useState([]);
-  const [isSavingEntryPointSelection, setIsSavingEntryPointSelection] = useState(false);
-
   const emptyStateStorageKey = `tenant-contract-empty-state-${customer.id}`;
   const routeDraftStorageKey = `tenant-route-draft-${customer.id}`;
   const isStandaloneJalurView = routeViewMode !== "embedded";
@@ -790,23 +715,12 @@ function TenantDetailPage({
     () => Array.isArray(detail?.selectedEntryPoints) ? detail.selectedEntryPoints : [],
     [detail?.selectedEntryPoints],
   );
-  const selectedEntryPointRows = useMemo(
-    () => selectedEntryPointIds
-      .map((id) => availableIspEntryPoints.find((point) => Number(point.id) === Number(id)))
-      .filter(Boolean),
-    [availableIspEntryPoints, selectedEntryPointIds],
-  );
   const persistedSelectedEntryPointIds = useMemo(
     () => selectedCustomerEntryPoints
       .map((selection) => Number(selection.ispEntryPointId ?? selection.isp_entry_point_id))
       .filter(Number.isFinite),
     [selectedCustomerEntryPoints],
   );
-  const hasEntryPointSelectionChanges = useMemo(() => (
-    selectedEntryPointIds.length !== persistedSelectedEntryPointIds.length
-    || selectedEntryPointIds.some((id, index) => Number(id) !== Number(persistedSelectedEntryPointIds[index]))
-  ), [persistedSelectedEntryPointIds, selectedEntryPointIds]);
-  const primarySelectedEntryPoint = selectedEntryPointRows[0] ?? null;
   const contract = Array.isArray(detail?.contracts)
     ? ([...detail.contracts].sort((left, right) => {
       const leftDate = new Date(`${String(left?.endDate ?? left?.end_date ?? left?.startDate ?? left?.start_date ?? "").slice(0, 10)}T00:00:00.000Z`).getTime();
@@ -911,8 +825,58 @@ function TenantDetailPage({
     return false;
   }, [contractById, resolveInvoiceContractPeriodEnd, todayIso]);
   const activeInvoices = useMemo(() => {
-    return invoices.filter((invoice) => !shouldArchiveInvoice(invoice));
-  }, [invoices, shouldArchiveInvoice]);
+    if (!contract?.startDate || !contract?.endDate) {
+      return invoices.filter((invoice) => !shouldArchiveInvoice(invoice));
+    }
+
+    const scheduleRows = buildInvoiceScheduleRows(
+      contract.startDate,
+      contract.endDate,
+      {
+        every: Number(contract?.billingEvery ?? 1),
+        unit: contract?.billingUnit ?? "bulan",
+      },
+    );
+
+    const activeInvoiceMap = new Map();
+    invoices
+      .filter((invoice) => !shouldArchiveInvoice(invoice))
+      .forEach((invoice) => {
+        const key = `${String(invoice?.periodStartDate ?? invoice?.period_start_date ?? "").slice(0, 10)}-${String(invoice?.periodEndDate ?? invoice?.period_end_date ?? "").slice(0, 10)}`;
+        if (key !== "-") {
+          activeInvoiceMap.set(key, invoice);
+        }
+      });
+
+    return scheduleRows.map((row, index) => {
+      const key = `${row.periodStartDate}-${row.periodEndDate}`;
+      const matchedInvoice = activeInvoiceMap.get(key);
+      if (matchedInvoice) {
+        return {
+          ...matchedInvoice,
+          paymentOrder: index + 1,
+        };
+      }
+
+      const periodDate = new Date(`${row.periodStartDate}T00:00:00.000Z`);
+      return {
+        id: `schedule-${key}`,
+        customerId: customer.id,
+        contractId: contract?.id ?? null,
+        contractNumber: contract?.contractNumber ?? null,
+        periodYear: Number.isFinite(periodDate.getTime()) ? periodDate.getUTCFullYear() : null,
+        periodMonth: Number.isFinite(periodDate.getTime()) ? periodDate.getUTCMonth() + 1 : null,
+        periodStartDate: row.periodStartDate,
+        periodEndDate: row.periodEndDate,
+        dueDate: getNextMonthIsoDate(row.periodStartDate, 1),
+        amount: 0,
+        status: "belum_ditagih",
+        scheduleStatus: "active",
+        invoiceFollowUps: [],
+        paymentOrder: index + 1,
+      };
+    });
+  }, [contract?.billingEvery, contract?.billingUnit, contract?.endDate, contract?.id, contract?.contractNumber, contract?.startDate, customer.id, invoices, shouldArchiveInvoice]);
 
   const historyInvoices = useMemo(() => {
     return invoices.filter((invoice) => shouldArchiveInvoice(invoice));
@@ -941,6 +905,29 @@ function TenantDetailPage({
         return;
       }
       const key = Number(doc?.contractId);
+      if (!Number.isFinite(key)) {
+        return;
+      }
+      if (!map.has(key)) {
+        map.set(key, doc);
+      }
+    });
+    return map;
+  }, [allDocuments]);
+  const contractDocumentByVersionId = useMemo(() => {
+    const docs = Array.isArray(allDocuments) ? [...allDocuments] : [];
+    docs.sort((a, b) =>
+      String(b?.tanggalDokumen ?? "").localeCompare(
+        String(a?.tanggalDokumen ?? ""),
+      ),
+    );
+
+    const map = new Map();
+    docs.forEach((doc) => {
+      if (String(doc?.jenisDokumen ?? "").toLowerCase() !== "kontrak") {
+        return;
+      }
+      const key = Number(doc?.contractVersionId ?? doc?.contract_version_id);
       if (!Number.isFinite(key)) {
         return;
       }
@@ -1172,41 +1159,6 @@ function TenantDetailPage({
     items.sort((left, right) => right.paymentOrder - left.paymentOrder);
     return items;
   }, [historyInvoiceRows]);
-
-  const historicalArchiveMonthlyPeriods = useMemo(() => (
-    getMonthlyPeriodsBetween(
-      historicalArchiveDraft.periodStartDate,
-      historicalArchiveDraft.periodEndDate,
-    )
-  ), [
-    historicalArchiveDraft.periodEndDate,
-    historicalArchiveDraft.periodStartDate,
-  ]);
-
-  const historicalArchiveInvoicePreview = useMemo(() => {
-    const baseInvoiceNumber = String(historicalArchiveDraft.invoiceNumber ?? "").trim();
-    if (!baseInvoiceNumber || historicalArchiveMonthlyPeriods.length === 0) {
-      return "";
-    }
-
-    const firstInvoiceNumber = buildHistoricalInvoiceNumber(
-      baseInvoiceNumber,
-      historicalArchiveMonthlyPeriods[0],
-      historicalArchiveMonthlyPeriods.length > 1,
-    );
-
-    if (historicalArchiveMonthlyPeriods.length === 1) {
-      return firstInvoiceNumber;
-    }
-
-    const lastInvoiceNumber = buildHistoricalInvoiceNumber(
-      baseInvoiceNumber,
-      historicalArchiveMonthlyPeriods[historicalArchiveMonthlyPeriods.length - 1],
-      true,
-    );
-
-    return `${firstInvoiceNumber} s/d ${lastInvoiceNumber}`;
-  }, [historicalArchiveDraft.invoiceNumber, historicalArchiveMonthlyPeriods]);
 
   useEffect(() => {
     setInvoiceDrafts((previousDrafts) => {
@@ -1819,13 +1771,6 @@ function TenantDetailPage({
     }));
   };
 
-  const toggleBakEmptyMark = (rowId) => {
-    setEmptyBakRows((previous) => ({
-      ...previous,
-      [rowId]: !previous[rowId],
-    }));
-  };
-
   const openBillingEditor = () => {
     if (!contract?.id) {
       setError(
@@ -1878,6 +1823,7 @@ function TenantDetailPage({
           periodEndDate: row.periodEndDate,
           periodYear,
           periodMonth,
+          dueDate: getNextMonthIsoDate(row.periodStartDate, 1),
           scheduleStatus: "active",
         };
 
@@ -2059,6 +2005,43 @@ function TenantDetailPage({
     setVersionError("");
   };
 
+  const openContractRowEditor = (row) => {
+    if (!row?.contractId) {
+      setError("Data kontrak tidak valid untuk diedit.");
+      return;
+    }
+
+    const isVersionRow = Boolean(row.versionId);
+    const contractDoc = isVersionRow
+      ? contractDocumentByVersionId.get(Number(row.versionId)) ?? contractDocumentByContractId.get(Number(row.contractId)) ?? null
+      : contractDocumentByContractId.get(Number(row.contractId)) ?? null;
+    const bakDoc = isVersionRow
+      ? bakDocumentByVersionId.get(Number(row.versionId)) ?? bakDocumentByContractId.get(Number(row.contractId)) ?? null
+      : bakDocumentByContractId.get(Number(row.contractId)) ?? null;
+
+    setContractRowEditor({
+      rowId: row.id,
+      contractId: row.contractId,
+      versionId: row.versionId,
+      contractNumber: String(row.contractNumber ?? "").trim(),
+      startDate: String(row.periodStart ?? "").slice(0, 10),
+      endDate: String(row.periodEnd ?? "").slice(0, 10),
+      monthlyAmount: String(Number(row.monthlyAmount ?? 0) > 0 ? Number(row.monthlyAmount) : ""),
+      billingEvery: String(contract?.billingEvery ?? 1),
+      billingUnit: String(contract?.billingUnit ?? "bulan"),
+      rowLabel: isVersionRow ? "Versi Kontrak" : "Kontrak Utama",
+      contractFileName: String(contractDoc?.nomorDokumen ?? contractDoc?.fileName ?? "").trim(),
+      contractFileUrl: String(contractDoc?.fileUrl ?? "").trim(),
+      contractUploadedFile: null,
+      contractUploadedFileName: "",
+      bakFileName: String(bakDoc?.nomorDokumen ?? bakDoc?.fileName ?? "").trim(),
+      bakFileUrl: String(bakDoc?.fileUrl ?? "").trim(),
+      bakUploadedFile: null,
+      bakUploadedFileName: "",
+    });
+    setError("");
+  };
+
   const handleCreateVersion = async (event) => {
     event.preventDefault();
     if (!contract || !versionEditor) {
@@ -2130,6 +2113,152 @@ function TenantDetailPage({
     }
   };
 
+  const handleSaveContractRow = async (event) => {
+    event.preventDefault();
+    if (!contractRowEditor) {
+      return;
+    }
+
+    const contractNumber = String(contractRowEditor.contractNumber ?? "").trim();
+    const startDate = String(contractRowEditor.startDate ?? "").slice(0, 10);
+    const endDate = String(contractRowEditor.endDate ?? "").slice(0, 10);
+    const monthlyAmount = Number(contractRowEditor.monthlyAmount);
+    const billingEvery = Number(contractRowEditor.billingEvery);
+    const billingUnit = String(contractRowEditor.billingUnit ?? "");
+    const contractUploadedFile = contractRowEditor.contractUploadedFile;
+    const bakUploadedFile = contractRowEditor.bakUploadedFile;
+
+    if (!contractNumber) {
+      setError("Nomor kontrak wajib diisi.");
+      return;
+    }
+    if (!startDate) {
+      setError("Periode awal kontrak wajib diisi.");
+      return;
+    }
+    if (!endDate) {
+      setError("Periode akhir kontrak wajib diisi.");
+      return;
+    }
+    if (startDate > endDate) {
+      setError("Periode awal tidak boleh lebih besar dari periode akhir.");
+      return;
+    }
+    if (!Number.isFinite(monthlyAmount) || monthlyAmount < 0) {
+      setError("Nominal/bulan harus berupa angka yang valid.");
+      return;
+    }
+    if (!Number.isFinite(billingEvery) || billingEvery <= 0) {
+      setError("Periode tagihan harus lebih dari 0.");
+      return;
+    }
+    if (!["hari", "bulan", "tahun"].includes(billingUnit)) {
+      setError("Satuan periode tagihan tidak valid.");
+      return;
+    }
+
+    setIsSavingContractRow(true);
+    setError("");
+    setDocumentFeedback("");
+
+    try {
+      const payload = {
+        contractNumber,
+        startDate,
+        endDate,
+        monthlyAmount: monthlyAmount > 0 ? monthlyAmount : 0,
+        billingEvery,
+        billingUnit,
+      };
+
+      if (contractRowEditor.versionId) {
+        await api.contractVersions.update(contractRowEditor.versionId, payload);
+      } else {
+        await api.contracts.update(contractRowEditor.contractId, payload);
+      }
+
+      const uploadDocumentIfNeeded = async (file, jenisDokumen, existingUrl, label) => {
+        if (!(file instanceof File)) {
+          return;
+        }
+
+        if (isOpenableFileUrl(existingUrl)) {
+          return;
+        }
+
+        const fileUrl = await uploadFileForRecord(file, ["customers", customer.id, "documents"]);
+        await api.documents.create({
+          customer_id: customer.id,
+          contract_id: contractRowEditor.contractId,
+          contract_version_id: contractRowEditor.versionId ? Number(contractRowEditor.versionId) : null,
+          contract_number: contractNumber,
+          jenis_dokumen: jenisDokumen,
+          nomor_dokumen: contractNumber || null,
+          tanggal_dokumen: todayIso,
+          file_url: fileUrl,
+        });
+
+        return label;
+      };
+
+      await Promise.all([
+        uploadDocumentIfNeeded(contractUploadedFile, "kontrak", contractRowEditor.contractFileUrl, "kontrak"),
+        uploadDocumentIfNeeded(bakUploadedFile, "BAK", contractRowEditor.bakFileUrl, "bak"),
+      ]);
+
+      setContractRowEditor(null);
+      setDocumentFeedback("Data baris kontrak berhasil diperbarui.");
+      await Promise.all([loadDetail(), onRefreshAll?.()]);
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Gagal memperbarui data baris kontrak.",
+      );
+    } finally {
+      setIsSavingContractRow(false);
+    }
+  };
+
+  const handleDeleteContractRow = async () => {
+    if (!contractRowEditor) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Hapus ${contractRowEditor.rowLabel} ini? Data akan dipindahkan ke sampah.`,
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    setIsDeletingContractRow(true);
+    setError("");
+    setDocumentFeedback("");
+
+    try {
+      if (contractRowEditor.versionId) {
+        await api.contractVersions.delete(contractRowEditor.versionId);
+      } else if (contractRowEditor.contractId) {
+        await api.contracts.delete(contractRowEditor.contractId);
+      } else {
+        throw new Error("Data kontrak tidak valid untuk dihapus.");
+      }
+
+      setContractRowEditor(null);
+      setDocumentFeedback("Data baris kontrak berhasil dihapus.");
+      await Promise.all([loadDetail(), onRefreshAll?.()]);
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Gagal menghapus data baris kontrak.",
+      );
+    } finally {
+      setIsDeletingContractRow(false);
+    }
+  };
+
   const handleUploadDocument = async (event) => {
     event.preventDefault();
     if (!(documentDraft.uploadedFile instanceof File)) {
@@ -2171,69 +2300,6 @@ function TenantDetailPage({
       );
     } finally {
       setIsUploadingDocument(false);
-    }
-  };
-
-  const handleUploadContractFile = async ({ contractId, file }) => {
-    if (!contractId) {
-      setError("Kontrak beroperasi tidak ditemukan untuk upload berkas kontrak.");
-      return;
-    }
-    if (!(file instanceof File)) {
-      setError("File kontrak wajib dipilih terlebih dahulu.");
-      return;
-    }
-
-    setIsUploadingContractFile(true);
-    setError("");
-    setDocumentFeedback("");
-    try {
-      const fileUrl = await uploadFileForRecord(file, ["customers", customer.id, "contracts"]);
-      await api.documents.create({
-        customer_id: customer.id,
-        contract_id: contractId,
-        contract_number: String(contract?.contractNumber ?? contract?.contract_number ?? "").trim() || null,
-        jenis_dokumen: "kontrak",
-        tanggal_dokumen: todayIso,
-        file_url: fileUrl,
-      });
-
-      setDocumentFeedback("Berkas kontrak berhasil diunggah.");
-      await Promise.all([loadDetail(), onRefreshAll?.()]);
-    } catch (requestError) {
-      setError(
-        requestError instanceof Error
-          ? requestError.message
-          : "Terjadi kesalahan saat mengunggah berkas kontrak.",
-      );
-    } finally {
-      setIsUploadingContractFile(false);
-    }
-  };
-
-  const handleUploadBakFile = async ({ row, file }) => {
-    if (!file) return;
-    setIsUploadingBakFile(true);
-    setError("");
-    try {
-      const fileUrl = await uploadFileForRecord(file, ["customers", customer.id, "bak"]);
-      if (row.bakDocumentId) {
-        await api.documents.update(row.bakDocumentId, { file_url: fileUrl });
-      } else {
-        await api.documents.create({
-          customer_id: customer.id,
-          contract_id: row.contractId ?? null,
-          contract_version_id: row.versionId ?? null,
-          jenis_dokumen: "BAK",
-          tanggal_dokumen: todayIso,
-          file_url: fileUrl,
-        });
-      }
-      await Promise.all([loadDetail(), onRefreshAll?.()]);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Gagal mengunggah berkas BAK.");
-    } finally {
-      setIsUploadingBakFile(false);
     }
   };
 
@@ -2285,9 +2351,16 @@ function TenantDetailPage({
     },
   };
 
-  const routeHistoryRows = useMemo(
-    () =>
-      routeHistory.map((item) => {
+  const routeHistoryRows = useMemo(() => {
+    // Urutkan dari terlama ke terbaru dulu agar changeNumber bisa dihitung benar
+    const sorted = [...routeHistory].sort((a, b) => {
+      const tA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const tB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return tA - tB; // ascending: index 0 = paling lama
+    });
+
+    // Map dengan changeNumber: index 0 (terlama) = V1, index terakhir (terbaru) = Vterbesar
+    const mapped = sorted.map((item, index) => {
         const beforePoints = Array.isArray(item?.snapshotBefore?.points)
           ? item.snapshotBefore.points
           : [];
@@ -2307,10 +2380,13 @@ function TenantDetailPage({
 
         return {
           ...item,
-          changeNumber: routeHistory.length - routeHistory.indexOf(item),
+          changeNumber: index + 1, // V1 = terlama, Vn = terbaru
           operationLabel:
             ROUTE_OPERATION_LABEL_MAP[item?.operation] ??
             toTitleCase(item?.operation ?? "perubahan"),
+          changeReason: item?.changeNote || item?.note || (item?.operation ? (ROUTE_OPERATION_LABEL_MAP[item.operation] ?? item.operation) : "Pemutakhiran Jalur"),
+          changeDescription: item?.changeNote || item?.note,
+          points: afterPoints.length > 0 ? afterPoints : beforePoints,
           beforeSummary: summarizePoints(beforePoints),
           afterSummary: summarizePoints(afterPoints),
           beforePoints,
@@ -2320,9 +2396,11 @@ function TenantDetailPage({
           beforeStatus: item?.snapshotBefore?.flowStatus ?? "-",
           afterStatus: item?.snapshotAfter?.flowStatus ?? "-",
         };
-      }),
-    [routeHistory],
-  );
+      });
+
+    // Tampilkan terbaru di atas (descending) — changeNumber tetap benar
+    return mapped.reverse();
+  }, [routeHistory]);
 
   const toggleHistoryExpand = (id) => {
     setExpandedHistoryIds((prev) =>
@@ -2358,6 +2436,22 @@ function TenantDetailPage({
         })),
       });
 
+      await api.customerRoutes.addHistory(customer.id, {
+        operation: body.operation || "update",
+        note: routeChangeNote.trim() || "Perubahan struktur jalur dari halaman tenant.",
+        snapshotBefore: {
+          flowStatus: activeRouteStatus,
+          points: routePoints,
+        },
+        snapshotAfter: {
+          flowStatus: body.flowStatus ?? activeRouteStatus,
+          points: nextPoints.map((point, index) => ({
+            ...point,
+            orderNumber: index + 1,
+          })),
+        },
+      });
+
       setRouteFeedback(successMessage);
       await Promise.all([loadDetail(), onRefreshAll?.()]);
     } catch (requestError) {
@@ -2371,78 +2465,38 @@ function TenantDetailPage({
     }
   };
 
-  const toggleEntryPointSelection = (entryPointId) => {
-    const normalizedId = Number(entryPointId);
-    if (!Number.isFinite(normalizedId)) return;
-    setSelectedEntryPointIds((previous) => (
-      previous.includes(normalizedId)
-        ? previous.filter((id) => id !== normalizedId)
-        : [...previous, normalizedId]
-    ));
-  };
-
-  const handleSaveEntryPointSelection = async () => {
-    setIsSavingEntryPointSelection(true);
-    setRouteError("");
-    try {
-      const selections = selectedEntryPointRows.map((point, index) => ({
-        id: selectedCustomerEntryPoints.find((selection) => Number(selection.ispEntryPointId) === Number(point.id))?.id ?? null,
-        ispId: point.ispId,
-        ispEntryPointId: point.id,
-        priority: index + 1,
-        role: index === 0 ? "utama" : "backup",
-      }));
-      await api.customerIspEntryPoints.replaceForCustomer(customer.id, selections);
-      setRouteFeedback("Pilihan titik masuk ISP berhasil disimpan.");
-      await Promise.all([loadDetail(), onRefreshAll?.()]);
-    } catch (requestError) {
-      setRouteError(requestError instanceof Error ? requestError.message : "Gagal menyimpan pilihan titik masuk ISP.");
-    } finally {
-      setIsSavingEntryPointSelection(false);
-    }
-  };
-
-  const handleApplyPrimaryEntryPointToDraft = () => {
-    if (!primarySelectedEntryPoint) return;
-    const providerPoint = {
-      id: `entry-point-${primarySelectedEntryPoint.id}`,
-      pathName: primarySelectedEntryPoint.label,
-      pointType: "awal",
-      note: `${primarySelectedEntryPoint.label}\n${primarySelectedEntryPoint.latitude}, ${primarySelectedEntryPoint.longitude}`,
-      label: primarySelectedEntryPoint.label,
-      ispEntryPointId: primarySelectedEntryPoint.id,
-      orderNumber: 1,
-    };
-    setDraftRoutePoints((previous) => {
-      const withoutProvider = previous.filter((point) => point.pointType !== "awal");
-      return [providerPoint, ...withoutProvider].map((point, index) => ({ ...point, orderNumber: index + 1 }));
-    });
-    setIsRouteDrafting(true);
-    setRouteFeedback("Titik masuk utama ISP diterapkan sebagai Titik Awal draft jalur.");
-  };
-
-  const handleCommitDraft = async () => {
-    if (!routeChangeNote.trim()) {
-      setRouteError(
-        "Catatan perubahan wajib diisi untuk menyimpan struktur baru.",
-      );
-      return;
-    }
-
+  // Fungsi commit inti — menerima data langsung sebagai parameter agar bisa
+  // dipanggil baik dari tombol "Aktifkan" (pakai state) maupun langsung dari
+  // planner (pakai data fresh tanpa bergantung state React yang async).
+  const commitRouteData = async ({ points, flowStatus, changeNote, snapshotBeforePoints, snapshotBeforeStatus }) => {
     setRouteBusy(true);
     setRouteError("");
     try {
       await api.customerRoutes.replace(customer.id, {
-        flowStatus: draftRouteStatus,
-        changeNote: routeChangeNote,
-        points: (Array.isArray(draftRoutePoints) ? draftRoutePoints : []).map(
-          (p, idx) => ({
-            pathName: p.pathName,
-            pointType: p.pointType,
-            note: p.note,
+        flowStatus,
+        changeNote,
+        points: points.map((p, idx) => ({
+          pathName: p.pathName,
+          pointType: p.pointType,
+          note: p.note,
+          orderNumber: idx + 1,
+        })),
+      });
+
+      await api.customerRoutes.addHistory(customer.id, {
+        operation: "commit",
+        note: changeNote,
+        snapshotBefore: {
+          flowStatus: snapshotBeforeStatus,
+          points: snapshotBeforePoints,
+        },
+        snapshotAfter: {
+          flowStatus,
+          points: points.map((p, idx) => ({
+            ...p,
             orderNumber: idx + 1,
-          }),
-        ),
+          })),
+        },
       });
 
       setRouteChangeNote("");
@@ -2464,11 +2518,20 @@ function TenantDetailPage({
     }
   };
 
-  const startDraftingSession = () => {
-    setDraftRoutePoints([...routePoints]);
-    setDraftRouteStatus(activeRouteStatus);
-    setIsRouteDrafting(true);
-    setRouteError("");
+  const handleCommitDraft = async () => {
+    if (!routeChangeNote.trim()) {
+      setRouteError(
+        "Catatan perubahan wajib diisi untuk menyimpan struktur baru.",
+      );
+      return;
+    }
+    await commitRouteData({
+      points: Array.isArray(draftRoutePoints) ? draftRoutePoints : [],
+      flowStatus: draftRouteStatus,
+      changeNote: routeChangeNote,
+      snapshotBeforePoints: routePoints,
+      snapshotBeforeStatus: activeRouteStatus,
+    });
   };
 
   const cancelDraftingSession = () => {
@@ -2610,7 +2673,7 @@ function TenantDetailPage({
   };
 
 
-  const handleApplyPlannedRoute = (plannedPoints, plannerMeta) => {
+  const handleApplyPlannedRoute = async (plannedPoints, plannerMeta) => {
     if (!Array.isArray(plannedPoints) || plannedPoints.length < 2) {
       setRouteError(
         "Minimal dua titik diperlukan untuk menerapkan hasil planner.",
@@ -2633,25 +2696,25 @@ function TenantDetailPage({
       .filter(Boolean)
       .join(" • ");
 
-    setIsRouteDrafting(true);
-    setDraftRoutePoints(
-      attachRoutePlannerMetaToDraftPoints(
-        plannedPoints.map((point, index) => ({
-          ...point,
-          id: point?.id ?? `draft-planner-${Date.now()}-${index}`,
-          orderNumber: index + 1,
-        })),
-        plannerMeta,
-      ),
+    const changeNote = plannerMeta?.editReason?.trim() || routeSummary;
+
+    const finalPoints = attachRoutePlannerMetaToDraftPoints(
+      plannedPoints.map((point, index) => ({
+        ...point,
+        id: point?.id ?? `draft-planner-${Date.now()}-${index}`,
+        orderNumber: index + 1,
+      })),
+      plannerMeta,
     );
-    setDraftRouteStatus(activeRouteStatus);
-    if (!routeChangeNote.trim()) {
-      setRouteChangeNote(routeSummary);
-    }
-    setRouteError("");
-    setRouteFeedback(
-      "Rute dari FO Route Planner diterapkan ke Draft Jalur. Silakan review lalu simpan.",
-    );
+
+    // Langsung commit ke database tanpa perlu mode draft + tombol Aktifkan
+    await commitRouteData({
+      points: finalPoints,
+      flowStatus: activeRouteStatus,
+      changeNote,
+      snapshotBeforePoints: routePoints,
+      snapshotBeforeStatus: activeRouteStatus,
+    });
   };
 
   const updateInvoiceDraftField = (invoiceId, field, value) => {
@@ -2759,126 +2822,6 @@ function TenantDetailPage({
     }
 
     return validateInvoiceDraftBase(draft);
-  };
-
-  const updateHistoricalArchiveDraftField = (field, value) => {
-    setHistoricalArchiveDraft((previousDraft) => ({
-      ...previousDraft,
-      [field]: value,
-    }));
-  };
-
-  const handleCreateHistoricalArchive = async (event) => {
-    event.preventDefault();
-    if (!contract?.id) {
-      setError("Kontrak utama tidak ditemukan untuk membuat arsip periode lama.");
-      return;
-    }
-
-    const isSharingPackage = historicalArchiveDraft.packageType === "sharing_core";
-    const amount = Number(historicalArchiveDraft.amount);
-    const coreTotal = Number(historicalArchiveDraft.coreTotal);
-    const periodStartDate = String(historicalArchiveDraft.periodStartDate ?? "").trim();
-    const periodEndDate = String(historicalArchiveDraft.periodEndDate ?? "").trim();
-    const invoiceNumber = String(historicalArchiveDraft.invoiceNumber ?? "").trim();
-    const contractNumber = String(historicalArchiveDraft.contractNumber ?? "").trim();
-    const dueDate = String(historicalArchiveDraft.dueDate || historicalArchiveDraft.periodEndDate || "").trim();
-    const paidAt = String(historicalArchiveDraft.paidAt || dueDate || "").trim();
-
-    if (!periodStartDate || !periodEndDate || periodStartDate > periodEndDate) {
-      setError("Periode arsip tidak valid.");
-      return;
-    }
-    if (!invoiceNumber) {
-      setError("Nomor invoice arsip wajib diisi.");
-      return;
-    }
-    if (!Number.isFinite(amount) || amount <= 0) {
-      setError("Nominal invoice arsip wajib lebih dari 0.");
-      return;
-    }
-    if (isSharingPackage && !/^[1-9]\d*[:/][1-9]\d*$/.test(String(historicalArchiveDraft.ratio ?? "").trim())) {
-      setError("Rasio shared core arsip tidak valid.");
-      return;
-    }
-    if (!isSharingPackage && (!Number.isFinite(coreTotal) || coreTotal <= 0)) {
-      setError("Jumlah core arsip wajib lebih dari 0.");
-      return;
-    }
-
-    setIsSavingInvoice(true);
-    setError("");
-    setInvoiceFeedback("");
-    try {
-      const monthlyPeriods = getMonthlyPeriodsBetween(periodStartDate, periodEndDate);
-      if (monthlyPeriods.length === 0) {
-        throw new Error("Periode arsip tidak dapat dipecah menjadi invoice bulanan.");
-      }
-
-      const normalizedRatio = String(historicalArchiveDraft.ratio ?? "").trim().replace("/", ":");
-      const contractVersion = await api.contractVersions.create({
-        contractId: contract.id,
-        customerId: customer.id,
-        contractNumber: contractNumber || null,
-        startDate: periodStartDate,
-        endDate: periodEndDate,
-        coreType: historicalArchiveDraft.packageType,
-        coreTotal: isSharingPackage ? 0 : coreTotal,
-        sharedCoreRatio: isSharingPackage ? normalizedRatio : null,
-        monthlyAmount: amount,
-        yearlyAmount: amount * Math.max(monthlyPeriods.length, 1),
-        remarks: String(historicalArchiveDraft.remarks ?? "").trim() || "Arsip periode lama.",
-      });
-
-      const shouldAppendPeriodSuffix = monthlyPeriods.length > 1;
-      await Promise.all(
-        monthlyPeriods.map((period) => {
-          const periodDueDate = alignRecurringDateToPeriod(period, dueDate, period.periodEndDate);
-          const periodPaidAt = alignRecurringDateToPeriod(period, paidAt, periodDueDate);
-
-          return api.invoices.create({
-            customerId: customer.id,
-            contractId: contract.id,
-            contractVersionId: contractVersion?.id ?? null,
-            contractNumber: contractNumber || null,
-            invoiceNumber: buildHistoricalInvoiceNumber(invoiceNumber, period, shouldAppendPeriodSuffix),
-            periodStartDate: period.periodStartDate,
-            periodEndDate: period.periodEndDate,
-            periodYear: period.periodYear,
-            periodMonth: period.periodMonth,
-            dueDate: periodDueDate,
-            amount,
-            status: "lunas",
-            scheduleStatus: "history",
-            paidAt: periodPaidAt,
-          });
-        }),
-      );
-
-      setHistoricalArchiveDraft({
-        periodStartDate: "",
-        periodEndDate: "",
-        contractNumber: "",
-        invoiceNumber: "",
-        dueDate: "",
-        paidAt: "",
-        amount: "250000",
-        packageType: "sharing_core",
-        ratio: "1:32",
-        coreTotal: "",
-        remarks: "",
-      });
-      setInvoiceFeedback(`Arsip periode lama berhasil ditambahkan menjadi ${monthlyPeriods.length} invoice bulanan.`);
-      await Promise.all([loadDetail(), onRefreshAll?.()]);
-    } catch (requestError) {
-      setError(
-        requestError instanceof Error
-          ? requestError.message
-          : "Gagal menambahkan arsip periode lama.",
-      );
-    } finally {
-      setIsSavingInvoice(false);
-    }
   };
 
   const handleSaveInvoiceRow = async (invoice) => {
@@ -3128,7 +3071,10 @@ function TenantDetailPage({
             Math.max(Math.round(requestedDay), 1),
             maxDay,
           );
-          const dueDate = `${year}-${String(month).padStart(2, "0")}-${String(normalizedDay).padStart(2, "0")}`;
+          const periodStartDate = String(invoice.periodStartDate ?? invoice.period_start_date ?? "").slice(0, 10);
+          const dueDate = periodStartDate
+            ? getNextMonthIsoDate(periodStartDate, normalizedDay)
+            : `${year}-${String(month).padStart(2, "0")}-${String(normalizedDay).padStart(2, "0")}`;
 
           dueDateByInvoiceId[invoice.id] = dueDate;
 
@@ -3244,24 +3190,74 @@ function TenantDetailPage({
     }
   };
 
+  const ensureContractRenewalVersionId = async (row) => {
+    if (row?.versionId) {
+      return row.versionId;
+    }
+
+    if (!row?.contractId || !contract) {
+      throw new Error("Data kontrak tidak valid untuk upload perpanjangan.");
+    }
+
+    // Temukan versi aktif terakhir dari kontrak ini untuk mewarisi nominal
+    const contractVersions = versions.filter(v => Number(v.contractId ?? v.contract_id) === Number(row.contractId));
+    const latestVersion = contractVersions.length > 0
+      ? [...contractVersions].sort((a, b) => Number(b.versionNumber ?? b.version_number ?? 0) - Number(a.versionNumber ?? a.version_number ?? 0))[0]
+      : null;
+
+    const fallbackMonthlyAmount = latestVersion?.monthlyAmount ?? latestVersion?.monthly_amount ?? 0;
+    const fallbackYearlyAmount = latestVersion?.yearlyAmount ?? latestVersion?.yearly_amount ?? (fallbackMonthlyAmount * 12);
+
+    const monthlyAmt = Number(row.monthlyAmount ?? contract?.monthlyAmount ?? contract?.monthly_amount ?? fallbackMonthlyAmount);
+    const yearlyAmt = Number(
+      row.yearlyAmount
+      ?? contract?.yearlyAmount
+      ?? contract?.yearly_amount
+      ?? (latestVersion ? fallbackYearlyAmount : (monthlyAmt * 12))
+    );
+
+    const createdVersion = await api.contractVersions.create({
+      contractId: row.contractId,
+      customerId: customer.id,
+      contractNumber: contract?.contractNumber ?? contract?.contract_number ?? null,
+      startDate: row.periodStart ?? contract?.startDate ?? contract?.contract_start_date ?? null,
+      endDate: row.periodEnd ?? contract?.endDate ?? contract?.contract_end_date ?? null,
+      coreType: contract?.coreType ?? contract?.core_type ?? "core",
+      coreTotal: Number(
+        row.jumlahPaket
+        ?? contract?.coreTotal
+        ?? contract?.core_total
+        ?? 0,
+      ),
+      sharedCoreRatio: contract?.sharingRatio ?? contract?.sharing_ratio ?? null,
+      monthlyAmount: monthlyAmt,
+      yearlyAmount: yearlyAmt,
+    });
+
+    return createdVersion.id;
+  };
+
   const handleUploadTenantRenewal = async (row, file, followUpId = null) => {
-    if (!file || !row?.contractId || !row?.versionId) {
+    if (!file || !row?.contractId) {
       return;
     }
 
     setError("");
     try {
+      const versionId = await ensureContractRenewalVersionId(row);
       const renewalFileUrl = await uploadFileForRecord(file, ["customers", customer.id, "renewals"]);
       if (followUpId) {
         await api.contractVersionRenewalFollowUps.update(followUpId, {
           renewal_file_url: renewalFileUrl,
           renewal_file_name: file.name,
+          status: "pending_response",
         });
       } else {
-        const followUp = await api.contractVersionRenewalFollowUps.create(row.versionId);
+        const followUp = await api.contractVersionRenewalFollowUps.create(versionId);
         await api.contractVersionRenewalFollowUps.update(followUp.id, {
           renewal_file_url: renewalFileUrl,
           renewal_file_name: file.name,
+          status: "pending_response",
         });
       }
       await Promise.all([loadDetail(), onRefreshAll?.()]);
@@ -3280,25 +3276,28 @@ function TenantDetailPage({
     file,
     followUpId = null,
   ) => {
-    if (!file || !row?.contractId || !row?.versionId) {
+    if (!file || !row?.contractId) {
       return;
     }
 
     setError("");
     try {
+      const versionId = await ensureContractRenewalVersionId(row);
       const responseFileUrl = await uploadFileForRecord(file, ["customers", customer.id, "renewal-responses"]);
       if (followUpId) {
         await api.contractVersionRenewalFollowUps.update(followUpId, {
           response_file_url: responseFileUrl,
           response_file_name: file.name,
           response_status: decision,
+          status: "completed",
         });
       } else {
-        const followUp = await api.contractVersionRenewalFollowUps.create(row.versionId);
+        const followUp = await api.contractVersionRenewalFollowUps.create(versionId);
         await api.contractVersionRenewalFollowUps.update(followUp.id, {
           response_file_url: responseFileUrl,
           response_file_name: file.name,
           response_status: decision,
+          status: "completed",
         });
       }
       await Promise.all([loadDetail(), onRefreshAll?.()]);
@@ -3403,9 +3402,9 @@ function TenantDetailPage({
               initialRouteMeta={activeRoutePlannerMeta}
               providerEntryPoints={availableIspEntryPoints}
               selectedProviderEntryPointIds={selectedEntryPointIds}
-              onApplyPlannedRoute={(plannedPoints, plannerMeta) => {
-                handleApplyPlannedRoute(plannedPoints, plannerMeta);
-                window.setTimeout(() => onBack?.(), 800);
+              onApplyPlannedRoute={async (plannedPoints, plannerMeta) => {
+                await handleApplyPlannedRoute(plannedPoints, plannerMeta);
+                onBack?.();
               }}
               mode="full"
               providerIconUrl={isps[0]?.logoUrl || ""}
@@ -3626,23 +3625,18 @@ function TenantDetailPage({
           let cBg = "bg-emerald-500/10";
           let cBorder = "border-emerald-500/20";
           let cText = "text-emerald-400";
-          let cDot = "bg-emerald-400 shadow-emerald-glow";
-          let cAnim = "animate-pulse";
           if (rawStatus === "expired") {
             cLabel = "Belum Diperpanjang";
             cIcon = "warning";
             cBg = "bg-[#ff2400]/10";
             cBorder = "border-[#ff2400]/20";
             cText = "text-[#ff2400]";
-            cDot = "bg-[#ff2400] shadow-[0_0_10px_rgba(255,36,0,0.5)]";
           } else if (rawStatus === "berhenti") {
             cLabel = "Berhenti";
             cIcon = "cancel";
             cBg = "bg-white/5";
             cBorder = "border-white/10";
             cText = "text-white/30";
-            cDot = "bg-white/20";
-            cAnim = "";
           }
 
           // Route status
@@ -3652,30 +3646,24 @@ function TenantDetailPage({
           let rBg = "bg-emerald-500/10";
           let rBorder = "border-emerald-500/20";
           let rText = "text-emerald-400";
-          let rDot = "bg-emerald-400 shadow-emerald-glow";
-          let rAnim = "animate-pulse";
           if (rawR === "nonaktif") {
             rLabel = "Jalur Nonaktif";
             rIcon = "cable";
             rBg = "bg-white/5";
             rBorder = "border-white/10";
             rText = "text-white/30";
-            rDot = "bg-white/20";
-            rAnim = "";
           } else if (rawR === "gangguan") {
             rLabel = "Jalur Gangguan";
             rIcon = "report";
             rBg = "bg-[#ff2400]/10";
             rBorder = "border-[#ff2400]/20";
             rText = "text-[#ff2400]";
-            rDot = "bg-[#ff2400] shadow-[0_0_10px_rgba(255,36,0,0.5)]";
           } else if (rawR === "sedang perbaikan") {
             rLabel = "Sedang Perbaikan";
             rIcon = "construction";
             rBg = "bg-amber-500/10";
             rBorder = "border-amber-500/20";
             rText = "text-amber-400";
-            rDot = "bg-amber-400 shadow-amber-glow";
           }
 
           const paketVal = packageInfo.paket === "sharing_core" ? "SHARING CORE" : "CORE";
@@ -4127,7 +4115,7 @@ function TenantDetailPage({
                   <div className="flex flex-wrap items-center gap-2.5">
                     <div className="flex items-center gap-1.5 mr-2">
                       <span className="text-[8px] font-black text-white/30 bg-white/5 px-2 py-0.5 rounded uppercase tracking-widest border border-white/5">
-                        {(isRouteDrafting ? draftRoutePoints : routePoints).length} Titik
+                        {(isRouteDrafting ? draftRoutePoints : routePoints).filter((point) => point.pointType !== "transit").length} Titik
                       </span>
                       <span className="text-[8px] font-black text-blue-400/50 bg-blue-500/10 px-2 py-0.5 rounded uppercase tracking-widest border border-blue-500/10">
                         {displayNamedRoads.length} Ruas Aktif
@@ -4206,12 +4194,10 @@ function TenantDetailPage({
                   {(() => {
                     const activePoints = isRouteDrafting ? draftRoutePoints : routePoints;
                     const startPoints = activePoints.filter(p => p.pointType === "awal");
-                    const transitPoints = activePoints.filter(p => p.pointType === "transit");
                     const endPoints = activePoints.filter(p => p.pointType === "tujuan");
 
                     const combinedItems = [
                       ...startPoints.map(p => ({ ...p, _rowType: 'point' })),
-                      ...transitPoints.map(p => ({ ...p, _rowType: 'point' })),
                       ...displayNamedRoads.map((r, i) => ({ ...r, _rowType: 'road', _index: i })),
                       ...endPoints.map(p => ({ ...p, _rowType: 'point' }))
                     ];
@@ -4568,11 +4554,10 @@ function TenantDetailPage({
                       </tr>
                     )}
                     {contractRowsForTable.map((row) => {
-                      const isContractNumberMarkedEmpty = Boolean(emptyContractNumberRows[row.id]);
-                      const isBakMarkedEmpty = Boolean(emptyBakRows[row.id]);
                       const contractDoc = row.contractId ? contractDocumentByContractId.get(Number(row.contractId)) : null;
                       const contractFileUrl = String(contractDoc?.fileUrl ?? "");
                       const hasContractFile = isOpenableFileUrl(contractFileUrl);
+                      const isEditingContractRow = contractRowEditor?.rowId === row.id;
 
                       // Keterangan badge
                       const noteStyle = (() => {
@@ -4597,18 +4582,48 @@ function TenantDetailPage({
 
                           {/* Nomor Kontrak */}
                           <td className="px-4 py-3 whitespace-nowrap border border-white/5">
-                            <span className="text-[11px] font-black text-white/60">
-                              {row.contractNumber ? (
-                                <span className="text-white uppercase tracking-tight">{row.contractNumber}</span>
-                              ) : (
-                                "—"
-                              )}
-                            </span>
+                            {isEditingContractRow ? (
+                              <input
+                                className="h-8 w-full rounded-lg border border-white/10 bg-white/[0.04] px-2.5 text-[10px] font-black uppercase tracking-tight text-white outline-none transition-all focus:border-gold-accent/40 focus:bg-white/[0.06]"
+                                placeholder="Nomor kontrak / BAK"
+                                value={contractRowEditor.contractNumber ?? ""}
+                                onChange={(e) => setContractRowEditor((previous) => previous ? { ...previous, contractNumber: e.target.value } : previous)}
+                              />
+                            ) : (
+                              <span className="text-[11px] font-black text-white/60">
+                                {row.contractNumber ? (
+                                  <span className="text-white uppercase tracking-tight">{row.contractNumber}</span>
+                                ) : (
+                                  "—"
+                                )}
+                              </span>
+                            )}
                           </td>
 
                           {/* Berkas Kontrak */}
-                          <td className="px-4 py-3 whitespace-nowrap border border-white/5">
-                            {hasContractFile ? (
+                      <td className="px-4 py-3 whitespace-nowrap border border-white/5">
+                            {isEditingContractRow ? (
+                              <label className="inline-flex h-8 cursor-pointer items-center gap-1 rounded-lg border border-white/10 bg-white/[0.04] px-2.5 text-[8px] font-black uppercase tracking-widest text-white/60 transition-all hover:bg-white/[0.06] hover:text-white">
+                                <span className="material-symbols-outlined text-[12px]">upload_file</span>
+                                {contractRowEditor.contractUploadedFileName
+                                  ? contractRowEditor.contractUploadedFileName
+                                  : (contractRowEditor.contractFileUrl ? "Ganti File" : "Upload")}
+                                <input
+                                  type="file"
+                                  className="hidden"
+                                  onChange={(event) => {
+                                    const file = event.target.files?.[0] ?? null;
+                                    setContractRowEditor((previous) => (
+                                      previous ? {
+                                        ...previous,
+                                        contractUploadedFile: file,
+                                        contractUploadedFileName: file?.name ?? "",
+                                      } : previous
+                                    ));
+                                  }}
+                                />
+                              </label>
+                            ) : hasContractFile ? (
                               <a
                                 className="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-gold-accent/20 bg-gold-accent/10 text-[7px] font-black text-gold-accent uppercase tracking-widest hover:bg-gold-accent hover:text-[#0f141e] transition-all"
                                 href={contractFileUrl}
@@ -4624,29 +4639,65 @@ function TenantDetailPage({
 
                           {/* Keterangan */}
                           <td className="px-4 py-3 whitespace-nowrap border border-white/5">
-                            <span className={`inline-flex items-center px-2 py-1 rounded-md border text-[8px] font-black uppercase tracking-widest ${noteStyle}`}>
-                              {(() => {
-                                let note = row.note || "—";
-                                return note.replace(/^Kontrak\s+/i, "").replace(/\./g, "").trim();
-                              })()}
-                            </span>
+                            {isEditingContractRow ? (
+                              <span className={`inline-flex items-center px-2 py-1 rounded-md border text-[8px] font-black uppercase tracking-widest ${noteStyle}`}>
+                                {(() => {
+                                  let note = row.note || "—";
+                                  return note.replace(/^Kontrak\s+/i, "").replace(/\./g, "").trim();
+                                })()}
+                              </span>
+                            ) : (
+                              <span className={`inline-flex items-center px-2 py-1 rounded-md border text-[8px] font-black uppercase tracking-widest ${noteStyle}`}>
+                                {(() => {
+                                  let note = row.note || "—";
+                                  return note.replace(/^Kontrak\s+/i, "").replace(/\./g, "").trim();
+                                })()}
+                              </span>
+                            )}
                           </td>
 
                           {/* Periode Awal Kontrak */}
                           <td className="px-4 py-3 whitespace-nowrap border border-white/5 text-center">
-                            <span className="text-[11px] font-black text-white/60">
-                              {contractPeriodInfo.contractStartDate ? formatDate(contractPeriodInfo.contractStartDate) : "—"}
-                            </span>
+                            {isEditingContractRow ? (
+                              <input
+                                className="h-8 w-full rounded-lg border border-white/10 bg-white/[0.04] px-2 text-[10px] font-black text-white outline-none transition-all focus:border-gold-accent/40 focus:bg-white/[0.06]"
+                                type="date"
+                                value={contractRowEditor.startDate ?? ""}
+                                onChange={(e) => setContractRowEditor((previous) => previous ? { ...previous, startDate: e.target.value } : previous)}
+                              />
+                            ) : (
+                              <span className="text-[11px] font-black text-white/60">
+                                {contractPeriodInfo.contractStartDate ? formatDate(contractPeriodInfo.contractStartDate) : "—"}
+                              </span>
+                            )}
                           </td>
 
                           {/* Periode Berjalan Awal */}
                           <td className="px-4 py-3 whitespace-nowrap border border-white/5">
-                            <span className="text-[11px] font-black text-white/60">{row.periodStart ? formatDate(row.periodStart) : "—"}</span>
+                            {isEditingContractRow ? (
+                              <input
+                                className="h-8 w-full rounded-lg border border-white/10 bg-white/[0.04] px-2 text-[10px] font-black text-white outline-none transition-all focus:border-gold-accent/40 focus:bg-white/[0.06]"
+                                type="date"
+                                value={contractRowEditor.startDate ?? ""}
+                                onChange={(e) => setContractRowEditor((previous) => previous ? { ...previous, startDate: e.target.value } : previous)}
+                              />
+                            ) : (
+                              <span className="text-[11px] font-black text-white/60">{row.periodStart ? formatDate(row.periodStart) : "—"}</span>
+                            )}
                           </td>
 
                           {/* Periode Berjalan Akhir */}
                           <td className="px-4 py-3 whitespace-nowrap border border-white/5">
-                            <span className="text-[11px] font-black text-white/60">{row.periodEnd ? formatDate(row.periodEnd) : "—"}</span>
+                            {isEditingContractRow ? (
+                              <input
+                                className="h-8 w-full rounded-lg border border-white/10 bg-white/[0.04] px-2 text-[10px] font-black text-white outline-none transition-all focus:border-gold-accent/40 focus:bg-white/[0.06]"
+                                type="date"
+                                value={contractRowEditor.endDate ?? ""}
+                                onChange={(e) => setContractRowEditor((previous) => previous ? { ...previous, endDate: e.target.value } : previous)}
+                              />
+                            ) : (
+                              <span className="text-[11px] font-black text-white/60">{row.periodEnd ? formatDate(row.periodEnd) : "—"}</span>
+                            )}
                           </td>
 
                           {/* Paket */}
@@ -4661,14 +4712,46 @@ function TenantDetailPage({
 
                           {/* Nominal */}
                           <td className="px-4 py-3 whitespace-nowrap border border-white/5">
-                            <span className="text-[11px] font-black text-white/70">
-                              {Number(row.monthlyAmount ?? 0) > 0 ? formatCurrency(Number(row.monthlyAmount)) : "—"}
-                            </span>
+                            {isEditingContractRow ? (
+                              <input
+                                className="h-8 w-full rounded-lg border border-white/10 bg-white/[0.04] px-2 text-[10px] font-black text-white outline-none transition-all focus:border-gold-accent/40 focus:bg-white/[0.06]"
+                                min="0"
+                                placeholder="Nominal / bulan"
+                                type="number"
+                                value={contractRowEditor.monthlyAmount ?? ""}
+                                onChange={(e) => setContractRowEditor((previous) => previous ? { ...previous, monthlyAmount: e.target.value } : previous)}
+                              />
+                            ) : (
+                              <span className="text-[11px] font-black text-white/70">
+                                {Number(row.monthlyAmount ?? 0) > 0 ? formatCurrency(Number(row.monthlyAmount)) : "—"}
+                              </span>
+                            )}
                           </td>
 
                           {/* BAK */}
                           <td className="px-4 py-3 whitespace-nowrap border border-white/5">
-                            {isOpenableFileUrl(row.bakFileUrl) ? (
+                            {isEditingContractRow ? (
+                              <label className="inline-flex h-8 cursor-pointer items-center gap-1 rounded-lg border border-white/10 bg-white/[0.04] px-2.5 text-[8px] font-black uppercase tracking-widest text-white/60 transition-all hover:bg-white/[0.06] hover:text-white">
+                                <span className="material-symbols-outlined text-[12px]">upload_file</span>
+                                {contractRowEditor.bakUploadedFileName
+                                  ? contractRowEditor.bakUploadedFileName
+                                  : (contractRowEditor.bakFileUrl ? "Ganti BAK" : "Upload")}
+                                <input
+                                  type="file"
+                                  className="hidden"
+                                  onChange={(event) => {
+                                    const file = event.target.files?.[0] ?? null;
+                                    setContractRowEditor((previous) => (
+                                      previous ? {
+                                        ...previous,
+                                        bakUploadedFile: file,
+                                        bakUploadedFileName: file?.name ?? "",
+                                      } : previous
+                                    ));
+                                  }}
+                                />
+                              </label>
+                            ) : isOpenableFileUrl(row.bakFileUrl) ? (
                               <a
                                 className="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-gold-accent/20 bg-gold-accent/10 text-[7px] font-black text-gold-accent uppercase tracking-widest hover:bg-gold-accent hover:text-[#0f141e] transition-all"
                                 href={row.bakFileUrl}
@@ -4705,14 +4788,50 @@ function TenantDetailPage({
 
                           {/* Aksi */}
                           <td className="px-4 py-3 text-right whitespace-nowrap border border-white/5">
-                            <button
-                              className="h-8 w-8 rounded-lg border border-white/10 bg-white/5 flex items-center justify-center text-white/20 hover:text-gold-accent hover:border-gold-accent/30 hover:bg-gold-accent/10 transition-all backdrop-blur-md"
-                              onClick={openVersionEditor}
-                              title="Edit"
-                              type="button"
-                            >
-                              <span className="material-symbols-outlined text-base">edit_note</span>
-                            </button>
+                            {isEditingContractRow ? (
+                              <div className="flex justify-end gap-2">
+                                <button
+                                  className="h-8 w-8 rounded-lg border border-white/10 bg-white/5 flex items-center justify-center text-white/20 hover:text-white hover:border-white/20 hover:bg-white/10 transition-all backdrop-blur-md disabled:cursor-not-allowed disabled:opacity-50"
+                                  disabled={isSavingContractRow || isDeletingContractRow}
+                                  onClick={() => setContractRowEditor(null)}
+                                  title="Batal edit"
+                                  type="button"
+                                >
+                                  <span className="material-symbols-outlined text-base">close</span>
+                                </button>
+                                <button
+                                  className="h-8 w-8 rounded-lg border border-red-500/20 bg-red-500/10 flex items-center justify-center text-red-400 hover:text-red-300 hover:border-red-500/40 hover:bg-red-500/20 transition-all backdrop-blur-md disabled:cursor-not-allowed disabled:opacity-50"
+                                  disabled={isSavingContractRow || isDeletingContractRow}
+                                  onClick={() => void handleDeleteContractRow()}
+                                  title="Hapus data baris"
+                                  type="button"
+                                >
+                                  <span className="material-symbols-outlined text-base">delete</span>
+                                </button>
+                                <button
+                                  className="h-8 w-8 rounded-lg border border-gold-accent/20 bg-gold-accent/10 flex items-center justify-center text-gold-accent hover:text-[#0f141e] hover:border-gold-accent/30 hover:bg-gold-accent transition-all backdrop-blur-md disabled:cursor-not-allowed disabled:opacity-50"
+                                  disabled={isSavingContractRow || isDeletingContractRow}
+                                  onClick={(event) => void handleSaveContractRow(event)}
+                                  title="Simpan perubahan"
+                                  type="button"
+                                >
+                                  {isSavingContractRow ? (
+                                    <span className="material-symbols-outlined text-base animate-pulse">progress_activity</span>
+                                  ) : (
+                                    <span className="material-symbols-outlined text-base">save</span>
+                                  )}
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                className="h-8 w-8 rounded-lg border border-white/10 bg-white/5 flex items-center justify-center text-white/20 hover:text-gold-accent hover:border-gold-accent/30 hover:bg-gold-accent/10 transition-all backdrop-blur-md"
+                                onClick={() => openContractRowEditor(row)}
+                                title="Edit Data Baris"
+                                type="button"
+                              >
+                                <span className="material-symbols-outlined text-base">edit_note</span>
+                              </button>
+                            )}
                           </td>
                         </tr>
                       );
@@ -4967,16 +5086,16 @@ function TenantDetailPage({
                 <table className="w-full text-left min-w-[1200px] border-collapse">
                   <thead>
                     <tr className="bg-white/[0.02]">
-                      <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">No</th>
-                      <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Urutan</th>
-                      <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Nomor Invoice</th>
-                      <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Batas Bayar</th>
-                      <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Jumlah (Rp)</th>
-                      <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Status</th>
-                      <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Waktu Bayar</th>
-                      <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Invoice</th>
-                      <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Bukti Bayar</th>
-                      <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Aksi</th>
+                      <th className="w-12 px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">No</th>
+                      <th className="w-16 px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Urutan</th>
+                      <th className="min-w-[160px] px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Nomor Invoice</th>
+                      <th className="min-w-[160px] px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Batas Bayar</th>
+                      <th className="min-w-[140px] px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Jumlah (Rp)</th>
+                      <th className="min-w-[160px] px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Status</th>
+                      <th className="min-w-[120px] px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Waktu Bayar</th>
+                      <th className="min-w-[180px] px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Invoice</th>
+                      <th className="min-w-[120px] px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Bukti Bayar</th>
+                      <th className="min-w-[120px] px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Aksi</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -5043,12 +5162,12 @@ function TenantDetailPage({
                           <td className="px-4 py-3 whitespace-nowrap border border-white/5 text-center">
                             {isEditingRow ? (
                               <div className="space-y-1 flex flex-col items-center">
-                                <input
-                                  className="h-8 w-32 rounded-lg border border-white/20 bg-white/5 px-2.5 text-[10px] font-bold text-white text-center outline-none focus:border-gold-accent/50 transition-all [color-scheme:dark] backdrop-blur-md"
-                                  disabled={isSetDateLockedByGlobal || isSavingInvoice}
-                                  onChange={(e) => updateInvoiceDraftField(invoice.id, "dueDate", e.target.value)}
-                                  type="date"
+                                <DateInput
                                   value={draft.dueDate}
+                                  onChange={(val) => updateInvoiceDraftField(invoice.id, "dueDate", val)}
+                                  disabled={isSetDateLockedByGlobal || isSavingInvoice}
+                                  className="h-8 w-36 rounded-lg border border-white/20 bg-white/5 backdrop-blur-md transition-all focus-within:border-gold-accent/50"
+                                  inputClass="w-full h-full bg-transparent px-2.5 pr-8 text-[10px] font-bold text-white text-center outline-none"
                                 />
                                 {isSetDateLockedByGlobal && (
                                   <p className="text-[8px] font-black text-white/20 uppercase tracking-widest">Global Locked</p>
@@ -5143,9 +5262,9 @@ function TenantDetailPage({
                                 </a>
                               )}
                               {canUploadSecondWarning && (
-                                <div className="mt-1 space-y-1 rounded border border-orange-500/20 bg-orange-500/5 p-1.5">
+                                <div className="mt-1 flex flex-col gap-1 w-full max-w-[140px] mx-auto rounded border border-orange-500/20 bg-orange-500/5 p-1.5">
                                   <input
-                                    className="h-6 w-32 rounded border border-orange-500/20 bg-black/20 px-1.5 text-[8px] font-bold text-white outline-none placeholder:text-white/10"
+                                    className="h-6 w-full rounded border border-orange-500/20 bg-black/20 px-1.5 text-[8px] font-bold text-white outline-none placeholder:text-white/10 text-center"
                                     disabled={isSavingInvoice}
                                     onChange={(e) => updateInvoiceFollowUpDraftField(invoice.id, secondWarningDraftKey, "invoiceNumber", e.target.value)}
                                     placeholder="No. invoice ke-2"
@@ -5832,6 +5951,31 @@ function TenantDetailPage({
                     placeholder="Contoh: 2"
                   />
                 )}
+
+                <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2">
+                  <GlassInput
+                    label="Nominal Bulanan Baru"
+                    type="number"
+                    value={versionEditor.monthlyAmount ?? ""}
+                    onChange={(e) =>
+                      setVersionEditor((previous) =>
+                        previous ? { ...previous, monthlyAmount: e.target.value } : previous,
+                      )
+                    }
+                    placeholder="Contoh: 1500000"
+                  />
+                  <GlassInput
+                    label="Nominal Tahunan Baru"
+                    type="number"
+                    value={versionEditor.yearlyAmount ?? ""}
+                    onChange={(e) =>
+                      setVersionEditor((previous) =>
+                        previous ? { ...previous, yearlyAmount: e.target.value } : previous,
+                      )
+                    }
+                    placeholder="Otomatis 12x bulanan"
+                  />
+                </div>
 
                 <div className="rounded-xl border border-blue-500/20 bg-blue-500/10 px-4 py-3 text-[11px] font-bold text-blue-400 leading-relaxed backdrop-blur-md">
                   Paket lama berlaku sampai {formatDate(addDaysToIsoDate(getFirstDayOfNextMonth(versionEditor.requestedDate), -1))}. Paket baru aktif mulai {formatDate(getFirstDayOfNextMonth(versionEditor.requestedDate))}. Invoice belum lunas mulai bulan tersebut akan menyesuaikan.

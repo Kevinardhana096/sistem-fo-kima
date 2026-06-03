@@ -152,6 +152,30 @@ export const addDaysToIsoDate = (isoDate, days) => {
     return next.toISOString().slice(0, 10);
 };
 
+export const getNextMonthIsoDate = (isoDate, day = null) => {
+    const parsed = parseDateValue(isoDate);
+    if (!parsed) {
+        return "";
+    }
+
+    const next = new Date(parsed);
+    next.setUTCMonth(next.getUTCMonth() + 1);
+
+    if (day == null) {
+        return next.toISOString().slice(0, 10);
+    }
+
+    const normalizedDay = Number(day);
+    if (!Number.isFinite(normalizedDay)) {
+        return "";
+    }
+
+    const maxDay = new Date(Date.UTC(next.getUTCFullYear(), next.getUTCMonth() + 1, 0)).getUTCDate();
+    next.setUTCDate(Math.min(Math.max(Math.round(normalizedDay), 1), maxDay));
+
+    return next.toISOString().slice(0, 10);
+};
+
 export const shiftIsoDateByBillingCycle = (isoDate, every, unit) => {
     const parsed = parseDateValue(isoDate);
     const normalizedEvery = Number(every);

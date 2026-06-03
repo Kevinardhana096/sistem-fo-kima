@@ -208,6 +208,12 @@ function MonitoringSpreadsheetPage({
                         </dd>
                     </div>
                     <div className="rounded-xl bg-white/5 border border-white/5 p-3 transition-colors hover:bg-white/[0.07] backdrop-blur-md">
+                        <dt className="text-[9px] font-black uppercase tracking-[0.15em] text-white/30 mb-1.5">Jatuh Tempo</dt>
+                        <dd className="text-[11px] font-bold text-white/70">
+                            {selectedInvoiceCell.dueDate ? formatDate(selectedInvoiceCell.dueDate) : "-"}
+                        </dd>
+                    </div>
+                    <div className="rounded-xl bg-white/5 border border-white/5 p-3 transition-colors hover:bg-white/[0.07] backdrop-blur-md">
                         <dt className="text-[9px] font-black uppercase tracking-[0.15em] text-white/30 mb-1.5">Status Pembayaran</dt>
                         <dd className="flex items-center">
                             <span className={`rounded-lg px-2.5 py-1 text-[8px] font-black tracking-widest border transition-all ${getMonthStatusClass(selectedInvoiceCell.status)} border-opacity-30`}>
@@ -616,11 +622,14 @@ function MonitoringSpreadsheetPage({
             const csvRows = [];
             const chunkSize = 150;
             for (let index = 0; index < filteredRows.length; index += chunkSize) {
-                const rowChunk = filteredRows.slice(index, index + chunkSize);
-                rowChunk.forEach((row, chunkIndex) => {
-                    const absoluteIndex = index + chunkIndex;
-                    const monthsData = isTeknisi ? [] : monitoringMonths.map((_, i) => {
-                        const status = Array.isArray(row.months) ? row.months[i] : "belum_ditagih";
+                    const rowChunk = filteredRows.slice(index, index + chunkSize);
+                    rowChunk.forEach((row, chunkIndex) => {
+                        const absoluteIndex = index + chunkIndex;
+                        const monthsData = isTeknisi ? [] : monitoringMonths.map((_, i) => {
+                        const monthEntry = Array.isArray(row.months) ? row.months[i] : null;
+                        const status = typeof monthEntry === "object" && monthEntry !== null
+                            ? monthEntry.status
+                            : (monthEntry || "belum_ditagih");
                         return invoiceStatusLabelMap[status] || status;
                     });
 
@@ -977,9 +986,15 @@ function MonitoringSpreadsheetPage({
                                         </td>
 
                                         {monitoringMonths.map((month, monthIndex) => {
-                                            const status = Array.isArray(row.months)
+                                            const monthEntry = Array.isArray(row.months)
                                                 ? row.months[monthIndex]
-                                                : "belum_ditagih";
+                                                : null;
+                                            const status = typeof monthEntry === "object" && monthEntry !== null
+                                                ? monthEntry.status
+                                                : (monthEntry || "belum_ditagih");
+                                            const dueDate = typeof monthEntry === "object" && monthEntry !== null
+                                                ? monthEntry.invoice?.due_date || null
+                                                : null;
 
                                             return (
                                                 <td
@@ -997,6 +1012,7 @@ function MonitoringSpreadsheetPage({
                                                                 month,
                                                                 monthIndex,
                                                                 status,
+                                                                dueDate,
                                                                 year: appliedFilters.year,
                                                                 contractStart: row.contractStart,
                                                                 contractEnd: row.contractEnd,

@@ -94,7 +94,7 @@ export function decodeValhallaShape(encodedShape, precision = 6) {
 
 export function mapProfileToValhallaCosting(profile) {
   if (profile === "cycling") return "bicycle";
-  if (profile === "foot") return "pedestrian";
+  if (profile === "walking" || profile === "foot") return "pedestrian";
   return "auto";
 }
 

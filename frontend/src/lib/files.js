@@ -32,19 +32,24 @@ export const uploadFileForRecord = async (file, pathParts = []) => {
     `${Date.now()}-${globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2)}${getFileExtension(file)}`,
   ].join("/");
 
-  const { error } = await supabase.storage
-    .from(STORAGE_BUCKET)
-    .upload(safePath, file, {
-      cacheControl: "31536000",
-      upsert: false,
-      contentType: file.type || undefined,
-    });
+  try {
+    const { error } = await supabase.storage
+      .from(STORAGE_BUCKET)
+      .upload(safePath, file, {
+        cacheControl: "31536000",
+        upsert: false,
+        contentType: file.type || undefined,
+      });
 
-  if (error) {
-    console.warn("Supabase Storage upload failed, falling back to Data URL:", error);
+    if (error) {
+      console.warn("Supabase Storage upload failed, falling back to Data URL:", error);
+      return readFileAsDataUrl(file);
+    }
+
+    const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(safePath);
+    return data.publicUrl;
+  } catch (err) {
+    console.warn("Supabase Storage upload threw exception, falling back to Data URL:", err);
     return readFileAsDataUrl(file);
   }
-
-  const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(safePath);
-  return data.publicUrl;
 };

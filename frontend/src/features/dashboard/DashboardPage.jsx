@@ -26,7 +26,8 @@ export default function DashboardPage({
     customers,
     isps = [],
     notifications = [],
-    currentRole = "admin"
+    currentRole = "admin",
+    refreshToken = 0,
 }) {
     const [availableYears] = useState([
         String(new Date().getUTCFullYear() - 3),
@@ -45,6 +46,7 @@ export default function DashboardPage({
 
     const [alerts, setAlerts] = useState(() => notifications.slice(0, 20));
     const [dashboardMetrics, setDashboardMetrics] = useState(null);
+    const [growthMetrics, setGrowthMetrics] = useState(null);
     const [, setIsLoadingOperational] = useState(false);
     const [growthType, setGrowthType] = useState("tenant");
     const [coreChartType, setCoreChartType] = useState("sharing");
@@ -79,10 +81,20 @@ export default function DashboardPage({
         return currentYear;
     }, [coreTrendFilter, currentYear]);
 
-    const loadOperationalData = useCallback(async (year) => {
+    const getGrowthYear = useCallback(() => {
+        if (growthFilter.mode === "specific_year") return growthFilter.year;
+        if (growthFilter.mode === "custom") return growthFilter.end;
+        return currentYear;
+    }, [growthFilter, currentYear]);
+
+    const loadOperationalData = useCallback(async (year, growthRange = null) => {
         setIsLoadingOperational(true);
         try {
-            const metricsResult = await api.monitoring.getDashboardMetrics({ year: Number(year) });
+            const metricsResult = await api.monitoring.getDashboardMetrics({
+                year: Number(year),
+                growthStartYear: growthRange?.startYear,
+                growthEndYear: growthRange?.endYear,
+            });
             setDashboardMetrics(metricsResult ?? null);
         } catch (error) {
             console.error("Dashboard load error:", error);
@@ -91,7 +103,47 @@ export default function DashboardPage({
         }
     }, []);
 
-    useEffect(() => { loadOperationalData(getCoreTrendYear()); }, [getCoreTrendYear, loadOperationalData]);
+    const loadGrowthData = useCallback(async (year, growthRange = null) => {
+        try {
+            const metricsResult = await api.monitoring.getDashboardMetrics({
+                year: Number(year),
+                growthStartYear: growthRange?.startYear,
+                growthEndYear: growthRange?.endYear,
+            });
+            setGrowthMetrics(metricsResult ?? null);
+        } catch (error) {
+            console.error("Growth chart load error:", error);
+        }
+    }, []);
+
+    useEffect(() => { loadOperationalData(getCoreTrendYear()); }, [getCoreTrendYear, loadOperationalData, refreshToken]);
+    useEffect(() => {
+        const growthYear = getGrowthYear();
+        const coreYear = getCoreTrendYear();
+        const growthRange = growthFilter.mode === "range_years"
+            ? (() => {
+                const range = Math.max(Number(growthFilter.range) || 1, 1);
+                return {
+                    startYear: Number(currentYear) - range + 1,
+                    endYear: Number(currentYear),
+                };
+            })()
+            : growthFilter.mode === "custom"
+                ? {
+                    startYear: Math.min(Number(growthFilter.start), Number(growthFilter.end)),
+                    endYear: Math.max(Number(growthFilter.start), Number(growthFilter.end)),
+                }
+                : growthFilter.mode === "specific_year"
+                    ? {
+                        startYear: Number(growthFilter.year),
+                        endYear: Number(growthFilter.year),
+                    }
+                    : null;
+
+        if (growthYear === coreYear && !growthRange) return;
+
+        void loadGrowthData(growthYear, growthRange);
+    }, [currentYear, getCoreTrendYear, getGrowthYear, growthFilter.end, growthFilter.mode, growthFilter.range, growthFilter.start, growthFilter.year, loadGrowthData, refreshToken]);
     useEffect(() => { setAlerts(notifications.slice(0, 20)); }, [notifications]);
 
     const stats = useMemo(() => {
@@ -127,7 +179,49 @@ export default function DashboardPage({
     const shouldLimitCoreTrendToCurrentMonth = coreTrendFilter.mode === "this_year" && coreTrendFilter.currentMonthOnly;
     const visibleSharingTrendData = shouldLimitCoreTrendToCurrentMonth ? sharingTrendData.slice(0, currentMonthCount) : sharingTrendData;
     const visibleCoreTrendData = shouldLimitCoreTrendToCurrentMonth ? coreTrendData.slice(0, currentMonthCount) : coreTrendData;
-    const growthData = dashboardMetrics?.growth ?? { tenant: [], isp: [] };
+    const growthSource = growthMetrics?.growth ?? dashboardMetrics?.growth;
+    const growthData = useMemo(() => {
+        const baseData = growthSource ?? { tenant: [], isp: [] };
+        const normalizeYear = (value) => String(value ?? "").trim();
+
+        if (growthFilter.mode === "specific_year") {
+            const targetYear = normalizeYear(growthFilter.year);
+            return {
+                tenant: (baseData.tenant ?? []).filter((row) => normalizeYear(row.year) === targetYear),
+                isp: (baseData.isp ?? []).filter((row) => normalizeYear(row.year) === targetYear),
+            };
+        }
+
+        if (growthFilter.mode === "custom") {
+            const start = Number(growthFilter.start);
+            const end = Number(growthFilter.end);
+            const minYear = Math.min(start, end);
+            const maxYear = Math.max(start, end);
+            return {
+                tenant: (baseData.tenant ?? []).filter((row) => {
+                    const year = Number(row.year);
+                    return Number.isFinite(year) && year >= minYear && year <= maxYear;
+                }),
+                isp: (baseData.isp ?? []).filter((row) => {
+                    const year = Number(row.year);
+                    return Number.isFinite(year) && year >= minYear && year <= maxYear;
+                }),
+            };
+        }
+
+        if (growthFilter.mode === "range_years") {
+            const range = Math.max(Number(growthFilter.range) || 1, 1);
+            return {
+                tenant: (baseData.tenant ?? []).slice(-range),
+                isp: (baseData.isp ?? []).slice(-range),
+            };
+        }
+
+        return {
+            tenant: (baseData.tenant ?? []).filter((row) => normalizeYear(row.year) === currentYear),
+            isp: (baseData.isp ?? []).filter((row) => normalizeYear(row.year) === currentYear),
+        };
+    }, [currentYear, growthFilter, growthSource]);
     const capacityCore = dashboardMetrics?.capacityCore ?? { total: 0, available: 0, availablePercent: 0 };
     const coreRentals = dashboardMetrics?.coreRentals ?? { totalCoreUsed: 0, locationCount: 0 };
     const routeStatus = dashboardMetrics?.routeStatus ?? { aktif: 0, gangguan: 0, perbaikan: 0, nonaktif: 0, total: 0 };
@@ -359,7 +453,7 @@ export default function DashboardPage({
                             </div>
                         )}
                         <div ref={coreTrendChartRef} className="h-[220px] w-full min-w-0 md:h-[240px]">
-                            <ResponsiveContainer width="100%" height={220}>
+                            <ResponsiveContainer width="100%" height="100%">
                                 <LineChart data={coreChartType === "sharing" ? visibleSharingTrendData : visibleCoreTrendData} margin={{ top: 5, right: 5, bottom: 5, left: -25 }}>
                                     <CartesianGrid strokeDasharray="0" vertical={false} stroke="rgba(255,255,255,0.08)" />
                                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 8, fontWeight: 900, fill: 'rgba(255,255,255,0.6)' }} dy={10} />

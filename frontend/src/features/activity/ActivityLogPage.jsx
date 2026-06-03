@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState, useRef } from "react"
 import { createPortal } from "react-dom";
 import AppShell from "../../components/layout/AppShell";
 import api from "../../lib/api";
+import DateInput from "../../components/shared/DateInput";
 
 const ACTION_LABELS = {
     "customer.created": "Menambahkan pelanggan baru",
@@ -348,20 +349,20 @@ export default function ActivityLogPage({ activeSection, onNavigate, onLogout, c
                             <>
                                 <div className="relative group">
                                     <span className="absolute left-4 top-2 text-[7px] font-black uppercase tracking-widest text-gold-accent/70 pointer-events-none z-10">Dari Tanggal</span>
-                                    <input
-                                        type="date"
-                                        className="relative w-full h-12 rounded-xl border border-white/10 bg-white/5 pl-4 pr-4 pt-4 pb-1 text-[10px] font-black uppercase tracking-widest text-white outline-none transition-all focus:bg-black/40 focus:border-gold-accent/40 shadow-inner-glass backdrop-blur-md [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0"
+                                    <DateInput
                                         value={dateFrom}
-                                        onChange={(event) => setDateFrom(event.target.value)}
+                                        onChange={setDateFrom}
+                                        className="w-full h-12 rounded-xl border border-white/10 bg-white/5 shadow-inner-glass backdrop-blur-md transition-all focus-within:bg-black/40 focus-within:border-gold-accent/40"
+                                        inputClass="w-full h-full bg-transparent pl-4 pr-10 pt-4 pb-1 text-[10px] font-black uppercase tracking-widest text-white outline-none"
                                     />
                                 </div>
                                 <div className="relative group">
                                     <span className="absolute left-4 top-2 text-[7px] font-black uppercase tracking-widest text-gold-accent/70 pointer-events-none z-10">Sampai Tanggal</span>
-                                    <input
-                                        type="date"
-                                        className="relative w-full h-12 rounded-xl border border-white/10 bg-white/5 pl-4 pr-4 pt-4 pb-1 text-[10px] font-black uppercase tracking-widest text-white outline-none transition-all focus:bg-black/40 focus:border-gold-accent/40 shadow-inner-glass backdrop-blur-md [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0"
+                                    <DateInput
                                         value={dateTo}
-                                        onChange={(event) => setDateTo(event.target.value)}
+                                        onChange={setDateTo}
+                                        className="w-full h-12 rounded-xl border border-white/10 bg-white/5 shadow-inner-glass backdrop-blur-md transition-all focus-within:bg-black/40 focus-within:border-gold-accent/40"
+                                        inputClass="w-full h-full bg-transparent pl-4 pr-10 pt-4 pb-1 text-[10px] font-black uppercase tracking-widest text-white outline-none"
                                     />
                                 </div>
                             </>
@@ -371,20 +372,21 @@ export default function ActivityLogPage({ activeSection, onNavigate, onLogout, c
                             <>
                                 <div className="relative group">
                                     <span className="absolute left-4 top-2 text-[7px] font-black uppercase tracking-widest text-gold-accent/70 pointer-events-none z-10">Pilih Dari Kapan</span>
-                                    <input
-                                        type="date"
-                                        className="relative w-full h-12 rounded-xl border border-white/10 bg-white/5 pl-4 pr-4 pt-4 pb-1 text-[10px] font-black uppercase tracking-widest text-white outline-none transition-all focus:bg-black/40 focus:border-gold-accent/40 shadow-inner-glass backdrop-blur-md [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0"
+                                    <DateInput
                                         value={dateFrom}
-                                        onChange={(event) => setDateFrom(event.target.value)}
+                                        onChange={setDateFrom}
+                                        className="w-full h-12 rounded-xl border border-white/10 bg-white/5 shadow-inner-glass backdrop-blur-md transition-all focus-within:bg-black/40 focus-within:border-gold-accent/40"
+                                        inputClass="w-full h-full bg-transparent pl-4 pr-10 pt-4 pb-1 text-[10px] font-black uppercase tracking-widest text-white outline-none"
                                     />
                                 </div>
                                 <div className="relative group opacity-60">
                                     <span className="absolute left-4 top-2 text-[7px] font-black uppercase tracking-widest text-white/40 pointer-events-none z-10">Sampai Hari Ini</span>
-                                    <input
-                                        type="date"
-                                        disabled
-                                        className="relative w-full h-12 rounded-xl border border-white/10 bg-white/5 pl-4 pr-4 pt-4 pb-1 text-[10px] font-black uppercase tracking-widest text-white/50 outline-none shadow-inner-glass backdrop-blur-md cursor-not-allowed"
+                                    <DateInput
                                         value={dateTo}
+                                        onChange={() => {}}
+                                        disabled
+                                        className="w-full h-12 rounded-xl border border-white/10 bg-white/5 shadow-inner-glass backdrop-blur-md"
+                                        inputClass="w-full h-full bg-transparent pl-4 pr-10 pt-4 pb-1 text-[10px] font-black uppercase tracking-widest text-white/50 outline-none cursor-not-allowed"
                                     />
                                 </div>
                             </>

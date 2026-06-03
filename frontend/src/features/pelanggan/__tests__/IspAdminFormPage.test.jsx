@@ -113,11 +113,21 @@ describe('IspAdminFormPage — Tambah ISP Baru', () => {
     const namaInput = screen.getByPlaceholderText(/pt\. internet cepat/i);
     await userEvent.type(namaInput, 'PT. Fiber Nusantara');
 
+    const dateInputs = document.querySelectorAll('input[type="date"]');
+    fireEvent.change(dateInputs[0], { target: { value: '2026-01-15' } });
+    fireEvent.change(dateInputs[1], { target: { value: '2026-02-01' } });
+    fireEvent.change(dateInputs[2], { target: { value: '2027-01-31' } });
+
     fireEvent.click(screen.getByRole('button', { name: /tambah isp/i }));
 
     await waitFor(() => {
       expect(api.isps.create).toHaveBeenCalledWith(
-        expect.objectContaining({ name: 'PT. Fiber Nusantara' })
+        expect.objectContaining({
+          name: 'PT. Fiber Nusantara',
+          contractStartDate: '2026-01-15',
+          contractPeriodStart: '2026-02-01',
+          contractPeriodEnd: '2027-01-31',
+        })
       );
     });
     expect(defaultProps.onSaved).toHaveBeenCalledWith(

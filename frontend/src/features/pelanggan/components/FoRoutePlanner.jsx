@@ -226,7 +226,7 @@ function mapProfileToValhallaCosting(profile) {
     return "bicycle";
   }
 
-  if (profile === "foot") {
+  if (profile === "walking" || profile === "foot") {
     return "pedestrian";
   }
 
@@ -246,6 +246,47 @@ function extractRoadSegments(legs) {
         instruction: maneuver?.instruction?.trim() || "Ikuti jalur utama",
       }));
   });
+}
+
+function getUniqueNamedRoads(roads) {
+  return (Array.isArray(roads) ? roads : []).reduce((acc, road) => {
+    const rawName = typeof road?.name === "string" ? road.name.trim() : "";
+    const lowerName = rawName.toLowerCase();
+
+    if (!rawName || lowerName === "tanpa nama jalan" || lowerName.includes("segmen manual")) {
+      return acc;
+    }
+
+    if (!acc.some((item) => item.name.toLowerCase() === lowerName)) {
+      acc.push({ ...road, name: rawName });
+    }
+
+    return acc;
+  }, []);
+}
+
+function buildValhallaRouteRequest(routingPoints, profile) {
+  const costing = mapProfileToValhallaCosting(profile);
+
+  return {
+    locations: routingPoints.map((point, index) => ({
+      lat: point.lat,
+      lon: point.lng,
+      type: index === 0 || index === routingPoints.length - 1 ? "break" : "via",
+    })),
+    costing,
+    units: "kilometers",
+    directions_options: {
+      units: "kilometers",
+    },
+    costing_options: {
+      [costing]: {
+        shortest: true,
+        disable_hierarchy_pruning: true,
+        ...(costing === "auto" ? { use_distance: 1 } : {}),
+      },
+    },
+  };
 }
 
 function buildPointLabel(point, index, total) {
@@ -471,8 +512,12 @@ export default function FoRoutePlanner({
   customHeaderInfo,
   customExitButton,
 }) {
+  const routeProfiles = [
+    { value: "driving", label: "Drive", icon: "directions_car" },
+    { value: "cycling", label: "Cycling", icon: "directions_bike" },
+    { value: "walking", label: "Walking", icon: "directions_walk" },
+  ];
   const [basemap, setBasemap] = useState("osm");
-  const [profile, setProfile] = useState("driving");
   const [placementMode, setPlacementMode] = useState("none");
   const [pointA, setPointA] = useState(null);
   const [pointB, setPointB] = useState(null);
@@ -488,12 +533,11 @@ export default function FoRoutePlanner({
   const [isSearching, setIsSearching] = useState(false);
   const [flyTarget, setFlyTarget] = useState(null);
   const [mapInstance, setMapInstance] = useState(null);
-  const [manualInput, setManualInput] = useState({});
+  const [profile, setProfile] = useState("driving");
   const [coordinateImportValue, setCoordinateImportValue] = useState("");
   const [valhallaStatus, setValhallaStatus] = useState("checking"); // "checking" | "online" | "offline"
   const [coordinateImportTarget, setCoordinateImportTarget] = useState("auto");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [isRoadPanelOpen, setIsRoadPanelOpen] = useState(true);
   const [sidebarMaxHeight, setSidebarMaxHeight] = useState("calc(100vh - 2rem)");
   const [editReason, setEditReason] = useState("");
   const skipNextRouteResetRef = useRef(false);
@@ -632,36 +676,36 @@ export default function FoRoutePlanner({
     },
     [previewRoads],
   );
+  const activeWaypoints = useMemo(
+    () => (customRouteMode ? manualWaypoints : []),
+    [customRouteMode, manualWaypoints],
+  );
+  const activeWaypointsKey = activeWaypoints.map((point) => point.id).join("|");
   const controlPoints = useMemo(() => {
     const points = [];
     if (pointA) {
       points.push({ ...pointA, role: "provider" });
     }
-    manualWaypoints.forEach((point) => {
+    activeWaypoints.forEach((point) => {
       points.push({ ...point, role: "waypoint" });
     });
     if (pointB) {
       points.push({ ...pointB, role: "customer" });
     }
     return points;
-  }, [manualWaypoints, pointA, pointB]);
+  }, [activeWaypoints, pointA, pointB]);
   const canGenerateRoute = Boolean(pointA && pointB);
   const canGenerateManualRoute = Boolean(customRouteMode && pointA && pointB);
   const activeCoordinateImportTarget = coordinateImportTarget === "auto"
     ? (!pointA ? "a" : !pointB ? "b" : "waypoint")
     : coordinateImportTarget;
-  const importedCoordinatePreview = useMemo(
-    () => extractCoordinatePair(coordinateImportValue),
-    [coordinateImportValue],
-  );
-  const activeRouteModeLabel = customRouteMode ? "Custom" : "Otomatis";
   const pointSummary = useMemo(
     () => ({
       provider: pointA ? "1" : "0",
       customer: pointB ? "1" : "0",
-      waypoint: String(manualWaypoints.length),
+      waypoint: String(activeWaypoints.length),
     }),
-    [manualWaypoints.length, pointA, pointB],
+    [activeWaypoints.length, pointA, pointB],
   );
 
   const pushToast = (title, message, tone = "info") => {
@@ -682,6 +726,11 @@ export default function FoRoutePlanner({
   useEffect(() => {
     if (isPreviewMode) return;
     let cancelled = false;
+    if (!VALHALLA_LOCAL_HOST) {
+      setValhallaStatus("offline");
+      return () => { cancelled = true; };
+    }
+
     fetch(`${VALHALLA_LOCAL_HOST}/status`, { method: "GET", signal: AbortSignal.timeout(3000) })
       .then((res) => { if (!cancelled) setValhallaStatus(res.ok ? "online" : "offline"); })
       .catch(() => { if (!cancelled) setValhallaStatus("offline"); });
@@ -722,7 +771,10 @@ export default function FoRoutePlanner({
     setRouteData(null);
     setRouteError("");
     setIsCalculating(false);
-  }, [customRouteMode, manualWaypoints, pointA, pointB, profile]);
+  }, [customRouteMode, activeWaypointsKey, pointA, pointB, profile]);
+
+  const selectedRouteProfile =
+    routeProfiles.find((item) => item.value === profile) ?? routeProfiles[0];
 
   const mapFitCoordinates = useMemo(() => {
     if (!routeData?.geometryCoordinates) {
@@ -733,23 +785,23 @@ export default function FoRoutePlanner({
   }, [routeData?.geometryCoordinates]);
 
   const plannerRoads = Array.isArray(routeData?.roads) ? routeData.roads : [];
+  const displayPlannerRoads = getUniqueNamedRoads(plannerRoads);
+  const fallbackPlannerRoads = displayPlannerRoads.length > 0
+    ? []
+    : plannerRoads.slice(0, 5).map((road, index) => ({
+        ...road,
+        name: typeof road?.name === "string" && road.name.trim()
+          ? road.name.trim()
+          : `Segmen ${index + 1}`,
+      }));
+  const visiblePlannerRoads = displayPlannerRoads.length > 0 ? displayPlannerRoads : fallbackPlannerRoads;
   const showKimaMarker =
     !isPreviewMode &&
     !pointA &&
     !pointB &&
-    manualWaypoints.length === 0 &&
+    activeWaypoints.length === 0 &&
     !routeData;
   // Unique named roads only (deduplicate by name and filter placeholders)
-  const namedPlannerRoads = plannerRoads.reduce((acc, road) => {
-    if (road?.name && road.name.trim() && !acc.some((r) => r.name === road.name)) {
-      const lowerName = road.name.toLowerCase();
-      if (lowerName !== "tanpa nama jalan" && !lowerName.includes("segmen manual")) {
-        acc.push(road);
-      }
-    }
-    return acc;
-  }, []);
-
   useEffect(() => {
     if (isPreviewMode) {
       return;
@@ -802,6 +854,9 @@ export default function FoRoutePlanner({
     const roads = Array.isArray(initialRouteMeta?.roads)
       ? initialRouteMeta.roads
       : [];
+    const restoredProfile = typeof initialRouteMeta?.profile === "string"
+      ? initialRouteMeta.profile
+      : "driving";
 
     let restoredRouteData = null;
     const restoredCustomRouteMode = initialRouteMeta?.mode === "manual";
@@ -811,12 +866,14 @@ export default function FoRoutePlanner({
         source: initialRouteMeta?.source ?? "planner-restored",
         distance: Number(initialRouteMeta?.distance ?? 0),
         duration: Number(initialRouteMeta?.duration ?? 0),
+        profile: restoredProfile,
         geometryCoordinates,
         geoJson: createRouteGeoJson(geometryCoordinates, {
           source: initialRouteMeta?.source ?? "planner-restored",
           mode: initialRouteMeta?.mode ?? "manual",
           distance: Number(initialRouteMeta?.distance ?? 0),
           duration: Number(initialRouteMeta?.duration ?? 0),
+          profile: restoredProfile,
           roads,
         }),
         roads,
@@ -831,6 +888,7 @@ export default function FoRoutePlanner({
       manualWaypoints: restoredWaypoints,
       routeData: restoredRouteData,
       customRouteMode: restoredCustomRouteMode,
+      profile: restoredProfile,
     };
   }, [initialPlannerControlPoints, initialRouteMeta, isPreviewMode]);
 
@@ -889,6 +947,7 @@ export default function FoRoutePlanner({
     setManualWaypoints(restoredWaypoints);
     setRouteData(restoredRouteData);
     setCustomRouteMode(Boolean(initialState.customRouteMode));
+    setProfile(typeof initialState.profile === "string" ? initialState.profile : "driving");
     setRouteError("");
     pushToast(
       "Perubahan Dibatalkan",
@@ -897,13 +956,48 @@ export default function FoRoutePlanner({
     );
   };
 
-  const handleGenerateManualRoute = () => {
+  const fetchValhallaRouteForPoints = async (routingPoints) => {
+    if (!VALHALLA_LOCAL_HOST) {
+      throw new Error("Valhalla belum dikonfigurasi.");
+    }
+
+    const response = await fetch(`${VALHALLA_LOCAL_HOST}/route`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(buildValhallaRouteRequest(routingPoints, profile)),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Valhalla gagal merespons (${response.status}).`);
+    }
+
+    const result = await response.json();
+    if (Number(result?.error_code ?? 0) > 0) {
+      throw new Error(result?.error ?? "Valhalla gagal menghitung rute.");
+    }
+
+    const trip = result?.trip;
+    const legs = Array.isArray(trip?.legs) ? trip.legs : [];
+
+    return {
+      trip,
+      legs,
+      geometryCoordinates: legs.flatMap((leg) => decodeValhallaShape(leg?.shape)),
+      roads: extractRoadSegments(legs),
+      distance: Number(trip?.summary?.length ?? 0) * 1000,
+      duration: Number(trip?.summary?.time ?? 0),
+    };
+  };
+
+  const handleGenerateManualRoute = async () => {
     if (!canGenerateManualRoute) {
       setRouteError("Tentukan Titik ISP (A) dan Titik Lokasi sebelum membuat custom jalur.");
       return;
     }
 
-    const manualPoints = [pointA, ...manualWaypoints, pointB];
+    const manualPoints = [pointA, ...activeWaypoints, pointB];
     const totalDistance = manualPoints.reduce((total, point, index) => {
       if (index === 0) {
         return total;
@@ -912,31 +1006,54 @@ export default function FoRoutePlanner({
     }, 0);
 
     const coordinates = manualPoints.map((point) => [point.lng, point.lat]);
-    const roads = manualPoints.slice(1).map((point, index) => ({
+    const fallbackRoads = manualPoints.slice(1).map((point, index) => ({
       id: `manual-${index}`,
       name: point.label?.trim() || `Segmen Manual ${index + 1}`,
       distance: haversineDistance(manualPoints[index], point),
       duration: 0,
       instruction: "Waypoint manual",
     }));
+    let roads = fallbackRoads;
+    let source = "custom-route";
+
+    setIsCalculating(true);
+    setRouteError("");
+    try {
+      const valhallaRoute = await fetchValhallaRouteForPoints(manualPoints);
+      const namedRoads = getUniqueNamedRoads(valhallaRoute.roads);
+
+      if (namedRoads.length > 0) {
+        roads = namedRoads;
+        source = "custom-route-valhalla-roads";
+      }
+    } catch {
+      // Custom route generation must remain available even when Valhalla road-name lookup fails.
+    } finally {
+      setIsCalculating(false);
+    }
 
     setRouteData({
       mode: "manual",
-      source: "custom-route",
+      source,
       distance: totalDistance,
       duration: 0,
+      profile,
       geometryCoordinates: coordinates,
       geoJson: createRouteGeoJson(coordinates, {
-        source: "custom-route",
+        source,
         mode: "manual",
         distance: totalDistance,
+        profile,
+        roads,
       }),
       roads,
     });
     setRouteError("");
     pushToast(
       "Custom Jalur Dibuat",
-      "Garis manual berhasil dibuat dari titik yang sudah Anda tetapkan.",
+      source === "custom-route-valhalla-roads"
+        ? "Garis manual dibuat dan nama ruas jalan berhasil dideteksi."
+        : "Garis manual berhasil dibuat dari titik yang sudah Anda tetapkan.",
       "success",
     );
   };
@@ -947,61 +1064,22 @@ export default function FoRoutePlanner({
       return;
     }
 
-    const routingPoints = [pointA, ...manualWaypoints, pointB];
-    const costing = mapProfileToValhallaCosting(profile);
-    const requestBody = {
-      locations: routingPoints.map((point, index) => ({
-        lat: point.lat,
-        lon: point.lng,
-        type: index === 0 || index === routingPoints.length - 1 ? "break" : "via",
-      })),
-      costing,
-      units: "kilometers",
-      directions_options: {
-        units: "kilometers",
-      },
-      costing_options: {
-        [costing]: {
-          shortest: true,
-          disable_hierarchy_pruning: true,
-          ...(costing === "auto" ? { use_distance: 1 } : {}),
-        },
-      },
-    };
+    if (!VALHALLA_LOCAL_HOST) {
+      setRouteError("Valhalla belum dikonfigurasi. Isi VITE_VALHALLA_HOST terlebih dahulu.");
+      setValhallaStatus("offline");
+      return;
+    }
+
+    const routingPoints = [pointA, ...activeWaypoints, pointB];
 
     setIsCalculating(true);
     setRouteError("");
     try {
-      const response = await fetch(`${VALHALLA_LOCAL_HOST}/route`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Valhalla gagal merespons (${response.status}).`);
-      }
-
-      const result = await response.json();
-      if (Number(result?.error_code ?? 0) > 0) {
-        throw new Error(result?.error ?? "Valhalla gagal menghitung rute.");
-      }
-
-      const trip = result?.trip;
-      const legs = Array.isArray(trip?.legs) ? trip.legs : [];
-      const geometryCoordinates = legs.flatMap((leg) =>
-        decodeValhallaShape(leg?.shape),
-      );
+      const { geometryCoordinates, roads, distance, duration } = await fetchValhallaRouteForPoints(routingPoints);
 
       if (geometryCoordinates.length < 2) {
         throw new Error("Valhalla tidak mengembalikan geometri rute.");
       }
-
-      const roads = extractRoadSegments(legs);
-      const distance = Number(trip?.summary?.length ?? 0) * 1000;
-      const duration = Number(trip?.summary?.time ?? 0);
       const source = "valhalla-local";
 
       setRouteData({
@@ -1009,12 +1087,14 @@ export default function FoRoutePlanner({
         source,
         distance,
         duration,
+        profile,
         geometryCoordinates,
         geoJson: createRouteGeoJson(geometryCoordinates, {
           source,
           mode: "valhalla",
           distance,
           duration,
+          profile,
           roads,
         }),
         roads,
@@ -1179,108 +1259,6 @@ export default function FoRoutePlanner({
     }
   };
 
-  const handlePickSearchResult = (result, role) => {
-    const lat = Number(result?.lat);
-    const lng = Number(result?.lon);
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-      return;
-    }
-
-    setFlyTarget({ lat, lng, zoom: 17 });
-    assignPoint(role, lat, lng, result.display_name);
-  };
-
-  const handleWaypointLabelChange = (pointId, value) => {
-    setManualWaypoints((previous) =>
-      previous.map((point) =>
-        point.id === pointId ? { ...point, label: value } : point,
-      ),
-    );
-  };
-
-  const handleWaypointMove = (pointId, direction) => {
-    setManualWaypoints((previous) => {
-      const index = previous.findIndex((point) => point.id === pointId);
-      if (index < 0) {
-        return previous;
-      }
-
-      const nextIndex = direction === "up" ? index - 1 : index + 1;
-      if (nextIndex < 0 || nextIndex >= previous.length) {
-        return previous;
-      }
-
-      const nextPoints = [...previous];
-      const [target] = nextPoints.splice(index, 1);
-      nextPoints.splice(nextIndex, 0, target);
-      return nextPoints;
-    });
-  };
-
-  const handleWaypointDelete = (pointId) => {
-    setManualWaypoints((previous) =>
-      previous.filter((point) => point.id !== pointId),
-    );
-  };
-
-  const handleManualCoordinateChange = (role, id, field, value) => {
-    setManualInput((prev) => ({
-      ...prev,
-      [`${role}-${id || "static"}-${field}`]: value,
-    }));
-  };
-
-  const commitManualCoordinate = (role, id) => {
-    const latKey = `${role}-${id || "static"}-lat`;
-    const lngKey = `${role}-${id || "static"}-lng`;
-    const rawLat = manualInput[latKey];
-    const rawLng = manualInput[lngKey];
-
-    if (rawLat === undefined && rawLng === undefined) return;
-
-    const parsedFromLat = extractCoordinatePair(rawLat);
-    const parsedFromLng = extractCoordinatePair(rawLng);
-    const lat = parsedFromLat?.lat ?? (rawLat !== undefined ? Number(rawLat) : Number.NaN);
-    const lng = parsedFromLat?.lng ?? parsedFromLng?.lng ?? (rawLng !== undefined ? Number(rawLng) : Number.NaN);
-
-    if (Number.isNaN(lat) || Number.isNaN(lng)) {
-      pushToast("Input Error", "Koordinat harus berupa angka valid", "error");
-      return;
-    }
-
-    if (role === "a") {
-      assignPoint("a", lat, lng, "");
-    } else if (role === "b") {
-      assignPoint("b", lat, lng, "");
-    } else if (role === "waypoint" && id) {
-      setManualWaypoints((prev) =>
-        prev.map((p) => (p.id === id ? { ...p, lat, lng } : p)),
-      );
-    }
-  };
-
-  const handleApplyImportedCoordinate = () => {
-    const parsed = extractCoordinatePair(coordinateImportValue);
-    if (!parsed) {
-      pushToast(
-        "Format Koordinat Tidak Valid",
-        "Gunakan format seperti -5.0929568, 119.5018379 atau teks Maps yang memuat koordinat.",
-        "error",
-      );
-      return;
-    }
-
-    if (activeCoordinateImportTarget === "a") {
-      assignPoint("a", parsed.lat, parsed.lng, "Provider");
-    } else if (activeCoordinateImportTarget === "b") {
-      assignPoint("b", parsed.lat, parsed.lng, "Pelanggan");
-    } else {
-      assignPoint("waypoint", parsed.lat, parsed.lng, "");
-    }
-
-    setCoordinateImportValue("");
-  };
-
   const handlePasteImportedCoordinate = async (preferredTarget = null) => {
     if (!navigator?.clipboard?.readText) {
       pushToast(
@@ -1350,6 +1328,20 @@ export default function FoRoutePlanner({
         point.id === id ? { ...point, lat, lng } : point,
       ),
     );
+  };
+
+  const handleDeleteWaypoint = (pointId) => {
+    setManualWaypoints((previous) => previous.filter((point) => point.id !== pointId));
+    pushToast("Waypoint Dihapus", "Titik lintasan berhasil dihapus.", "info");
+  };
+
+  const handleClearWaypoints = () => {
+    if (manualWaypoints.length === 0) {
+      return;
+    }
+
+    setManualWaypoints([]);
+    pushToast("Waypoint Dikosongkan", "Semua titik lintasan custom berhasil dihapus.", "info");
   };
 
   const handleResetPlanner = () => {
@@ -1548,33 +1540,32 @@ export default function FoRoutePlanner({
                     </Popup>
                   </Marker>
                 ))}
-                {previewControlPoints.map((point, index) => {
-                  const icon =
-                    point.role === "provider"
+                {previewControlPoints
+                  .filter((point) => point.role === "provider" || point.role === "customer")
+                  .map((point, index) => {
+                    const icon = point.role === "provider"
                       ? createEntryPointIcon(point.label, activeProviderEntryPointId !== null, providerIconUrl)
-                      : point.role === "customer"
-                        ? createCustomerCompanyIcon(customerIconUrl, point.label ?? "")
-                        : WAYPOINT_ICON;
+                      : createCustomerCompanyIcon(customerIconUrl, point.label ?? "");
 
-                  return (
-                    <Marker
-                      key={point.id ?? `${point.role}-${point.lat}-${point.lng}`}
-                      icon={icon}
-                      position={[point.lat, point.lng]}
-                    >
-                      <Popup>
-                        <div className="min-w-[150px] space-y-1 text-xs">
-                          <p className="font-bold text-slate-800">
-                            {point.label || buildPointLabel(point, index, previewControlPoints.length)}
-                          </p>
-                          <p className="text-[10px] text-slate-500">
-                            {Number(point.lat).toFixed(6)}, {Number(point.lng).toFixed(6)}
-                          </p>
-                        </div>
-                      </Popup>
-                    </Marker>
-                  );
-                })}
+                    return (
+                      <Marker
+                        key={point.id ?? `${point.role}-${point.lat}-${point.lng}`}
+                        icon={icon}
+                        position={[point.lat, point.lng]}
+                      >
+                        <Popup>
+                          <div className="min-w-[150px] space-y-1 text-xs">
+                            <p className="font-bold text-slate-800">
+                              {point.label || buildPointLabel(point, index, previewControlPoints.length)}
+                            </p>
+                            <p className="text-[10px] text-slate-500">
+                              {Number(point.lat).toFixed(6)}, {Number(point.lng).toFixed(6)}
+                            </p>
+                          </div>
+                        </Popup>
+                      </Marker>
+                    );
+                  })}
                 {previewRouteGeoJson && (
                   <>
                     <GeoJSON
@@ -1783,7 +1774,7 @@ export default function FoRoutePlanner({
               <Popup>Kawasan Industri Makassar (KIMA)</Popup>
             </Marker>
           )}
-          {manualWaypoints.map((point) => (
+          {activeWaypoints.map((point) => (
             <Marker
               key={point.id}
               draggable={!disabled}
@@ -1802,6 +1793,15 @@ export default function FoRoutePlanner({
                   <p className="text-[10px] text-slate-500">
                     {point.lat.toFixed(6)}, {point.lng.toFixed(6)}
                   </p>
+                  {!disabled && (
+                    <button
+                      className="pt-1 text-[10px] font-bold text-rose-600 hover:underline"
+                      onClick={() => handleDeleteWaypoint(point.id)}
+                      type="button"
+                    >
+                      Hapus Waypoint
+                    </button>
+                  )}
                 </div>
               </Popup>
             </Marker>
@@ -1931,6 +1931,119 @@ export default function FoRoutePlanner({
                 Custom
               </button>
             </div>
+
+            {!customRouteMode ? (
+              <div className="mt-3 rounded-xl border border-white/10 bg-slate-950/45 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <p className="text-[9px] font-black uppercase tracking-widest text-white/45">Profile Jalur</p>
+                  </div>
+                  <div className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.2em] text-white/60">
+                    {selectedRouteProfile.label}
+                  </div>
+                </div>
+                <div className="mt-2 grid grid-cols-3 gap-1.5">
+                  {routeProfiles.map((item) => {
+                    const active = profile === item.value;
+
+                    return (
+                      <button
+                        key={item.value}
+                        className={`flex min-h-[44px] flex-col items-center justify-center gap-1 rounded-lg border px-2 py-2 text-[9px] font-black uppercase tracking-widest transition-all ${active ? "border-sky-400/50 bg-sky-500/20 text-sky-100 shadow-lg shadow-sky-500/10" : "border-white/8 bg-slate-950/35 text-white/45 hover:border-white/15 hover:bg-white/5 hover:text-white/75"}`}
+                        onClick={() => setProfile(item.value)}
+                        type="button"
+                      >
+                        <span className="material-symbols-outlined text-[16px] leading-none">{item.icon}</span>
+                        <span>{item.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="mt-2 text-[8px] font-medium leading-relaxed text-white/35">
+                  Drive memakai jalan kendaraan, Cycling untuk jalur sepeda, Walking untuk rute pejalan kaki.
+                </p>
+              </div>
+            ) : (
+              <div className="mt-3 rounded-xl border border-white/10 bg-slate-950/45 p-3 animate-fade-in-up">
+                <div className="flex items-center justify-between gap-2 mb-3">
+                  <div>
+                    <p className="text-[9px] font-black uppercase tracking-widest text-white/45">Set Waypoint</p>
+                  </div>
+                  <button
+                    className={`px-3 py-1 rounded-md text-[8px] font-black uppercase tracking-widest transition-all ${placementMode === 'waypoint' ? 'bg-amber-500 text-white shadow-md' : 'bg-slate-950/50 text-white/40 border border-white/5 hover:text-white/80'}`}
+                    onClick={() => {
+                      setPlacementMode('waypoint');
+                      setCoordinateImportTarget('waypoint');
+                    }}
+                    type="button"
+                  >
+                    {placementMode === 'waypoint' ? 'Aktif' : 'Aktifkan'}
+                  </button>
+                </div>
+
+                {placementMode === 'waypoint' ? (
+                  <div className="rounded-lg bg-amber-500/10 p-2.5 border border-amber-500/20 text-center animate-fade-in-up">
+                    <span className="material-symbols-outlined text-amber-500 mb-1 text-lg">add_location_alt</span>
+                    <p className="text-[9px] text-amber-500/90 leading-relaxed font-medium">
+                      Klik pada peta untuk menambahkan titik lintasan (waypoint).
+                    </p>
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-white/5 bg-slate-950/40 p-2.5 text-center">
+                    <p className="text-[9px] text-white/40 font-medium">Klik tombol Aktifkan di atas untuk mulai menambah Waypoint di peta.</p>
+                  </div>
+                )}
+
+                {manualWaypoints.length > 0 && (
+                  <div className="mt-3 space-y-2 rounded-lg border border-white/5 bg-slate-950/35 p-2.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-[8px] font-black uppercase tracking-widest text-white/45">
+                        {manualWaypoints.length} Waypoint
+                      </p>
+                      <button
+                        className="rounded-md border border-rose-400/20 bg-rose-500/10 px-2 py-1 text-[8px] font-black uppercase tracking-widest text-rose-200 transition hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-40"
+                        disabled={disabled || manualWaypoints.length === 0}
+                        onClick={handleClearWaypoints}
+                        type="button"
+                      >
+                        Hapus Semua
+                      </button>
+                    </div>
+                    <div className="space-y-1.5">
+                      {manualWaypoints.map((point, index) => (
+                        <div
+                          className="flex items-center justify-between gap-2 rounded-lg border border-white/5 bg-black/20 px-2.5 py-2"
+                          key={point.id}
+                        >
+                          <div className="flex min-w-0 items-center gap-2">
+                            <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-[8px] font-black text-amber-200">
+                              {index + 1}
+                            </span>
+                            <div className="min-w-0">
+                              <p className="truncate text-[9px] font-bold text-white/75">
+                                {point.label?.trim() || `Waypoint Manual ${index + 1}`}
+                              </p>
+                              <p className="mt-0.5 truncate text-[8px] font-mono text-white/30">
+                                {Number(point.lat).toFixed(5)}, {Number(point.lng).toFixed(5)}
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-white/5 bg-white/5 text-white/35 transition hover:border-rose-400/30 hover:bg-rose-500/10 hover:text-rose-300 disabled:cursor-not-allowed disabled:opacity-40"
+                            disabled={disabled}
+                            onClick={() => handleDeleteWaypoint(point.id)}
+                            title="Hapus waypoint"
+                            type="button"
+                          >
+                            <span className="material-symbols-outlined text-[14px]">delete</span>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </header>
 
           {/* Configuration Steps */}
@@ -2027,40 +2140,6 @@ export default function FoRoutePlanner({
               )}
             </div>
 
-            {/* Step 3: Waypoint (Custom Mode Only) */}
-            {customRouteMode && (
-              <div className="rounded-xl border border-white/10 bg-white/5 p-3 animate-fade-in-up">
-                <div className="flex items-center justify-between gap-2 mb-3">
-                  <div className="flex items-center gap-2">
-                    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-amber-500/20 text-[9px] font-black text-amber-500">3</span>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-white/80">Set Waypoint</p>
-                  </div>
-                  <button
-                    className={`px-3 py-1 rounded-md text-[8px] font-black uppercase tracking-widest transition-all ${placementMode === 'waypoint' ? 'bg-amber-500 text-white shadow-md' : 'bg-slate-950/50 text-white/40 border border-white/5 hover:text-white/80'}`}
-                    onClick={() => {
-                      setPlacementMode('waypoint');
-                      setCoordinateImportTarget('waypoint');
-                    }}
-                    type="button"
-                  >
-                    {placementMode === 'waypoint' ? 'Aktif' : 'Aktifkan'}
-                  </button>
-                </div>
-
-                {placementMode === 'waypoint' ? (
-                  <div className="rounded-lg bg-amber-500/10 p-2.5 border border-amber-500/20 text-center animate-fade-in-up">
-                    <span className="material-symbols-outlined text-amber-500 mb-1 text-lg">add_location_alt</span>
-                    <p className="text-[9px] text-amber-500/90 leading-relaxed font-medium">
-                      Klik pada peta untuk menambahkan titik lintasan (waypoint).
-                    </p>
-                  </div>
-                ) : (
-                  <div className="rounded-lg border border-white/5 bg-slate-950/40 p-2.5 text-center">
-                    <p className="text-[9px] text-white/40 font-medium">Klik tombol Aktifkan di atas untuk mulai menambah Waypoint di peta.</p>
-                  </div>
-                )}
-              </div>
-            )}
 
             {/* Step 4: Lihat Jalur */}
             <div className="mt-2">
@@ -2094,6 +2173,52 @@ export default function FoRoutePlanner({
                 </p>
               )}
             </div>
+
+            {routeData?.geometryCoordinates?.length > 1 && (
+              <div className="rounded-xl border border-white/10 bg-white/5 p-3 animate-fade-in-up">
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[15px] text-sky-300">alt_route</span>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-white/80">Ruas Jalur</p>
+                  </div>
+                  <span className="rounded-full border border-white/10 bg-slate-950/50 px-2.5 py-1 text-[8px] font-black uppercase tracking-widest text-white/45">
+                    {plannerRoads.length} Ruas
+                  </span>
+                </div>
+
+                {visiblePlannerRoads.length > 0 ? (
+                  <div className="space-y-1.5">
+                    {visiblePlannerRoads.slice(0, 6).map((road, index) => (
+                      <div
+                        className="flex items-center justify-between gap-2 rounded-lg border border-white/5 bg-slate-950/40 px-2.5 py-2"
+                        key={`${road.name}-${index}`}
+                      >
+                        <div className="flex min-w-0 items-center gap-2">
+                          <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-sky-500/15 text-[8px] font-black text-sky-200">
+                            {index + 1}
+                          </span>
+                          <p className="truncate text-[9px] font-bold text-white/70">{road.name}</p>
+                        </div>
+                        {Number.isFinite(Number(road.distance)) && Number(road.distance) > 0 && (
+                          <span className="shrink-0 text-[8px] font-mono font-bold text-white/35">
+                            {(Number(road.distance) / 1000).toFixed(2)} km
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                    {visiblePlannerRoads.length > 6 && (
+                      <p className="pt-1 text-center text-[8px] font-medium text-white/35">
+                        +{visiblePlannerRoads.length - 6} ruas lainnya
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-white/5 bg-slate-950/40 p-2.5 text-center">
+                    <p className="text-[9px] font-medium text-white/40">Ruas jalur belum teridentifikasi.</p>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Step 5: Terapkan Jalur */}
             {routeData?.geometryCoordinates?.length > 1 && (

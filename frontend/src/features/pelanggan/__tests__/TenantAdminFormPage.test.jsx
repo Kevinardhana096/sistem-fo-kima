@@ -145,7 +145,13 @@ describe('TenantAdminFormPage — Tambah Lokasi Baru', () => {
     submitForm();
     await waitFor(() => {
       expect(api.customers.create).toHaveBeenCalledWith(
-        expect.objectContaining({ name: 'Gedung Sukses', ispIds: [1] })
+        expect.objectContaining({
+          name: 'Gedung Sukses',
+          ispIds: [1],
+          contractStartDate: '2026-02-01',
+          contractPeriodStart: '2026-02-01',
+          contractPeriodEnd: '2027-01-31',
+        })
       );
     }, { timeout: 3000 });
     expect(defaultProps.onSaved).toHaveBeenCalled();

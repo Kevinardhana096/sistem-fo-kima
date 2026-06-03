@@ -1,4 +1,4 @@
-import { buildInvoiceScheduleRows } from '../app/utils';
+import { buildInvoiceScheduleRows, getNextMonthIsoDate } from '../app/utils';
 import { supabase } from './supabase';
 
 /**
@@ -9,6 +9,8 @@ import { supabase } from './supabase';
 const LIST_PAGE_SIZE = 500;
 const QUERY_CHUNK_SIZE = 100;
 const QUERY_CHUNK_CONCURRENCY = 4;
+
+const resolveInvoiceDueDate = (periodStartDate) => getNextMonthIsoDate(periodStartDate, 1);
 
 const chunkArray = (items, size = QUERY_CHUNK_SIZE) => {
   const chunks = [];
@@ -214,6 +216,23 @@ const createActivityLog = async ({ metadata = {}, ...payload }) => {
     console.error('Failed to write activity log:', error);
     return null;
   }
+};
+
+const softDeleteRows = async ({ table, ids = [], deletedBy = null, now = new Date().toISOString() }) => {
+  const normalizedIds = Array.from(new Set((Array.isArray(ids) ? ids : [])
+    .map((id) => Number(id))
+    .filter(Number.isFinite)));
+
+  if (normalizedIds.length === 0) {
+    return;
+  }
+
+  const { error } = await supabase
+    .from(table)
+    .update({ deleted_at: now, deleted_by: deletedBy, updated_at: now })
+    .in('id', normalizedIds);
+
+  if (error) throw error;
 };
 
 const pickChangedFields = (before = {}, after = {}, fields = []) => {
@@ -975,6 +994,9 @@ const mapRouteHistory = (history) => ({
   fromStatus: history.fromStatus ?? history.from_status ?? null,
   toStatus: history.toStatus ?? history.to_status ?? null,
   changeNote: history.changeNote ?? history.change_note ?? null,
+  snapshotBefore: history.snapshotBefore ?? history.snapshot_before ?? null,
+  snapshotAfter: history.snapshotAfter ?? history.snapshot_after ?? null,
+  createdAt: history.createdAt ?? history.created_at ?? null,
 });
 
 const mapIspEntryPoint = (point) => point ? ({
@@ -1739,9 +1761,21 @@ export const customersApi = {
     if (error) throw error;
     const mappedDetail = mapCustomerDetail(data);
     const didSyncStaleInvoices = await syncPastDueContractInvoicesToHistory(mappedDetail);
+    const refreshInvoices = async () => {
+      try {
+        const freshInvoices = await invoicesApi.getByCustomerId(id);
+        return Array.isArray(freshInvoices) ? freshInvoices.map(mapCustomerInvoice) : [];
+      } catch (invoiceError) {
+        console.warn('Failed to refresh customer invoices after detail fetch:', invoiceError);
+        return Array.isArray(mappedDetail.invoices) ? mappedDetail.invoices : [];
+      }
+    };
 
     if (!didSyncStaleInvoices) {
-      return mappedDetail;
+      return {
+        ...mappedDetail,
+        invoices: await refreshInvoices(),
+      };
     }
 
     const { data: refreshedData, error: refreshedError } = await supabase
@@ -1751,7 +1785,10 @@ export const customersApi = {
       .single();
 
     if (refreshedError) throw refreshedError;
-    return mapCustomerDetail(refreshedData);
+    return {
+      ...mapCustomerDetail(refreshedData),
+      invoices: await refreshInvoices(),
+    };
   },
 
   // Create customer
@@ -1865,6 +1902,7 @@ export const customersApi = {
               period_end_date: row.periodEndDate,
               period_year: periodYear,
               period_month: periodMonth,
+              due_date: resolveInvoiceDueDate(row.periodStartDate),
               amount: 0,
               status: 'belum_ditagih',
               schedule_status: 'active',
@@ -2516,6 +2554,8 @@ export const ispsApi = {
 export const monitoringApi = {
   // Get billing monitoring data
   async getBilling({ year, isp, status }) {
+    const selectedYear = Number(year);
+
     const { data: customers, error } = await supabase
       .from('customers')
       .select(`
@@ -2592,8 +2632,8 @@ export const monitoringApi = {
       fetchInChunks(customerIds, async (ids) => {
         const { data, error: invoicesError } = await supabase
           .from('invoices')
-          .select('id, customer_id, invoice_number, contract_id, period_year, period_month, amount, status, schedule_status')
-          .eq('period_year', year)
+          .select('id, customer_id, invoice_number, contract_id, period_year, period_month, period_start_date, due_date, amount, status, schedule_status')
+          .in('period_year', [selectedYear, selectedYear - 1])
           .eq('schedule_status', 'active')
           .in('customer_id', ids);
 
@@ -2625,13 +2665,27 @@ export const monitoringApi = {
       invoicesByCustomerId.set(invoice.customer_id, list);
     });
 
-    const getInvoiceKey = (contractId, periodMonth) => `${contractId ?? 'none'}:${Number(periodMonth)}`;
+    const getInvoiceKey = (contractId, periodYear, periodMonth) => `${contractId ?? 'none'}:${Number(periodYear)}:${Number(periodMonth)}`;
 
     const invoiceLookupByCustomerId = new Map();
     invoicesByCustomerId.forEach((customerInvoices, customerId) => {
       const lookup = new Map();
       customerInvoices.forEach((invoice) => {
-        lookup.set(getInvoiceKey(invoice.contract_id ?? null, invoice.period_month), invoice);
+        const displayDateValue = invoice.due_date || invoice.period_start_date || null;
+        const displayDate = displayDateValue ? new Date(`${String(displayDateValue).slice(0, 10)}T00:00:00.000Z`) : null;
+        const displayYear = displayDate && Number.isFinite(displayDate.getTime())
+          ? displayDate.getUTCFullYear()
+          : Number(invoice.period_year ?? selectedYear);
+        const displayMonth = displayDate && Number.isFinite(displayDate.getTime())
+          ? displayDate.getUTCMonth() + 1
+          : Number(invoice.period_month ?? 0);
+
+        lookup.set(getInvoiceKey(invoice.contract_id ?? null, displayYear, displayMonth), {
+          ...invoice,
+          displayYear,
+          displayMonth,
+          displayDate: displayDateValue || null,
+        });
       });
       invoiceLookupByCustomerId.set(customerId, lookup);
     });
@@ -2645,7 +2699,6 @@ export const monitoringApi = {
 
     const today = new Date().toISOString().slice(0, 10);
     const currentMonth = new Date().getUTCMonth() + 1;
-    const selectedYear = Number(year);
 
     const getDateValue = (value) => {
       const timestamp = value ? new Date(`${String(value).slice(0, 10)}T00:00:00.000Z`).getTime() : 0;
@@ -2736,16 +2789,19 @@ export const monitoringApi = {
       const latestRouteVersion = getLatestRouteVersion(routeVersionsByCustomerId.get(customer.id) || []);
       const currentContract = getCurrentContract(customerContracts);
       const effectiveVersion = getEffectiveVersion(currentContract);
-      const currentMonthInvoice = invoiceLookup.get(getInvoiceKey(currentContract?.id ?? null, currentMonth)) || null;
+      const currentMonthInvoice = invoiceLookup.get(getInvoiceKey(currentContract?.id ?? null, selectedYear, currentMonth)) || null;
 
       // Build months array (12 months)
       const months = Array.from({ length: 12 }, (_, monthIndex) => {
         const month = monthIndex + 1;
         if (currentContract && !isMonthInsideContract(currentContract, month)) {
-          return 'di_luar_periode';
+          return { status: 'di_luar_periode', invoice: null };
         }
-        const invoice = invoiceLookup.get(getInvoiceKey(currentContract?.id ?? null, month));
-        return invoice ? invoice.status : 'belum_ditagih';
+        const invoice = invoiceLookup.get(getInvoiceKey(currentContract?.id ?? null, selectedYear, month)) || null;
+        return {
+          status: invoice ? invoice.status : 'belum_ditagih',
+          invoice,
+        };
       });
 
       return {
@@ -2758,6 +2814,7 @@ export const monitoringApi = {
         customerStatus: customer.status,
         contractNumber: currentContract?.contract_number?.startsWith('NO-BAK-') ? '-' : currentContract?.contract_number || null,
         currentInvoiceNumber: currentMonthInvoice?.invoice_number || null,
+        currentInvoiceDueDate: currentMonthInvoice?.due_date || null,
         routeStatus: latestRouteVersion?.flow_status || null,
         activationFeeAmount: Number(customer.activation_fee_amount || 0),
         activationFeePaidAt: customer.activation_fee_paid_at,
@@ -2788,7 +2845,7 @@ export const monitoringApi = {
     }
 
     if (status) {
-      filteredRows = filteredRows.filter(row => row.months.includes(status));
+      filteredRows = filteredRows.filter(row => row.months.some((entry) => entry?.status === status));
     }
 
     // Build summary
@@ -2800,7 +2857,8 @@ export const monitoringApi = {
     };
 
     filteredRows.forEach(row => {
-      row.months.forEach(monthStatus => {
+      row.months.forEach((monthEntry) => {
+        const monthStatus = monthEntry?.status;
         if (summary[monthStatus] !== undefined) {
           summary[monthStatus] += 1;
         }
@@ -3182,10 +3240,14 @@ export const monitoringApi = {
     };
   },
 
-  async getDashboardMetrics({ year }) {
+  async getDashboardMetrics({ year, growthStartYear, growthEndYear } = {}) {
     const selectedYear = Number(year);
     const today = new Date().toISOString().slice(0, 10);
-    const startYear = selectedYear - 4;
+    const fallbackGrowthEndYear = Number.isFinite(selectedYear) ? selectedYear : new Date().getUTCFullYear();
+    const resolvedGrowthEndYear = Number.isFinite(Number(growthEndYear)) ? Number(growthEndYear) : fallbackGrowthEndYear;
+    const resolvedGrowthStartYear = Number.isFinite(Number(growthStartYear))
+      ? Number(growthStartYear)
+      : resolvedGrowthEndYear - 4;
 
     const [customersResult, ispsResult] = await Promise.all([
       supabase
@@ -3266,6 +3328,11 @@ export const monitoringApi = {
 
     const sharingRatios = ['1/2', '1/4', '1/8', '1/16', '1/32'];
     const sharingCounts = Object.fromEntries(sharingRatios.map(ratio => [ratio, 0]));
+    const normalizeSharingRatio = (ratio) => {
+      const normalizedRatio = String(ratio ?? '').trim();
+      if (!normalizedRatio) return null;
+      return normalizedRatio.replace(/:/g, '/');
+    };
     const sharingTrend = Array.from({ length: 12 }, (_, index) => ({
       month: index + 1,
       name: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'][index],
@@ -3291,14 +3358,17 @@ export const monitoringApi = {
       const coreType = latestVersion?.core_type || relevantContract?.core_type || null;
       const coreTotal = Number(latestVersion?.core_total ?? relevantContract?.core_total ?? 0);
       const sharingRatio = latestVersion?.shared_core_ratio || relevantContract?.sharing_ratio || null;
-      const currentOrFuture = relevantContract && relevantContract.end_date >= today;
+      const isOperational = !isStoppedStatus(customerStatus);
 
-      if (currentOrFuture && !isStoppedStatus(customerStatus)) {
+      if (isOperational) {
         if (coreType === 'core') {
           totalCoreUsed += coreTotal;
           coreLocationCount += 1;
         } else if (coreType === 'sharing_core' && sharingRatio) {
-          sharingCounts[sharingRatio] = (sharingCounts[sharingRatio] || 0) + 1;
+          const normalizedSharingRatio = normalizeSharingRatio(sharingRatio);
+          if (normalizedSharingRatio && Object.prototype.hasOwnProperty.call(sharingCounts, normalizedSharingRatio)) {
+            sharingCounts[normalizedSharingRatio] = (sharingCounts[normalizedSharingRatio] || 0) + 1;
+          }
         }
       }
 
@@ -3336,11 +3406,17 @@ export const monitoringApi = {
       routeStatus.total += 1;
     });
 
-    const growthYears = Array.from({ length: 5 }, (_, index) => startYear + index);
+    const growthYearCount = Math.max(resolvedGrowthEndYear - resolvedGrowthStartYear + 1, 1);
+    const growthYears = Array.from({ length: growthYearCount }, (_, index) => resolvedGrowthStartYear + index);
     const tenantGrowth = growthYears.map(growthYear => ({
       year: String(growthYear),
       count: customers.filter(customer => {
-        const sourceDate = customer.contract_start_date || customer.created_at;
+        if (isStoppedStatus(customer.status)) return false;
+
+        const sourceDate = customer.contract_start_date
+          || getRelevantContract(customer.contracts || [])?.start_date
+          || customer.created_at;
+
         return sourceDate && Number(String(sourceDate).slice(0, 4)) <= growthYear;
       }).length,
     }));
@@ -3530,10 +3606,48 @@ export const contractsApi = {
 
   // Delete contract
   async delete(id) {
+    const contractId = Number(id);
+    if (!Number.isFinite(contractId)) {
+      throw new Error('Kontrak tidak valid untuk dihapus.');
+    }
+
+    const { user } = await getCurrentActor();
+    const now = new Date().toISOString();
+
+    const [{ data: contractVersions, error: contractVersionsError }, { data: documents, error: documentsError }] = await Promise.all([
+      supabase
+        .from('contract_versions')
+        .select('id')
+        .eq('contract_id', contractId)
+        .is('deleted_at', null),
+      supabase
+        .from('documents')
+        .select('id')
+        .eq('contract_id', contractId)
+        .is('deleted_at', null),
+    ]);
+
+    if (contractVersionsError) throw contractVersionsError;
+    if (documentsError) throw documentsError;
+
+    await softDeleteRows({
+      table: 'contract_versions',
+      ids: contractVersions?.map((row) => row.id) ?? [],
+      deletedBy: user?.id ?? null,
+      now,
+    });
+
+    await softDeleteRows({
+      table: 'documents',
+      ids: documents?.map((row) => row.id) ?? [],
+      deletedBy: user?.id ?? null,
+      now,
+    });
+
     const { error } = await supabase
       .from('contracts')
-      .delete()
-      .eq('id', id);
+      .update({ deleted_at: now, deleted_by: user?.id ?? null, updated_at: now })
+      .eq('id', contractId);
 
     if (error) throw error;
   },
@@ -3762,10 +3876,35 @@ export const contractVersionsApi = {
 
   // Delete contract version
   async delete(id) {
+    const versionId = Number(id);
+    if (!Number.isFinite(versionId)) {
+      throw new Error('Versi kontrak tidak valid untuk dihapus.');
+    }
+
+    const { user } = await getCurrentActor();
+    const now = new Date().toISOString();
+
+    const [{ data: documents, error: documentsError }] = await Promise.all([
+      supabase
+        .from('documents')
+        .select('id')
+        .eq('contract_version_id', versionId)
+        .is('deleted_at', null),
+    ]);
+
+    if (documentsError) throw documentsError;
+
+    await softDeleteRows({
+      table: 'documents',
+      ids: documents?.map((row) => row.id) ?? [],
+      deletedBy: user?.id ?? null,
+      now,
+    });
+
     const { error } = await supabase
       .from('contract_versions')
-      .delete()
-      .eq('id', id);
+      .update({ deleted_at: now, deleted_by: user?.id ?? null, updated_at: now })
+      .eq('id', versionId);
 
     if (error) throw error;
   },
@@ -4126,6 +4265,17 @@ export const customerIspMembershipsApi = {
 // ============================================================================
 
 export const ispContractRowsApi = {
+  async create(rowData) {
+    const { data, error } = await supabase
+      .from('isp_contract_rows')
+      .insert(withUpdatedAt(mapIspContractRowPayload(rowData)))
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
   async update(id, rowData) {
     const { data, error } = await supabase
       .from('isp_contract_rows')
@@ -4174,9 +4324,34 @@ export const invoiceFollowUpsApi = {
 
 export const contractVersionRenewalFollowUpsApi = {
   async create(versionId) {
+    const { data: existingFollowUps, error: existingFollowUpsError } = await supabase
+      .from('contract_version_renewal_follow_ups')
+      .select('split_order')
+      .eq('version_id', versionId)
+      .order('split_order', { ascending: true });
+
+    if (existingFollowUpsError) throw existingFollowUpsError;
+
+    const nextSplitOrder = (
+      (Array.isArray(existingFollowUps)
+        ? existingFollowUps.reduce(
+          (maxSplitOrder, followUp) => Math.max(maxSplitOrder, Number(followUp?.split_order ?? 0)),
+          0,
+        )
+        : 0)
+      + 1
+    );
+
     const { data, error } = await supabase
       .from('contract_version_renewal_follow_ups')
-      .insert({ version_id: versionId, source: 'manual' })
+      .insert(withUpdatedAt({
+        version_id: versionId,
+        split_order: nextSplitOrder,
+        source: 'manual',
+        title: 'Surat perpanjangan dikirim',
+        description: 'Berkas perpanjangan tenant sudah diunggah dari detail lokasi.',
+        status: 'pending_response',
+      }))
       .select()
       .single();
 
@@ -4193,6 +4368,132 @@ export const contractVersionRenewalFollowUpsApi = {
       .single();
 
     if (error) throw error;
+
+    const decision = followUpData.response_status ?? followUpData.responseStatus ?? followUpData.response_decision ?? followUpData.responseDecision;
+    const isCompleted = followUpData.status === 'completed';
+
+    if (isCompleted && decision === 'lanjut') {
+      const versionId = data.version_id;
+
+      // 1. Dapatkan detail versi kontrak lama
+      const { data: currentVersion, error: verErr } = await supabase
+        .from('contract_versions')
+        .select('*')
+        .eq('id', versionId)
+        .single();
+      if (verErr) throw verErr;
+
+      // Hitung version_number berikutnya
+      const { data: latestVersions, error: latestVerErr } = await supabase
+        .from('contract_versions')
+        .select('version_number')
+        .eq('contract_id', currentVersion.contract_id)
+        .order('version_number', { ascending: false })
+        .limit(1);
+      if (latestVerErr) throw latestVerErr;
+
+      const nextVersionNumber = Number(latestVersions?.[0]?.version_number ?? 1) + 1;
+
+      // 2. Hitung tanggal mulai & akhir untuk periode perpanjangan baru
+      const oldEndDate = new Date(currentVersion.end_date);
+      const newStart = new Date(oldEndDate);
+      newStart.setDate(newStart.getDate() + 1);
+      const newStartDateIso = newStart.toISOString().slice(0, 10);
+
+      const newEnd = new Date(newStart);
+      newEnd.setFullYear(newEnd.getFullYear() + 1);
+      newEnd.setDate(newEnd.getDate() - 1);
+      const newEndDateIso = newEnd.toISOString().slice(0, 10);
+
+      // 3. Buat versi kontrak baru (Version aktif berikutnya)
+      const { data: newVersion, error: newVerErr } = await supabase
+        .from('contract_versions')
+        .insert(withUpdatedAt({
+          contract_id: currentVersion.contract_id,
+          customer_id: currentVersion.customer_id,
+          contract_number: currentVersion.contract_number,
+          version_number: nextVersionNumber,
+          start_date: newStartDateIso,
+          end_date: newEndDateIso,
+          core_type: currentVersion.core_type,
+          core_total: currentVersion.core_total,
+          shared_core_ratio: currentVersion.shared_core_ratio,
+          monthly_amount: currentVersion.monthly_amount,
+          yearly_amount: currentVersion.yearly_amount,
+          remarks: `Perpanjangan (Renewal) otomatis; efektif ${newStartDateIso} s/d ${newEndDateIso}.`
+        }))
+        .select()
+        .single();
+      if (newVerErr) throw newVerErr;
+
+      // 4. Perpanjang tanggal berakhir di kontrak induk
+      const { error: contractUpdateErr } = await supabase
+        .from('contracts')
+        .update(withUpdatedAt({
+          end_date: newEndDateIso
+        }))
+        .eq('id', currentVersion.contract_id);
+      if (contractUpdateErr) throw contractUpdateErr;
+
+      // 5. Tandai invoice lama kontrak ini menjadi 'history'
+      const { error: oldInvoicesErr } = await supabase
+        .from('invoices')
+        .update(withUpdatedAt({
+          schedule_status: 'history'
+        }))
+        .eq('contract_id', currentVersion.contract_id)
+        .is('deleted_at', null);
+      if (oldInvoicesErr) throw oldInvoicesErr;
+
+      // 6. Generate invoice baru untuk periode perpanjangan aktif
+      const { data: mainContract, error: mainContractErr } = await supabase
+        .from('contracts')
+        .select('billing_every, billing_unit')
+        .eq('id', currentVersion.contract_id)
+        .single();
+      if (mainContractErr) throw mainContractErr;
+
+      const billingCycle = {
+        every: mainContract?.billing_every ?? 1,
+        unit: mainContract?.billing_unit ?? 'bulan'
+      };
+
+      const newInvoiceRows = buildInvoiceScheduleRows(
+        newStartDateIso,
+        newEndDateIso,
+        billingCycle
+      );
+
+      if (newInvoiceRows.length > 0) {
+        const newInvoicePayload = newInvoiceRows.map((row) => {
+          const periodDate = new Date(`${row.periodStartDate}T00:00:00.000Z`);
+          const periodYear = periodDate.getUTCFullYear();
+          const periodMonth = periodDate.getUTCMonth() + 1;
+
+          return {
+            customer_id: currentVersion.customer_id,
+            contract_id: currentVersion.contract_id,
+            contract_version_id: newVersion.id,
+            contract_number: currentVersion.contract_number,
+            period_start_date: row.periodStartDate,
+            period_end_date: row.periodEndDate,
+            period_year: periodYear,
+            period_month: periodMonth,
+            due_date: resolveInvoiceDueDate(row.periodStartDate),
+            amount: currentVersion.monthly_amount,
+            status: 'belum_ditagih',
+            schedule_status: 'active',
+            updated_at: new Date().toISOString()
+          };
+        });
+
+        const { error: insertInvoiceErr } = await supabase
+          .from('invoices')
+          .insert(newInvoicePayload);
+        if (insertInvoiceErr) throw insertInvoiceErr;
+      }
+    }
+
     return data;
   },
 };

@@ -2,8 +2,10 @@ import { useEffect, useState, useRef } from "react";
 import AppShell from "../../components/layout/AppShell";
 import api, { getApiErrorDetails } from "../../lib/api";
 import { uploadFileForRecord } from "../../lib/files";
+import DateInput from "../../components/shared/DateInput";
 
 const GlassFieldInput = ({ label, type = "text", value, onChange, placeholder = "", icon, error = "" }) => {
+    const inputClass = `w-full h-9 rounded-xl bg-black/20 border backdrop-blur-md ${error ? "border-rose-500/70 ring-2 ring-rose-500/10" : "border-white/10 focus:border-gold-accent/40 focus:ring-2 focus:ring-gold-accent/10"} ${icon ? "pl-9" : "px-3"} pr-3 text-[10px] font-bold text-white placeholder:text-white/20 outline-none transition-all focus:bg-black/40 shadow-inner-glass [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`;
     return (
         <div className="space-y-1.5">
             <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-gold-accent/60 ml-1">
@@ -15,16 +17,22 @@ const GlassFieldInput = ({ label, type = "text", value, onChange, placeholder = 
                         {icon}
                     </span>
                 )}
-                <input
-                    className={`w-full h-9 rounded-xl bg-black/20 border backdrop-blur-md ${error ? "border-rose-500/70 ring-2 ring-rose-500/10" : "border-white/10 focus:border-gold-accent/40 focus:ring-2 focus:ring-gold-accent/10"} ${icon ? "pl-9" : "px-3"} pr-3 text-[10px] font-bold placeholder:text-white/20 outline-none transition-all focus:bg-black/40 shadow-inner-glass ${type === "date" ? "text-white/40 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer" : "text-white"} [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
-                    onChange={(event) => onChange(event.target.value)}
-                    onInput={(event) => type === "date" && onChange(event.target.value)}
-                    onKeyDown={(e) => type === "date" && e.key !== "Tab" && e.preventDefault()}
-                    onClick={(e) => type === "date" && e.target.showPicker && e.target.showPicker()}
-                    placeholder={placeholder}
-                    type={type}
-                    value={value}
-                />
+                {type === "date" ? (
+                    <DateInput
+                        value={value}
+                        onChange={onChange}
+                        className="w-full h-9 rounded-xl bg-black/20 border backdrop-blur-md shadow-inner-glass transition-all focus-within:bg-black/40 focus-within:ring-2 focus-within:ring-gold-accent/10 focus-within:border-gold-accent/40 border-white/10"
+                        inputClass={`w-full h-full bg-transparent ${icon ? "pl-9" : "px-3"} pr-9 text-[10px] font-bold text-white placeholder:text-white/20 outline-none ${error ? "border-rose-500/70 ring-2 ring-rose-500/10 rounded-xl" : ""}`}
+                    />
+                ) : (
+                    <input
+                        className={inputClass}
+                        onChange={(event) => onChange(event.target.value)}
+                        placeholder={placeholder}
+                        type={type}
+                        value={value}
+                    />
+                )}
             </div>
             {error && <p className="text-[10px] font-black uppercase tracking-widest text-rose-400">{error}</p>}
         </div>
@@ -164,6 +172,7 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
     const [submitError, setSubmitError] = useState("");
     const [fieldErrors, setFieldErrors] = useState({});
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [entryPoints, setEntryPoints] = useState([]);
     const isEditMode = mode === "edit";
 
     useEffect(() => {
@@ -190,6 +199,18 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
         }));
     }, [initialData]);
 
+    const handleAddEntryPoint = () => {
+        setEntryPoints((previous) => [
+            ...previous,
+            {
+                id: `entry-${Date.now()}`,
+                label: "",
+                latitude: "",
+                longitude: "",
+            },
+        ]);
+    };
+
     const handleSubmit = async (event) => {
         event.preventDefault();
         setFieldErrors({});
@@ -201,6 +222,16 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
         if (form.contractPeriodStart && form.contractPeriodEnd && form.contractPeriodStart > form.contractPeriodEnd) {
             setSubmitError("Periode berjalan akhir tidak boleh lebih awal dari tanggal mulai.");
             setFieldErrors({ contractPeriodStart: "Periksa tanggal mulai.", contractPeriodEnd: "Periksa tanggal akhir." });
+            return;
+        }
+        const invalidEntryPoint = entryPoints.find((point) => {
+            const label = String(point?.label ?? "").trim();
+            const latitude = String(point?.latitude ?? "").trim();
+            const longitude = String(point?.longitude ?? "").trim();
+            return (latitude || longitude) && !label;
+        });
+        if (invalidEntryPoint) {
+            setSubmitError("Nama titik wajib diisi.");
             return;
         }
 
@@ -224,6 +255,12 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
                 packageQuantity: form.packageQuantity,
                 userEmail: form.userEmail.trim() || undefined,
                 userPassword: form.userPassword.trim() || undefined,
+                entryPoints: entryPoints.map((point) => ({
+                    ...point,
+                    label: String(point.label ?? "").trim(),
+                    latitude: String(point.latitude ?? "").trim(),
+                    longitude: String(point.longitude ?? "").trim(),
+                })),
             };
 
             const result = isEditMode && initialData?.id
@@ -392,6 +429,53 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
                                             ...(!form.contractPeriodStart ? [{ value: "berhenti", label: "BERHENTI" }] : [])
                                         ]}
                                     />
+                                </div>
+
+                                <div className="mt-4 space-y-3">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <div>
+                                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gold-accent/60 ml-1">Titik Masuk</p>
+                                            <p className="mt-1 text-[9px] font-bold text-white/40">Tambah titik akses yang dipakai ISP.</p>
+                                        </div>
+                                        <button
+                                            className="h-8 px-4 rounded-xl bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-[0.2em] text-white/60 hover:text-white hover:bg-white/10 transition-all"
+                                            onClick={handleAddEntryPoint}
+                                            type="button"
+                                        >
+                                            Tambah Titik
+                                        </button>
+                                    </div>
+                                    <div className="space-y-2">
+                                        {entryPoints.length === 0 ? (
+                                            <div className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-[9px] font-bold text-white/30">
+                                                Belum ada titik masuk.
+                                            </div>
+                                        ) : entryPoints.map((point, index) => (
+                                            <div key={point.id ?? index} className="rounded-xl border border-white/10 bg-black/20 p-3 space-y-2">
+                                                <div className="text-[9px] font-black uppercase tracking-widest text-white/50">Titik #{index + 1}</div>
+                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+                                                    <GlassFieldInput
+                                                        label="Nama Titik"
+                                                        placeholder="Nama titik"
+                                                        value={point.label ?? ""}
+                                                        onChange={(val) => setEntryPoints((previous) => previous.map((item, itemIndex) => (itemIndex === index ? { ...item, label: val } : item)))}
+                                                    />
+                                                    <GlassFieldInput
+                                                        label="Latitude"
+                                                        placeholder="-5.0929"
+                                                        value={point.latitude ?? ""}
+                                                        onChange={(val) => setEntryPoints((previous) => previous.map((item, itemIndex) => (itemIndex === index ? { ...item, latitude: val } : item)))}
+                                                    />
+                                                    <GlassFieldInput
+                                                        label="Longitude"
+                                                        placeholder="119.5018"
+                                                        value={point.longitude ?? ""}
+                                                        onChange={(val) => setEntryPoints((previous) => previous.map((item, itemIndex) => (itemIndex === index ? { ...item, longitude: val } : item)))}
+                                                    />
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

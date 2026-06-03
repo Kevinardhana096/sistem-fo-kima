@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import AppShell from "../../components/layout/AppShell";
 import { StatCard } from "../../components/shared/AppShared";
 import FoRouteMultiPreview from "./components/FoRouteMultiPreview";
+import DateInput from "../../components/shared/DateInput";
 import IspEntryPointMap from "./components/IspEntryPointMap";
 import {
     formatDate,
@@ -170,6 +171,8 @@ function IspDetailPage({
     const [contractRows, setContractRows] = useState([]);
     const [, setIsActionLoading] = useState(false);
     const [editingRow, setEditingRow] = useState(null);
+    const [contractDraft, setContractDraft] = useState(null);
+    const [contractDraftSaving, setContractDraftSaving] = useState(false);
     const [risalahRows, setRisalahRows] = useState([]);
     const [risalahEditor, setRisalahEditor] = useState(null);
 
@@ -680,6 +683,74 @@ function IspDetailPage({
             setEditingRow(null);
             await loadDetail();
         } catch { setError("Gagal memperbarui data baris."); } finally { setIsActionLoading(false); }
+    };
+
+    const openContractDraft = () => {
+        setError("");
+        setContractDraft({
+            contractReference: detail?.contractReference ?? isp.contractReference ?? "",
+            contractStartDate: detail?.contractStartDate ?? isp.contractStartDate ?? "",
+            contractPeriodStart: detail?.contractPeriodStart ?? isp.contractPeriodStart ?? "",
+            contractPeriodEnd: detail?.contractPeriodEnd ?? isp.contractPeriodEnd ?? "",
+            contractFileUrl: detail?.contractFileUrl ?? isp.contractFileUrl ?? "",
+            contractFileName: detail?.contractFileName ?? isp.contractFileName ?? "",
+            bakFileUrl: detail?.bakFileUrl ?? isp.bakFileUrl ?? "",
+            bakFileName: detail?.bakFileName ?? isp.bakFileName ?? "",
+            contractUploadedFile: null,
+            contractUploadedFileName: "",
+            bakUploadedFile: null,
+            bakUploadedFileName: "",
+        });
+    };
+
+    const handleSaveContractDraft = async () => {
+        if (!contractDraft) return;
+
+        const contractReference = String(contractDraft.contractReference ?? "").trim();
+        const contractStartDate = String(contractDraft.contractStartDate ?? "").slice(0, 10);
+        const contractPeriodStart = String(contractDraft.contractPeriodStart ?? "").slice(0, 10);
+        const contractPeriodEnd = String(contractDraft.contractPeriodEnd ?? "").slice(0, 10);
+
+        if (!contractReference) { setError("Nomor kontrak wajib diisi."); return; }
+        if (!contractPeriodStart) { setError("Periode berjalan awal wajib diisi."); return; }
+        if (!contractPeriodEnd) { setError("Periode berjalan akhir wajib diisi."); return; }
+        if (contractPeriodStart > contractPeriodEnd) { setError("Periode awal tidak boleh lebih besar dari periode akhir."); return; }
+
+        setContractDraftSaving(true);
+        setIsActionLoading(true);
+        setError("");
+        try {
+            const contractFileUrl = contractDraft.contractUploadedFile instanceof File
+                ? await uploadFileForRecord(contractDraft.contractUploadedFile, ["isps", isp.id, "contracts"])
+                : String(contractDraft.contractFileUrl ?? "").trim() || null;
+            const bakFileUrl = contractDraft.bakUploadedFile instanceof File
+                ? await uploadFileForRecord(contractDraft.bakUploadedFile, ["isps", isp.id, "bak"])
+                : String(contractDraft.bakFileUrl ?? "").trim() || null;
+
+            const payload = {
+                contractReference,
+                contractStartDate: contractStartDate || null,
+                contractPeriodStart,
+                contractPeriodEnd,
+                contractFileUrl,
+                contractFileName: contractDraft.contractUploadedFile instanceof File
+                    ? contractDraft.contractUploadedFile.name
+                    : String(contractDraft.contractFileName ?? "").trim() || null,
+                bakFileUrl,
+                bakFileName: contractDraft.bakUploadedFile instanceof File
+                    ? contractDraft.bakUploadedFile.name
+                    : String(contractDraft.bakFileName ?? "").trim() || null,
+            };
+
+            await api.isps.update(isp.id, payload);
+            setContractDraft(null);
+            await loadDetail();
+        } catch (requestError) {
+            setError(requestError instanceof Error ? requestError.message : "Gagal menyimpan data kontrak.");
+        } finally {
+            setContractDraftSaving(false);
+            setIsActionLoading(false);
+        }
     };
 
     const handleAddRisalah = () => { setError(""); setRisalahEditor({ id: null, tanggal: "", fileUrl: "", fileName: "", uploadedFileName: "" }); };
@@ -1712,6 +1783,132 @@ function IspDetailPage({
                                         </tbody>
                                     </table>
                                 </div>
+
+                                {contractDraft && createPortal(
+                                    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0a0f18]/85 backdrop-blur-sm px-4">
+                                        <div className="w-full max-w-2xl rounded-xl border border-white/10 bg-black/90 shadow-2xl p-5 md:p-6">
+                                            <div className="mb-4 flex items-start justify-between gap-4 border-b border-white/10 pb-3">
+                                                <div>
+                                                    <p className="text-[9px] font-black uppercase tracking-widest text-gold-accent">Tambah Data</p>
+                                                    <h3 className="text-lg font-black uppercase text-white tracking-tight">Tambah Kontrak ISP</h3>
+                                                </div>
+                                                <button
+                                                    className="h-8 w-8 rounded-lg border border-white/10 bg-white/5 text-white/40 hover:text-white hover:bg-white/10 transition-all"
+                                                    onClick={() => setContractDraft(null)}
+                                                    type="button"
+                                                >
+                                                    <span className="material-symbols-outlined text-[14px]">close</span>
+                                                </button>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                                                <div className="space-y-1.5">
+                                                    <label className="ml-1 text-[8px] font-black uppercase tracking-widest text-white/20">Nomor Kontrak</label>
+                                                    <input
+                                                        className="h-10 w-full rounded-xl border border-white/10 bg-white/[0.02] px-3 text-[10px] font-black uppercase tracking-widest text-white outline-none focus:border-gold-accent/40"
+                                                        value={contractDraft.contractReference}
+                                                        onChange={(e) => setContractDraft((prev) => prev ? { ...prev, contractReference: e.target.value } : prev)}
+                                                        placeholder="Nomor kontrak"
+                                                    />
+                                                </div>
+                                                <div className="space-y-1.5">
+                                                    <label className="ml-1 text-[8px] font-black uppercase tracking-widest text-white/20">Tanggal Kontrak</label>
+                                                    <DateInput
+                                                        value={contractDraft.contractStartDate}
+                                                        onChange={(val) => setContractDraft((prev) => prev ? { ...prev, contractStartDate: val } : prev)}
+                                                        className="h-10 w-full rounded-xl border border-white/10 bg-white/[0.02]"
+                                                        inputClass="w-full h-full bg-transparent px-3 text-[10px] font-black uppercase tracking-widest text-white outline-none"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+                                                <div className="space-y-1.5">
+                                                    <label className="ml-1 text-[8px] font-black uppercase tracking-widest text-white/20">Periode Awal</label>
+                                                    <DateInput
+                                                        value={contractDraft.contractPeriodStart}
+                                                        onChange={(val) => setContractDraft((prev) => prev ? { ...prev, contractPeriodStart: val } : prev)}
+                                                        className="h-10 w-full rounded-xl border border-white/10 bg-white/[0.02]"
+                                                        inputClass="w-full h-full bg-transparent px-3 text-[10px] font-black uppercase tracking-widest text-white outline-none"
+                                                    />
+                                                </div>
+                                                <div className="space-y-1.5">
+                                                    <label className="ml-1 text-[8px] font-black uppercase tracking-widest text-white/20">Periode Akhir</label>
+                                                    <DateInput
+                                                        value={contractDraft.contractPeriodEnd}
+                                                        onChange={(val) => setContractDraft((prev) => prev ? { ...prev, contractPeriodEnd: val } : prev)}
+                                                        className="h-10 w-full rounded-xl border border-white/10 bg-white/[0.02]"
+                                                        inputClass="w-full h-full bg-transparent px-3 text-[10px] font-black uppercase tracking-widest text-white outline-none"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+                                                <label className="rounded-xl border border-white/10 bg-white/[0.02] px-4 py-4 text-[9px] font-black uppercase tracking-widest text-white/40 cursor-pointer hover:bg-white/[0.04] transition-all">
+                                                    <span className="flex items-center gap-2 text-white/70 mb-2">
+                                                        <span className="material-symbols-outlined text-[14px]">description</span>
+                                                        Berkas Kontrak
+                                                    </span>
+                                                    <span className="block text-white/30 normal-case font-bold text-[10px]">
+                                                        {contractDraft.contractUploadedFileName || contractDraft.contractFileName || "Upload berkas kontrak"}
+                                                    </span>
+                                                    <input
+                                                        className="hidden"
+                                                        type="file"
+                                                        onChange={(e) => {
+                                                            const file = e.target.files?.[0] ?? null;
+                                                            setContractDraft((prev) => prev ? {
+                                                                ...prev,
+                                                                contractUploadedFile: file,
+                                                                contractUploadedFileName: file?.name ?? "",
+                                                            } : prev);
+                                                        }}
+                                                    />
+                                                </label>
+                                                <label className="rounded-xl border border-white/10 bg-white/[0.02] px-4 py-4 text-[9px] font-black uppercase tracking-widest text-white/40 cursor-pointer hover:bg-white/[0.04] transition-all">
+                                                    <span className="flex items-center gap-2 text-white/70 mb-2">
+                                                        <span className="material-symbols-outlined text-[14px]">folder</span>
+                                                        BAK
+                                                    </span>
+                                                    <span className="block text-white/30 normal-case font-bold text-[10px]">
+                                                        {contractDraft.bakUploadedFileName || contractDraft.bakFileName || "Upload berkas BAK"}
+                                                    </span>
+                                                    <input
+                                                        className="hidden"
+                                                        type="file"
+                                                        onChange={(e) => {
+                                                            const file = e.target.files?.[0] ?? null;
+                                                            setContractDraft((prev) => prev ? {
+                                                                ...prev,
+                                                                bakUploadedFile: file,
+                                                                bakUploadedFileName: file?.name ?? "",
+                                                            } : prev);
+                                                        }}
+                                                    />
+                                                </label>
+                                            </div>
+
+                                            <div className="mt-3 flex justify-end gap-3 border-t border-white/10 pt-4">
+                                                <button
+                                                    className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-[9px] font-black uppercase tracking-widest text-white/60 hover:bg-white/10 hover:text-white transition-all"
+                                                    onClick={() => setContractDraft(null)}
+                                                    type="button"
+                                                >
+                                                    Batal
+                                                </button>
+                                                <button
+                                                    className="rounded-lg bg-gold-accent px-4 py-2 text-[9px] font-black uppercase tracking-widest text-slate-900 shadow-gold-glow transition-all active:scale-95 disabled:opacity-50"
+                                                    disabled={contractDraftSaving}
+                                                    onClick={() => void handleSaveContractDraft()}
+                                                    type="button"
+                                                >
+                                                    {contractDraftSaving ? "Menyimpan..." : "Simpan"}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>,
+                                    document.body,
+                                )}
                             </section>
                             </div>
                         )}
@@ -1837,6 +2034,14 @@ function IspDetailPage({
                                             </div>
                                             <p className="text-[9px] font-bold text-white/20 tracking-wider">Manajemen berkas legal dan amandemen layanan.</p>
                                         </div>
+                                        <button
+                                            className="rounded-lg bg-gold-accent px-4 py-2 text-[9px] font-black uppercase tracking-widest text-slate-900 shadow-gold-glow transition-all active:scale-95 hover:opacity-90 inline-flex items-center gap-1.5"
+                                            onClick={openContractDraft}
+                                            type="button"
+                                        >
+                                            <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>add</span>
+                                            Tambah Kontrak
+                                        </button>
                                     </div>
                                 </section>
 
@@ -1908,27 +2113,21 @@ function IspDetailPage({
                                                     </td>
                                                     <td className="px-3 py-2.5 text-center border-r border-white/10">
                                                         {editingRow?.id === row.id ? (
-                                                            <input
-                                                                type="date"
-                                                                className="rounded-md bg-white/10 border border-white/20 px-2 py-1 text-[11px] text-white outline-none w-28 custom-date-input cursor-pointer uppercase"
+                                                            <DateInput
                                                                 value={editingRow.periodStart || ""}
-                                                                onChange={(e) => setEditingRow({ ...editingRow, periodStart: e.target.value })}
-                                                                onClick={(e) => {
-                                                                    try { e.currentTarget.showPicker(); } catch { /* Browser tidak mendukung showPicker. */ }
-                                                                }}
+                                                                onChange={(val) => setEditingRow({ ...editingRow, periodStart: val })}
+                                                                className="rounded-md bg-white/10 border border-white/20 w-28 h-7"
+                                                                inputClass="w-full h-full bg-transparent px-2 text-[11px] text-white outline-none uppercase pr-8"
                                                             />
                                                         ) : <span className="text-[11px] font-bold text-white uppercase">{formatDate(row.periodStart)}</span>}
                                                     </td>
                                                     <td className="px-3 py-2.5 text-center border-r border-white/10">
                                                         {editingRow?.id === row.id ? (
-                                                            <input
-                                                                type="date"
-                                                                className="rounded-md bg-white/10 border border-white/20 px-2 py-1 text-[11px] text-white outline-none w-28 custom-date-input cursor-pointer uppercase"
+                                                            <DateInput
                                                                 value={editingRow.periodEnd || ""}
-                                                                onChange={(e) => setEditingRow({ ...editingRow, periodEnd: e.target.value })}
-                                                                onClick={(e) => {
-                                                                    try { e.currentTarget.showPicker(); } catch { /* Browser tidak mendukung showPicker. */ }
-                                                                }}
+                                                                onChange={(val) => setEditingRow({ ...editingRow, periodEnd: val })}
+                                                                className="rounded-md bg-white/10 border border-white/20 w-28 h-7"
+                                                                inputClass="w-full h-full bg-transparent px-2 text-[11px] text-white outline-none uppercase pr-8"
                                                             />
                                                         ) : <span className="text-[11px] font-bold text-gold-accent italic uppercase">{formatDate(row.periodEnd)}</span>}
                                                     </td>
@@ -1988,6 +2187,14 @@ function IspDetailPage({
                                                             </div>
                                                             <h4 className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em]">BELUM ADA RINCIAN KONTRAK</h4>
                                                             <p className="text-[8px] font-bold text-white/20 uppercase tracking-widest mt-1">Rincian kontrak atau adendum belum tersedia</p>
+                                                            <button
+                                                                className="mt-4 rounded-lg bg-gold-accent px-4 py-2 text-[9px] font-black uppercase tracking-widest text-slate-900 shadow-gold-glow active:scale-95 transition-all inline-flex items-center gap-1.5"
+                                                                onClick={openContractDraft}
+                                                                type="button"
+                                                            >
+                                                                <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>add</span>
+                                                                Tambah Kontrak
+                                                            </button>
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -2184,14 +2391,11 @@ function IspDetailPage({
                                             <label className="block text-[8px] font-black uppercase tracking-[0.3em] text-gold-accent/40 ml-1">Tanggal Dokumen</label>
                                             <div className="flex items-center gap-2.5 rounded-xl border border-white/10 bg-black/40 px-3 py-2 focus-within:border-gold-accent/50 transition-all">
                                                 <span className="material-symbols-outlined text-[12px] text-gold-accent shrink-0">calendar_month</span>
-                                                <input
-                                                    className="flex-1 min-w-0 bg-transparent text-[11px] font-bold text-white outline-none appearance-none custom-date-input cursor-pointer"
-                                                    onChange={(e) => setRisalahEditor(p => p ? { ...p, tanggal: e.target.value } : p)}
-                                                    onClick={(e) => {
-                                                        try { e.currentTarget.showPicker(); } catch { /* Browser tidak mendukung showPicker. */ }
-                                                    }}
-                                                    type="date"
+                                                <DateInput
                                                     value={risalahEditor.tanggal}
+                                                    onChange={(val) => setRisalahEditor(p => p ? { ...p, tanggal: val } : p)}
+                                                    className="flex-1 min-w-0"
+                                                    inputClass="w-full bg-transparent text-[11px] font-bold text-white outline-none pr-7"
                                                 />
                                             </div>
                                         </div>
