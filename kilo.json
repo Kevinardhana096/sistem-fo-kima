@@ -3,7 +3,7 @@
   "mcp": {
     "playwright": {
       "type": "local",
-      "command": ["node","node_modules/@playwright/mcp/cli.js","--browser","chrome","--executable-path","/usr/bin/google-chrome"],
+      "command": ["node","/home/asus_vivobook/projects/sistem-fo-kima/node_modules/@playwright/mcp/cli.js","--browser","chrome","--executable-path","/usr/bin/google-chrome","--isolated"],
       "enabled": true,
       "timeout": 30000
     },

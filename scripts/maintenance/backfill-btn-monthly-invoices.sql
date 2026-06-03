@@ -8,6 +8,7 @@ DECLARE
   v_period record;
   v_period_start date;
   v_period_end date;
+  v_due_date date;
   v_invoice_number text;
   v_schedule_status invoice_schedule_status;
   v_existing_invoice_id integer;
@@ -74,6 +75,10 @@ BEGIN
         (v_period_start + INTERVAL '1 month' - INTERVAL '1 day')::date,
         v_period.end_date
       );
+      v_due_date := LEAST(
+        (v_period_start + INTERVAL '1 month')::date,
+        v_period.end_date
+      );
       v_invoice_number := v_period.invoice_seed || '-' || to_char(v_period_start, 'YYYYMM');
       v_schedule_status := CASE
         WHEN v_period.start_date = DATE '2025-07-08'
@@ -123,7 +128,7 @@ BEGIN
           EXTRACT(MONTH FROM v_period_start)::integer,
           v_period_start,
           v_period_end,
-          v_period_end,
+          v_due_date,
           250000,
           'lunas',
           v_period_end::timestamp with time zone,
@@ -139,7 +144,7 @@ BEGIN
           invoice_number = v_invoice_number,
           period_start_date = v_period_start,
           period_end_date = v_period_end,
-          due_date = v_period_end,
+          due_date = v_due_date,
           amount = 250000,
           status = 'lunas',
           paid_at = COALESCE(paid_at, v_period_end::timestamp with time zone),

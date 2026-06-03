@@ -1,6 +1,7 @@
 const http = require('http');
 
-const VALHALLA = 'http://localhost:8003';
+const UPSTREAM_HOST = process.env.VALHALLA_UPSTREAM_HOST || 'localhost';
+const UPSTREAM_PORT = Number(process.env.VALHALLA_UPSTREAM_PORT || 8003);
 
 http.createServer((req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -12,7 +13,7 @@ http.createServer((req, res) => {
     return res.end();
   }
 
-  const opts = { hostname: 'localhost', port: 8003, path: req.url, method: req.method, headers: req.headers };
+  const opts = { hostname: UPSTREAM_HOST, port: UPSTREAM_PORT, path: req.url, method: req.method, headers: req.headers };
   const proxy = http.request(opts, (upstream) => {
     res.writeHead(upstream.statusCode, { ...upstream.headers, 'Access-Control-Allow-Origin': '*' });
     upstream.pipe(res);
