@@ -1,8 +1,8 @@
 # Product Requirements Document
 # Sistem FO KIMA — Document Archiving & Tenant Monitoring System
 
-**Versi:** 1.4  
-**Tanggal:** 2026-05-31  
+**Versi:** 1.5  
+**Tanggal:** 2026-06-02  
 **Status:** Active Development
 
 ---
@@ -36,7 +36,7 @@ Operasional sebelumnya tersebar di dokumen, spreadsheet, dan pencatatan manual. 
 
 Autentikasi menggunakan Supabase Auth. Akses aplikasi dibatasi berdasarkan role di frontend dan Supabase Row Level Security. Untuk role ISP, akses data dibatasi berdasarkan mapping `1 akun ISP = 1 entitas ISP` melalui tabel `public.isp_user_accounts`.
 
-Credential awal akun ISP disimpan pada data ISP (`public.isps.user_id` sebagai email login dan `public.isps.password_plain` sebagai password operasional). Frontend hanya mengelola credential tersebut pada form/detail ISP. Pembuatan atau sinkronisasi akun Supabase Auth tetap dilakukan melalui script operasional `scripts/auth/create-isp-auth-accounts-from-isps.sql`, lalu mapping login ISP dibaca dari `public.isp_user_accounts`.
+Credential awal akun ISP dikelola sebagai data operasional internal dan sinkronisasi ke Supabase Auth dilakukan melalui script provisioning yang direview.
 
 ---
 
@@ -72,6 +72,8 @@ Credential awal akun ISP disimpan pada data ISP (`public.isps.user_id` sebagai e
   - sharing ratio.
 - Kontrak terbaru berdasarkan periode adalah **Kontrak Beroperasi**.
 - Kontrak lama tetap ditampilkan sebagai **Riwayat Perubahan**.
+- Dalam tampilan operasional, satu kerja sama induk dapat memiliki beberapa baris periode yang ditumpuk dari periode lama ke periode baru.
+- Baris paling atas adalah periode aktif saat ini, sedangkan baris di bawahnya tetap dipertahankan sebagai histori perpanjangan.
 
 ### 4.4 Versi Kontrak Pelanggan
 
@@ -79,8 +81,34 @@ Credential awal akun ISP disimpan pada data ISP (`public.isps.user_id` sebagai e
 - `contract_versions` bukan sumber utama untuk baris kontrak normal.
 - Jika dipakai, version harus tetap konsisten dengan parent `contracts` untuk versi terbaru.
 - Version lama boleh menyimpan histori perubahan dalam satu dokumen kontrak, misalnya perubahan rasio dari `1/32` ke `1/8` dalam kasus amendment yang nyata.
+- `contract_versions` juga dipakai untuk mencatat perubahan paket di tengah periode aktif, selama perubahan tersebut memang disetujui admin dan diberlakukan sebagai amendment yang sah.
+- Untuk renewal/perpanjangan, `contract_versions` dipakai sebagai lapisan histori per periode:
+  - baris lama ditandai selesai/expired/renewed sesuai keputusan bisnis,
+  - baris baru dibuat sebagai periode aktif berikutnya,
+  - periode awal kontrak tetap merujuk ke kerja sama awal pelanggan, bukan direset saat renewal.
+- Urutan baris renewal harus merepresentasikan kronologi periode: baris terbaru tampil di atas, baris lama tetap tersimpan di bawahnya.
 
-### 4.5 Paket dan Jumlah Core
+### 4.5 Ubah / Upgrade Paket
+
+- Upgrade paket adalah perubahan paket pelanggan yang terjadi saat kontrak masih berjalan.
+- Upgrade paket berbeda dari renewal/perpanjangan. Renewal menambah baris periode baru saat masa kontrak lama berakhir, sedangkan upgrade paket mengubah paket pada kontrak yang masih aktif.
+- Alur ini hanya dapat dilakukan oleh Admin dari detail pelanggan/lokasi pada tab Kontrak.
+
+| Tahap | Kondisi | Output Sistem | Aturan |
+| --- | --- | --- | --- |
+| Inisiasi | Admin memilih `Ubah / Upgrade Paket` | Modal perubahan paket tampil | Hanya tersedia pada detail pelanggan/lokasi |
+| Input | Admin mengisi tanggal perubahan, paket baru, nominal, dan alasan | Form siap diproses | Tanggal wajib diisi dan tidak boleh melewati akhir kontrak aktif |
+| Validasi paket | Paket baru dipilih `core` atau `sharing_core` | Sistem menerima input valid | `core` wajib punya `core_total > 0`; `sharing_core` wajib punya `sharing_ratio` |
+| Penentuan efektif | Sistem menghitung paket baru aktif mulai bulan berikutnya | Paket lama tetap berlaku sampai akhir bulan berjalan | Tanggal efektif paket baru adalah hari pertama bulan berikutnya |
+| Pencatatan histori | Sistem membuat `contract_versions` baru | Histori perubahan paket tersimpan | Jika belum ada version, sistem boleh membuat baseline lebih dulu |
+| Penutupan versi lama | Versi aktif sebelumnya ditutup | Riwayat tidak hilang | Versi lama tidak dihapus, hanya diakhiri pada akhir bulan berjalan |
+| Penyesuaian billing | Invoice belum lunas pada periode efektif baru diperbarui | Nominal invoice menyesuaikan paket baru | Invoice lunas atau histori tidak diubah |
+
+- Nominal bulanan wajib lebih dari 0.
+- Nominal tahunan dapat dihitung dari nominal bulanan jika tidak diisi manual.
+- Alasan perubahan wajib tercatat, minimal sebagai alasan standar `ubah_paket`.
+
+### 4.6 Paket dan Jumlah Core
 
 Paket pelanggan memiliki dua bentuk:
 
@@ -96,7 +124,7 @@ Aturan penting:
 - Tampilan detail pelanggan harus membaca paket dari kontrak berjalan/terbaru.
 - Tab Kontrak harus menampilkan paket sesuai masing-masing row `contracts`.
 
-### 4.6 Dokumen
+### 4.7 Dokumen
 
 - Dokumen selalu terikat ke pelanggan.
 - Dokumen dapat opsional terikat ke kontrak, versi kontrak, atau invoice.
@@ -114,9 +142,9 @@ Aturan penting:
 - Dokumen kontrak/BAK menjadi bukti legal untuk row `contracts`.
 - Dokumen invoice menjadi dasar monitoring billing.
 
-### 4.7 Invoice dan Monitoring Billing
+### 4.8 Invoice dan Monitoring Billing
 
-- Invoice dibuat per periode tagihan berdasarkan pembayaran bulanan pada kontrak pelanggan.
+- Invoice dibuat per periode tagihan berdasarkan baris kontrak aktif yang sedang berjalan.
 - Monitoring billing menampilkan status invoice per pelanggan dan bulan.
 - Status invoice yang digunakan:
   - `lunas`,
@@ -124,6 +152,10 @@ Aturan penting:
   - `terlambat`,
   - `belum_ditagih`.
 - Follow-up invoice digunakan untuk mencatat proses penagihan.
+- Saat renewal menghasilkan baris periode baru, invoice periode baru harus mengikuti baris aktif terbaru.
+- Invoice pada baris lama tidak dihapus; invoice lama tetap menjadi histori dan dapat dipindahkan ke `history` bila periode baris lama sudah selesai atau sudah digantikan baris baru.
+- Jika renewal disetujui sebelum periode lama benar-benar berakhir, invoice yang belum dibayar pada periode efektif berikutnya harus disesuaikan ke baris baru tanpa mengubah histori pembayaran yang sudah lunas.
+- Nominal invoice tetap mengikuti paket dan periode pada baris aktif yang berlaku saat invoice itu dibuat.
 
 #### Contoh dataset PT Cendikia Global Solusi
 
@@ -149,11 +181,26 @@ Periode invoice untuk contoh tersebut:
 | PT Bank Tabungan Negara (Persero) | Juli 2022 | Juni 2026 | 48 |
 | PT Karya Teknik Mulia (PT Wastec International) | Agustus 2022 | Juli 2026 | 48 |
 
-### 4.8 Renewal dan Pemutusan
+### 4.9 Renewal dan Pemutusan
 
-- Renewal/perpanjangan hanya membuat kontrak baru jika ada dokumen kontrak/BAK/perpanjangan yang nyata.
+- Renewal/perpanjangan adalah proses bisnis yang dapat menghasilkan follow-up, dokumen perpanjangan, dan pada tahap akhir menghasilkan baris periode baru yang tetap terhubung ke kerja sama awal.
 - Follow-up renewal mencatat proses administratif sebelum keputusan lanjut atau berhenti.
 - Dokumen `pemutusan` menandai layanan/kontrak sebagai berhenti atau nonaktif sesuai konteks bisnis.
+
+| Tahap | Kondisi | Output Sistem | Aturan |
+| --- | --- | --- | --- |
+| Pemantauan | Kontrak mendekati akhir periode | Alert renewal muncul | Peringatan dipakai untuk memulai tindak lanjut |
+| Pengajuan | Surat perpanjangan dibuat dan diupload | Follow-up renewal tercatat | Dokumen harus nyata, bukan sekadar placeholder |
+| Respons lokasi | Lokasi memberi tanggapan | Status follow-up diperbarui | Bisa lanjut ke perpanjangan atau penutupan |
+| Persetujuan | Renewal disetujui secara bisnis dan legal | Baris periode baru dibuat | Hanya jika ada dokumen legal yang valid |
+| Implementasi kontrak | Baris baru ditambahkan di atas baris lama | Baris lama menjadi histori, baris baru menjadi aktif | Periode awal kontrak tetap sama, periode berjalan berganti ke periode baru |
+| Sinkron invoice | Baris baru aktif | Invoice periode baru mengikuti baris aktif terbaru | Invoice lama tetap histori; invoice aktif tidak boleh menimpa histori lunas |
+| Penutupan | Renewal ditolak atau layanan dihentikan | Dokumen `pemutusan` dicatat | Layanan/kontrak dianggap berhenti atau nonaktif |
+
+- Renewal follow-up dan pembuatan baris periode baru adalah dua tahap berbeda:
+  - follow-up renewal dipakai untuk komunikasi, upload berkas, dan tanggapan lokasi
+  - pembuatan baris periode baru hanya terjadi setelah renewal dinyatakan disetujui
+- Pada implementasi UI yang ada, jalur yang terlihat saat ini baru mengelola follow-up renewal dan dokumen perpanjangan; PRD ini menegaskan bahwa hasil bisnis akhirnya adalah baris periode baru di atas baris lama, bukan kontrak induk baru yang memutus histori kerja sama awal.
 
 ---
 
@@ -163,6 +210,7 @@ Periode invoice untuk contoh tersebut:
 
 - Ringkasan jumlah pelanggan, ISP, invoice, dan kontrak.
 - Alert operasional untuk invoice belum ditagih, kontrak mendekati akhir periode, dan dokumen yang perlu ditindaklanjuti.
+- Dashboard menampilkan ringkasan alert prioritas tinggi dari Pusat Tindak Lanjut agar admin bisa memproses hal yang paling mendesak lebih dahulu.
 
 ### 5.2 Manajemen ISP
 
@@ -176,7 +224,7 @@ Periode invoice untuk contoh tersebut:
 Detail pelanggan terdiri dari tab:
 
 - **Overview**: informasi umum, status, paket berjalan, biaya aktivasi, periode awal kontrak, periode berjalan.
-- **Kontrak**: daftar dokumen kontrak dari `contracts`, status BAK, periode, paket, jumlah, renewal follow-up.
+- **Kontrak**: daftar baris kontrak berurutan dari kerja sama awal sampai renewal terbaru, termasuk status BAK, periode, paket, jumlah, renewal follow-up, invoice yang terkait ke baris aktif, dan riwayat upgrade paket/amendment.
 - **Invoice**: daftar invoice dan status pembayaran.
 - **Dokumen**: arsip dokumen pelanggan.
 - **Jalur**: perencanaan dan riwayat jalur FO.
@@ -205,16 +253,39 @@ Detail pelanggan terdiri dari tab:
 
 ### 5.7 Tindak Lanjut (Pusat Notifikasi/Aksi)
 
-- Pusat notifikasi operasional terpusat yang mengumpulkan hal-hal yang perlu dibaca atau ditindaklanjuti, dibangun di atas `api.notifications.*` (state notifikasi pada database; lihat `scripts/maintenance/add-notification-states.sql`).
+- Pusat notifikasi operasional terpusat untuk hal-hal yang perlu dibaca atau ditindaklanjuti.
 - Sumber notifikasi mencakup: kontrak mendekati/lewat periode, invoice perlu perhatian/belum di-setup/belum diupload/jatuh tempo, jalur FO perlu perhatian/setup, biaya aktivasi, serta kontrak/dokumen/perpanjangan ISP.
-- Tiap item punya tingkat keparahan (`critical`/`warning`/`info`) dan status baca/selesai (`unread`/`read`/`resolved`), dengan aksi **Buka** (navigasi ke entitas terkait), **Tandai Dibaca**, dan **Tandai Selesai**.
+- Tiap item memiliki tingkat keparahan (`critical`/`warning`/`info`) dan status baca/selesai (`unread`/`read`/`resolved`), dengan aksi **Buka**, **Tandai Dibaca**, dan **Tandai Selesai**.
 - Mendukung pencarian, filter berdasarkan tipe/status, dan pagination.
+
+| Kategori | Kondisi | Severity | Tindakan awal | Catatan |
+| --- | --- | --- | --- | --- |
+| Kontrak | Kontrak aktif masuk periode H-3 bulan sebelum akhir kontrak dan surat perpanjangan belum diupload | warning | Buat dan upload surat perpanjangan | Menandai awal tindak lanjut renewal |
+| Kontrak | Surat perpanjangan sudah diupload tetapi belum ada tanggapan lokasi | warning | Follow up ke lokasi | Berlaku pada rentang H-2 bulan |
+| Kontrak | Mendekati H-1 bulan dan belum ada tanggapan | warning | Follow up manual | Dipakai saat renewal masih menggantung |
+| Invoice | Invoice belum ditagih atau belum diupload | warning | Upload atau setup invoice | Masuk pusat tindak lanjut sebelum jatuh tempo |
+| Invoice | Invoice berstatus `terlambat` | critical | Verifikasi dan kejar pembayaran | Diprioritaskan paling tinggi |
+| Jalur FO | Status jalur `perbaikan` atau `maintenance` | warning | Pantau dan selesaikan gangguan | Menandakan jalur masih perlu perhatian |
+| Jalur FO | Status jalur `gangguan` | critical | Eskalasi penanganan jalur | Menandakan gangguan operasional aktif |
+| Umum | Informasi yang belum memerlukan tindakan mendesak | info | Cukup dibaca | Tidak memerlukan eskalasi |
+
+- Aturan prioritas alert:
+  - `critical` dipakai untuk kondisi yang sudah mengganggu operasi atau melewati tenggat penting.
+  - `warning` dipakai untuk kondisi yang sudah perlu ditindaklanjuti tetapi masih dalam batas normal operasional.
+  - `info` dipakai untuk informasi yang sifatnya pemberitahuan dan belum memerlukan tindakan mendesak.
+- Aturan resolusi:
+  - Alert boleh ditandai `read` setelah dibuka oleh user.
+  - Alert hanya dianggap selesai jika tindakan bisnis sudah dilakukan dan dapat ditandai `resolved`.
+  - Sistem boleh menyimpan lebih dari satu alert dari sumber berbeda untuk entitas yang sama selama konteks tindak lanjutnya berbeda.
+- Aturan deduplikasi:
+  - Satu alert logis tidak boleh muncul berulang tanpa perubahan status sumber datanya.
+  - Jika status sumber berubah, alert baru boleh dibentuk untuk merefleksikan kondisi terkini.
 
 ### 5.8 Log Aktivitas (Audit Trail)
 
-- Riwayat audit aksi penting pengguna pada entitas utama, dibangun di atas `api.activityLogs.*` (tabel `activity_logs`; lihat `scripts/maintenance/add-activity-logs.sql`).
-- Mencatat aksi seperti pembuatan/perubahan/penghapusan dan pemulihan (restore) untuk pelanggan, ISP, kontrak, invoice, dokumen, dan jalur.
-- Untuk aksi perubahan, menyimpan ringkasan diff **sebelum/sesudah** per field yang berubah sehingga perubahan data dapat ditelusuri.
+- Riwayat audit aksi penting pengguna pada entitas utama.
+- Mencatat aksi seperti pembuatan, perubahan, penghapusan, dan pemulihan (restore) untuk pelanggan, ISP, kontrak, invoice, dokumen, dan jalur.
+- Untuk aksi perubahan, sistem menyimpan ringkasan diff **sebelum/sesudah** per field yang berubah sehingga perubahan data dapat ditelusuri.
 - Menjadi implementasi dari kebutuhan keterlacakan; tab **Timeline** pada detail pelanggan (§5.3) menampilkan aktivitas yang relevan dengan pelanggan tersebut.
 
 ---
@@ -231,7 +302,7 @@ Detail pelanggan terdiri dari tab:
 | `customers` | Data pelanggan, status, kode unik, awal kerja sama, biaya aktivasi, dan catatan |
 | `customer_isp_memberships` | Relasi many-to-many pelanggan dengan ISP |
 | `contracts` | Dokumen kontrak/BAK/legal pelanggan; sumber kebenaran nomor kontrak, periode, dan paket |
-| `contract_versions` | Snapshot/revisi/amendment opsional dari kontrak; dipakai juga untuk nominal bulanan/tahunan yang tampil di monitoring |
+| `contract_versions` | Snapshot/revisi/amendment opsional dari kontrak |
 | `contract_version_renewal_follow_ups` | Follow-up renewal kontrak pelanggan |
 | `documents` | Arsip dokumen pelanggan/kontrak/versi kontrak/invoice |
 | `invoices` | Invoice per periode tagihan dan sumber status monitoring billing |
@@ -270,6 +341,7 @@ Bagian ini mendokumentasikan aturan database production yang harus diikuti oleh 
 #### `contracts`
 
 - `contracts` adalah sumber utama untuk nomor kontrak, periode kontrak, status kontrak, dan paket kontrak.
+- Satu kerja sama induk tetap dipertahankan sebagai identitas utama; renewal berikutnya tidak memutus identitas awal kerja sama.
 - Kolom penting yang dipakai aplikasi dan script:
   - `customer_id`
   - `contract_number`
@@ -289,39 +361,23 @@ Bagian ini mendokumentasikan aturan database production yang harus diikuti oleh 
   - Jika `core_type = 'core'`, maka `core_total > 0` dan `sharing_ratio` harus kosong/null.
   - Jika `core_type = 'sharing_core'`, maka `sharing_ratio` wajib terisi dan `core_total` kosong/null atau `0`.
 - Paket kontrak baru boleh diwariskan dari kontrak sebelumnya hanya jika secara bisnis dikonfirmasi; secara default tidak boleh diasumsikan dari tahun sebelumnya.
+- Jika renewal disetujui, row lama boleh ditandai history/expired/renewed, lalu row aktif baru dibuat sebagai baris periode berikutnya dengan `start_date`/`end_date` periode baru.
 
 #### `contract_versions`
 
-- `contract_versions` adalah snapshot/amendment opsional, tetapi aplikasi monitoring membaca nominal dari versi kontrak terbaru bila tersedia.
-- Kolom penting yang dipakai aplikasi dan script:
-  - `contract_id`
-  - `customer_id`
-  - `version_number`
-  - `start_date`
-  - `end_date`
-  - `core_type`
-  - `core_total`
-  - `shared_core_ratio`
-  - `monthly_amount`
-  - `yearly_amount`
-  - `remarks`
-- `monthly_amount` dan `yearly_amount` pada database production wajib terisi (`NOT NULL`). Script import tidak boleh mengirim `NULL` ke dua kolom ini.
-- Jika spreadsheet tidak menyediakan nilai bulanan, script harus menghitung fallback yang eksplisit, misalnya `yearly_amount / jumlah_bulan_invoice` atau nominal representatif yang disepakati untuk kontrak campuran.
-- Jika spreadsheet tidak menyediakan nilai tahunan, script harus menghitung fallback yang eksplisit, misalnya:
-  - total nominal invoice yang dibuat untuk kontrak tersebut; atau
-  - `monthly_amount * jumlah_bulan_invoice`; atau
-  - `monthly_amount * 12` bila kontrak memang mewakili satu tahun billing penuh.
-- `monthly_amount` juga harus diisi ketika data kontrak dipakai untuk monitoring nilai billing.
-- Bentuk paket di versi kontrak harus konsisten dengan `contracts`, menggunakan `shared_core_ratio` untuk paket `sharing_core`.
+- `contract_versions` adalah snapshot/amendment opsional untuk menyimpan histori perubahan dalam satu kontrak.
+- Dalam alur renewal, `contract_versions` dipakai sebagai representasi baris periode berurutan:
+  - versi lama = histori periode yang sudah selesai,
+  - versi baru = periode aktif terbaru,
+  - versi awal tetap terhubung ke awal kerja sama pelanggan.
+- Bentuk paket di versi kontrak harus konsisten dengan `contracts`.
+- Jika dipakai untuk monitoring atau perbandingan nilai, field nominal mengikuti aturan data operasional yang berlaku pada import atau maintenance script.
+- `monthly_amount` dan `yearly_amount` harus mengikuti paket yang berlaku pada periode versi tersebut.
 
 #### `documents`
 
 - Dokumen wajib memiliki `customer_id`, `jenis_dokumen`, `tanggal_dokumen`, dan `file_url`.
-- Dokumen dapat terhubung ke:
-  - `contract_id`
-  - `contract_version_id`
-  - `contract_number`
-  - invoice melalui `document_id` di `invoices`
+- Dokumen dapat terhubung ke kontrak, versi kontrak, atau invoice sesuai kebutuhan arsip.
 - `jenis_dokumen` bertipe enum `document_type` dengan nilai:
   - `permohonan`
   - `penawaran`
@@ -338,22 +394,6 @@ Bagian ini mendokumentasikan aturan database production yang harus diikuti oleh 
 #### `invoices`
 
 - Invoice adalah sumber kebenaran status monitoring bulanan.
-- Kolom penting yang dipakai aplikasi dan script:
-  - `customer_id`
-  - `contract_id`
-  - `contract_version_id`
-  - `contract_number`
-  - `invoice_number`
-  - `period_year`
-  - `period_month`
-  - `period_start_date`
-  - `period_end_date`
-  - `amount`
-  - `status`
-  - `schedule_version`
-  - `schedule_status`
-  - `document_id`
-  - `paid_at`
 - `period_month` harus berada di rentang `1` sampai `12`.
 - `amount` tidak boleh kosong untuk invoice yang dibuat.
 - Status invoice yang dipakai aplikasi:
@@ -362,21 +402,18 @@ Bagian ini mendokumentasikan aturan database production yang harus diikuti oleh 
   - `terlambat`
   - `belum_ditagih`
 - Status spreadsheet `-` dan `BT` dipetakan ke `belum_ditagih` untuk import monitoring.
-- `schedule_status = 'active'` digunakan frontend untuk monitoring billing; invoice nonaktif tidak dihitung di spreadsheet monitoring aktif.
-- Jika data spreadsheet memecah tagihan tahun berikutnya tetapi memakai nomor kontrak yang sama, invoice dibuat pada kontrak yang sama dan tidak membuat row `contracts` baru.
-- Untuk kontrak campuran dengan nominal bulanan berbeda per periode, `invoices.amount` menyimpan nominal aktual per bulan, sedangkan `contract_versions.monthly_amount` menyimpan nominal representatif/fallback yang disepakati dan `contract_versions.yearly_amount` harus konsisten dengan total invoice yang dibuat.
-- Karena production memiliki constraint unik global pada `contracts.contract_number`, nomor kontrak yang bentrok lintas customer boleh diberi suffix teknis pada `contracts.contract_number`. Nomor dokumen asli tetap harus disimpan di `documents.nomor_dokumen`.
+- Jika data spreadsheet memecah tagihan tahun berikutnya tetapi memakai nomor kontrak yang sama, invoice tetap terhubung ke kontrak yang sama dan tidak membuat row `contracts` baru.
+- Jika renewal melahirkan baris periode baru, invoice periode baru harus terhubung ke row/versi aktif terbaru.
+- Invoice pada baris lama tidak boleh dihapus saat renewal; invoice lama tetap menjadi histori pembayaran.
+- Jika baris lama sudah digantikan dan invoice di periode baris lama belum lunas, statusnya dapat menjadi `terlambat` atau dipindah ke histori sesuai tanggal efektif dan keputusan bisnis.
 
 #### Follow-up dan Route
 
-- `invoice_follow_ups` menyimpan follow-up penagihan invoice, metadata split, nomor invoice, dan file invoice. Bukti bayar dan tanggal bayar disimpan pada `invoices`.
-- `contract_version_renewal_follow_ups` menyimpan follow-up renewal pada level versi kontrak pelanggan. Keputusan/tanggapan disimpan pada kolom `response_decision`, bukan `response_status`.
+- `invoice_follow_ups` menyimpan follow-up penagihan invoice.
+- `contract_version_renewal_follow_ups` menyimpan follow-up renewal pada level versi kontrak pelanggan.
 - `isp_contract_rows` menyimpan data kontrak/periode ISP dan file BAK/kontrak pada level baris kontrak ISP.
-- `isp_renewal_follow_ups` menyimpan split follow-up renewal ISP. Keputusan/tanggapan juga memakai `response_decision`.
+- `isp_renewal_follow_ups` menyimpan follow-up renewal ISP.
 - `customer_route_versions`, `customer_route_points`, dan `customer_route_history` menyimpan versi jalur, titik jalur, status flow, dan riwayat perubahan route FO.
-- `customer_route_history` production memakai kolom `operation`, `note`, `snapshot_before`, dan `snapshot_after`.
-- **Koordinat & geometri terstruktur (Fase 1+):** `customer_route_points` memiliki kolom `latitude`/`longitude` (`double precision`), dan `customer_route_versions` memiliki `route_geometry` (JSONB array `[lng,lat]`), `road_segments` (JSONB), `route_source`, `route_mode`, `route_profile`, `distance_meters`, `duration_seconds`. Skema ditambahkan via `scripts/maintenance/add-route-point-coordinates.sql`.
-- **Transisi (deprecated):** sebelumnya koordinat titik disimpan sebagai teks di `customer_route_points.note` dan metadata rute (geometri/roads) di-base64 dengan prefix `[FO_ROUTE_META]` pada `note` titik pertama. **Fase 2 (dual-write) sudah aktif:** `api.customerRoutes.replace` menulis kolom terstruktur di atas **sekaligus** mempertahankan `note` lama untuk kompatibilitas pembacaan. Pembacaan akan dialihkan ke kolom terstruktur pada Fase 3, lalu embedding meta di `note` dihentikan pada Fase 4.
 
 ### 6.2 Aturan Script Production
 
@@ -384,6 +421,7 @@ Bagian ini mendokumentasikan aturan database production yang harus diikuti oleh 
 - Upsert customer sebaiknya menggunakan `customer_code`.
 - Upsert kontrak sebaiknya menggunakan kombinasi `customer_id` dan `contract_number`.
 - Upsert invoice sebaiknya menggunakan kombinasi `customer_id` dan `invoice_number`.
+- Saat mengimport data renewal, script harus menambahkan baris periode baru tanpa menghapus histori baris lama dan tanpa menimpa invoice yang sudah lunas.
 - Semua nilai enum di SQL manual harus di-cast eksplisit bila PostgreSQL tidak bisa infer tipe, misalnya `::isp_package_type`, `::contract_status`, atau `::core_allocation_type`.
 - Nilai wajib database, terutama `contract_versions.yearly_amount`, harus selalu diisi. Jika spreadsheet kosong, script harus menghitung fallback dan mencantumkan asumsi perhitungannya.
 - Perubahan data production harus disertai verification query di akhir script untuk membandingkan jumlah kontrak, jumlah invoice, total nominal, dan periode invoice pertama/terakhir.
@@ -470,14 +508,14 @@ frontend/src/
 
 ### 8.1 Penanganan Kredensial Akun ISP
 
-> **Risiko diketahui:** field `public.isps.password_plain` menyimpan password operasional akun ISP dalam bentuk **plaintext**. Ini adalah keputusan desain sementara, bukan praktik yang direkomendasikan.
+> **Risiko diketahui:** ada mekanisme operasional untuk penyelarasan credential ISP dengan Supabase Auth yang harus diperlakukan sebagai data sensitif.
 
-Ketentuan dan mitigasi yang berlaku selama field ini masih dipakai:
+Ketentuan yang berlaku:
 
-- `password_plain` hanya menyimpan **credential awal/operasional** agar admin dapat membuat dan menyetel ulang akun Auth ISP melalui script provisioning. Sumber kebenaran autentikasi tetap **Supabase Auth** (hash dikelola Supabase), bukan field ini.
-- Akses baca terhadap kolom `password_plain` harus dibatasi ketat melalui Row Level Security sehingga hanya role Admin yang dapat melihatnya; role ISP/Teknisi tidak boleh memiliki akses baca ke kolom ini.
-- Nilai `password_plain` **tidak boleh** ditampilkan di log, pesan error, hasil export, atau dibagikan di luar kanal operasional yang aman.
-- **Arah perbaikan (roadmap):** hentikan penyimpanan password plaintext dengan beralih ke alur reset/invite Supabase Auth (admin memicu undangan/reset, tanpa menyimpan password), atau minimal mengenkripsi kolom dan menghapus nilai setelah akun Auth berhasil dibuat.
+- Sumber kebenaran autentikasi tetap **Supabase Auth**.
+- Akses data credential operasional harus dibatasi ketat.
+- Nilai credential operasional tidak boleh ditampilkan di log, pesan error, hasil export, atau dibagikan di luar kanal operasional yang aman.
+- **Arah perbaikan (roadmap):** hentikan penyimpanan credential operasional dalam bentuk yang bisa dipakai ulang setelah akun Auth berhasil dibuat, dan beralih ke alur reset/invite yang lebih aman.
 
 ---
 

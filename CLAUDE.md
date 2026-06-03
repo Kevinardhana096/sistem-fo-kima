@@ -1,49 +1,30 @@
-# CLAUDE.md
+# CLAUDE.md — Sistem FO KIMA
 
-## Project context
+Aturan kerja ini menjadi referensi implementasi untuk kontributor dan agent yang mengubah kode atau dokumentasi teknis.
 
-Sistem FO KIMA is a React/Vite web application for document archiving and tenant monitoring across ISP, customer, contract, invoice, and fiber route data.
+## Prinsip Inti
 
-## Architecture
+- Arsitektur utama adalah frontend React + Vite yang mengakses Supabase secara langsung.
+- Jangan menambahkan backend NestJS/Prisma baru untuk alur utama tanpa keputusan arsitektur yang eksplisit.
+- Gunakan Supabase Auth, RLS, PostgreSQL, dan Storage sesuai pola yang sudah ada di repo.
+- Script SQL produksi dijalankan manual di Supabase SQL Editor setelah direview.
+- Jangan mengubah data production tanpa memahami dampak idempotency, relasi, dan constraint yang berlaku.
 
-- The application uses a full Supabase backend.
-- The main app flow is frontend React/Vite → Supabase client/REST/RPC/Storage → Supabase Auth/PostgreSQL/RLS/Storage.
-- There is no separate Node/NestJS backend for the main application flow.
-- Valhalla is only a supporting service for the FO route planner feature.
+## Rujukan Utama
 
-## Supabase access rules
+- [README.md](README.md) untuk overview project dan arsitektur.
+- [DEV_GUIDE.md](DEV_GUIDE.md) untuk setup development lokal.
+- [prd/PRD-sistem-arsip-kima.md](prd/PRD-sistem-arsip-kima.md) untuk aturan bisnis dan model data.
+- [docs/INDEX.md](docs/INDEX.md) untuk peta dokumentasi.
+- [scripts/README.md](scripts/README.md) untuk indeks script operasional.
 
-- Prefer existing Supabase access patterns in `frontend/src/lib/supabase.js` and `frontend/src/lib/api.js`.
-- Do not use direct PostgreSQL for normal investigation, feature work, or data access.
-- Use Supabase client, REST, RPC, Storage API, or reviewed SQL scripts intended for Supabase SQL Editor.
-- Only use direct PostgreSQL when the user explicitly asks for database administration/schema-level access.
-- Never print secrets from `.env` files or Supabase keys in responses or logs.
-- Redact sensitive columns such as password, token, secret, key, and hash when sampling data.
+## Konvensi Implementasi
 
-## Data and business rules
+- Gunakan nama field dan enum yang sesuai schema Supabase aktual.
+- Pertahankan pemetaan camelCase UI ke snake_case database melalui lapisan akses data yang sudah ada.
+- Jangan menyimpan rahasia di log, commit, atau dokumentasi publik.
+- Jika ada dokumen teknis yang bertentangan dengan PRD atau README, ikuti dokumen kanonik yang paling baru.
 
-- `customers` stores tenant/customer data and the initial business relationship date.
-- `isps` stores ISP/vendor data.
-- `customer_isp_memberships` is the main customer-to-ISP relationship.
-- `contracts` is the source of truth for customer contract number, period, package, core allocation, and status.
-- `contract_versions` stores optional snapshots/amendments and billing amounts used by monitoring.
-- `invoices` is the source of truth for monthly billing monitoring status.
-- `customer_route_versions`, `customer_route_points`, and `customer_route_history` store FO route planning and history.
-- Customers with status `berhenti` imply inactive route/jalur handling.
+## Status
 
-## Development commands
-
-```bash
-npm --prefix frontend install
-npm --prefix frontend run dev
-npm --prefix frontend run lint
-npm --prefix frontend run build
-```
-
-## Implementation guidance
-
-- Keep create/update payload mapping in `frontend/src/lib/api.js`; do not send raw form payloads directly to Supabase.
-- Preserve camelCase UI to snake_case database mapping conventions.
-- Respect Supabase RLS and role-based access behavior.
-- Production SQL scripts must be idempotent and reviewed before being run in Supabase SQL Editor.
-- For frontend/UI changes, run the app and verify the affected flow in the browser when possible.
+- Dokumen ini kanonik dan harus dijaga tetap selaras dengan README, PRD, dan DEV_GUIDE.

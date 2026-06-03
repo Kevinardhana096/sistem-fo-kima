@@ -74,7 +74,6 @@ Dokumen dikelompokkan ke dalam tiga tingkat agar jelas mana yang masih berlaku d
 | --- | --- |
 | [../prd/sequence-diagram-komprehensif.md](../prd/sequence-diagram-komprehensif.md) | Sequence diagram sistem. |
 | [../prd/business-flow.png](../prd/business-flow.png) | Diagram business flow. |
-| [database/document-schema.sql](database/document-schema.sql) | Referensi schema dokumen (pendukung). |
 
 ### README Komponen
 
@@ -90,37 +89,17 @@ Dokumen dikelompokkan ke dalam tiga tingkat agar jelas mana yang masih berlaku d
 
 Dokumen di bawah ini menggambarkan keadaan pada saat ditulis. **Jangan** dijadikan acuan kondisi sistem sekarang; gunakan PRD/README untuk itu. **Jangan** diedit untuk "memperbarui" — buat catatan baru bila perlu.
 
-### Changelog
-
-| Dokumen | Deskripsi |
-| --- | --- |
-| [changelog/2026-05-18-dashboard-remove-financial-cards.md](changelog/2026-05-18-dashboard-remove-financial-cards.md) | Perubahan dashboard: hapus kartu finansial. |
-| [changelog/2026-05-18-monitoring-pagination.md](changelog/2026-05-18-monitoring-pagination.md) | Penambahan pagination pada monitoring. |
-
-### Status Implementasi
-
-| Dokumen | Deskripsi |
-| --- | --- |
-| [implementation-status/2026-05-18-soft-delete-implementation.md](implementation-status/2026-05-18-soft-delete-implementation.md) | Status implementasi soft delete & Tempat Sampah (fitur sudah rilis). |
-
 ### Snapshot Setup & Deployment Lama
 
 > Dokumen ini mendeskripsikan arsitektur lama (NestJS/Prisma/`backend-supabase/`) yang **sudah tidak dipakai**. Gunakan README/PRD/DEV_GUIDE untuk kondisi terkini.
 
 | Dokumen | Deskripsi |
 | --- | --- |
-| [deployment/status-koneksi-supabase.md](deployment/status-koneksi-supabase.md) | Snapshot pengecekan koneksi Supabase (2026-05-12); project ref telah diredaksi. |
-| [guides/QUICK_REFERENCE.md](guides/QUICK_REFERENCE.md) | Referensi command deployment Cendikia versi lama (backend/Prisma). |
+| [database/document-schema.sql](database/document-schema.sql) | Schema dokumen lama (historis, bukan schema aktif). |
 
 ### Laporan (Reports)
 
-| Dokumen | Deskripsi |
-| --- | --- |
-| [reports/contract-renewal/RINGKASAN_LENGKAP.md](reports/contract-renewal/RINGKASAN_LENGKAP.md) | Ringkasan lengkap fitur perpanjangan kontrak. |
-| [reports/contract-renewal/ANALISIS_PERPANJANGAN_KONTRAK.md](reports/contract-renewal/ANALISIS_PERPANJANGAN_KONTRAK.md) | Analisis perpanjangan kontrak. |
-| [reports/contract-renewal/IMPLEMENTASI_PERINGATAN_INVOICE.md](reports/contract-renewal/IMPLEMENTASI_PERINGATAN_INVOICE.md) | Implementasi peringatan invoice. |
-| [reports/contract-renewal/LAPORAN_TESTING_PERPANJANGAN_KONTRAK.md](reports/contract-renewal/LAPORAN_TESTING_PERPANJANGAN_KONTRAK.md) | Laporan testing perpanjangan kontrak. |
-| [reports/contract-renewal/TEST_REPORT_CONTRACT_CHANGE.md](reports/contract-renewal/TEST_REPORT_CONTRACT_CHANGE.md) | Laporan test perubahan kontrak. |
+Tidak ada laporan kontrak-renewal yang aktif saat ini. Jika diperlukan, buat laporan baru sebagai arsip bertanggal.
 
 ### Analisis & Catatan Desain (pendukung/lama)
 

@@ -164,10 +164,63 @@ sequenceDiagram
     end
 
     %% ─────────────────────────────────────────
-    %% BLOK 6: MONITORING BILLING
+    %% BLOK 6: RENEWAL / PERPANJANGAN KONTRAK
+    %% ─────────────────────────────────────────
+    rect rgb(230, 255, 230)
+        Note over Admin, VH: BLOK 6 — RENEWAL / PERPANJANGAN KONTRAK
+
+        Admin->>FE: Buka detail pelanggan saat kontrak mendekati akhir periode
+        FE->>API: load renewal warnings + renewal follow-ups
+        API->>DB: SELECT contract_versions + renewal follow-ups
+        DB-->>API: Data renewal dan histori follow-up
+        API-->>FE: Alert H-3/H-2/H-1 dan status follow-up
+
+        Admin->>FE: Upload surat perpanjangan kontrak
+        FE->>FS: Simpan file dokumen
+        FS-->>FE: file_url
+        FE->>API: INSERT documents + renewal follow-up
+        API->>DB: Simpan dokumen perpanjangan dan status follow-up
+        DB-->>API: Dokumen renewal tersimpan
+        API-->>FE: OK
+
+        Admin->>FE: Kirim atau catat tanggapan lokasi
+        FE->>API: UPDATE contract_version_renewal_follow_ups
+        API->>DB: Update response file / status follow-up
+        DB-->>API: Status renewal diperbarui
+        API-->>FE: OK
+
+        Admin->>FE: Renewal disetujui secara bisnis dan legal
+        FE->>API: Tandai renewal_status = needs_completion atau aktifkan baris periode baru
+        API->>DB: Tandai baris lama sebagai histori/expired dan siapkan baris aktif baru
+        API->>DB: INSERT contract_versions baru sebagai periode aktif berikutnya
+        API->>DB: Generate atau sesuaikan invoice periode baru untuk baris aktif
+        DB-->>API: Baris lama dan baris baru tersimpan
+        API-->>FE: OK
+    end
+
+    %% ─────────────────────────────────────────
+    %% BLOK 7: UBAH / UPGRADE PAKET
+    %% ─────────────────────────────────────────
+    rect rgb(220, 245, 255)
+        Note over Admin, VH: BLOK 7 — UBAH / UPGRADE PAKET DI TENGAH PERIODE AKTIF
+
+        Admin->>FE: Pilih Ubah / Upgrade Paket
+        FE->>API: contractVersions.changePackageMidPeriod(contract_id, requestedDate, packageType, coreTotal, sharedCoreRatio, monthlyAmount)
+        API->>DB: Load contract + versi aktif
+        DB-->>API: Data kontrak dan versi aktif
+        API->>DB: Jika perlu, insert baseline contract_version dari kontrak berjalan
+        API->>DB: Tutup versi lama pada akhir bulan berjalan
+        API->>DB: INSERT contract_versions baru efektif mulai bulan berikutnya
+        API->>DB: Update invoice belum lunas pada periode efektif baru
+        DB-->>API: Versi baru dan invoice tersesuaikan
+        API-->>FE: OK + info paket baru aktif
+    end
+
+    %% ─────────────────────────────────────────
+    %% BLOK 8: MONITORING BILLING
     %% ─────────────────────────────────────────
     rect rgb(255, 255, 210)
-        Note over Admin, VH: BLOK 6 — MONITORING BILLING DENGAN QUERY TERBATCH
+        Note over Admin, VH: BLOK 8 — MONITORING BILLING DENGAN QUERY TERBATCH
 
         Admin->>FE: Buka monitoring tahun tertentu
         FE->>API: monitoring.getBilling(year)
@@ -176,7 +229,9 @@ sequenceDiagram
         API->>DB: Batch SELECT contracts + contract_versions WHERE customer_id IN (...)
         DB-->>API: Kontrak terkait
         API->>DB: Batch SELECT invoices WHERE period_year=year AND schedule_status='active'
-        DB-->>API: Invoice tahun terkait
+        DB-->>API: Invoice aktif tahun terkait
+        API->>DB: Batch SELECT invoices WHERE schedule_status='history' untuk baris lama
+        DB-->>API: Invoice histori renewal
         API->>DB: Batch SELECT route_versions WHERE customer_id IN (...)
         DB-->>API: Status route
         API-->>FE: Matrix billing pelanggan x bulan

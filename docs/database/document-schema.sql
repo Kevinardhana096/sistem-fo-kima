@@ -1,3 +1,7 @@
+-- HISTORICAL REFERENCE ONLY
+-- Schema ini menggambarkan bentuk lama dan tidak mewakili schema production saat ini.
+-- Gunakan PRD, README, dan scripts/README.md sebagai acuan kondisi terkini.
+
 -- Core enum for document type
 CREATE TYPE document_type AS ENUM (
   'permohonan',

@@ -2,7 +2,7 @@
 
 Panduan development lokal untuk Sistem FO KIMA.
 
-> **Arsitektur saat ini:** aplikasi adalah frontend **React + Vite** yang mengakses **Supabase** secara langsung (Auth, Database/REST/RPC, Storage). **Tidak ada** service backend NestJS, **tidak ada** Prisma, dan **tidak ada** `docker compose` yang perlu dijalankan untuk alur utama aplikasi. Valhalla hanya layanan pendukung opsional untuk fitur route planner FO.
+> **Arsitektur saat ini:** aplikasi adalah frontend **React + Vite** yang mengakses **Supabase** secara langsung (Auth, Database/REST/RPC, Storage). **Tidak ada** service backend NestJS dan **tidak ada** Prisma untuk alur utama aplikasi. Valhalla hanya layanan pendukung opsional untuk fitur route planner FO.
 
 ---
 
@@ -133,6 +133,18 @@ lsof -ti:5173 | xargs kill -9
 
 Atau jalankan Vite di port lain: `npm --prefix frontend run dev -- --port 5174`.
 
+### Valhalla lokal tidak jalan
+
+Jika fitur route planner dipakai secara lokal, jalankan Valhalla dari root repo:
+
+```bash
+docker compose up -d valhalla-upstream valhalla-proxy
+```
+
+Lalu set `VITE_VALHALLA_HOST=http://localhost:8002` di `frontend/.env.development`.
+
+Jika `docker compose` gagal karena image belum terunduh atau data `sulawesi.osm.pbf` tidak lengkap, periksa `infra/valhalla/data/` dan `infra/valhalla/runtime/`.
+
 ### Environment tidak terbaca
 
 - Pastikan file bernama `frontend/.env.development` (bukan `.env` di root).
@@ -143,7 +155,7 @@ Atau jalankan Vite di port lain: `npm --prefix frontend run dev -- --port 5174`.
 
 - Cek `VITE_SUPABASE_URL` dan `VITE_SUPABASE_ANON_KEY` benar untuk project yang dituju.
 - Pastikan RLS policy sudah di-setup (`scripts/rls/setup-supabase-rls-policies.sql`) dan user login memiliki role yang sesuai.
-- Lihat catatan koneksi di [docs/deployment/status-koneksi-supabase.md](docs/deployment/status-koneksi-supabase.md).
+- Untuk masalah koneksi Supabase, verifikasi `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, dan policy RLS yang aktif.
 
 ### Clean install dependencies
 

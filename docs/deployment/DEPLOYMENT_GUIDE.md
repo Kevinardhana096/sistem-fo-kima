@@ -130,5 +130,4 @@ npx vercel --prod     # deploy production
 - [../../DEV_GUIDE.md](../../DEV_GUIDE.md) — setup development & perintah npm.
 - [../guides/supabase-setup-guide.md](../guides/supabase-setup-guide.md) — setup Auth & RLS.
 - [../operations/TESTING_CHECKLIST.md](../operations/TESTING_CHECKLIST.md) — checklist pengujian manual.
-- [deployment/status-koneksi-supabase.md](status-koneksi-supabase.md) — status koneksi Supabase.
 - [../../prd/PRD-sistem-arsip-kima.md](../../prd/PRD-sistem-arsip-kima.md) — PRD (§10 Deployment & Operations).
