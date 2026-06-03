@@ -154,7 +154,7 @@ export default function DashboardPage({
             const status = String(t.rawStatus || "").toLowerCase().trim();
             if (["berhenti", "nonaktif"].includes(status)) { berhenti++; return; }
             if (["belum_beroperasi", "belum beroperasi", "belum"].includes(status)) { belum_beroperasi++; return; }
-            if (status === "expired") { expired++; return; }
+            if (["expired", "expired_contract"].includes(status)) { expired++; return; }
             const endDate = typeof t.contractPeriodEnd === "string" ? t.contractPeriodEnd.slice(0, 10) : "";
             if (endDate && endDate < today) expired++; else beroperasi++;
         });

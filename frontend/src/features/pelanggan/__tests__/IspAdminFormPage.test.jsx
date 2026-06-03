@@ -114,9 +114,9 @@ describe('IspAdminFormPage — Tambah ISP Baru', () => {
     await userEvent.type(namaInput, 'PT. Fiber Nusantara');
 
     const dateInputs = document.querySelectorAll('input[type="date"]');
-    fireEvent.change(dateInputs[0], { target: { value: '2026-01-15' } });
-    fireEvent.change(dateInputs[1], { target: { value: '2026-02-01' } });
-    fireEvent.change(dateInputs[2], { target: { value: '2027-01-31' } });
+    fireEvent.change(dateInputs[0], { target: { value: '2098-01-15' } });
+    fireEvent.change(dateInputs[1], { target: { value: '2099-02-01' } });
+    fireEvent.change(dateInputs[2], { target: { value: '2100-01-31' } });
 
     fireEvent.click(screen.getByRole('button', { name: /tambah isp/i }));
 
@@ -124,15 +124,47 @@ describe('IspAdminFormPage — Tambah ISP Baru', () => {
       expect(api.isps.create).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'PT. Fiber Nusantara',
-          contractStartDate: '2026-01-15',
-          contractPeriodStart: '2026-02-01',
-          contractPeriodEnd: '2027-01-31',
+          status: 'belum_beroperasi',
+          contractStartDate: '2098-01-15',
+          contractPeriodStart: '2099-02-01',
+          contractPeriodEnd: '2100-01-31',
         })
       );
     });
     expect(defaultProps.onSaved).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'isp-123' })
     );
+  });
+
+  it('mengirim status aktif jika periode berjalan awal hari ini atau sudah lewat', async () => {
+    const { default: api } = await import('../../../lib/api');
+    api.isps.create.mockResolvedValue({ id: 'isp-aktif', name: 'PT. Aktif Hari Ini' });
+
+    renderForm();
+
+    const namaInput = screen.getByPlaceholderText(/pt\. internet cepat/i);
+    await userEvent.type(namaInput, 'PT. Aktif Hari Ini');
+
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const todayIso = `${year}-${month}-${day}`;
+
+    const dateInputs = document.querySelectorAll('input[type="date"]');
+    fireEvent.change(dateInputs[1], { target: { value: todayIso } });
+
+    fireEvent.click(screen.getByRole('button', { name: /tambah isp/i }));
+
+    await waitFor(() => {
+      expect(api.isps.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'PT. Aktif Hari Ini',
+          status: 'aktif',
+          contractPeriodStart: todayIso,
+        })
+      );
+    });
   });
 
   // 5. Tombol Batal memanggil onCancel

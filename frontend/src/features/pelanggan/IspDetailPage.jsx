@@ -18,6 +18,7 @@ import { uploadFileForRecord } from "../../lib/files";
 import {
     getPackageDisplay,
     normalizeOperationalStatus,
+    isPendingOperationalStatus,
     isStoppedStatus,
     getOperationalLabel,
     isOperationallyActive,
@@ -808,10 +809,10 @@ function IspDetailPage({
     const pathPerbaikanCount = allTenants.filter(t => (t.route?.activeFlowStatus ?? t.status_jalur) === "perbaikan").length;
     const pathNonaktifCount = allTenants.filter(t => (t.route?.activeFlowStatus ?? t.status_jalur) === "nonaktif" || (t.route?.activeFlowStatus ?? t.status_jalur) === "non-aktif").length;
 
-    const statusBeroperasiCount = allTenants.filter(t => t.status === "aktif").length;
-    const statusBelumBeroperasiCount = allTenants.filter(t => t.status === "nonaktif" || t.status === "belum_beroperasi" || t.status === "belum beroperasi").length;
-    const statusBelumDiperpanjangCount = allTenants.filter(t => t.status === "expired" || t.status === "expired_contract").length;
-    const statusBerhentiCount = allTenants.filter(t => t.status === "berhenti").length;
+    const statusBeroperasiCount = allTenants.filter(t => normalizeOperationalStatus(t.status) === "aktif").length;
+    const statusBelumBeroperasiCount = allTenants.filter(t => isPendingOperationalStatus(t.status)).length;
+    const statusBelumDiperpanjangCount = allTenants.filter(t => ["expired", "expired_contract"].includes(normalizeOperationalStatus(t.status))).length;
+    const statusBerhentiCount = allTenants.filter(t => normalizeOperationalStatus(t.status) === "berhenti").length;
 
     return (
         <AppShell activeSection="customers" onNavigate={onNavigate} onLogout={onLogout} currentRole={currentRole}>
@@ -1698,8 +1699,8 @@ function IspDetailPage({
                                                         <p className="text-[11px] font-bold text-white group-hover/row:text-gold-accent transition-colors">{tenant.name}</p>
                                                     </td>
                                                     <td className="px-3 py-2.5 text-center border-r border-white/10">
-                                                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[8px] font-bold border transition-all ${['aktif'].includes(tenant.status) ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : tenant.status === 'expired' ? 'bg-[#ff2400]/10 text-[#ff2400] border-[#ff2400]/20' : 'bg-white/5 text-white/30 border-white/10'}`}>
-                                                            <span className={`w-1.5 h-1.5 rounded-full ${['aktif'].includes(tenant.status) ? 'bg-emerald-400 shadow-emerald-glow' : tenant.status === 'expired' ? 'bg-[#ff2400] shadow-red-glow' : 'bg-white/20'}`} />
+                                                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[8px] font-bold border transition-all ${normalizeOperationalStatus(tenant.status) === 'aktif' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : normalizeOperationalStatus(tenant.status) === 'expired' ? 'bg-[#ff2400]/10 text-[#ff2400] border-[#ff2400]/20' : isPendingOperationalStatus(tenant.status) ? 'bg-sky-500/10 text-sky-400 border-sky-500/20' : 'bg-white/5 text-white/30 border-white/10'}`}>
+                                                            <span className={`w-1.5 h-1.5 rounded-full ${normalizeOperationalStatus(tenant.status) === 'aktif' ? 'bg-emerald-400 shadow-emerald-glow' : normalizeOperationalStatus(tenant.status) === 'expired' ? 'bg-[#ff2400] shadow-red-glow' : isPendingOperationalStatus(tenant.status) ? 'bg-sky-400 shadow-[0_0_12px_rgba(56,189,248,0.45)]' : 'bg-white/20'}`} />
                                                             {getOperationalLabel(tenant.status)}
                                                         </span>
                                                     </td>
