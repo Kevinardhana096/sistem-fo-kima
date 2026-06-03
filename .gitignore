@@ -52,3 +52,22 @@ test_compile.ts
 # File kosong dan tool artifacts
 .codex
 .playwright-mcp/
+
+# Local AI/tooling configs and scratch outputs
+opencode.json
+network.txt
+playwright-renewal-test.txt
+query_enum.js
+query_supabase_api.js
+
+# Session handoff / temporary reports
+/docs/reports/context-handoff-*.md
+
+# Root/local binary artifacts
+/dokumen-qa-dummy.pdf
+
+# Root archive cleanup dumps
+/.archive/
+
+# Internal agent worktrees
+/.claude/
