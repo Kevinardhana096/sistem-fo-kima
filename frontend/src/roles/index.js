@@ -3,19 +3,40 @@ import { ispRoleConfig } from "./isp/config";
 import { teknisiRoleConfig } from "./teknisi/config";
 
 export const APP_ROLES = {
+    guest: "guest",
     admin: "admin",
     teknisi: "teknisi",
     isp: "isp",
 };
 
+const guestRoleConfig = {
+    key: "guest",
+    label: "Guest",
+    profileTitle: "Guest",
+    profileSubtitle: "Belum login",
+    defaultSection: "customers",
+    menuItems: [],
+    capabilities: {
+        canCreateIsp: false,
+        canCreateTenant: false,
+        canEditIsp: false,
+        canDeleteIsp: false,
+        canEditTenant: false,
+        canDeleteTenant: false,
+    },
+    allowedSections: [],
+    allowedRouteTypes: ["redirect", "login", "not-found"],
+};
+
 export const roleConfigs = {
+    [APP_ROLES.guest]: guestRoleConfig,
     [APP_ROLES.admin]: adminRoleConfig,
     [APP_ROLES.teknisi]: teknisiRoleConfig,
     [APP_ROLES.isp]: ispRoleConfig,
 };
 
 export function getRoleConfig(roleKey) {
-    return roleConfigs[roleKey] ?? roleConfigs[APP_ROLES.admin];
+    return roleConfigs[roleKey] ?? roleConfigs[APP_ROLES.guest];
 }
 
 export function canAccessSection(roleKey, sectionKey) {
