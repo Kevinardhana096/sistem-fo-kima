@@ -1,3 +1,5 @@
+import { resolveCustomerOperationalStatus } from "../../app/utils";
+
 export const getPackageDisplay = (packageValue) => {
     const normalizedPackage = String(packageValue ?? "").toLowerCase();
     const isSharingPackage = normalizedPackage.includes("shar") || normalizedPackage === "shared";
@@ -14,6 +16,8 @@ export const normalizeOperationalStatus = (status) => String(status ?? "").trim(
 export const isPendingOperationalStatus = (status) => ["belum_beroperasi", "belum beroperasi", "belum"].includes(normalizeOperationalStatus(status));
 
 export const isStoppedStatus = (status) => ["berhenti", "nonaktif"].includes(normalizeOperationalStatus(status));
+
+export const resolveTenantOperationalStatus = (tenant, todayIso) => resolveCustomerOperationalStatus(tenant, todayIso);
 
 export const getOperationalLabel = (status) => {
     const normalizedStatus = normalizeOperationalStatus(status);

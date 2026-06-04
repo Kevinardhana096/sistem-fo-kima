@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import AppShell from "../../components/layout/AppShell";
 import api from "../../lib/api";
+import { resolveCustomerOperationalStatus } from "../../app/utils";
 import {
     ResponsiveContainer,
     ComposedChart,
@@ -151,12 +152,15 @@ export default function DashboardPage({
         const today = new Date().toISOString().slice(0, 10);
         let beroperasi = 0, expired = 0, berhenti = 0, belum_beroperasi = 0;
         tenants.forEach(t => {
-            const status = String(t.rawStatus || "").toLowerCase().trim();
+            const status = resolveCustomerOperationalStatus(t, today);
             if (["berhenti", "nonaktif"].includes(status)) { berhenti++; return; }
             if (["belum_beroperasi", "belum beroperasi", "belum"].includes(status)) { belum_beroperasi++; return; }
             if (["expired", "expired_contract"].includes(status)) { expired++; return; }
             const endDate = typeof t.contractPeriodEnd === "string" ? t.contractPeriodEnd.slice(0, 10) : "";
-            if (endDate && endDate < today) expired++; else beroperasi++;
+            const startDate = typeof t.contractPeriodStart === "string" ? t.contractPeriodStart.slice(0, 10) : "";
+            if (startDate && startDate > today) belum_beroperasi++;
+            else if (endDate && endDate < today) expired++;
+            else beroperasi++;
         });
         return {
             ispCount: isps.length,

@@ -4,7 +4,28 @@ import api, { getApiErrorDetails } from "../../lib/api";
 import { uploadFileForRecord } from "../../lib/files";
 import DateInput from "../../components/shared/DateInput";
 
-const GlassFieldInput = ({ label, type = "text", value, onChange, placeholder = "", icon, min, onKeyDown, error = "" }) => {
+const getTodayLocalIso = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+};
+
+const deriveOperationalStatus = (contractPeriodStart, contractPeriodEnd, fallbackStatus = "aktif") => {
+    const todayIso = getTodayLocalIso();
+    const periodStart = String(contractPeriodStart ?? "").slice(0, 10);
+    const periodEnd = String(contractPeriodEnd ?? "").slice(0, 10);
+    const normalizedFallback = String(fallbackStatus ?? "").trim().toLowerCase();
+
+    if (periodStart && periodStart > todayIso) return "belum_beroperasi";
+    if (periodEnd && periodEnd < todayIso) return "expired";
+    if (["berhenti", "nonaktif"].includes(normalizedFallback)) return normalizedFallback;
+    if (["expired", "belum_diperpanjang"].includes(normalizedFallback)) return "expired";
+    return "aktif";
+};
+
+const GlassFieldInput = ({ label, type = "text", value, onChange, placeholder = "", icon, min, onKeyDown, error = "", onRawChange }) => {
     const inputClass = `w-full h-9 rounded-xl bg-black/20 border backdrop-blur-md ${error ? "border-rose-500/70 ring-2 ring-rose-500/10" : "border-white/10 focus:border-gold-accent/40 focus:ring-2 focus:ring-gold-accent/10"} ${icon ? "pl-9" : "px-3"} pr-3 text-[10px] font-bold text-white placeholder:text-white/20 outline-none transition-all focus:bg-black/40 shadow-inner-glass [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`;
     return (
         <div className="space-y-1.5">
@@ -27,7 +48,13 @@ const GlassFieldInput = ({ label, type = "text", value, onChange, placeholder = 
                 ) : (
                     <input
                         className={inputClass}
-                        onChange={(event) => onChange(event.target.value)}
+                        onChange={(event) => {
+                            if (onRawChange) {
+                                onRawChange(event);
+                            } else if (onChange) {
+                                onChange(event.target.value);
+                            }
+                        }}
                         onKeyDown={onKeyDown}
                         placeholder={placeholder}
                         type={type}
@@ -102,6 +129,39 @@ const GlassCustomSelect = ({ label, value, onChange, options, icon, heightClass 
 };
 
 function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, mode = "create", onCancel, onNavigate, onSaved }) {
+    const formatRupiahInput = (value) => {
+        if (value === null || value === undefined || value === "") return "";
+        const numberString = String(value).replace(/[^0-9]/g, "");
+        if (!numberString) return "";
+        return new Intl.NumberFormat("id-ID").format(Number(numberString));
+    };
+
+    const parseRupiahInput = (value) => {
+        if (!value) return 0;
+        const numberString = String(value).replace(/[^0-9]/g, "");
+        return Number(numberString) || 0;
+    };
+
+    const handleActivationFeeChange = (e) => {
+        const input = e.target;
+        const rawValue = input.value;
+        const selectionStart = input.selectionStart;
+        const oldLength = rawValue.length;
+        const formatted = formatRupiahInput(rawValue);
+
+        setForm(p => ({ ...p, activationFeeAmount: formatted }));
+
+        requestAnimationFrame(() => {
+            const newLength = formatted.length;
+            const lengthDiff = newLength - oldLength;
+            let newSelectionStart = selectionStart + lengthDiff;
+            newSelectionStart = Math.max(0, Math.min(newSelectionStart, newLength));
+            if (typeof input.setSelectionRange === "function") {
+                input.setSelectionRange(newSelectionStart, newSelectionStart);
+            }
+        });
+    };
+
     const [form, setForm] = useState({
         name: "",
         status: "aktif",
@@ -138,7 +198,11 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
         setForm((p) => ({
             ...p,
             name: initialData.name ?? "",
-            status: initialData.rawStatus ?? initialData.status ?? "aktif",
+            status: deriveOperationalStatus(
+                initialData.contractPeriodStart ?? initialData.contract_period_start ?? "",
+                initialData.contractPeriodEnd ?? initialData.contract_period_end ?? "",
+                initialData.rawStatus ?? initialData.status ?? "aktif",
+            ),
             logoUrl: initialData.logoUrl ?? initialData.logo_url ?? "",
         }));
     }, [initialData]);
@@ -209,7 +273,7 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                 ? { name: form.name.trim(), status: form.status, logoUrl: form.logoFileDataUrl || form.logoUrl || undefined }
                 : {
                     name: form.name.trim(),
-                    status: form.status,
+                    status: deriveOperationalStatus(form.contractPeriodStart, form.contractPeriodEnd, form.status),
                     logoUrl: form.logoFileDataUrl || undefined,
                     ispIds: [selectedIspId],
                     contractStartDate: form.contractStartDate || form.contractPeriodStart,
@@ -221,7 +285,7 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                     billingPeriodMode: form.billingPeriodMode,
                     billingCustomEvery: form.billingPeriodMode === "custom" ? Number(form.billingCustomEvery) : undefined,
                     billingCustomUnit: form.billingPeriodMode === "custom" ? form.billingCustomUnit : undefined,
-                    activationFeeAmount: Math.round(Number(form.activationFeeAmount || 0)),
+                    activationFeeAmount: Math.round(parseRupiahInput(form.activationFeeAmount || 0)),
                 };
 
             const result = isEditMode && initialData?.id
@@ -327,6 +391,7 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                                     onChange={(val) => setForm(p => ({ ...p, status: val }))}
                                     options={[
                                         { value: "aktif", label: "BEROPERASI" },
+                                        { value: "belum_beroperasi", label: "BELUM BEROPERASI" },
                                         ...(isEditMode ? [{ value: "expired", label: "MASA BERLAKU HABIS" }] : []),
                                         { value: "berhenti", label: "BERHENTI" }
                                     ]}
@@ -424,8 +489,8 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
 
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                         <GlassFieldInput label="Awal Kontrak (Ops)" icon="calendar_today" type="date" value={form.contractStartDate} onChange={(val) => setForm(p => ({ ...p, contractStartDate: val }))} />
-                                        <GlassFieldInput label="Mulai Periode" icon="event_available" type="date" value={form.contractPeriodStart} error={fieldErrors.contractPeriodStart} onChange={(val) => { setForm(p => ({ ...p, contractPeriodStart: val })); setFieldErrors((errors) => ({ ...errors, contractPeriodStart: "" })); }} />
-                                        <GlassFieldInput label="Akhir Periode" icon="event_busy" type="date" value={form.contractPeriodEnd} error={fieldErrors.contractPeriodEnd} onChange={(val) => { setForm(p => ({ ...p, contractPeriodEnd: val })); setFieldErrors((errors) => ({ ...errors, contractPeriodEnd: "" })); }} />
+                                        <GlassFieldInput label="Mulai Periode" icon="event_available" type="date" value={form.contractPeriodStart} error={fieldErrors.contractPeriodStart} onChange={(val) => { setForm(p => ({ ...p, contractPeriodStart: val, status: deriveOperationalStatus(val, p.contractPeriodEnd, p.status) })); setFieldErrors((errors) => ({ ...errors, contractPeriodStart: "" })); }} />
+                                        <GlassFieldInput label="Akhir Periode" icon="event_busy" type="date" value={form.contractPeriodEnd} error={fieldErrors.contractPeriodEnd} onChange={(val) => { setForm(p => ({ ...p, contractPeriodEnd: val, status: deriveOperationalStatus(p.contractPeriodStart, val, p.status) })); setFieldErrors((errors) => ({ ...errors, contractPeriodEnd: "" })); }} />
                                     </div>
                                 </div>
                             </div>
@@ -587,12 +652,10 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                                     <GlassFieldInput
                                         label="Biaya Aktivasi (IDR)"
                                         icon="payments"
-                                        type="number"
-                                        min="0"
-                                        onKeyDown={(e) => { if (e.key === '-' || e.key === 'e' || e.key === 'E') e.preventDefault(); }}
+                                        type="text"
                                         placeholder="0"
                                         value={form.activationFeeAmount}
-                                        onChange={(val) => { if (val === '' || Number(val) >= 0) setForm(p => ({ ...p, activationFeeAmount: val })); }}
+                                        onRawChange={handleActivationFeeChange}
                                     />
 
                                     <div className="p-3 rounded-xl bg-gold-accent/5 border border-gold-accent/20 backdrop-blur-md">

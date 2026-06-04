@@ -23,6 +23,7 @@ import {
   isOpenableFileUrl,
   resolveCustomerContractPeriodInfo,
   resolveCustomerPackageInfo,
+  resolveCustomerOperationalStatus,
   toTitleCase,
 } from "../../app/utils";
 import api from "../../lib/api";
@@ -502,6 +503,19 @@ function formatDisplayContractNumber(contractNumber) {
   return normalizedNumber;
 }
 
+const formatRupiahInput = (value) => {
+  if (value === null || value === undefined || value === "") return "";
+  const numberString = String(value).replace(/[^0-9]/g, "");
+  if (!numberString) return "";
+  return new Intl.NumberFormat("id-ID").format(Number(numberString));
+};
+
+const parseRupiahInput = (value) => {
+  if (!value) return 0;
+  const numberString = String(value).replace(/[^0-9]/g, "");
+  return Number(numberString) || 0;
+};
+
 function TenantDetailPage({
   customer,
   initialTab = "overview",
@@ -539,6 +553,7 @@ function TenantDetailPage({
   const [documentSort, setDocumentSort] = useState("desc");
   const [isUploadingDocument, setIsUploadingDocument] = useState(false);
   const [versionEditor, setVersionEditor] = useState(null);
+  const [renewalConfirmData, setRenewalConfirmData] = useState(null);
   const [versionError, setVersionError] = useState("");
   const [isSubmittingVersion, setIsSubmittingVersion] = useState(false);
   const [contractRowEditor, setContractRowEditor] = useState(null);
@@ -1177,8 +1192,8 @@ function TenantDetailPage({
       invoiceRows.forEach((invoice) => {
         const previousDraft = previousDrafts[invoice.id] ?? {};
         const normalizedAmount = Number.isFinite(Number(invoice.amount))
-          ? String(Math.max(0, Math.round(Number(invoice.amount))))
-          : "0";
+          ? formatRupiahInput(Math.max(0, Math.round(Number(invoice.amount))))
+          : "";
         const previousFollowUpDrafts = previousDraft.followUps ?? {};
         const nextFollowUpDrafts = {};
 
@@ -1224,7 +1239,7 @@ function TenantDetailPage({
             : "";
         const amountSource =
           draft.amount !== undefined
-            ? Number(draft.amount)
+            ? parseRupiahInput(draft.amount)
             : Number(invoice.amount ?? 0);
         const amountValue = Number.isFinite(amountSource) ? amountSource : 0;
         const activeReminderSplits = getInvoiceFollowUps(invoice).filter(
@@ -1549,6 +1564,7 @@ function TenantDetailPage({
     if (Number.isNaN(date.getTime())) return "";
     return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 1)).toISOString().slice(0, 10);
   };
+
   const getRowPeriodTime = (row) => {
     const rawDate = row?.periodEnd ?? row?.periodStart ?? "";
     const timestamp = new Date(`${String(rawDate).slice(0, 10)}T00:00:00.000Z`).getTime();
@@ -1645,6 +1661,9 @@ function TenantDetailPage({
     ))
     : [];
   const getContractRowNote = (periodStart, periodEnd) => {
+    if (!periodStart || !periodEnd) {
+      return "";
+    }
     if (periodStart && periodEnd && periodStart <= todayIso && periodEnd >= todayIso) {
       return "Kontrak Beroperasi";
     }
@@ -1668,16 +1687,11 @@ function TenantDetailPage({
     const note = getContractRowNote(periodStart, periodEnd);
 
     const versionContractNumber = version
-      ? (
-        version?.contractNumber
-        ?? version?.contract_number
-        ?? contractRow.contractNumber
-        ?? contractRow.contract_number
-      )
+      ? (version?.contractNumber ?? version?.contract_number ?? null)
       : (contractRow.contractNumber ?? contractRow.contract_number);
 
     const contractDoc = version?.id
-      ? contractDocumentByVersionId.get(Number(version.id)) ?? contractDocumentByContractId.get(Number(contractRow.id)) ?? null
+      ? contractDocumentByVersionId.get(Number(version.id)) ?? null
       : contractDocumentByContractId.get(Number(contractRow.id)) ?? null;
 
     return {
@@ -1765,12 +1779,35 @@ function TenantDetailPage({
         && basePeriodStart < earliestVersionStart,
       );
 
+      // Jika start date dari base row tidak mendahului versi pertama,
+      // maka base row ini sepenuhnya terwakili oleh version-version yang ada.
+      // Kita kembalikan versionRows saja untuk mencegah baris duplikat/tumpang tindih.
+      if (!shouldForceLegacyContractNumber) {
+        return versionRows;
+      }
+
+      // Untuk baris legacy yang sah (memiliki start date sebelum versi pertama),
+      // kita batasi periodEnd agar berakhir sehari sebelum versi pertama dimulai,
+      // sehingga tidak tumpang tindih dengan versi-versi baru.
+      let legacyEndDate = baseRow.periodEnd;
+      if (earliestVersionStart) {
+        try {
+          const firstVerStart = new Date(earliestVersionStart);
+          const legacyEnd = new Date(firstVerStart);
+          legacyEnd.setDate(legacyEnd.getDate() - 1);
+          legacyEndDate = legacyEnd.toISOString().slice(0, 10);
+        } catch (e) {
+          console.error("Gagal menghitung tanggal akhir periode legacy:", e);
+        }
+      }
+
       return [
         {
           ...baseRow,
-          // When the base legacy period predates all explicit renewal versions,
-          // do not inherit the latest contract number from the parent contract row.
-          contractNumber: shouldForceLegacyContractNumber ? "-" : baseRow.contractNumber,
+          periodEnd: legacyEndDate,
+          // Ketika periode legacy mendahului semua versi perpanjangan eksplisit,
+          // jangan mewarisi nomor kontrak terbaru dari baris kontrak induk.
+          contractNumber: "-",
         },
         ...versionRows,
       ];
@@ -2015,8 +2052,8 @@ function TenantDetailPage({
       packageType,
       coreTotal: String(latestVersion?.coreTotal ?? latestVersion?.core_total ?? contract?.coreTotal ?? contract?.core_total ?? ""),
       ratio: latestVersion?.sharedCoreRatio ?? contract?.sharingRatio ?? "1:8",
-      monthlyAmount: monthlyAmount > 0 ? String(monthlyAmount) : "",
-      yearlyAmount: monthlyAmount > 0 ? String(monthlyAmount * 12) : "",
+      monthlyAmount: monthlyAmount > 0 ? formatRupiahInput(monthlyAmount) : "",
+      yearlyAmount: monthlyAmount > 0 ? formatRupiahInput(monthlyAmount * 12) : "",
     });
     setVersionError("");
   };
@@ -2029,7 +2066,7 @@ function TenantDetailPage({
 
     const isVersionRow = Boolean(row.versionId);
     const contractDoc = isVersionRow
-      ? contractDocumentByVersionId.get(Number(row.versionId)) ?? contractDocumentByContractId.get(Number(row.contractId)) ?? null
+      ? contractDocumentByVersionId.get(Number(row.versionId)) ?? null
       : contractDocumentByContractId.get(Number(row.contractId)) ?? null;
     const bakDoc = isVersionRow
       ? bakDocumentByVersionId.get(Number(row.versionId)) ?? bakDocumentByContractId.get(Number(row.contractId)) ?? null
@@ -2042,7 +2079,7 @@ function TenantDetailPage({
       contractNumber: String(row.contractNumber ?? "").trim(),
       startDate: String(row.periodStart ?? "").slice(0, 10),
       endDate: String(row.periodEnd ?? "").slice(0, 10),
-      monthlyAmount: String(Number(row.monthlyAmount ?? 0) > 0 ? Number(row.monthlyAmount) : ""),
+      monthlyAmount: row.monthlyAmount ? formatRupiahInput(row.monthlyAmount) : "",
       billingEvery: String(contract?.billingEvery ?? 1),
       billingUnit: String(contract?.billingUnit ?? "bulan"),
       rowLabel: isVersionRow ? "Versi Kontrak" : "Kontrak Utama",
@@ -2124,8 +2161,8 @@ function TenantDetailPage({
       return;
     }
     const isSharingPackage = versionEditor.packageType === "sharing_core";
-    const monthlyAmount = Number(versionEditor.monthlyAmount);
-    const yearlyAmount = Number(versionEditor.yearlyAmount || monthlyAmount * 12);
+    const monthlyAmount = parseRupiahInput(versionEditor.monthlyAmount);
+    const yearlyAmount = versionEditor.yearlyAmount ? parseRupiahInput(versionEditor.yearlyAmount) : (monthlyAmount * 12);
     const coreTotal = Number(versionEditor.coreTotal);
 
     if (!versionEditor.requestedDate) {
@@ -2205,7 +2242,7 @@ function TenantDetailPage({
     const contractNumber = String(editorState.contractNumber ?? "").trim();
     const startDate = String(editorState.startDate ?? "").slice(0, 10);
     const endDate = String(editorState.endDate ?? "").slice(0, 10);
-    const monthlyAmount = Number(editorState.monthlyAmount);
+    const monthlyAmount = parseRupiahInput(editorState.monthlyAmount);
     const billingEvery = Number(editorState.billingEvery);
     const billingUnit = String(editorState.billingUnit ?? "");
     const contractUploadedFile = editorState.contractUploadedFile;
@@ -2326,7 +2363,7 @@ function TenantDetailPage({
       String(contractRowEditor.contractNumber ?? "").trim() !== String(originalRow.contractNumber ?? "").trim() ||
       String(contractRowEditor.startDate ?? "").slice(0, 10) !== String(originalRow.periodStart ?? "").slice(0, 10) ||
       String(contractRowEditor.endDate ?? "").slice(0, 10) !== String(originalRow.periodEnd ?? "").slice(0, 10) ||
-      Number(contractRowEditor.monthlyAmount) !== Number(originalRow.monthlyAmount ?? 0) ||
+      parseRupiahInput(contractRowEditor.monthlyAmount) !== Number(originalRow.monthlyAmount ?? 0) ||
       contractRowEditor.contractUploadedFile !== null ||
       contractRowEditor.bakUploadedFile !== null;
 
@@ -2806,6 +2843,46 @@ function TenantDetailPage({
     }));
   };
 
+  const handleInvoiceDraftAmountChange = (e, invoiceId) => {
+    const input = e.target;
+    const rawValue = input.value;
+    const selectionStart = input.selectionStart;
+    const oldLength = rawValue.length;
+    const formatted = formatRupiahInput(rawValue);
+
+    updateInvoiceDraftField(invoiceId, "amount", formatted);
+
+    requestAnimationFrame(() => {
+      const newLength = formatted.length;
+      const lengthDiff = newLength - oldLength;
+      let newSelectionStart = selectionStart + lengthDiff;
+      newSelectionStart = Math.max(0, Math.min(newSelectionStart, newLength));
+      if (typeof input.setSelectionRange === "function") {
+        input.setSelectionRange(newSelectionStart, newSelectionStart);
+      }
+    });
+  };
+
+  const handleInvoiceFixedAmountChange = (e) => {
+    const input = e.target;
+    const rawValue = input.value;
+    const selectionStart = input.selectionStart;
+    const oldLength = rawValue.length;
+    const formatted = formatRupiahInput(rawValue);
+
+    setInvoiceFixedAmount(formatted);
+
+    requestAnimationFrame(() => {
+      const newLength = formatted.length;
+      const lengthDiff = newLength - oldLength;
+      let newSelectionStart = selectionStart + lengthDiff;
+      newSelectionStart = Math.max(0, Math.min(newSelectionStart, newLength));
+      if (typeof input.setSelectionRange === "function") {
+        input.setSelectionRange(newSelectionStart, newSelectionStart);
+      }
+    });
+  };
+
   const updateInvoiceFollowUpDraftField = (invoiceId, followUpKey, field, value) => {
     setInvoiceDrafts((previousDrafts) => {
       const currentDraft = previousDrafts[invoiceId] ?? {};
@@ -2829,15 +2906,18 @@ function TenantDetailPage({
   const getInvoiceDraft = (invoice) => {
     const existingDraft = invoiceDrafts[invoice.id] ?? {};
 
+    let initialAmount = "";
+    if (existingDraft.amount !== undefined) {
+      initialAmount = existingDraft.amount;
+    } else {
+      const parsed = Number(invoice?.amount);
+      initialAmount = Number.isFinite(parsed) ? formatRupiahInput(Math.max(0, Math.round(parsed))) : "";
+    }
+
     return {
       invoiceNumber: String(existingDraft.invoiceNumber ?? invoice?.invoiceNumber ?? ""),
       dueDate: String(existingDraft.dueDate ?? invoice?.dueDate ?? ""),
-      amount: String(
-        existingDraft.amount ??
-        (Number.isFinite(Number(invoice.amount))
-          ? Math.max(0, Math.round(Number(invoice.amount)))
-          : 0),
-      ),
+      amount: initialAmount,
       status: String(existingDraft.status ?? invoice?.status ?? "belum_ditagih"),
       followUps: existingDraft.followUps ?? {},
     };
@@ -2866,17 +2946,18 @@ function TenantDetailPage({
     });
     nextFollowUpDrafts.initial = { invoiceNumber: String(invoice?.invoiceNumber ?? "") };
 
+    const parsedAmt = Number(invoice?.amount);
+    const formattedAmt = Number.isFinite(parsedAmt)
+      ? formatRupiahInput(Math.max(0, Math.round(parsedAmt)))
+      : "";
+
     setInvoiceDrafts((previousDrafts) => ({
       ...previousDrafts,
       [invoice.id]: {
         invoiceNumber: String(invoice?.invoiceNumber ?? ""),
         dueDate: String(invoice?.dueDate ?? ""),
         status: String(invoice?.status ?? "belum_ditagih"),
-        amount: String(
-          Number.isFinite(Number(invoice.amount))
-            ? Math.max(0, Math.round(Number(invoice.amount)))
-            : 0,
-        ),
+        amount: formattedAmt,
         followUps: nextFollowUpDrafts,
       },
     }));
@@ -2887,7 +2968,7 @@ function TenantDetailPage({
       return "Set date (tanggal terakhir pembayaran) wajib diisi sebelum upload invoice.";
     }
 
-    const amount = Number(draft.amount);
+    const amount = parseRupiahInput(draft.amount);
     if (!Number.isFinite(amount) || amount <= 0) {
       return "Jumlah dibayar wajib diisi lebih dari 0 sebelum upload invoice.";
     }
@@ -2905,7 +2986,7 @@ function TenantDetailPage({
 
   const handleSaveInvoiceRow = async (invoice) => {
     const draft = getInvoiceDraft(invoice);
-    const amount = Number(draft.amount);
+    const amount = parseRupiahInput(draft.amount);
 
     if (!Number.isFinite(amount) || amount < 0) {
       setError("Jumlah dibayar harus berupa angka dan tidak boleh negatif.");
@@ -3015,7 +3096,7 @@ function TenantDetailPage({
       return;
     }
 
-    const amount = Number(draft.amount);
+    const amount = parseRupiahInput(draft.amount);
 
     setIsSavingInvoice(true);
     setError("");
@@ -3169,8 +3250,8 @@ function TenantDetailPage({
           const baseAmount =
             previousDraft.amount ??
             (Number.isFinite(Number(invoice.amount))
-              ? String(Math.max(0, Math.round(Number(invoice.amount))))
-              : "0");
+              ? formatRupiahInput(Math.max(0, Math.round(Number(invoice.amount))))
+              : "");
 
           nextDrafts[invoice.id] = {
             invoiceNumber: String(previousDraft.invoiceNumber ?? ""),
@@ -3198,7 +3279,7 @@ function TenantDetailPage({
   };
 
   const handleApplyGlobalSetAmount = async () => {
-    const requestedAmount = Number(invoiceFixedAmount);
+    const requestedAmount = parseRupiahInput(invoiceFixedAmount);
     if (!Number.isFinite(requestedAmount) || requestedAmount < 0) {
       setError("Nominal harus diisi dengan angka valid.");
       return;
@@ -3226,7 +3307,7 @@ function TenantDetailPage({
           const previousDraft = previousDrafts[invoice.id] ?? {};
           nextDrafts[invoice.id] = {
             ...previousDraft,
-            amount: String(requestedAmount),
+            amount: formatRupiahInput(requestedAmount),
           };
         });
 
@@ -3354,6 +3435,7 @@ function TenantDetailPage({
     decision,
     file,
     followUpId = null,
+    packageOverrides = null,
   ) => {
     if (!file || !row?.contractId) {
       return;
@@ -3363,21 +3445,20 @@ function TenantDetailPage({
     try {
       const versionId = await ensureContractRenewalVersionId(row);
       const responseFileUrl = await uploadFileForRecord(file, ["customers", customer.id, "renewal-responses"]);
+      const updatePayload = {
+        response_file_url: responseFileUrl,
+        response_file_name: file.name,
+        response_status: decision,
+        status: "completed",
+      };
+      if (packageOverrides) {
+        updatePayload.packageOverrides = packageOverrides;
+      }
       if (followUpId) {
-        await api.contractVersionRenewalFollowUps.update(followUpId, {
-          response_file_url: responseFileUrl,
-          response_file_name: file.name,
-          response_status: decision,
-          status: "completed",
-        });
+        await api.contractVersionRenewalFollowUps.update(followUpId, updatePayload);
       } else {
         const followUp = await api.contractVersionRenewalFollowUps.create(versionId);
-        await api.contractVersionRenewalFollowUps.update(followUp.id, {
-          response_file_url: responseFileUrl,
-          response_file_name: file.name,
-          response_status: decision,
-          status: "completed",
-        });
+        await api.contractVersionRenewalFollowUps.update(followUp.id, updatePayload);
       }
       await Promise.all([loadDetail(), onRefreshAll?.()]);
     } catch (requestError) {
@@ -3446,7 +3527,32 @@ function TenantDetailPage({
                 ) : hasRenewalFile ? (
                   <div className="flex items-center gap-1.5">
                     <label className="relative inline-flex items-center gap-1 h-7 px-2.5 rounded-lg border border-emerald-500/20 bg-emerald-500/10 text-[8px] font-black uppercase tracking-widest text-emerald-400 hover:bg-emerald-500 hover:text-[#0f141e] transition-all cursor-pointer backdrop-blur-md">
-                      Lanjut<input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => void handleRespondTenantRenewal(row, "lanjut", e.target.files?.[0] ?? null, followUp.id)} />
+                      Lanjut
+                      <input
+                        type="file"
+                        className="absolute inset-0 opacity-0 cursor-pointer"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0] ?? null;
+                          if (!file) return;
+                          const currentVersion = versions.find(v => v.id === row.versionId) ?? null;
+                          const currentContract = contractsList.find(c => c.id === row.contractId) ?? null;
+                          const prevCoreType = currentVersion?.coreType ?? currentVersion?.core_type ?? currentContract?.coreType ?? currentContract?.core_type ?? "core";
+                          const prevCoreTotal = currentVersion?.coreTotal ?? currentVersion?.core_total ?? currentContract?.coreTotal ?? currentContract?.core_total ?? 1;
+                          const prevRatio = currentVersion?.sharedCoreRatio ?? currentVersion?.shared_core_ratio ?? currentContract?.sharingRatio ?? currentContract?.sharing_ratio ?? "1/32";
+                          const prevMonthlyAmount = currentVersion?.monthlyAmount ?? currentVersion?.monthly_amount ?? currentContract?.monthlyAmount ?? currentContract?.monthly_amount ?? 0;
+                          setRenewalConfirmData({
+                            row,
+                            decision: "lanjut",
+                            file,
+                            followUpId: followUp.id,
+                            usePreviousPackage: true,
+                            packageType: prevCoreType,
+                            coreTotal: prevCoreTotal,
+                            ratio: prevRatio,
+                            monthlyAmount: prevMonthlyAmount,
+                          });
+                        }}
+                      />
                     </label>
                     <label className="relative inline-flex items-center gap-1 h-7 px-2.5 rounded-lg border border-white/10 bg-white/5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:bg-white/10 hover:text-white transition-all cursor-pointer backdrop-blur-md">
                       Tidak<input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => void handleRespondTenantRenewal(row, "tidak", e.target.files?.[0] ?? null, followUp.id)} />
@@ -3697,7 +3803,7 @@ function TenantDetailPage({
 
         {/* ── PROFILE CARD ─────────────────────────────────────────── */}
         {(() => {
-          const rawStatus = (detail?.status ?? customer?.status ?? "aktif").toLowerCase();
+          const rawStatus = resolveCustomerOperationalStatus(detail ?? customer);
           // Contract status
           let cLabel = "Beroperasi";
           let cIcon = "check_circle";
@@ -3710,6 +3816,12 @@ function TenantDetailPage({
             cBg = "bg-[#ff2400]/10";
             cBorder = "border-[#ff2400]/20";
             cText = "text-[#ff2400]";
+          } else if (rawStatus === "belum_beroperasi") {
+            cLabel = "Belum Beroperasi";
+            cIcon = "schedule";
+            cBg = "bg-sky-500/10";
+            cBorder = "border-sky-500/20";
+            cText = "text-sky-400";
           } else if (rawStatus === "berhenti") {
             cLabel = "Berhenti";
             cIcon = "cancel";
@@ -3719,7 +3831,7 @@ function TenantDetailPage({
           }
 
           // Route status
-          const rawR = rawStatus === "berhenti" || rawStatus === "nonaktif" ? "nonaktif" : activeRouteStatus.toLowerCase();
+          const rawR = rawStatus === "berhenti" || rawStatus === "nonaktif" || rawStatus === "belum_beroperasi" ? "nonaktif" : activeRouteStatus.toLowerCase();
           let rLabel = "Jalur Aktif";
           let rIcon = "cable";
           let rBg = "bg-emerald-500/10";
@@ -4822,13 +4934,17 @@ function TenantDetailPage({
                           </td>
 
                           {/* Keterangan */}
-                          <td className="px-4 py-3 whitespace-nowrap border border-white/5">
-                            <span className={`inline-flex items-center px-2 py-1 rounded-md border text-[8px] font-black uppercase tracking-widest ${noteStyle}`}>
-                              {(() => {
-                                let note = row.note || "—";
-                                return note.replace(/^Kontrak\s+/i, "").replace(/\./g, "").trim();
-                              })()}
-                            </span>
+                          <td className="px-4 py-3 whitespace-nowrap border border-white/5 text-center">
+                            {row.note ? (
+                              <span className={`inline-flex items-center px-2 py-1 rounded-md border text-[8px] font-black uppercase tracking-widest ${noteStyle}`}>
+                                {(() => {
+                                  let note = row.note;
+                                  return note.replace(/^Kontrak\s+/i, "").replace(/\./g, "").trim();
+                                })()}
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-black text-white/20">—</span>
+                            )}
                           </td>
 
                           {/* Periode Awal Kontrak */}
@@ -4923,13 +5039,12 @@ function TenantDetailPage({
                           <td className="px-4 py-3 whitespace-nowrap border border-white/5 p-0">
                             <input
                               className="h-9 w-full bg-transparent px-4 text-[11px] font-black text-white border-transparent focus:border-gold-accent/40 focus:bg-white/[0.04] hover:bg-white/[0.02] outline-none transition-all text-right disabled:opacity-50"
-                              type="number"
-                              min="0"
+                              type="text"
                               placeholder="Nominal / bulan"
                               disabled={isSavingContractRow}
-                              value={isEditingContractRow ? (contractRowEditor.monthlyAmount ?? "") : (row.monthlyAmount ?? "")}
+                              value={isEditingContractRow ? (contractRowEditor.monthlyAmount ?? "") : (formatRupiahInput(row.monthlyAmount) ?? "")}
                               onChange={(e) => {
-                                setContractRowEditor((previous) => previous ? { ...previous, monthlyAmount: e.target.value } : previous);
+                                setContractRowEditor((previous) => previous ? { ...previous, monthlyAmount: formatRupiahInput(e.target.value) } : previous);
                               }}
                               onFocus={() => {
                                 if (!isEditingContractRow) {
@@ -5258,8 +5373,8 @@ function TenantDetailPage({
                       <p className="text-[8px] font-black uppercase tracking-[0.3em] text-white/20 px-1">Nominal (Rp)</p>
                       <input
                         className="h-10 w-28 rounded-xl border border-white/10 bg-white/[0.02] text-right px-3 text-[11px] font-black text-white outline-none focus:border-gold-accent/50 transition-all"
-                        onChange={(e) => setInvoiceFixedAmount(e.target.value)}
-                        type="number"
+                        onChange={handleInvoiceFixedAmountChange}
+                        type="text"
                         value={invoiceFixedAmount}
                       />
                     </div>
@@ -5426,15 +5541,15 @@ function TenantDetailPage({
                                 <input
                                   className="bg-transparent text-[10px] font-black text-white outline-none w-full text-right"
                                   disabled={isSavingInvoice}
-                                  onChange={(e) => updateInvoiceDraftField(invoice.id, "amount", e.target.value)}
-                                  type="number"
+                                  onChange={(e) => handleInvoiceDraftAmountChange(e, invoice.id)}
+                                  type="text"
                                   value={draft.amount}
                                 />
                               </div>
                             ) : (
                               <div className="space-y-1">
                                 <span className="text-[11px] font-black text-white/80">
-                                  {Number(draft.amount) > 0 ? formatCurrency(Number(draft.amount)).replace('Rp', '').trim() : <span className="text-white/20 italic font-normal">—</span>}
+                                  {parseRupiahInput(draft.amount) > 0 ? formatCurrency(parseRupiahInput(draft.amount)).replace('Rp', '').trim() : <span className="text-white/20 italic font-normal">—</span>}
                                 </span>
                                 {workflowMeta.setupWarnings.some((warning) => warning.code === "missing_amount") && (
                                   <p className="text-[8px] font-black text-rose-300 uppercase tracking-widest text-right">Atur nominal</p>
@@ -6189,22 +6304,28 @@ function TenantDetailPage({
                 <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2">
                   <GlassInput
                     label="Nominal Bulanan Baru"
-                    type="number"
+                    type="text"
                     value={versionEditor.monthlyAmount ?? ""}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      const formattedVal = formatRupiahInput(e.target.value);
+                      const parsedVal = parseRupiahInput(formattedVal);
                       setVersionEditor((previous) =>
-                        previous ? { ...previous, monthlyAmount: e.target.value } : previous,
-                      )
-                    }
-                    placeholder="Contoh: 1500000"
+                        previous ? {
+                          ...previous,
+                          monthlyAmount: formattedVal,
+                          yearlyAmount: parsedVal > 0 ? formatRupiahInput(parsedVal * 12) : ""
+                        } : previous,
+                      );
+                    }}
+                    placeholder="Contoh: 1.500.000"
                   />
                   <GlassInput
                     label="Nominal Tahunan Baru"
-                    type="number"
+                    type="text"
                     value={versionEditor.yearlyAmount ?? ""}
                     onChange={(e) =>
                       setVersionEditor((previous) =>
-                        previous ? { ...previous, yearlyAmount: e.target.value } : previous,
+                        previous ? { ...previous, yearlyAmount: formatRupiahInput(e.target.value) } : previous,
                       )
                     }
                     placeholder="Otomatis 12x bulanan"
@@ -6245,6 +6366,131 @@ function TenantDetailPage({
                   </button>
                 </div>
               </form>
+            </div>
+          </div>,
+          document.body
+        )}
+
+        {renewalConfirmData && createPortal(
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0f141e]/80 backdrop-blur-sm px-4">
+            <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto glass-card rounded-premium border border-white/10 shadow-glass-depth p-4 md:p-5 relative">
+              {/* Header */}
+              <div className="mb-3 flex items-start justify-between gap-4 border-b border-white/[0.05] pb-3">
+                <div className="space-y-1.5">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-emerald-400">
+                    Konfirmasi Perpanjangan Kontrak
+                  </p>
+                  <h3 className="text-lg font-black text-white tracking-tight uppercase">
+                    Pilih Paket Perpanjangan
+                  </h3>
+                </div>
+                <button
+                  className="h-8 w-8 rounded-lg border border-white/10 bg-white/5 flex items-center justify-center text-white/40 transition-all hover:bg-white/10 hover:text-white backdrop-blur-md shrink-0"
+                  onClick={() => setRenewalConfirmData(null)}
+                  type="button"
+                >
+                  <span className="material-symbols-outlined text-[14px]">close</span>
+                </button>
+              </div>
+
+              {/* Form */}
+              <div className="space-y-3.5">
+                <div className="flex items-center gap-4 py-1.5">
+                  <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-white/70 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="packageChoice"
+                      checked={renewalConfirmData.usePreviousPackage}
+                      onChange={() => setRenewalConfirmData(prev => ({ ...prev, usePreviousPackage: true }))}
+                      className="accent-emerald-500 h-3.5 w-3.5"
+                    />
+                    Gunakan Paket Sebelumnya
+                  </label>
+                  <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-white/70 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="packageChoice"
+                      checked={!renewalConfirmData.usePreviousPackage}
+                      onChange={() => setRenewalConfirmData(prev => ({ ...prev, usePreviousPackage: false }))}
+                      className="accent-emerald-500 h-3.5 w-3.5"
+                    />
+                    Ubah Paket (Isi Manual)
+                  </label>
+                </div>
+
+                {!renewalConfirmData.usePreviousPackage && (
+                  <div className="space-y-2.5 p-3 rounded-xl border border-white/5 bg-white/[0.01]">
+                    <GlassSelect
+                      label="Tipe Paket"
+                      value={renewalConfirmData.packageType}
+                      onChange={(val) => setRenewalConfirmData(prev => ({ ...prev, packageType: val }))}
+                      options={[
+                        { value: "core", label: "Core" },
+                        { value: "sharing_core", label: "Sharing Core" },
+                      ]}
+                    />
+
+                    {renewalConfirmData.packageType === "sharing_core" ? (
+                      <GlassInput
+                        label="Rasio Sharing (Contoh: 1/32)"
+                        placeholder="1/32"
+                        value={renewalConfirmData.ratio}
+                        onChange={(e) => setRenewalConfirmData(prev => ({ ...prev, ratio: e.target.value }))}
+                      />
+                    ) : (
+                      <GlassInput
+                        label="Jumlah Core"
+                        type="number"
+                        min="1"
+                        value={renewalConfirmData.coreTotal}
+                        onChange={(e) => setRenewalConfirmData(prev => ({ ...prev, coreTotal: e.target.value }))}
+                      />
+                    )}
+
+                    <GlassInput
+                      label="Nominal / Bulan"
+                      type="text"
+                      value={formatRupiahInput(renewalConfirmData.monthlyAmount)}
+                      onChange={(e) => setRenewalConfirmData(prev => ({ ...prev, monthlyAmount: formatRupiahInput(e.target.value) }))}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="mt-4 flex justify-end gap-3 border-t border-white/[0.05] pt-3">
+                <button
+                  className="h-9 px-4 rounded-xl border border-white/10 bg-white/5 text-[9px] font-black uppercase tracking-widest text-white/40 transition-all hover:bg-white/10 hover:text-white"
+                  onClick={() => setRenewalConfirmData(null)}
+                  type="button"
+                >
+                  Batal
+                </button>
+                <button
+                  className="h-9 px-4 rounded-xl bg-emerald-500 text-[9px] font-black uppercase tracking-widest text-[#0f141e] transition-all hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+                  onClick={async () => {
+                    const { row, decision, file, followUpId, usePreviousPackage, packageType, coreTotal, ratio, monthlyAmount } = renewalConfirmData;
+
+                    let packageOverrides = null;
+                    if (!usePreviousPackage) {
+                      const parsedAmount = parseRupiahInput(monthlyAmount);
+                      packageOverrides = {
+                        coreType: packageType,
+                        coreTotal: packageType === "core" ? Number(coreTotal) : 0,
+                        sharedCoreRatio: packageType === "sharing_core" ? ratio : null,
+                        monthlyAmount: parsedAmount,
+                        yearlyAmount: parsedAmount * 12,
+                      };
+                    }
+
+                    setRenewalConfirmData(null);
+                    await handleRespondTenantRenewal(row, decision, file, followUpId, packageOverrides);
+                  }}
+                  type="button"
+                >
+                  Konfirmasi
+                </button>
+              </div>
             </div>
           </div>,
           document.body

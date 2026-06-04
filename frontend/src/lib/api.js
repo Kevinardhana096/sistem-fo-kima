@@ -1,4 +1,4 @@
-import { buildInvoiceScheduleRows, getNextMonthIsoDate } from '../app/utils';
+import { buildInvoiceScheduleRows, getNextMonthIsoDate, resolveCustomerOperationalStatus } from '../app/utils';
 import { supabase } from './supabase';
 
 /**
@@ -598,7 +598,14 @@ const getDerivedNotifications = async (latestRouteByCustomerId = null) => {
         status,
         activation_fee_amount,
         activation_fee_paid_at,
-        contracts(id, contract_number, status),
+        contracts(
+          id,
+          contract_number,
+          status,
+          start_date,
+          end_date,
+          versions:contract_versions(id, start_date, end_date, deleted_at)
+        ),
         documents(id, contract_id, jenis_dokumen, file_url, deleted_at)
       `)
       .is('deleted_at', null),
@@ -648,7 +655,7 @@ const getDerivedNotifications = async (latestRouteByCustomerId = null) => {
   return (customersResult.data || []).flatMap((customer) => {
     const customerId = customer.id;
     const customerName = customer.name || `Pelanggan #${customerId}`;
-    const customerStatus = String(customer.status || '').trim().toLowerCase();
+    const customerStatus = resolveCustomerOperationalStatus(customer, todayIso);
     const notifications = [];
 
     if (customerStatus === 'aktif' && Number(customer.activation_fee_amount || 0) > 0 && !customer.activation_fee_paid_at) {
@@ -1299,6 +1306,8 @@ const mapCustomerDetail = (customer) => {
 
   return {
     ...customer,
+    rawStatus: customer.status ?? null,
+    status: resolveCustomerOperationalStatus(customer, today),
     customerId: customer.customerId ?? customer.customer_code ?? `CUST-${customer.id}`,
     activationFeeAmount: customer.activationFeeAmount ?? customer.activation_fee_amount ?? 0,
     activationFeePaidAt: customer.activationFeePaidAt ?? customer.activation_fee_paid_at ?? null,
@@ -3321,7 +3330,6 @@ export const monitoringApi = {
       return Number.isFinite(timestamp) ? timestamp : 0;
     };
     const normalizeStatus = (status) => String(status ?? '').trim().toLowerCase();
-    const isStoppedStatus = (status) => ['berhenti', 'nonaktif'].includes(normalizeStatus(status));
     const isContractInPeriod = (contract, start, end) => contract?.start_date <= end && contract?.end_date >= start;
     const sortContractVersions = (versions = []) => [...versions]
       .filter(version => !version.deleted_at)
@@ -3384,13 +3392,13 @@ export const monitoringApi = {
     let coreLocationCount = 0;
 
     customers.forEach(customer => {
-      const customerStatus = normalizeStatus(customer.status);
+      const customerStatus = resolveCustomerOperationalStatus(customer, today);
       const relevantContract = getRelevantContract(customer.contracts || []);
       const latestVersion = getLatestVersion(relevantContract);
       const coreType = latestVersion?.core_type || relevantContract?.core_type || null;
       const coreTotal = Number(latestVersion?.core_total ?? relevantContract?.core_total ?? 0);
       const sharingRatio = latestVersion?.shared_core_ratio || relevantContract?.sharing_ratio || null;
-      const isOperational = !isStoppedStatus(customerStatus);
+      const isOperational = customerStatus === 'aktif';
 
       if (isOperational) {
         if (coreType === 'core') {
@@ -3404,7 +3412,7 @@ export const monitoringApi = {
         }
       }
 
-      if (!isStoppedStatus(customerStatus)) {
+      if (customerStatus === 'aktif' || customerStatus === 'belum_beroperasi') {
         sharingTrend.forEach((monthData, index) => {
           const month = index + 1;
           const monthStart = `${selectedYear}-${String(month).padStart(2, '0')}-01`;
@@ -3429,7 +3437,7 @@ export const monitoringApi = {
       }
 
       const latestRoute = getLatestRouteVersion(customer);
-      const effectiveRouteStatus = isStoppedStatus(customerStatus)
+      const effectiveRouteStatus = customerStatus === 'berhenti' || customerStatus === 'belum_beroperasi'
         ? 'nonaktif'
         : normalizeStatus(latestRoute?.flow_status || 'aktif');
       const routeKey = ['perbaikan', 'maintenance'].includes(effectiveRouteStatus) ? 'perbaikan' : effectiveRouteStatus;
@@ -3443,7 +3451,7 @@ export const monitoringApi = {
     const tenantGrowth = growthYears.map(growthYear => ({
       year: String(growthYear),
       count: customers.filter(customer => {
-        if (isStoppedStatus(customer.status)) return false;
+        if (resolveCustomerOperationalStatus(customer) === 'berhenti') return false;
 
         const sourceDate = customer.contract_start_date
           || getRelevantContract(customer.contracts || [])?.start_date
@@ -3754,6 +3762,13 @@ export const contractVersionsApi = {
 
   // Update contract version
   async update(id, versionData) {
+    const { data: oldVersion, error: oldVersionError } = await supabase
+      .from('contract_versions')
+      .select('*')
+      .eq('id', id)
+      .single();
+    if (oldVersionError) throw oldVersionError;
+
     const { data, error } = await supabase
       .from('contract_versions')
       .update(withUpdatedAt(mapContractVersionPayload(versionData)))
@@ -3762,6 +3777,91 @@ export const contractVersionsApi = {
       .single();
 
     if (error) throw error;
+
+    // Sinkronisasi data ke kontrak induk jika versi ini adalah versi terbaru
+    const contractId = data.contract_id;
+    const { data: latestVersions, error: latestVersionsError } = await supabase
+      .from('contract_versions')
+      .select('id')
+      .eq('contract_id', contractId)
+      .is('deleted_at', null)
+      .order('version_number', { ascending: false })
+      .limit(1);
+    if (latestVersionsError) throw latestVersionsError;
+
+    if (Number(latestVersions?.[0]?.id) === Number(id)) {
+      const contractPayload = {};
+      const newEndDate = versionData.endDate ?? versionData.end_date;
+      const newContractNumber = versionData.contractNumber ?? versionData.contract_number;
+      if (newEndDate) {
+        contractPayload.end_date = newEndDate;
+      }
+      if (newContractNumber) {
+        contractPayload.contract_number = newContractNumber;
+      }
+      if (Object.keys(contractPayload).length > 0) {
+        const { error: contractUpdateError } = await supabase
+          .from('contracts')
+          .update(withUpdatedAt(contractPayload))
+          .eq('id', contractId);
+        if (contractUpdateError) throw contractUpdateError;
+      }
+    }
+
+    // Buat invoice baru jika tanggal berubah dari kosong menjadi terisi
+    const oldStart = oldVersion?.start_date;
+    const oldEnd = oldVersion?.end_date;
+    const newStart = versionData.startDate ?? versionData.start_date;
+    const newEnd = versionData.endDate ?? versionData.end_date;
+
+    if (!oldStart && !oldEnd && newStart && newEnd) {
+      // Tandai invoice lama menjadi 'history' sebelum membuat jadwal aktif versi baru.
+      const { error: invoiceHistoryError } = await supabase
+        .from('invoices')
+        .update(withUpdatedAt({ schedule_status: 'history' }))
+        .eq('contract_id', data.contract_id)
+        .is('deleted_at', null);
+      if (invoiceHistoryError) throw invoiceHistoryError;
+
+      const { data: mainContract, error: mainContractError } = await supabase
+        .from('contracts')
+        .select('billing_every, billing_unit')
+        .eq('id', data.contract_id)
+        .single();
+      if (mainContractError) throw mainContractError;
+
+      const billingCycle = {
+        every: mainContract?.billing_every ?? 1,
+        unit: mainContract?.billing_unit ?? 'bulan'
+      };
+
+      const newInvoiceRows = buildInvoiceScheduleRows(newStart, newEnd, billingCycle);
+      if (newInvoiceRows.length > 0) {
+        const newInvoicePayload = newInvoiceRows.map((row) => {
+          const periodDate = new Date(`${row.periodStartDate}T00:00:00.000Z`);
+          const periodYear = periodDate.getUTCFullYear();
+          const periodMonth = periodDate.getUTCMonth() + 1;
+          return {
+            customer_id: data.customer_id,
+            contract_id: data.contract_id,
+            contract_version_id: data.id,
+            contract_number: data.contract_number,
+            period_start_date: row.periodStartDate,
+            period_end_date: row.periodEndDate,
+            period_year: periodYear,
+            period_month: periodMonth,
+            due_date: resolveInvoiceDueDate(row.periodStartDate),
+            amount: data.monthly_amount,
+            status: 'belum_ditagih',
+            schedule_status: 'active',
+            updated_at: new Date().toISOString()
+          };
+        });
+        const { error: invoiceInsertError } = await supabase.from('invoices').insert(newInvoicePayload);
+        if (invoiceInsertError) throw invoiceInsertError;
+      }
+    }
+
     return data;
   },
 
@@ -4415,7 +4515,21 @@ export const contractVersionRenewalFollowUpsApi = {
         .single();
       if (verErr) throw verErr;
 
-      // Hitung version_number berikutnya
+      const { data: existingDraftVersions, error: existingDraftErr } = await supabase
+        .from('contract_versions')
+        .select('id')
+        .eq('contract_id', currentVersion.contract_id)
+        .gt('version_number', Number(currentVersion.version_number ?? 0))
+        .is('start_date', null)
+        .is('end_date', null)
+        .is('deleted_at', null)
+        .order('version_number', { ascending: false })
+        .limit(1);
+      if (existingDraftErr) throw existingDraftErr;
+
+      const existingDraftVersion = existingDraftVersions?.[0] ?? null;
+
+      // Hitung version_number berikutnya jika belum ada draft perpanjangan.
       const { data: latestVersions, error: latestVerErr } = await supabase
         .from('contract_versions')
         .select('version_number')
@@ -4426,103 +4540,43 @@ export const contractVersionRenewalFollowUpsApi = {
 
       const nextVersionNumber = Number(latestVersions?.[0]?.version_number ?? 1) + 1;
 
-      // 2. Hitung tanggal mulai & akhir untuk periode perpanjangan baru
-      const oldEndDate = new Date(currentVersion.end_date);
-      const newStart = new Date(oldEndDate);
-      newStart.setDate(newStart.getDate() + 1);
-      const newStartDateIso = newStart.toISOString().slice(0, 10);
+      // Evaluasi apakah ada override paket kontrak dari frontend
+      const packageOverrides = followUpData.packageOverrides ?? followUpData.package_overrides ?? null;
+      const coreType = packageOverrides
+        ? (packageOverrides.coreType ?? packageOverrides.core_type ?? 'core')
+        : currentVersion.core_type;
+      const coreTotal = packageOverrides
+        ? Number(packageOverrides.coreTotal ?? packageOverrides.core_total ?? 0)
+        : currentVersion.core_total;
+      const sharedCoreRatio = packageOverrides
+        ? (packageOverrides.sharedCoreRatio ?? packageOverrides.shared_core_ratio ?? null)
+        : currentVersion.shared_core_ratio;
+      const monthlyAmount = packageOverrides
+        ? Number(packageOverrides.monthlyAmount ?? packageOverrides.monthly_amount ?? 0)
+        : currentVersion.monthly_amount;
+      const yearlyAmount = packageOverrides
+        ? Number(packageOverrides.yearlyAmount ?? packageOverrides.yearly_amount ?? (monthlyAmount * 12))
+        : currentVersion.yearly_amount;
 
-      const newEnd = new Date(newStart);
-      newEnd.setFullYear(newEnd.getFullYear() + 1);
-      newEnd.setDate(newEnd.getDate() - 1);
-      const newEndDateIso = newEnd.toISOString().slice(0, 10);
-
-      // 3. Buat versi kontrak baru (Version aktif berikutnya)
-      const { data: newVersion, error: newVerErr } = await supabase
-        .from('contract_versions')
-        .insert(withUpdatedAt({
-          contract_id: currentVersion.contract_id,
-          customer_id: currentVersion.customer_id,
-          contract_number: currentVersion.contract_number,
-          version_number: nextVersionNumber,
-          start_date: newStartDateIso,
-          end_date: newEndDateIso,
-          core_type: currentVersion.core_type,
-          core_total: currentVersion.core_total,
-          shared_core_ratio: currentVersion.shared_core_ratio,
-          monthly_amount: currentVersion.monthly_amount,
-          yearly_amount: currentVersion.yearly_amount,
-          remarks: `Perpanjangan (Renewal) otomatis; efektif ${newStartDateIso} s/d ${newEndDateIso}.`
-        }))
-        .select()
-        .single();
-      if (newVerErr) throw newVerErr;
-
-      // 4. Perpanjang tanggal berakhir di kontrak induk
-      const { error: contractUpdateErr } = await supabase
-        .from('contracts')
-        .update(withUpdatedAt({
-          end_date: newEndDateIso
-        }))
-        .eq('id', currentVersion.contract_id);
-      if (contractUpdateErr) throw contractUpdateErr;
-
-      // 5. Tandai invoice lama kontrak ini menjadi 'history'
-      const { error: oldInvoicesErr } = await supabase
-        .from('invoices')
-        .update(withUpdatedAt({
-          schedule_status: 'history'
-        }))
-        .eq('contract_id', currentVersion.contract_id)
-        .is('deleted_at', null);
-      if (oldInvoicesErr) throw oldInvoicesErr;
-
-      // 6. Generate invoice baru untuk periode perpanjangan aktif
-      const { data: mainContract, error: mainContractErr } = await supabase
-        .from('contracts')
-        .select('billing_every, billing_unit')
-        .eq('id', currentVersion.contract_id)
-        .single();
-      if (mainContractErr) throw mainContractErr;
-
-      const billingCycle = {
-        every: mainContract?.billing_every ?? 1,
-        unit: mainContract?.billing_unit ?? 'bulan'
-      };
-
-      const newInvoiceRows = buildInvoiceScheduleRows(
-        newStartDateIso,
-        newEndDateIso,
-        billingCycle
-      );
-
-      if (newInvoiceRows.length > 0) {
-        const newInvoicePayload = newInvoiceRows.map((row) => {
-          const periodDate = new Date(`${row.periodStartDate}T00:00:00.000Z`);
-          const periodYear = periodDate.getUTCFullYear();
-          const periodMonth = periodDate.getUTCMonth() + 1;
-
-          return {
-            customer_id: currentVersion.customer_id,
+      // 3. Buat versi kontrak baru (Version aktif berikutnya) dengan nilai kosong agar diisi manual
+      if (!existingDraftVersion) {
+        const { error: newVerErr } = await supabase
+          .from('contract_versions')
+          .insert(withUpdatedAt({
             contract_id: currentVersion.contract_id,
-            contract_version_id: newVersion.id,
-            contract_number: currentVersion.contract_number,
-            period_start_date: row.periodStartDate,
-            period_end_date: row.periodEndDate,
-            period_year: periodYear,
-            period_month: periodMonth,
-            due_date: resolveInvoiceDueDate(row.periodStartDate),
-            amount: currentVersion.monthly_amount,
-            status: 'belum_ditagih',
-            schedule_status: 'active',
-            updated_at: new Date().toISOString()
-          };
-        });
-
-        const { error: insertInvoiceErr } = await supabase
-          .from('invoices')
-          .insert(newInvoicePayload);
-        if (insertInvoiceErr) throw insertInvoiceErr;
+            customer_id: currentVersion.customer_id,
+            contract_number: null,
+            version_number: nextVersionNumber,
+            start_date: null,
+            end_date: null,
+            core_type: coreType,
+            core_total: coreTotal,
+            shared_core_ratio: sharedCoreRatio,
+            monthly_amount: monthlyAmount,
+            yearly_amount: yearlyAmount,
+            remarks: null
+          }));
+        if (newVerErr) throw newVerErr;
       }
     }
 

@@ -2,18 +2,9 @@ import { useMemo, useState, useEffect, useRef } from "react";
 import AppShell from "../../components/layout/AppShell";
 import { SummaryCard, StatCard } from "../../components/shared/AppShared";
 import api from "../../lib/api";
-import { getPackageDisplay, normalizeOperationalStatus, isStoppedStatus } from "./utils";
+import { getPackageDisplay, normalizeOperationalStatus, isStoppedStatus, resolveTenantOperationalStatus } from "./utils";
 
-const getTenantOperationalStatus = (tenant, todayIso) => {
-    const rawStatus = normalizeOperationalStatus(tenant?.rawStatus);
-    if (isStoppedStatus(rawStatus)) return "berhenti";
-    if (rawStatus === "expired") return "expired";
-
-    const contractEndDate = typeof tenant?.contractPeriodEnd === "string"
-        ? tenant.contractPeriodEnd.slice(0, 10)
-        : "";
-    return contractEndDate && contractEndDate < todayIso ? "expired" : "beroperasi";
-};
+const getTenantOperationalStatus = (tenant, todayIso) => resolveTenantOperationalStatus(tenant, todayIso);
 const isTenantActive = (tenant, todayIso) => getTenantOperationalStatus(tenant, todayIso) === "beroperasi";
 const getIspOperationalStatus = (isp, todayIso) => {
     const rawStatus = normalizeOperationalStatus(isp?.status);
@@ -25,9 +16,9 @@ const getIspOperationalStatus = (isp, todayIso) => {
         : "";
     return contractPeriodEnd && contractPeriodEnd < todayIso ? "expired" : "beroperasi";
 };
-const resolveTenantRouteStatus = (tenant, todayIso) => getTenantOperationalStatus(tenant, todayIso) === "berhenti"
-    ? "nonaktif"
-    : String(tenant?.routeStatus || "aktif").trim().toLowerCase();
+    const resolveTenantRouteStatus = (tenant, todayIso) => getTenantOperationalStatus(tenant, todayIso) === "berhenti"
+        ? "nonaktif"
+        : String(tenant?.routeStatus || "aktif").trim().toLowerCase();
 const getPeriodStart = (item) => String(item?.startDate ?? item?.start_date ?? "").slice(0, 10);
 const getPeriodEnd = (item) => String(item?.endDate ?? item?.end_date ?? "").slice(0, 10);
 const isInPeriod = (item, todayIso) => {
@@ -553,6 +544,7 @@ function CustomerWorkspacePage({
                             options={[
                                 { value: "all", label: "Semua Status" },
                                 { value: "beroperasi", label: "Beroperasi" },
+                                { value: "belum_beroperasi", label: "Belum Beroperasi" },
                                 { value: "expired", label: "Belum Diperpanjang" }
                             ]}
                         />
@@ -773,8 +765,14 @@ function CustomerWorkspacePage({
                                                                                     ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
                                                                                     : "bg-white/5 text-white/40 border border-white/10"
                                                                                     }`}>
-                                                                                    {getTenantOperationalStatus(tenant, todayIso) === "expired" ? "Belum Diperpanjang" : isTenantActive(tenant, todayIso) ? "Beroperasi" : "Berhenti"}
-                                                                                </span>
+                                                                                {getTenantOperationalStatus(tenant, todayIso) === "expired"
+                                                                                    ? "Belum Diperpanjang"
+                                                                                    : getTenantOperationalStatus(tenant, todayIso) === "belum_beroperasi"
+                                                                                        ? "Belum Beroperasi"
+                                                                                        : isTenantActive(tenant, todayIso)
+                                                                                            ? "Beroperasi"
+                                                                                            : "Berhenti"}
+                                                                            </span>
                                                                                 <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${resolveTenantRouteStatus(tenant, todayIso) === "gangguan"
                                                                                     ? "bg-red-600/10 text-red-400 border border-red-600/20"
                                                                                     : resolveTenantRouteStatus(tenant, todayIso) === "perbaikan"

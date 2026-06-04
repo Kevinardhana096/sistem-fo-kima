@@ -425,6 +425,9 @@ const getDateValue = (value) => {
 
 const getContractVersionNumber = (version) => Number(version?.versionNumber ?? version?.version_number ?? 0);
 const getTodayIso = () => new Date().toISOString().slice(0, 10);
+const normalizeOperationalStatus = (status) => String(status ?? "").trim().toLowerCase();
+const isPendingOperationalStatus = (status) => ["belum_beroperasi", "belum beroperasi", "belum"].includes(normalizeOperationalStatus(status));
+const isStoppedStatus = (status) => ["berhenti", "nonaktif"].includes(normalizeOperationalStatus(status));
 const getStartDate = (item) => item?.startDate ?? item?.start_date ?? null;
 const getEndDate = (item) => item?.endDate ?? item?.end_date ?? null;
 const isDateInPeriod = (item, date) => getStartDate(item) <= date && getEndDate(item) >= date;
@@ -574,6 +577,31 @@ export const resolveCustomerContractPeriodInfo = (customer) => {
     };
 };
 
+export const resolveCustomerOperationalStatus = (customer, todayIso = getTodayIso()) => {
+    const rawStatus = normalizeOperationalStatus(customer?.status ?? customer?.rawStatus);
+    if (isStoppedStatus(rawStatus)) return "berhenti";
+    const contractPeriodInfo = resolveCustomerContractPeriodInfo(customer);
+    const periodStart = String(
+        contractPeriodInfo.contractPeriodStart
+            ?? customer?.contractPeriodStart
+            ?? customer?.contract_period_start
+            ?? "",
+    ).slice(0, 10);
+    const periodEnd = String(
+        contractPeriodInfo.contractPeriodEnd
+            ?? customer?.contractPeriodEnd
+            ?? customer?.contract_period_end
+            ?? "",
+    ).slice(0, 10);
+
+    if (periodStart && periodStart > todayIso) return "belum_beroperasi";
+    if (periodEnd && periodEnd < todayIso) return "expired";
+    if (["expired", "belum_diperpanjang"].includes(rawStatus)) return "expired";
+    if (isPendingOperationalStatus(rawStatus)) return "belum_beroperasi";
+
+    return "aktif";
+};
+
 const normalizeDisplayContractNumber = (value) => {
     const contractNumber = String(value ?? "").trim();
     return contractNumber && !contractNumber.startsWith("NO-BAK-") ? contractNumber : "-";
@@ -594,7 +622,8 @@ export const resolveCustomerContractNumber = (customer) => {
 };
 
 export const mapCustomerToRow = (customer, index) => {
-    const active = customer.status === "aktif";
+    const operationalStatus = resolveCustomerOperationalStatus(customer);
+    const active = operationalStatus === "aktif";
     const activationFeeAmount = Number(customer.activationFeeAmount ?? customer.activation_fee_amount ?? 0);
     const activationFeePaidAt = customer.activationFeePaidAt ?? customer.activation_fee_paid_at ?? null;
     const routeStatus = typeof customer.routeStatus === "string"
@@ -634,13 +663,19 @@ export const mapCustomerToRow = (customer, index) => {
         ispDisplay,
         ispList: ispList.length > 0 ? ispList : [primaryIsp],
         name: customer.name ?? "-",
-        status: active ? "Beroperasi" : "Berhenti",
+        status: operationalStatus === "aktif"
+            ? "Beroperasi"
+            : operationalStatus === "belum_beroperasi"
+                ? "Belum Beroperasi"
+                : operationalStatus === "expired"
+                    ? "Belum Diperpanjang"
+                    : "Berhenti",
         active,
         contracts: Number(customer.contractCount ?? customer.contract_count ?? 0),
         documents: Number(customer.documentCount ?? customer.document_count ?? 0),
         invoices: Number(customer.invoiceCount ?? customer.invoice_count ?? 0),
         customerId: customer.customerCode ?? customer.customer_code ?? `CUST-${customer.id}`,
-        rawStatus: customer.status,
+        rawStatus: operationalStatus,
         routeStatus,
         contractStartDate: contractPeriodInfo.contractStartDate,
         contractPeriodStart: contractPeriodInfo.contractPeriodStart,

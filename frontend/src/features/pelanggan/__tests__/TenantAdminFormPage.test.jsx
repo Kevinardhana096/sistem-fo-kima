@@ -138,19 +138,20 @@ describe('TenantAdminFormPage — Tambah Lokasi Baru', () => {
     await userEvent.type(coreInput, '4');
     const dateInputs = document.querySelectorAll('input[type="date"]');
     const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
-    nativeSetter.call(dateInputs[1], '2026-02-01');
-    fireEvent.change(dateInputs[1], { target: { value: '2026-02-01' } });
-    nativeSetter.call(dateInputs[2], '2027-01-31');
-    fireEvent.change(dateInputs[2], { target: { value: '2027-01-31' } });
+    nativeSetter.call(dateInputs[1], '2026-07-01');
+    fireEvent.change(dateInputs[1], { target: { value: '2026-07-01' } });
+    nativeSetter.call(dateInputs[2], '2027-06-30');
+    fireEvent.change(dateInputs[2], { target: { value: '2027-06-30' } });
     submitForm();
     await waitFor(() => {
       expect(api.customers.create).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'Gedung Sukses',
           ispIds: [1],
-          contractStartDate: '2026-02-01',
-          contractPeriodStart: '2026-02-01',
-          contractPeriodEnd: '2027-01-31',
+          contractStartDate: '2026-07-01',
+          contractPeriodStart: '2026-07-01',
+          contractPeriodEnd: '2027-06-30',
+          status: 'belum_beroperasi',
         })
       );
     }, { timeout: 3000 });

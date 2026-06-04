@@ -38,6 +38,7 @@ Urutan setup environment baru (ringkas): **auth users → RLS → kolom/feature 
 | [maintenance/add-isp-document-columns.sql](maintenance/add-isp-document-columns.sql) | Menambahkan kolom metadata file BAK & kontrak ISP yang dipakai frontend. |
 | [maintenance/add-isp-contract-row-status.sql](maintenance/add-isp-contract-row-status.sql) | Menambahkan kolom `status` kompatibilitas pada `isp_contract_rows` agar payload frontend lama tetap bisa ditulis. |
 | [maintenance/add-isp-entry-points.sql](maintenance/add-isp-entry-points.sql) | Menambahkan titik entry FO ISP dan pilihan redundansi customer opsional (aman rerun). |
+| [maintenance/add-customer-status-belum-beroperasi.sql](maintenance/add-customer-status-belum-beroperasi.sql) | Menambahkan enum `belum_beroperasi` pada `customer_status` untuk lokasi dengan periode mulai di masa depan. |
 | [maintenance/add-route-point-coordinates.sql](maintenance/add-route-point-coordinates.sql) | Menambahkan kolom koordinat terstruktur (`latitude`/`longitude`) pada titik jalur dan geometri/metadata rute pada versi jalur + backfill dari `note` (Fase 1 migrasi FO planner). |
 | [maintenance/add-customer-logo-url.sql](maintenance/add-customer-logo-url.sql) | Menambahkan kolom `logo_url` (opsional) pada `customers`. |
 | [maintenance/add-contract-version-contract-number.sql](maintenance/add-contract-version-contract-number.sql) | Menambahkan kolom `contract_number` pada `contract_versions`. |
