@@ -4,7 +4,10 @@ import { SummaryCard, StatCard } from "../../components/shared/AppShared";
 import api from "../../lib/api";
 import { getPackageDisplay, normalizeOperationalStatus, isStoppedStatus, resolveTenantOperationalStatus } from "./utils";
 
-const getTenantOperationalStatus = (tenant, todayIso) => resolveTenantOperationalStatus(tenant, todayIso);
+const getTenantOperationalStatus = (tenant, todayIso) => {
+    const status = resolveTenantOperationalStatus(tenant, todayIso);
+    return status === "aktif" ? "beroperasi" : status;
+};
 const isTenantActive = (tenant, todayIso) => getTenantOperationalStatus(tenant, todayIso) === "beroperasi";
 const getIspOperationalStatus = (isp, todayIso) => {
     const rawStatus = normalizeOperationalStatus(isp?.status);
@@ -320,7 +323,8 @@ function CustomerWorkspacePage({
     // --- LOGIC: Stats ---
     const totalActiveTenants = customers.filter((tenant) => isTenantActive(tenant, todayIso)).length;
     const totalExpiredTenants = customers.filter((tenant) => getTenantOperationalStatus(tenant, todayIso) === "expired").length;
-    const totalActiveOrExpiredTenants = totalActiveTenants + totalExpiredTenants;
+    const totalPendingTenants = customers.filter((tenant) => getTenantOperationalStatus(tenant, todayIso) === "belum_beroperasi").length;
+    const totalActiveOrExpiredTenants = totalActiveTenants + totalExpiredTenants + totalPendingTenants;
     const totalIspExpired = isps.filter((isp) => getIspOperationalStatus(isp, todayIso) === "expired").length;
     const filteredTenantCount = allGroups.reduce((total, group) => total + group.tenants.length, 0);
     const isAnyFilterActive = Boolean(normalizedSearch)
@@ -472,10 +476,11 @@ function CustomerWorkspacePage({
                 )}
 
                 {/* 3. SUMMARY CARDS */}
-                <section className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+                <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2.5">
                     {[
                         { label: "Total ISP", value: isps.length, icon: "domain", color: "text-white", bg: "bg-white/5", border: "border-white/10" },
                         { label: "Total Lokasi", value: totalActiveOrExpiredTenants, icon: "groups", color: "text-white", bg: "bg-white/5", border: "border-white/10" },
+                        { label: "Lokasi Belum Beroperasi", value: totalPendingTenants, icon: "schedule", color: "text-[#38bdf8]", bg: "bg-[#38bdf8]/10", border: "border-[#38bdf8]/20" },
                         { label: "ISP Belum Diperpanjang", value: totalIspExpired, icon: "dns", color: "text-[#ffab00]", bg: "bg-[#ffab00]/10", border: "border-[#ffab00]/20" },
                         { label: "Lokasi Belum Diperpanjang", value: totalExpiredTenants, icon: "event_busy", color: "text-[#ffab00]", bg: "bg-[#ffab00]/10", border: "border-[#ffab00]/20" },
                     ].map(({ label, value, icon, color, bg, border }) => (

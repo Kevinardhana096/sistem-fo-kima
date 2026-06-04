@@ -596,7 +596,11 @@ export const resolveCustomerOperationalStatus = (customer, todayIso = getTodayIs
 
     if (periodStart && periodStart > todayIso) return "belum_beroperasi";
     if (periodEnd && periodEnd < todayIso) return "expired";
-    if (["expired", "belum_diperpanjang"].includes(rawStatus)) return "expired";
+    if (["expired", "belum_diperpanjang"].includes(rawStatus)) {
+        if (!periodEnd || periodEnd < todayIso) {
+            return "expired";
+        }
+    }
     if (isPendingOperationalStatus(rawStatus)) return "belum_beroperasi";
 
     return "aktif";

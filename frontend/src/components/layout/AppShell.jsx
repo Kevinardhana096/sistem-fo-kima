@@ -206,16 +206,6 @@ function TopNav({ isSidebarCollapsed, onToggleMenu, onLogout, roleConfig, onEdit
         }
     };
 
-    const handleMarkResolved = async (event, notification) => {
-        event.stopPropagation();
-        try {
-            await api.notifications.markResolved(notification.id);
-            await loadNotifications();
-        } catch (error) {
-            console.error("Failed to resolve notification:", error);
-        }
-    };
-
     const unreadCount = notifications.filter((notification) => !notification.readAt).length;
 
     return (
@@ -326,13 +316,6 @@ function TopNav({ isSidebarCollapsed, onToggleMenu, onLogout, roleConfig, onEdit
                                                                             Dibaca
                                                                         </button>
                                                                     )}
-                                                                    <button
-                                                                        className="rounded-md bg-emerald-500/20 px-2 py-1 text-[8px] font-black uppercase tracking-widest text-emerald-400 transition-all hover:bg-emerald-500 hover:text-white backdrop-blur-md"
-                                                                        onClick={(event) => handleMarkResolved(event, notification)}
-                                                                        type="button"
-                                                                    >
-                                                                        Selesai
-                                                                    </button>
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -431,8 +414,22 @@ function Sidebar({ isCollapsed, onToggle, activeSection, onNavigate, roleConfig 
                 }`}
         >
             <button
+                aria-label={isCollapsed ? "Buka sidebar" : "Ciutkan sidebar"}
+                className={`sidebar-collapse-hint ${isCollapsed ? "sidebar-collapse-hint--collapsed" : "sidebar-collapse-hint--expanded"}`}
+                onClick={onToggle}
+                title={isCollapsed ? "Buka sidebar" : "Ciutkan sidebar"}
+                type="button"
+            >
+                <span className="material-symbols-outlined" style={{ fontSize: "32px" }}>
+                    {isCollapsed ? "chevron_right" : "chevron_left"}
+                </span>
+            </button>
+
+            <button
                 onClick={onToggle}
                 className={`w-full py-5 transition-all duration-500 hover:scale-[1.02] active:scale-[0.98] group focus:outline-none flex items-center ${isCollapsed ? "justify-center px-0" : "px-4 lg:px-5"}`}
+                title={isCollapsed ? "Buka sidebar" : "Ciutkan sidebar"}
+                type="button"
             >
                 <div className="flex items-center gap-3">
                     <div className="h-8 w-8 flex items-center justify-center rounded-xl bg-gold-accent shadow-gold-glow shrink-0">

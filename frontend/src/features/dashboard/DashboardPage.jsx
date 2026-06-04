@@ -57,7 +57,7 @@ export default function DashboardPage({
         range: "5",
         start: String(new Date().getUTCFullYear() - 2),
         end: String(new Date().getUTCFullYear()),
-        currentMonthOnly: true
+        currentMonthOnly: false
     });
     const [coreTrendExportFilter, setCoreTrendExportFilter] = useState({
         mode: "this_year",
@@ -65,7 +65,7 @@ export default function DashboardPage({
         range: "5",
         start: String(new Date().getUTCFullYear() - 2),
         end: String(new Date().getUTCFullYear()),
-        currentMonthOnly: true
+        currentMonthOnly: false
     });
     const [isExportingCoreTrend, setIsExportingCoreTrend] = useState(false);
     const [isExportingCoreTrendXlsx, setIsExportingCoreTrendXlsx] = useState(false);
@@ -76,6 +76,11 @@ export default function DashboardPage({
     const coreTrendModeOptions = [
         { value: "this_year", label: "Tahun Ini" },
         { value: "specific_year", label: "Tahun Spesifik" }
+    ];
+    const growthModeOptions = [
+        { value: "range_years", label: "Rentang" },
+        { value: "specific_year", label: "Tahun Spesifik" },
+        { value: "custom", label: "Kustom Range" }
     ];
     const getCoreTrendYear = useCallback(() => {
         if (coreTrendFilter.mode === "specific_year") return coreTrendFilter.year;
@@ -559,7 +564,7 @@ export default function DashboardPage({
                                 <h2 className="text-base font-black text-on-surface tracking-tight">Grafik Pertumbuhan</h2>
                             </div>
                             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                                <ChartFilterSelector filter={growthFilter} setFilter={setGrowthFilter} availableYears={availableYears} />
+                                <ChartFilterSelector filter={growthFilter} setFilter={setGrowthFilter} availableYears={availableYears} modeOptions={growthModeOptions} />
                                 <div className="inline-flex rounded-xl bg-white/10 p-1 border border-white/15 backdrop-blur-md">
                                     {["tenant", "isp"].map(type => (
                                         <button
@@ -652,7 +657,7 @@ export default function DashboardPage({
                     <div className={`${glassCardClass} h-full flex flex-col md:col-span-2 xl:col-span-1`}>
                         <div className="flex items-center gap-2 mb-3 shrink-0">
                             <span className="h-4 w-1 bg-gold-accent rounded-full"></span>
-                            <h2 className="text-base font-black text-on-surface tracking-tight">Status Kontrak</h2>
+                            <h2 className="text-base font-black text-on-surface tracking-tight">Status Kontrak Lokasi</h2>
                         </div>
                         <div className="flex-1 flex flex-col justify-between mt-2">
                             <div className="space-y-2">
@@ -663,8 +668,8 @@ export default function DashboardPage({
                             </div>
                             <div className="mt-3 p-3 rounded-lg bg-white/5 border border-white/10 flex items-center justify-between shrink-0 backdrop-blur-md">
                                 <div>
-                                    <p className="text-[8px] font-black text-on-surface-variant uppercase tracking-widest">Total Operasional</p>
-                                    <p className="text-xl font-black text-on-surface mt-0.5">{stats.contract.totalOperational}</p>
+                                    <p className="text-[8px] font-black text-on-surface-variant uppercase tracking-widest">Total Lokasi Operasional</p>
+                                    <p className="text-xl font-black text-on-surface mt-0.5">{stats.contract.totalOperational} <span className="text-[10px] font-black text-on-surface-variant uppercase tracking-wider ml-1">Lokasi</span></p>
                                 </div>
                                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 text-on-surface-variant border border-white/5 backdrop-blur-md">
                                     <span className="material-symbols-outlined" style={{ fontSize: "18px" }}>domain</span>
@@ -730,7 +735,10 @@ function ContractStatusRow({ label, count, color, bg, icon }) {
                 </div>
                 <span className={`text-[9px] font-black uppercase tracking-widest ${color}`}>{label}</span>
             </div>
-            <span className={`text-base font-black ${color}`}>{count}</span>
+            <span className={`text-base font-black ${color} flex items-baseline gap-1`}>
+                {count}
+                <span className="text-[8px] font-black opacity-60 uppercase tracking-wider">Lokasi</span>
+            </span>
         </div>
     );
 }

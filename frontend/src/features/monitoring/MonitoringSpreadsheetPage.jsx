@@ -104,7 +104,8 @@ const formatMonitoringCoreAmount = (row) => {
 
 const normalizeOperationalStatus = (status) => String(status ?? "").trim().toLowerCase();
 const isStoppedStatus = (status) => ["berhenti", "nonaktif"].includes(normalizeOperationalStatus(status));
-const resolveRouteStatus = (customerStatus, routeStatus) => isStoppedStatus(customerStatus)
+const isPendingOperationalStatus = (status) => ["belum_beroperasi", "belum beroperasi", "belum"].includes(normalizeOperationalStatus(status));
+const resolveRouteStatus = (customerStatus, routeStatus) => (isStoppedStatus(customerStatus) || isPendingOperationalStatus(customerStatus))
     ? "nonaktif"
     : String(routeStatus || "aktif").trim().toLowerCase();
 
@@ -463,7 +464,7 @@ function MonitoringSpreadsheetPage({
         const loweredSearch = filters.search.trim().toLowerCase();
         const alertCustomerIds = new Set(alerts.map(a => a.customerId));
 
-        return billingRows.filter((row) => {
+        const filtered = billingRows.filter((row) => {
             // 1. Search Filter (ISP or Location)
             const searchableText = [
                 row.customerName,
@@ -473,12 +474,17 @@ function MonitoringSpreadsheetPage({
             const matchesSearch = !loweredSearch || searchableText.includes(loweredSearch);
 
             // 2. Status Kontrak Filter
-            const remainingDays = getRemainingRentalDays(row.contractEnd);
             let contractStatusKey = "beroperasi";
+            const today = new Date().toISOString().slice(0, 10);
             if (isStoppedStatus(row.customerStatus)) {
                 contractStatusKey = "berhenti";
-            } else if (remainingDays !== null && remainingDays < 0) {
-                contractStatusKey = "expired";
+            } else if ((row.contractStart && row.contractStart > today) || isPendingOperationalStatus(row.customerStatus)) {
+                contractStatusKey = "belum_beroperasi";
+            } else {
+                const remainingDays = getRemainingRentalDays(row.contractEnd);
+                if (remainingDays !== null && remainingDays < 0) {
+                    contractStatusKey = "expired";
+                }
             }
             const matchesContract = filters.contractStatus === "all" ? true : contractStatusKey === filters.contractStatus;
 
@@ -501,6 +507,17 @@ function MonitoringSpreadsheetPage({
 
             return matchesSearch && matchesContract && matchesRoute && matchesTodo && matchesPackage;
         });
+
+        return filtered.sort((left, right) => {
+            const leftDays = getRemainingRentalDays(left.contractEnd);
+            const rightDays = getRemainingRentalDays(right.contractEnd);
+
+            if (leftDays === null && rightDays === null) return 0;
+            if (leftDays === null) return 1;
+            if (rightDays === null) return -1;
+
+            return leftDays - rightDays;
+        });
     }, [billingRows, filters.search, filters.contractStatus, filters.routeStatus, filters.todoStatus, filters.package, alerts]);
 
     const filteredHistoryRows = useMemo(() => {
@@ -519,12 +536,17 @@ function MonitoringSpreadsheetPage({
             const matchesSearch = !loweredSearch || searchableText.includes(loweredSearch);
 
             // 2. Status Kontrak Filter
-            const remainingDays = getRemainingRentalDays(row.contractEnd);
             let contractStatusKey = "beroperasi";
+            const today = new Date().toISOString().slice(0, 10);
             if (isStoppedStatus(row.customerStatus)) {
                 contractStatusKey = "berhenti";
-            } else if (remainingDays !== null && remainingDays < 0) {
-                contractStatusKey = "expired";
+            } else if ((row.contractStart && row.contractStart > today) || isPendingOperationalStatus(row.customerStatus)) {
+                contractStatusKey = "belum_beroperasi";
+            } else {
+                const remainingDays = getRemainingRentalDays(row.contractEnd);
+                if (remainingDays !== null && remainingDays < 0) {
+                    contractStatusKey = "expired";
+                }
             }
             const matchesContract = filters.contractStatus === "all" ? true : contractStatusKey === filters.contractStatus;
 
@@ -644,7 +666,14 @@ function MonitoringSpreadsheetPage({
                         formatMonitoringCoreAmount(row),
                         ...(isTeknisi ? [] : [row.contractNumber ?? "-", row.currentInvoiceNumber ?? "-"]),
                         getRemainingRentalDays(row.contractEnd) ?? "-",
-                        isStoppedStatus(row.customerStatus) ? "Berhenti" : "Beroperasi",
+                        (() => {
+                            const today = new Date().toISOString().slice(0, 10);
+                            if (isStoppedStatus(row.customerStatus)) return "Berhenti";
+                            if ((row.contractStart && row.contractStart > today) || isPendingOperationalStatus(row.customerStatus)) return "Belum Beroperasi";
+                            const remainingDays = getRemainingRentalDays(row.contractEnd);
+                            if (remainingDays !== null && remainingDays < 0) return "Belum Diperpanjang";
+                            return "Beroperasi";
+                        })(),
                         resolveRouteStatus(row.customerStatus, row.routeStatus),
                         ...(isTeknisi ? [] : [row.activationFeePaidAt ? "Lunas" : formatCurrency(row.activationFeeAmount), ...monthsData])
                     ];
@@ -868,11 +897,11 @@ function MonitoringSpreadsheetPage({
                                 <td className="relative sticky left-0 z-20 w-[64px] pl-2 pr-0 py-3 font-black text-white/30 text-center bg-[#0f172a]/65 backdrop-blur-sm group-hover:!bg-[#0f1117] group-hover:!backdrop-blur-none group-hover:text-gold-accent transition-colors shadow-[2px_0_10px_rgba(0,0,0,0.3)] group-hover:border-l-4 group-hover:border-l-gold-accent">
                                     {String(actualRowNumber).padStart(2, "0")}
                                 </td>
-                                <td className="relative sticky left-[64px] z-20 -ml-px w-[130px] pl-0 pr-0 py-3 font-black text-white bg-[#0f172a]/65 backdrop-blur-sm group-hover:!bg-[#0f1117] group-hover:!backdrop-blur-none transition-colors shadow-[2px_0_10px_rgba(0,0,0,0.3)]">
-                                    <div className="w-[120px] truncate pl-2">{row.ispName}</div>
+                                <td className="relative sticky left-[64px] z-20 -ml-px w-[180px] pl-0 pr-0 py-3 font-black text-white bg-[#0f172a]/65 backdrop-blur-sm group-hover:!bg-[#0f1117] group-hover:!backdrop-blur-none transition-colors shadow-[2px_0_10px_rgba(0,0,0,0.3)]">
+                                    <div className="w-[170px] truncate pl-2">{row.ispName}</div>
                                 </td>
-                                <td className="relative sticky left-[194px] z-20 -ml-px w-[200px] pl-0 pr-2 py-3 bg-[#0f172a]/65 backdrop-blur-sm group-hover:!bg-[#0f1117] group-hover:!backdrop-blur-none transition-colors shadow-[4px_0_15px_rgba(0,0,0,0.4)]">
-                                    <p className="font-black text-on-surface truncate max-w-[190px] tracking-tight group-hover:text-gold-accent transition-colors">{row.customerName}</p>
+                                <td className="relative sticky left-[244px] z-20 -ml-px w-[280px] pl-0 pr-2 py-3 bg-[#0f172a]/65 backdrop-blur-sm group-hover:!bg-[#0f1117] group-hover:!backdrop-blur-none transition-colors shadow-[4px_0_15px_rgba(0,0,0,0.4)]">
+                                    <p className="font-black text-on-surface truncate max-w-[270px] tracking-tight group-hover:text-gold-accent transition-colors">{row.customerName}</p>
                                     <button
                                         className="mt-1 inline-flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-gold-accent hover:text-white transition-colors"
                                         onClick={() => onOpenCustomerById(row.customerId, "overview")}
@@ -934,9 +963,13 @@ function MonitoringSpreadsheetPage({
                                         let label = "BEROPERASI";
                                         let style = "bg-emerald-500/10 text-emerald-500 border-emerald-500/20 shadow-emerald-glow/5";
 
+                                        const today = new Date().toISOString().slice(0, 10);
                                         if (isStoppedStatus(row.customerStatus)) {
                                             label = "BERHENTI";
                                             style = "bg-white/5 text-white/40 border-white/10";
+                                        } else if ((row.contractStart && row.contractStart > today) || isPendingOperationalStatus(row.customerStatus)) {
+                                            label = "BELUM BEROPERASI";
+                                            style = "bg-sky-500/10 text-sky-500 border-sky-500/20 shadow-sky-glow/5";
                                         } else if (remainingDays !== null && remainingDays < 0) {
                                             label = "BELUM DIPERPANJANG";
                                             style = "bg-rose-500/10 text-rose-500 border-rose-500/20 shadow-rose-glow/5";
@@ -1272,8 +1305,8 @@ function MonitoringSpreadsheetPage({
                                     options={[
                                         { label: "Semua Status", value: "all" },
                                         { label: "Beroperasi", value: "beroperasi" },
+                                        { label: "Belum Beroperasi", value: "belum_beroperasi" },
                                         { label: "Belum Diperpanjang", value: "expired" },
-                                        { label: "Berhenti", value: "berhenti" },
                                     ]}
                                 />
                             </div>
@@ -1519,8 +1552,8 @@ function MonitoringSpreadsheetPage({
                             options={[
                                 { label: "Semua Status", value: "all" },
                                 { label: "Beroperasi", value: "beroperasi" },
+                                { label: "Belum Beroperasi", value: "belum_beroperasi" },
                                 { label: "Belum Diperpanjang", value: "expired" },
-                                { label: "Berhenti", value: "berhenti" },
                             ]}
                             value={filters.contractStatus}
                         />

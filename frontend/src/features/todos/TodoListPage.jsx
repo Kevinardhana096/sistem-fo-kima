@@ -124,9 +124,11 @@ export default function TodoListPage({ activeSection, onNavigate, onLogout, curr
     }, { total: 0, active: 0, unread: 0, read: 0, resolved: 0 }), [notifications]);
 
     const typeOptions = useMemo(() => {
-        const values = new Map();
-        notifications.forEach((n) => { const k = n.type || n.code || "general"; values.set(k, getTypeLabel(n)); });
-        return Array.from(values.entries()).sort((a, b) => a[1].localeCompare(b[1]));
+        const labels = new Set();
+        notifications.forEach((n) => {
+            labels.add(getTypeLabel(n));
+        });
+        return Array.from(labels).sort((a, b) => a.localeCompare(b));
     }, [notifications]);
 
     const filteredNotifications = useMemo(() => {
@@ -136,7 +138,7 @@ export default function TodoListPage({ activeSection, onNavigate, onLogout, curr
             const matchesSearch = queryTokens.length === 0 || queryTokens.every((token) => haystack.includes(token));
             const sk = getStatusKey(n);
             return matchesSearch
-                && (type === "all" || n.type === type || n.code === type)
+                && (type === "all" || getTypeLabel(n) === type)
                 && (status === "all" || (status === "active" && !n.resolvedAt) || sk === status);
         });
     }, [notifications, search, status, type]);
@@ -185,7 +187,6 @@ export default function TodoListPage({ activeSection, onNavigate, onLogout, curr
         if (n.targetPath) { window.history.pushState({}, "", n.targetPath); window.dispatchEvent(new PopStateEvent("popstate")); }
     };
     const markRead = async (n) => { await api.notifications.markRead(n.id); await loadNotifications(); };
-    const markResolved = async (n) => { await api.notifications.markResolved(n.id); await loadNotifications(); };
     const stopActionClick = (event) => {
         event.stopPropagation();
     };
@@ -253,7 +254,7 @@ export default function TodoListPage({ activeSection, onNavigate, onLogout, curr
                     <div className="flex w-full sm:w-auto items-center gap-2">
                         <div className="grid grid-cols-2 gap-2 flex-1 sm:flex sm:items-center sm:gap-2">
                             {[
-                                { z: "z-[60]", icon: "category", val: type, setter: setType, opts: [{ value: "all", label: "Semua Tipe" }, ...typeOptions.map(([v, l]) => ({ value: v, label: l }))] },
+                                { z: "z-[60]", icon: "category", val: type, setter: setType, opts: [{ value: "all", label: "Semua Tipe" }, ...typeOptions.map((label) => ({ value: label, label: label }))] },
                                 { z: "z-50",   icon: "flag",     val: status, setter: setStatus, opts: [{ value: "active", label: "Aktif" }, { value: "unread", label: "Belum Dibaca" }, { value: "read", label: "Dibaca" }, { value: "resolved", label: "Selesai" }, { value: "all", label: "Semua Status" }], align: "right" },
                             ].map(({ z, icon, val, setter, opts, align = "left" }) => (
                                 <div key={icon} className={`relative ${z} w-full sm:w-36`}>
@@ -362,12 +363,6 @@ export default function TodoListPage({ activeSection, onNavigate, onLogout, curr
                                                     className="flex h-8 items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-3 text-[8px] font-black uppercase tracking-widest text-white/50 transition-all hover:bg-white/10 hover:text-white active:scale-95 backdrop-blur-md"
                                                     onClick={(event) => { stopActionClick(event); void markRead(n); }} type="button"
                                                 >Dibaca</button>
-                                            )}
-                                            {!n.resolvedAt && (
-                                                <button
-                                                    className="flex h-8 items-center gap-1 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 text-[8px] font-black uppercase tracking-widest text-emerald-400 transition-all hover:bg-emerald-500 hover:text-white active:scale-95 backdrop-blur-md"
-                                                    onClick={(event) => { stopActionClick(event); void markResolved(n); }} type="button"
-                                                >Selesai</button>
                                             )}
                                         </div>
                                     </div>

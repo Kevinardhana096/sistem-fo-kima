@@ -368,7 +368,7 @@ function getInvoiceWorkflowMeta(
     canUploadMainInvoice: false,
     canUploadFirstWarning: false,
     canUploadSecondWarning: false,
-    canMarkPaid: false,
+    canMarkPaid: true,
   };
 }
 
@@ -944,7 +944,9 @@ function TenantDetailPage({
 
     if (activeBillingPeriod && Number.isFinite(invoiceContractId) && invoiceContractId === Number(activeBillingPeriod.contractId)) {
       if (Number(activeBillingPeriod.versionId) > 0) {
-        return invoiceVersionId !== Number(activeBillingPeriod.versionId);
+        return Number.isFinite(invoiceVersionId)
+          ? invoiceVersionId !== Number(activeBillingPeriod.versionId)
+          : true;
       }
 
       if (invoiceStartDate && invoiceEndDate) {
@@ -977,6 +979,40 @@ function TenantDetailPage({
 
     return false;
   }, [activeBillingPeriod, contractById, resolveInvoiceContractPeriodEnd, todayIso]);
+  const getInvoicePeriodKey = useCallback((invoice) => {
+    const startDate = String(invoice?.periodStartDate ?? invoice?.period_start_date ?? "").slice(0, 10);
+    const endDate = String(invoice?.periodEndDate ?? invoice?.period_end_date ?? "").slice(0, 10);
+    return startDate && endDate ? `${startDate}-${endDate}` : "";
+  }, []);
+  const isSchedulePlaceholder = useCallback(
+    (invoice) => String(invoice?.id ?? "").startsWith("schedule-"),
+    [],
+  );
+  const isInvoiceInActiveBillingPeriod = useCallback((invoice) => {
+    if (!activeBillingPeriod?.contractId) {
+      return false;
+    }
+
+    const invoiceContractId = Number(invoice?.contractId ?? invoice?.contract_id);
+    if (!Number.isFinite(invoiceContractId) || invoiceContractId !== Number(activeBillingPeriod.contractId)) {
+      return false;
+    }
+
+    const activeVersionId = Number(activeBillingPeriod.versionId);
+    if (Number.isFinite(activeVersionId) && activeVersionId > 0) {
+      const invoiceVersionId = Number(invoice?.contractVersionId ?? invoice?.contract_version_id);
+      return invoiceVersionId === activeVersionId;
+    }
+
+    const invoiceStartDate = String(invoice?.periodStartDate ?? invoice?.period_start_date ?? "").slice(0, 10);
+    const invoiceEndDate = String(invoice?.periodEndDate ?? invoice?.period_end_date ?? "").slice(0, 10);
+    return Boolean(
+      invoiceStartDate
+      && invoiceEndDate
+      && invoiceEndDate >= activeBillingPeriod.startDate
+      && invoiceStartDate <= activeBillingPeriod.endDate,
+    );
+  }, [activeBillingPeriod]);
   const activeInvoices = useMemo(() => {
     if (!activeBillingPeriod?.startDate || !activeBillingPeriod?.endDate) {
       return invoices.filter((invoice) => !shouldArchiveInvoice(invoice));
@@ -997,8 +1033,8 @@ function TenantDetailPage({
     invoices
       .filter((invoice) => !shouldArchiveInvoice(invoice))
       .forEach((invoice) => {
-        const key = `${String(invoice?.periodStartDate ?? invoice?.period_start_date ?? "").slice(0, 10)}-${String(invoice?.periodEndDate ?? invoice?.period_end_date ?? "").slice(0, 10)}`;
-        if (key !== "-") {
+        const key = getInvoicePeriodKey(invoice);
+        if (key) {
           activeInvoiceMap.set(key, invoice);
         }
       });
@@ -1032,11 +1068,62 @@ function TenantDetailPage({
         paymentOrder: index + 1,
       };
     });
-  }, [activeBillingPeriod, contract?.billingEvery, contract?.billingUnit, customer.id, invoices, shouldArchiveInvoice]);
+  }, [activeBillingPeriod, contract?.billingEvery, contract?.billingUnit, customer.id, getInvoicePeriodKey, invoices, shouldArchiveInvoice]);
 
   const historyInvoices = useMemo(() => {
-    return invoices.filter((invoice) => shouldArchiveInvoice(invoice));
-  }, [invoices, shouldArchiveInvoice]);
+    return invoices.filter((invoice) => shouldArchiveInvoice(invoice) && !isInvoiceInActiveBillingPeriod(invoice));
+  }, [invoices, isInvoiceInActiveBillingPeriod, shouldArchiveInvoice]);
+  const findReusableActivePeriodHistoryInvoice = useCallback((invoice) => {
+    const targetKey = getInvoicePeriodKey(invoice);
+    if (!targetKey || !isInvoiceInActiveBillingPeriod(invoice)) {
+      return null;
+    }
+
+    const candidates = invoices
+      .filter((candidate) => {
+        const scheduleStatus = String(candidate?.scheduleStatus ?? candidate?.schedule_status ?? "").toLowerCase();
+        return scheduleStatus === "history"
+          && getInvoicePeriodKey(candidate) === targetKey
+          && isInvoiceInActiveBillingPeriod(candidate);
+      })
+      .sort((left, right) => {
+        const leftPaid = isInvoicePaid(left) ? 1 : 0;
+        const rightPaid = isInvoicePaid(right) ? 1 : 0;
+        if (leftPaid !== rightPaid) {
+          return leftPaid - rightPaid;
+        }
+        return Number(left?.id ?? 0) - Number(right?.id ?? 0);
+      });
+
+    return candidates[0] ?? null;
+  }, [getInvoicePeriodKey, invoices, isInvoiceInActiveBillingPeriod]);
+  const buildActiveInvoicePayload = useCallback((invoice, overrides = {}) => ({
+    customerId: invoice.customerId,
+    contractId: invoice.contractId,
+    contractVersionId: invoice.contractVersionId,
+    contractNumber: invoice.contractNumber,
+    periodYear: invoice.periodYear,
+    periodMonth: invoice.periodMonth,
+    periodStartDate: invoice.periodStartDate,
+    periodEndDate: invoice.periodEndDate,
+    scheduleStatus: "active",
+    ...overrides,
+  }), []);
+  const persistActiveInvoice = useCallback(async (invoice, payload) => {
+    if (!isSchedulePlaceholder(invoice)) {
+      return api.invoices.update(invoice.id, payload);
+    }
+
+    const reusableHistoryInvoice = findReusableActivePeriodHistoryInvoice(invoice);
+    if (reusableHistoryInvoice) {
+      return api.invoices.update(reusableHistoryInvoice.id, {
+        ...payload,
+        scheduleStatus: "active",
+      });
+    }
+
+    return api.invoices.create(buildActiveInvoicePayload(invoice, payload));
+  }, [buildActiveInvoicePayload, findReusableActivePeriodHistoryInvoice, isSchedulePlaceholder]);
   const todoSummary = detail?.todoSummary ?? {
     priority: [],
     needAction: [],
@@ -3454,13 +3541,26 @@ function TenantDetailPage({
           null,
       }));
 
-      await api.invoices.update(invoice.id, {
-        invoice_number: String(draft.invoiceNumber ?? "").trim() || null,
-        due_date: draft.dueDate || null,
-        amount,
-        status: selectedStatus,
-        paid_at: nextPaidAt,
-      });
+      let persistedInvoice;
+      if (isSchedulePlaceholder(invoice)) {
+        persistedInvoice = await persistActiveInvoice(invoice, {
+          dueDate: draft.dueDate || invoice.dueDate,
+          amount,
+          status: selectedStatus,
+          paidAt: nextPaidAt,
+          invoiceNumber: String(draft.invoiceNumber ?? "").trim() || null,
+          scheduleStatus: "active",
+        });
+      } else {
+        persistedInvoice = await api.invoices.update(invoice.id, {
+          invoice_number: String(draft.invoiceNumber ?? "").trim() || null,
+          due_date: draft.dueDate || null,
+          amount,
+          status: selectedStatus,
+          paid_at: nextPaidAt,
+        });
+      }
+
       await Promise.all(
         followUpPayload.map((followUp) =>
           api.invoiceFollowUps.update(followUp.id, {
@@ -3471,7 +3571,7 @@ function TenantDetailPage({
       setInvoiceEditingId((current) =>
         current === invoice.id ? null : current,
       );
-      setInvoiceFeedback(`Invoice #${invoice.id} berhasil diperbarui.`);
+      setInvoiceFeedback(`Invoice #${persistedInvoice.id} berhasil disimpan.`);
       await Promise.all([loadDetail(), onRefreshAll?.()]);
     } catch (requestError) {
       setError(
@@ -3546,15 +3646,25 @@ function TenantDetailPage({
     setError("");
     setInvoiceFeedback("");
     try {
+      let persistedInvoice = invoice;
+      if (isSchedulePlaceholder(invoice)) {
+        persistedInvoice = await persistActiveInvoice(invoice, {
+          dueDate: draft.dueDate || invoice.dueDate,
+          amount,
+          status: "belum_ditagih",
+          scheduleStatus: "active",
+        });
+      }
+
       const invoiceFileUrl = await uploadFileForRecord(file, ["customers", customer.id, "invoices"]);
       if (splitOrder) {
-        const followUp = await getOrCreateInvoiceFollowUp(invoice, splitOrder);
+        const followUp = await getOrCreateInvoiceFollowUp(persistedInvoice, splitOrder);
         await api.invoiceFollowUps.update(followUp.id, {
           invoiceNumber: followUpDraft.invoiceNumber.trim(),
           invoiceFileUrl,
         });
       } else {
-        await api.invoices.update(invoice.id, {
+        await api.invoices.update(persistedInvoice.id, {
           invoiceNumber: followUpDraft.invoiceNumber.trim(),
           dueDate: draft.dueDate,
           amount,
@@ -3620,7 +3730,8 @@ function TenantDetailPage({
   };
 
   const handleMarkInvoicePaid = async (invoice) => {
-    if (!hasAnyUploadedInvoiceFile(invoice)) {
+    const isPending = invoice?.workflowMeta?.key === "pending" || invoice?.statusMeta?.key === "pending";
+    if (!isPending && !hasAnyUploadedInvoiceFile(invoice)) {
       setError("Upload invoice terlebih dahulu sebelum konfirmasi pembayaran.");
       return;
     }
@@ -3630,8 +3741,26 @@ function TenantDetailPage({
     setInvoiceFeedback("");
     try {
       const paidAt = new Date().toISOString();
-      await api.invoices.update(invoice.id, { paidAt, status: "lunas" });
-      setInvoiceFeedback(`Invoice #${invoice.id} ditandai sudah bayar.`);
+      let persistedInvoiceId = invoice.id;
+
+      if (isSchedulePlaceholder(invoice)) {
+        const draft = getInvoiceDraft(invoice);
+        const amount = parseRupiahInput(draft.amount) || Number(invoice.amount) || 0;
+
+        const persistedInvoice = await persistActiveInvoice(invoice, {
+          dueDate: draft.dueDate || invoice.dueDate,
+          amount,
+          status: "lunas",
+          paidAt: paidAt,
+          invoiceNumber: String(draft.invoiceNumber ?? "").trim() || null,
+          scheduleStatus: "active",
+        });
+        persistedInvoiceId = persistedInvoice.id;
+      } else {
+        await api.invoices.update(invoice.id, { paidAt, status: "lunas" });
+      }
+
+      setInvoiceFeedback(`Invoice #${persistedInvoiceId} ditandai sudah bayar.`);
       await Promise.all([loadDetail(), onRefreshAll?.()]);
     } catch (requestError) {
       setError(
@@ -3682,6 +3811,9 @@ function TenantDetailPage({
 
           dueDateByInvoiceId[invoice.id] = dueDate;
 
+          if (String(invoice.id).startsWith("schedule-")) {
+            return Promise.resolve();
+          }
           return api.invoices.update(invoice.id, { due_date: dueDate });
         }),
       );
@@ -3740,6 +3872,9 @@ function TenantDetailPage({
     try {
       await Promise.all(
         invoiceRows.map((invoice) => {
+          if (String(invoice.id).startsWith("schedule-")) {
+            return Promise.resolve();
+          }
           return api.invoices.update(invoice.id, { amount: requestedAmount });
         }),
       );
@@ -6358,7 +6493,7 @@ function TenantDetailPage({
                         )}
                       </div>
                     );
-                  })()}
+                  })}
                 </div>
               )}
             </section>
