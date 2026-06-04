@@ -516,6 +516,49 @@ const parseRupiahInput = (value) => {
   return Number(numberString) || 0;
 };
 
+const resolveDocumentTypeLabel = (jenisDokumen) => {
+  const rawType = typeof jenisDokumen === "string" ? jenisDokumen : String(jenisDokumen ?? "");
+  const mappedLabel = documentTypeLabelMap[rawType];
+  return typeof mappedLabel === "string" && mappedLabel.trim()
+    ? mappedLabel
+    : rawType;
+};
+
+const resolveBillingMode = (billingEvery, billingUnit) => {
+  const every = Number(billingEvery ?? 1);
+  const unit = String(billingUnit ?? "bulan");
+
+  if (every === 1 && unit === "bulan") {
+    return "monthly";
+  }
+  if (every === 3 && unit === "bulan") {
+    return "quarterly";
+  }
+  return "custom";
+};
+
+const resolveBillingCycleAmount = (monthlyAmount, billingCycle) => {
+  const amount = Number(monthlyAmount ?? 0);
+  const every = Number(billingCycle?.every ?? 1);
+  const unit = String(billingCycle?.unit ?? "bulan");
+
+  if (!Number.isFinite(amount) || amount <= 0 || !Number.isFinite(every) || every <= 0) {
+    return 0;
+  }
+
+  if (unit === "tahun") {
+    return amount * every * 12;
+  }
+  if (unit === "bulan") {
+    return amount * every;
+  }
+  if (unit === "hari") {
+    return Math.round((amount / 30) * every);
+  }
+
+  return amount;
+};
+
 function TenantDetailPage({
   customer,
   initialTab = "overview",
@@ -575,6 +618,7 @@ function TenantDetailPage({
   const [billingEditor, setBillingEditor] = useState(null);
   const [billingError, setBillingError] = useState("");
   const [isSavingBilling, setIsSavingBilling] = useState(false);
+  const [expandedSettlementPeriods, setExpandedSettlementPeriods] = useState({});
   const [isMarkingActivationFeePaid, setIsMarkingActivationFeePaid] = useState(false);
   const [contractNumberInputs, setContractNumberInputs] = useState({});
   const [isSavingContractNumber, setIsSavingContractNumber] = useState(false);
@@ -786,6 +830,87 @@ function TenantDetailPage({
     });
     return map;
   }, [versions]);
+
+  const activeBillingPeriod = useMemo(() => {
+    if (!contract?.id) {
+      return null;
+    }
+
+    const allContractVersions = versions
+      .filter((version) => Number(version?.contractId ?? version?.contract_id) === Number(contract.id))
+      .sort((left, right) => {
+        const leftVersion = Number(left?.versionNumber ?? left?.version_number ?? 0);
+        const rightVersion = Number(right?.versionNumber ?? right?.version_number ?? 0);
+        return rightVersion - leftVersion;
+      });
+    const latestOverallVersion = allContractVersions[0] ?? null;
+    const latestOverallStart = String(latestOverallVersion?.startDate ?? latestOverallVersion?.start_date ?? "").slice(0, 10);
+    const latestOverallEnd = String(latestOverallVersion?.endDate ?? latestOverallVersion?.end_date ?? "").slice(0, 10);
+
+    if (latestOverallVersion && (!latestOverallStart || !latestOverallEnd)) {
+      return null;
+    }
+
+    const contractVersions = allContractVersions
+      .filter((version) => {
+        const startDate = String(version?.startDate ?? version?.start_date ?? "").slice(0, 10);
+        const endDate = String(version?.endDate ?? version?.end_date ?? "").slice(0, 10);
+        return Boolean(startDate && endDate);
+      })
+      .sort((left, right) => {
+        const leftStart = String(left?.startDate ?? left?.start_date ?? "").slice(0, 10);
+        const rightStart = String(right?.startDate ?? right?.start_date ?? "").slice(0, 10);
+        const leftVersion = Number(left?.versionNumber ?? left?.version_number ?? 0);
+        const rightVersion = Number(right?.versionNumber ?? right?.version_number ?? 0);
+        const dateDiff = rightStart.localeCompare(leftStart);
+        return dateDiff !== 0 ? dateDiff : rightVersion - leftVersion;
+      });
+
+    const currentVersion = contractVersions.find((version) => {
+      const startDate = String(version?.startDate ?? version?.start_date ?? "").slice(0, 10);
+      const endDate = String(version?.endDate ?? version?.end_date ?? "").slice(0, 10);
+      return startDate <= todayIso && endDate >= todayIso;
+    }) ?? contractVersions[0] ?? null;
+
+    if (currentVersion) {
+      const startDate = String(currentVersion?.startDate ?? currentVersion?.start_date ?? "").slice(0, 10);
+      const endDate = String(currentVersion?.endDate ?? currentVersion?.end_date ?? "").slice(0, 10);
+      return {
+        contract,
+        version: currentVersion,
+        versionId: currentVersion.id ?? null,
+        startDate,
+        endDate,
+        contractId: contract.id,
+        contractNumber: currentVersion?.contractNumber ?? currentVersion?.contract_number ?? contract?.contractNumber ?? null,
+        amount: Number(
+          currentVersion?.monthlyAmount
+          ?? currentVersion?.monthly_amount
+          ?? contract?.monthlyAmount
+          ?? contract?.monthly_amount
+          ?? 0,
+        ),
+      };
+    }
+
+    const startDate = String(contract?.startDate ?? contract?.start_date ?? "").slice(0, 10);
+    const endDate = String(contract?.endDate ?? contract?.end_date ?? "").slice(0, 10);
+    if (!startDate || !endDate) {
+      return null;
+    }
+
+    return {
+      contract,
+      version: null,
+      versionId: null,
+      startDate,
+      endDate,
+      contractId: contract.id,
+      contractNumber: contract?.contractNumber ?? contract?.contract_number ?? null,
+      amount: Number(contract?.monthlyAmount ?? contract?.monthly_amount ?? 0),
+    };
+  }, [contract, todayIso, versions]);
+
   const resolveInvoiceContractPeriodEnd = useCallback((invoice) => {
     const versionKey = Number(invoice?.contractVersionId ?? invoice?.contract_version_id);
     if (Number.isFinite(versionKey)) {
@@ -808,24 +933,31 @@ function TenantDetailPage({
     return null;
   }, [contractById, contractVersionById]);
   const shouldArchiveInvoice = useCallback((invoice) => {
+    if (String(invoice?.scheduleStatus ?? invoice?.schedule_status ?? "").toLowerCase() === "history") {
+      return true;
+    }
+
+    const invoiceContractId = Number(invoice?.contractId ?? invoice?.contract_id);
+    const invoiceVersionId = Number(invoice?.contractVersionId ?? invoice?.contract_version_id);
+    const invoiceStartDate = String(invoice?.periodStartDate ?? invoice?.period_start_date ?? "").slice(0, 10);
+    const invoiceEndDate = String(invoice?.periodEndDate ?? invoice?.period_end_date ?? "").slice(0, 10);
+
+    if (activeBillingPeriod && Number.isFinite(invoiceContractId) && invoiceContractId === Number(activeBillingPeriod.contractId)) {
+      if (Number(activeBillingPeriod.versionId) > 0) {
+        return invoiceVersionId !== Number(activeBillingPeriod.versionId);
+      }
+
+      if (invoiceStartDate && invoiceEndDate) {
+        return invoiceEndDate < activeBillingPeriod.startDate || invoiceStartDate > activeBillingPeriod.endDate;
+      }
+    }
+
     const contractPeriodEnd = resolveInvoiceContractPeriodEnd(invoice);
     const contractKey = Number(invoice?.contractId ?? invoice?.contract_id);
     if (Number.isFinite(contractKey)) {
       const contractRow = contractById.get(contractKey);
       const contractEndDate = contractRow?.endDate ?? contractRow?.end_date ?? null;
-      const resolvedContractEnd = contractPeriodEnd ?? contractEndDate;
       const contractStatus = String(contractRow?.status ?? "").toLowerCase();
-
-      // Keep invoices from the still-running contract window in the active cycle table,
-      // even if their persisted schedule status was previously marked as history.
-      if (
-        contractRow &&
-        contractStatus !== "expired" &&
-        contractStatus !== "nonaktif" &&
-        (!resolvedContractEnd || resolvedContractEnd >= todayIso)
-      ) {
-        return false;
-      }
 
       if (contractPeriodEnd && contractPeriodEnd < todayIso) {
         return true;
@@ -843,25 +975,23 @@ function TenantDetailPage({
       }
     }
 
-    if (invoice?.scheduleStatus === "history") {
-      return true;
-    }
-
     return false;
-  }, [contractById, resolveInvoiceContractPeriodEnd, todayIso]);
+  }, [activeBillingPeriod, contractById, resolveInvoiceContractPeriodEnd, todayIso]);
   const activeInvoices = useMemo(() => {
-    if (!contract?.startDate || !contract?.endDate) {
+    if (!activeBillingPeriod?.startDate || !activeBillingPeriod?.endDate) {
       return invoices.filter((invoice) => !shouldArchiveInvoice(invoice));
     }
 
+    const billingCycle = {
+      every: Number(contract?.billingEvery ?? 1),
+      unit: contract?.billingUnit ?? "bulan",
+    };
     const scheduleRows = buildInvoiceScheduleRows(
-      contract.startDate,
-      contract.endDate,
-      {
-        every: Number(contract?.billingEvery ?? 1),
-        unit: contract?.billingUnit ?? "bulan",
-      },
+      activeBillingPeriod.startDate,
+      activeBillingPeriod.endDate,
+      billingCycle,
     );
+    const scheduledAmount = resolveBillingCycleAmount(activeBillingPeriod.amount, billingCycle);
 
     const activeInvoiceMap = new Map();
     invoices
@@ -887,21 +1017,22 @@ function TenantDetailPage({
       return {
         id: `schedule-${key}`,
         customerId: customer.id,
-        contractId: contract?.id ?? null,
-        contractNumber: contract?.contractNumber ?? null,
+        contractId: activeBillingPeriod.contractId ?? null,
+        contractVersionId: activeBillingPeriod.versionId ?? null,
+        contractNumber: activeBillingPeriod.contractNumber ?? null,
         periodYear: Number.isFinite(periodDate.getTime()) ? periodDate.getUTCFullYear() : null,
         periodMonth: Number.isFinite(periodDate.getTime()) ? periodDate.getUTCMonth() + 1 : null,
         periodStartDate: row.periodStartDate,
         periodEndDate: row.periodEndDate,
         dueDate: getNextMonthIsoDate(row.periodStartDate, 1),
-        amount: 0,
+        amount: scheduledAmount,
         status: "belum_ditagih",
         scheduleStatus: "active",
         invoiceFollowUps: [],
         paymentOrder: index + 1,
       };
     });
-  }, [contract?.billingEvery, contract?.billingUnit, contract?.endDate, contract?.id, contract?.contractNumber, contract?.startDate, customer.id, invoices, shouldArchiveInvoice]);
+  }, [activeBillingPeriod, contract?.billingEvery, contract?.billingUnit, customer.id, invoices, shouldArchiveInvoice]);
 
   const historyInvoices = useMemo(() => {
     return invoices.filter((invoice) => shouldArchiveInvoice(invoice));
@@ -1184,6 +1315,86 @@ function TenantDetailPage({
     items.sort((left, right) => right.paymentOrder - left.paymentOrder);
     return items;
   }, [historyInvoiceRows]);
+
+  const settlementPeriodGroups = useMemo(() => {
+    const groups = new Map();
+
+    displayHistoryInvoiceRows.forEach((invoice) => {
+      const versionId = Number(invoice?.contractVersionId ?? invoice?.contract_version_id);
+      const contractId = Number(invoice?.contractId ?? invoice?.contract_id);
+      const version = Number.isFinite(versionId) ? contractVersionById.get(versionId) : null;
+      const contractRow = Number.isFinite(contractId) ? contractById.get(contractId) : null;
+      const periodStart = String(
+        version?.startDate
+        ?? version?.start_date
+        ?? contractRow?.startDate
+        ?? contractRow?.start_date
+        ?? invoice?.periodStartDate
+        ?? invoice?.period_start_date
+        ?? "",
+      ).slice(0, 10);
+      const periodEnd = String(
+        version?.endDate
+        ?? version?.end_date
+        ?? contractRow?.endDate
+        ?? contractRow?.end_date
+        ?? invoice?.periodEndDate
+        ?? invoice?.period_end_date
+        ?? "",
+      ).slice(0, 10);
+      const key = version?.id
+        ? `version-${version.id}`
+        : Number.isFinite(contractId) && periodStart && periodEnd
+          ? `contract-${contractId}-${periodStart}-${periodEnd}`
+          : `invoice-${invoice.id}`;
+
+      if (!groups.has(key)) {
+        groups.set(key, {
+          key,
+          contractId: Number.isFinite(contractId) ? contractId : null,
+          versionId: version?.id ?? null,
+          contractNumber:
+            version?.contractNumber
+            ?? version?.contract_number
+            ?? contractRow?.contractNumber
+            ?? contractRow?.contract_number
+            ?? invoice?.contractNumber
+            ?? invoice?.contract_number
+            ?? null,
+          periodStart,
+          periodEnd,
+          rows: [],
+        });
+      }
+
+      groups.get(key).rows.push(invoice);
+    });
+
+    return Array.from(groups.values())
+      .map((group) => {
+        const rows = [...group.rows].sort((left, right) => {
+          const leftDate = String(left?.periodStartDate ?? left?.period_start_date ?? "").slice(0, 10);
+          const rightDate = String(right?.periodStartDate ?? right?.period_start_date ?? "").slice(0, 10);
+          return leftDate.localeCompare(rightDate);
+        });
+        const paidCount = rows.filter(isInvoicePaid).length;
+        const totalAmount = rows.reduce((sum, invoice) => sum + Number(invoice?.amount ?? 0), 0);
+        return {
+          ...group,
+          rows,
+          paidCount,
+          totalAmount,
+        };
+      })
+      .sort((left, right) => String(right.periodStart ?? "").localeCompare(String(left.periodStart ?? "")));
+  }, [contractById, contractVersionById, displayHistoryInvoiceRows]);
+
+  const toggleSettlementPeriod = (periodKey) => {
+    setExpandedSettlementPeriods((previous) => ({
+      ...previous,
+      [periodKey]: !previous[periodKey],
+    }));
+  };
 
   useEffect(() => {
     setInvoiceDrafts((previousDrafts) => {
@@ -1839,18 +2050,32 @@ function TenantDetailPage({
     setBillingError("");
   };
 
-  const recalculateUnpaidInvoiceSchedule = async (nextBillingCycle) => {
-    if (!contract?.id || !contract?.startDate || !contract?.endDate) {
+  const recalculateUnpaidInvoiceSchedule = async (nextBillingCycle, targetContract = contract) => {
+    const targetStartDate = targetContract?.startDate ?? targetContract?.start_date ?? null;
+    const targetEndDate = targetContract?.endDate ?? targetContract?.end_date ?? null;
+    const targetContractNumber = targetContract?.contractNumber ?? targetContract?.contract_number ?? null;
+
+    if (!targetContract?.id || !targetStartDate || !targetEndDate) {
       return;
     }
 
     const scheduleRows = buildInvoiceScheduleRows(
-      contract.startDate,
-      contract.endDate,
+      targetStartDate,
+      targetEndDate,
       nextBillingCycle,
     );
-    const unpaidRows = invoiceRows.filter((invoice) => !isInvoicePaid(invoice));
-    const paidRows = invoiceRows.filter(isInvoicePaid);
+    const targetMonthlyAmount = Number(
+      targetContract?.monthlyAmount
+      ?? targetContract?.monthly_amount
+      ?? activeBillingPeriod?.amount
+      ?? 0,
+    );
+    const scheduledAmount = resolveBillingCycleAmount(targetMonthlyAmount, nextBillingCycle);
+    const rowsForContract = invoiceRows.filter(
+      (invoice) => Number(invoice?.contractId ?? invoice?.contract_id) === Number(targetContract.id),
+    );
+    const unpaidRows = rowsForContract.filter((invoice) => !isInvoicePaid(invoice));
+    const paidRows = rowsForContract.filter(isInvoicePaid);
     const paidPeriodKeys = new Set(
       paidRows.map((invoice) => `${invoice.periodStartDate ?? ""}-${invoice.periodEndDate ?? ""}`),
     );
@@ -1870,13 +2095,14 @@ function TenantDetailPage({
           : null;
         const payload = {
           customerId: customer.id,
-          contractId: contract.id,
-          contractNumber: contract.contractNumber ?? null,
+          contractId: targetContract.id,
+          contractNumber: targetContractNumber,
           periodStartDate: row.periodStartDate,
           periodEndDate: row.periodEndDate,
           periodYear,
           periodMonth,
           dueDate: getNextMonthIsoDate(row.periodStartDate, 1),
+          amount: scheduledAmount,
           scheduleStatus: "active",
         };
 
@@ -1886,7 +2112,6 @@ function TenantDetailPage({
 
         return api.invoices.create({
           ...payload,
-          amount: 0,
           status: "belum_ditagih",
         });
       }),
@@ -1895,6 +2120,28 @@ function TenantDetailPage({
     const surplusRows = unpaidRows.slice(availableScheduleRows.length);
     await Promise.all(
       surplusRows.map((invoice) =>
+        api.invoices.update(invoice.id, { scheduleStatus: "history" }),
+      ),
+    );
+  };
+
+  const archiveActiveInvoicesForContract = async (targetContractId) => {
+    const normalizedContractId = Number(targetContractId);
+    if (!Number.isFinite(normalizedContractId)) {
+      return;
+    }
+
+    const activePersistedInvoices = invoices.filter((invoice) => {
+      const invoiceId = Number(invoice?.id);
+      const invoiceContractId = Number(invoice?.contractId ?? invoice?.contract_id);
+      const scheduleStatus = String(invoice?.scheduleStatus ?? invoice?.schedule_status ?? "").toLowerCase();
+      return Number.isFinite(invoiceId)
+        && invoiceContractId === normalizedContractId
+        && scheduleStatus !== "history";
+    });
+
+    await Promise.all(
+      activePersistedInvoices.map((invoice) =>
         api.invoices.update(invoice.id, { scheduleStatus: "history" }),
       ),
     );
@@ -2247,33 +2494,15 @@ function TenantDetailPage({
     const billingUnit = String(editorState.billingUnit ?? "");
     const contractUploadedFile = editorState.contractUploadedFile;
     const bakUploadedFile = editorState.bakUploadedFile;
+    const hasFileUpload = (contractUploadedFile instanceof File) || (bakUploadedFile instanceof File);
 
-    if (!contractNumber) {
-      setError("Nomor kontrak wajib diisi.");
-      return;
-    }
-    if (!startDate) {
-      setError("Periode awal kontrak wajib diisi.");
-      return;
-    }
-    if (!endDate) {
-      setError("Periode akhir kontrak wajib diisi.");
-      return;
-    }
-    if (startDate > endDate) {
+    // Validasi konsistensi — hanya cek jika kedua tanggal terisi
+    if (startDate && endDate && startDate > endDate) {
       setError("Periode awal tidak boleh lebih besar dari periode akhir.");
       return;
     }
-    if (!Number.isFinite(monthlyAmount) || monthlyAmount < 0) {
+    if (editorState.monthlyAmount && (!Number.isFinite(monthlyAmount) || monthlyAmount < 0)) {
       setError("Nominal/bulan harus berupa angka yang valid.");
-      return;
-    }
-    if (!Number.isFinite(billingEvery) || billingEvery <= 0) {
-      setError("Periode tagihan harus lebih dari 0.");
-      return;
-    }
-    if (!["hari", "bulan", "tahun"].includes(billingUnit)) {
-      setError("Satuan periode tagihan tidak valid.");
       return;
     }
 
@@ -2299,6 +2528,90 @@ function TenantDetailPage({
       }
 
       const originalRow = contractRowsForTable.find((row) => row.id === editorState.rowId);
+      const originalMonthlyAmount = Number(originalRow?.monthlyAmount ?? 0);
+      const normalizedMonthlyAmount = monthlyAmount > 0 ? monthlyAmount : 0;
+      const hasMonthlyAmountChange = !originalRow || normalizedMonthlyAmount !== originalMonthlyAmount;
+
+      const updateUnpaidInvoiceAmounts = async (targetVersionId = null) => {
+        const periodStart = startDate || String(originalRow?.periodStart ?? "").slice(0, 10);
+        const periodEnd = endDate || String(originalRow?.periodEnd ?? "").slice(0, 10);
+        const targetContractId = Number(editorState.contractId);
+
+        const invoicesToUpdate = invoices.filter((invoice) => {
+          const invoiceId = Number(invoice?.id);
+          const invoiceContractId = Number(invoice?.contractId ?? invoice?.contract_id);
+          const invoicePeriodStart = String(invoice?.periodStartDate ?? invoice?.period_start_date ?? "").slice(0, 10);
+          const invoiceScheduleStatus = String(invoice?.scheduleStatus ?? invoice?.schedule_status ?? "").toLowerCase();
+
+          if (!Number.isFinite(invoiceId) || invoiceContractId !== targetContractId) {
+            return false;
+          }
+          if (invoiceScheduleStatus === "history" || isInvoicePaid(invoice)) {
+            return false;
+          }
+          if (periodStart && invoicePeriodStart && invoicePeriodStart < periodStart) {
+            return false;
+          }
+          if (periodEnd && invoicePeriodStart && invoicePeriodStart > periodEnd) {
+            return false;
+          }
+
+          return true;
+        });
+
+        await Promise.all(invoicesToUpdate.map((invoice) => {
+          const invoicePayload = { amount: normalizedMonthlyAmount };
+          if (targetVersionId) {
+            invoicePayload.contractVersionId = Number(targetVersionId);
+          }
+          return api.invoices.update(invoice.id, invoicePayload);
+        }));
+      };
+
+      const persistMainContractMonthlyAmount = async () => {
+        if (!hasMonthlyAmountChange || editorState.versionId) {
+          return false;
+        }
+
+        const contractVersions = versions.filter(
+          (version) => Number(version?.contractId ?? version?.contract_id) === Number(editorState.contractId),
+        );
+        const matchingVersion = contractVersions.find((version) => (
+          String(version?.startDate ?? version?.start_date ?? "").slice(0, 10) === startDate
+          && String(version?.endDate ?? version?.end_date ?? "").slice(0, 10) === endDate
+        ));
+
+        if (matchingVersion?.id) {
+          await api.contractVersions.update(matchingVersion.id, {
+            monthlyAmount: normalizedMonthlyAmount,
+            yearlyAmount: normalizedMonthlyAmount * 12,
+          });
+          await updateUnpaidInvoiceAmounts(matchingVersion.id);
+          return true;
+        }
+
+        if (contractVersions.length === 0 && startDate && endDate) {
+          const createdVersion = await api.contractVersions.create({
+            contractId: editorState.contractId,
+            customerId: customer.id,
+            contractNumber: contractNumber || null,
+            startDate,
+            endDate,
+            coreType: contract?.coreType ?? contract?.core_type ?? "core",
+            coreTotal: Number(contract?.coreTotal ?? contract?.core_total ?? 0),
+            sharedCoreRatio: contract?.sharingRatio ?? contract?.sharing_ratio ?? null,
+            monthlyAmount: normalizedMonthlyAmount,
+            yearlyAmount: normalizedMonthlyAmount * 12,
+            remarks: "Baseline nominal kontrak dari tabel manajemen kontrak.",
+          });
+          await updateUnpaidInvoiceAmounts(createdVersion?.id ?? null);
+          return true;
+        }
+
+        await updateUnpaidInvoiceAmounts();
+        return true;
+      };
+
       const buildChangedPayload = () => {
         const payload = {};
 
@@ -2313,9 +2626,9 @@ function TenantDetailPage({
         }
 
         if (editorState.versionId) {
-          const originalMonthlyAmount = Number(originalRow?.monthlyAmount ?? 0);
-          if (!originalRow || monthlyAmount !== originalMonthlyAmount) {
-            payload.monthlyAmount = monthlyAmount > 0 ? monthlyAmount : 0;
+          if (hasMonthlyAmountChange) {
+            payload.monthlyAmount = normalizedMonthlyAmount;
+            payload.yearlyAmount = normalizedMonthlyAmount * 12;
           }
           return payload;
         }
@@ -2333,13 +2646,19 @@ function TenantDetailPage({
       };
 
       const payload = buildChangedPayload();
-      if (Object.keys(payload).length > 0) {
+      let hasDataChanges = Object.keys(payload).length > 0;
+      if (hasDataChanges) {
         if (editorState.versionId) {
           await api.contractVersions.update(editorState.versionId, payload);
+          if (hasMonthlyAmountChange) {
+            await updateUnpaidInvoiceAmounts(editorState.versionId);
+          }
         } else {
           await api.contracts.update(editorState.contractId, payload);
         }
       }
+      const hasMainMonthlyAmountChange = await persistMainContractMonthlyAmount();
+      hasDataChanges = hasDataChanges || hasMainMonthlyAmountChange;
 
       const uploadDocumentIfNeeded = async (file, jenisDokumen, label) => {
         if (!(file instanceof File)) {
@@ -2351,7 +2670,7 @@ function TenantDetailPage({
           customer_id: customer.id,
           contract_id: editorState.contractId,
           contract_version_id: editorState.versionId ? Number(editorState.versionId) : null,
-          contract_number: contractNumber,
+          contract_number: contractNumber || null,
           jenis_dokumen: jenisDokumen,
           nomor_dokumen: contractNumber || null,
           tanggal_dokumen: todayIso,
@@ -2367,7 +2686,10 @@ function TenantDetailPage({
       ]);
 
       setContractRowEditor(null);
-      setDocumentFeedback("Data baris kontrak berhasil diperbarui.");
+      const feedbackMsg = hasFileUpload && !hasDataChanges
+        ? "Berkas berhasil diunggah."
+        : "Data baris kontrak berhasil diperbarui.";
+      setDocumentFeedback(feedbackMsg);
       await Promise.all([loadDetail(), onRefreshAll?.()]);
     } catch (requestError) {
       setError(
@@ -3464,6 +3786,7 @@ function TenantDetailPage({
     file,
     followUpId = null,
     packageOverrides = null,
+    billingCycle = null,
   ) => {
     if (!file || !row?.contractId) {
       return;
@@ -3482,18 +3805,61 @@ function TenantDetailPage({
       if (packageOverrides) {
         updatePayload.packageOverrides = packageOverrides;
       }
+      if (billingCycle) {
+        updatePayload.billingCycle = billingCycle;
+        await api.contracts.update(row.contractId, {
+          billingEvery: billingCycle.every,
+          billingUnit: billingCycle.unit,
+        });
+        await archiveActiveInvoicesForContract(row.contractId);
+      }
       if (followUpId) {
         await api.contractVersionRenewalFollowUps.update(followUpId, updatePayload);
       } else {
         const followUp = await api.contractVersionRenewalFollowUps.create(versionId);
         await api.contractVersionRenewalFollowUps.update(followUp.id, updatePayload);
       }
+
       await Promise.all([loadDetail(), onRefreshAll?.()]);
     } catch (requestError) {
       setError(
         requestError instanceof Error
           ? requestError.message
           : "Gagal mengunggah tanggapan tenant.",
+      );
+    }
+  };
+
+  const handleReplaceTenantRenewalResponse = async (row, followUp, file) => {
+    if (!file || !row?.contractId || !followUp?.id) {
+      return;
+    }
+
+    const previousDecision = String(
+      followUp?.responseStatus
+      ?? followUp?.responseDecision
+      ?? followUp?.response_decision
+      ?? "",
+    );
+    const decision = ["lanjut", "tidak"].includes(previousDecision)
+      ? previousDecision
+      : "lanjut";
+
+    setError("");
+    try {
+      const responseFileUrl = await uploadFileForRecord(file, ["customers", customer.id, "renewal-responses"]);
+      await api.contractVersionRenewalFollowUps.update(followUp.id, {
+        response_file_url: responseFileUrl,
+        response_file_name: file.name,
+        response_status: decision,
+        status: "completed",
+      });
+      await Promise.all([loadDetail(), onRefreshAll?.()]);
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Gagal mengganti berkas tanggapan tenant.",
       );
     }
   };
@@ -3538,9 +3904,19 @@ function TenantDetailPage({
               </div>
               {columnType === "renewal" ? (
                 hasRenewalFile ? (
-                  <a href={followUp.renewalFileUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[8px] font-black text-gold-accent uppercase tracking-widest hover:underline underline-offset-2">
-                    <span className="material-symbols-outlined text-[11px]">open_in_new</span>Lihat
-                  </a>
+                  <div className="flex items-center gap-1.5">
+                    <a href={followUp.renewalFileUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 h-7 px-2.5 rounded-lg border border-gold-accent/20 bg-gold-accent/10 text-[8px] font-black text-gold-accent uppercase tracking-widest hover:bg-gold-accent hover:text-[#0f141e] transition-all">
+                      <span className="material-symbols-outlined text-[11px]">open_in_new</span>Lihat
+                    </a>
+                    <label className="relative inline-flex items-center gap-1 h-7 px-2.5 rounded-lg border border-white/10 bg-white/5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all cursor-pointer backdrop-blur-md">
+                      <span className="material-symbols-outlined text-[11px]">upload_file</span>Ganti
+                      <input
+                        type="file"
+                        className="absolute inset-0 opacity-0 cursor-pointer"
+                        onChange={(e) => void handleUploadTenantRenewal(row, e.target.files?.[0] ?? null, followUp.id)}
+                      />
+                    </label>
+                  </div>
                 ) : (
                   <label className="relative inline-flex items-center gap-1 h-7 px-2.5 rounded-lg border border-white/10 bg-white/5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all cursor-pointer backdrop-blur-md">
                     <span className="material-symbols-outlined text-[11px]">upload_file</span>Upload
@@ -3549,9 +3925,19 @@ function TenantDetailPage({
                 )
               ) : (
                 hasResponseFile ? (
-                  <a href={followUp.responseFileUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[8px] font-black text-emerald-400 uppercase tracking-widest hover:underline underline-offset-2">
-                    <span className="material-symbols-outlined text-[11px]">open_in_new</span>Tanggapan
-                  </a>
+                  <div className="flex items-center gap-1.5">
+                    <a href={followUp.responseFileUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 h-7 px-2.5 rounded-lg border border-emerald-500/20 bg-emerald-500/10 text-[8px] font-black text-emerald-400 uppercase tracking-widest hover:bg-emerald-500 hover:text-[#0f141e] transition-all">
+                      <span className="material-symbols-outlined text-[11px]">open_in_new</span>Tanggapan
+                    </a>
+                    <label className="relative inline-flex items-center gap-1 h-7 px-2.5 rounded-lg border border-white/10 bg-white/5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all cursor-pointer backdrop-blur-md">
+                      <span className="material-symbols-outlined text-[11px]">upload_file</span>Ganti
+                      <input
+                        type="file"
+                        className="absolute inset-0 opacity-0 cursor-pointer"
+                        onChange={(e) => void handleReplaceTenantRenewalResponse(row, followUp, e.target.files?.[0] ?? null)}
+                      />
+                    </label>
+                  </div>
                 ) : hasRenewalFile ? (
                   <div className="flex items-center gap-1.5">
                     <label className="relative inline-flex items-center gap-1 h-7 px-2.5 rounded-lg border border-emerald-500/20 bg-emerald-500/10 text-[8px] font-black uppercase tracking-widest text-emerald-400 hover:bg-emerald-500 hover:text-[#0f141e] transition-all cursor-pointer backdrop-blur-md">
@@ -3568,6 +3954,8 @@ function TenantDetailPage({
                           const prevCoreTotal = currentVersion?.coreTotal ?? currentVersion?.core_total ?? currentContract?.coreTotal ?? currentContract?.core_total ?? 1;
                           const prevRatio = currentVersion?.sharedCoreRatio ?? currentVersion?.shared_core_ratio ?? currentContract?.sharingRatio ?? currentContract?.sharing_ratio ?? "1/32";
                           const prevMonthlyAmount = currentVersion?.monthlyAmount ?? currentVersion?.monthly_amount ?? currentContract?.monthlyAmount ?? currentContract?.monthly_amount ?? 0;
+                          const prevBillingEvery = currentContract?.billingEvery ?? currentContract?.billing_every ?? contract?.billingEvery ?? 1;
+                          const prevBillingUnit = currentContract?.billingUnit ?? currentContract?.billing_unit ?? contract?.billingUnit ?? "bulan";
                           setRenewalConfirmData({
                             row,
                             decision: "lanjut",
@@ -3578,6 +3966,9 @@ function TenantDetailPage({
                             coreTotal: prevCoreTotal,
                             ratio: prevRatio,
                             monthlyAmount: prevMonthlyAmount,
+                            billingMode: resolveBillingMode(prevBillingEvery, prevBillingUnit),
+                            billingEvery: String(prevBillingEvery ?? 1),
+                            billingUnit: String(prevBillingUnit ?? "bulan"),
                           });
                         }}
                       />
@@ -5737,99 +6128,146 @@ function TenantDetailPage({
               </div>
             </section>
 
-            {/* History Invoice Table grouped by Contract */}
-            {(() => {
-              const groups = {};
-              displayHistoryInvoiceRows.forEach(inv => {
-                const cId = inv.contractId ?? inv.contract_id ?? "unknown";
-                if (!groups[cId]) groups[cId] = [];
-                groups[cId].push(inv);
-              });
-              const groupKeys = Object.keys(groups);
+            <section className="glass-card backdrop-blur-xl rounded-premium border-white/10 shadow-glass-depth overflow-hidden">
+              <div className="px-6 md:px-8 py-5 border-b border-white/5 bg-white/[0.01] flex flex-col md:flex-row md:items-center justify-between gap-3">
+                <div className="flex flex-col gap-1">
+                  <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-white/60">Arsip Riwayat Settlement</h3>
+                  <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest">
+                    Invoice nonaktif digroup berdasarkan periode kontrak atau versi perpanjangan.
+                  </p>
+                </div>
+                <span className="self-start md:self-auto px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[9px] font-black text-white/25 uppercase tracking-widest backdrop-blur-md">
+                  {settlementPeriodGroups.length} Periode
+                </span>
+              </div>
 
-              return (
-                <div className="space-y-4">
-                  {groupKeys.length === 0 && (
-                    <section className="glass-card backdrop-blur-xl rounded-premium border-white/10 shadow-glass-depth overflow-hidden flex flex-col items-center justify-center p-12 text-center bg-white/[0.01]">
-                      <div className="h-16 w-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-4 shadow-glass-depth">
-                        <span className="material-symbols-outlined text-white/30 text-3xl">history</span>
-                      </div>
-                      <h4 className="text-[12px] font-black uppercase tracking-[0.2em] text-white/60 mb-2">Belum Ada Arsip</h4>
-                      <p className="text-[9px] font-bold text-white/30 tracking-widest uppercase">Arsip riwayat settlement kosong.</p>
-                    </section>
-                  )}
-                  {groupKeys.map(cId => {
-                    const groupRows = groups[cId];
-                    const contractRow = contractById.get(Number(cId));
-                    const contractTitle = contractRow ? (contractRow.bakNumber || contractRow.number || `Kontrak #${cId}`) : "Tanpa Kontrak";
-                    
+              {settlementPeriodGroups.length === 0 ? (
+                <div className="flex flex-col items-center justify-center p-12 text-center bg-white/[0.01]">
+                  <div className="h-16 w-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-4 shadow-glass-depth">
+                    <span className="material-symbols-outlined text-white/30 text-3xl">history</span>
+                  </div>
+                  <h4 className="text-[12px] font-black uppercase tracking-[0.2em] text-white/60 mb-2">Belum Ada Arsip</h4>
+                  <p className="text-[9px] font-bold text-white/30 tracking-widest uppercase">Arsip riwayat settlement kosong.</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-white/5">
+                  {settlementPeriodGroups.map((group) => {
+                    const isExpanded = Boolean(expandedSettlementPeriods[group.key]);
+                    const periodLabel = group.periodStart && group.periodEnd
+                      ? `${formatDate(group.periodStart)} - ${formatDate(group.periodEnd)}`
+                      : "Periode tidak lengkap";
+                    const contractLabel = group.contractNumber || (group.contractId ? `Kontrak #${group.contractId}` : "Tanpa Kontrak");
+
                     return (
-                      <section key={cId} className="glass-card backdrop-blur-xl rounded-premium border-white/10 shadow-glass-depth overflow-hidden">
-                        <div className="px-8 py-6 border-b border-white/5 bg-white/[0.01] flex items-center justify-between">
-                          <div className="flex flex-col gap-1">
-                            <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-white/60">Arsip & Riwayat Settlement</h3>
-                            <span className="text-[14px] font-black text-white">{contractTitle}</span>
+                      <div key={group.key} className="bg-white/[0.005]">
+                        <button
+                          className="w-full px-4 md:px-6 py-4 flex flex-col gap-3 text-left transition-all hover:bg-white/[0.025] md:flex-row md:items-center md:justify-between"
+                          onClick={() => toggleSettlementPeriod(group.key)}
+                          type="button"
+                        >
+                          <div className="flex min-w-0 items-start gap-3">
+                            <div className={`mt-0.5 h-8 w-8 shrink-0 rounded-xl border flex items-center justify-center transition-all ${isExpanded ? "border-gold-accent/30 bg-gold-accent/15 text-gold-accent" : "border-white/10 bg-white/5 text-white/25"}`}>
+                              <span className={`material-symbols-outlined text-[16px] transition-transform ${isExpanded ? "rotate-180" : ""}`}>expand_more</span>
+                            </div>
+                            <div className="min-w-0 space-y-1">
+                              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-gold-accent/70">
+                                {periodLabel}
+                              </p>
+                              <p className="truncate text-[13px] font-black text-white">
+                                {contractLabel}
+                              </p>
+                              <p className="text-[8px] font-bold uppercase tracking-widest text-white/25">
+                                {group.versionId ? `Versi Kontrak #${group.versionId}` : "Periode Kontrak Utama"}
+                              </p>
+                            </div>
                           </div>
-                          <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[9px] font-black text-white/20 uppercase tracking-widest backdrop-blur-md">
-                            {groupRows.length} Tercatat
-                          </span>
-                        </div>
-                        <div className="overflow-x-auto no-scrollbar pb-4 md:pb-5 px-4 md:px-5 pt-4 md:pt-5">
-                          <table className="w-full text-left min-w-[1200px] border-collapse">
-                            <thead>
-                              <tr className="bg-white/[0.02]">
-                                <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">No</th>
-                                <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Urutan</th>
-                                <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Identitas</th>
-                                <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Masa Periode</th>
-                                <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Settlement</th>
-                                <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Status Akhir</th>
-                                <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Waktu Bayar</th>
-                                <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Versi Log</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {groupRows.map((invoice, idx) => {
-                                const statusMeta = invoice.statusMeta ?? resolveInvoiceStatusMeta(invoice);
-                                const periodLabel = invoice.periodStartDate && invoice.periodEndDate
-                                  ? `${formatDate(invoice.periodStartDate)} - ${formatDate(invoice.periodEndDate)}`
-                                  : formatDate(invoice.dueDate);
-                                return (
-                                  <tr key={invoice.id} className="hover:bg-white/[0.03] transition-colors group/row">
-                                    <td className="px-4 py-3 text-[10px] font-black text-white/20 whitespace-nowrap border border-white/5 text-center">{idx + 1}</td>
-                                    <td className="px-4 py-3 whitespace-nowrap border border-white/5 text-center">
-                                      <span className="text-[11px] font-black text-white">Siklus #{invoice.paymentOrder}</span>
-                                    </td>
-                                    <td className="px-4 py-3 whitespace-nowrap border border-white/5">
-                                      <span className="text-[11px] font-black text-white/60">{invoice.invoiceNumber || <span className="text-white/20 italic font-normal">—</span>}</span>
-                                    </td>
-                                    <td className="px-4 py-3 text-[10px] font-bold text-white/30 uppercase whitespace-nowrap border border-white/5">{periodLabel}</td>
-                                    <td className="px-4 py-3 whitespace-nowrap border border-white/5 text-right">
-                                      <span className="text-[11px] font-black text-white/80">{formatCurrency(invoice.amount ?? 0).replace('Rp', '').trim()}</span>
-                                    </td>
-                                    <td className="px-4 py-3 whitespace-nowrap border border-white/5 text-center">
-                                      <span className={`inline-flex justify-center items-center w-full max-w-[120px] px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-widest border ${statusMeta.badgeClass.includes('emerald') ? 'bg-emerald-500/5 text-emerald-500/40 border-emerald-500/10' : 'bg-white/5 text-white/20 border-white/5'}`}>
-                                        <span className="truncate">{statusMeta.label}</span>
-                                      </span>
-                                    </td>
-                                    <td className="px-4 py-3 text-[10px] font-bold text-white/30 whitespace-nowrap border border-white/5 text-center">{formatDate(invoice.paidAt)}</td>
-                                    <td className="px-4 py-3 text-right whitespace-nowrap border border-white/5">
-                                      <span className="px-2 py-0.5 rounded bg-white/5 text-[8px] font-black text-white/20 uppercase tracking-widest backdrop-blur-md">
-                                        v{invoice.scheduleVersion ?? 1} Arsip
-                                      </span>
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
-                      </section>
+
+                          <div className="grid grid-cols-3 gap-2 md:min-w-[360px]">
+                            <div className="rounded-xl border border-white/5 bg-white/[0.02] px-3 py-2">
+                              <p className="text-[7px] font-black uppercase tracking-widest text-white/20">Invoice</p>
+                              <p className="text-[12px] font-black text-white">{group.rows.length}</p>
+                            </div>
+                            <div className="rounded-xl border border-white/5 bg-white/[0.02] px-3 py-2">
+                              <p className="text-[7px] font-black uppercase tracking-widest text-white/20">Lunas</p>
+                              <p className="text-[12px] font-black text-emerald-400">{group.paidCount}/{group.rows.length}</p>
+                            </div>
+                            <div className="rounded-xl border border-white/5 bg-white/[0.02] px-3 py-2">
+                              <p className="text-[7px] font-black uppercase tracking-widest text-white/20">Total</p>
+                              <p className="text-[12px] font-black text-white">{formatCurrency(group.totalAmount).replace("Rp", "").trim()}</p>
+                            </div>
+                          </div>
+                        </button>
+
+                        {isExpanded && (
+                          <div className="overflow-x-auto no-scrollbar border-t border-white/5 px-4 md:px-5 py-4">
+                            <table className="w-full text-left min-w-[1100px] border-collapse">
+                              <thead>
+                                <tr className="bg-white/[0.02]">
+                                  <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">No</th>
+                                  <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Siklus</th>
+                                  <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">No. Invoice</th>
+                                  <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Masa Invoice</th>
+                                  <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Settlement</th>
+                                  <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Status Akhir</th>
+                                  <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Waktu Bayar</th>
+                                  <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Berkas</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {group.rows.map((invoice, idx) => {
+                                  const statusMeta = invoice.statusMeta ?? resolveInvoiceStatusMeta(invoice);
+                                  const periodLabel = invoice.periodStartDate && invoice.periodEndDate
+                                    ? `${formatDate(invoice.periodStartDate)} - ${formatDate(invoice.periodEndDate)}`
+                                    : formatDate(invoice.dueDate);
+                                  const hasInvoiceFile = isOpenableFileUrl(invoice.invoiceFileUrl);
+                                  const hasPaymentProof = isOpenableFileUrl(invoice.paymentProofFileUrl);
+
+                                  return (
+                                    <tr key={invoice.id} className="hover:bg-white/[0.03] transition-colors group/row">
+                                      <td className="px-4 py-3 text-[10px] font-black text-white/20 whitespace-nowrap border border-white/5 text-center">{idx + 1}</td>
+                                      <td className="px-4 py-3 whitespace-nowrap border border-white/5 text-center">
+                                        <span className="text-[11px] font-black text-white">Siklus #{idx + 1}</span>
+                                      </td>
+                                      <td className="px-4 py-3 whitespace-nowrap border border-white/5">
+                                        <span className="text-[11px] font-black text-white/60">{invoice.invoiceNumber || <span className="text-white/20 italic font-normal">—</span>}</span>
+                                      </td>
+                                      <td className="px-4 py-3 text-[10px] font-bold text-white/30 uppercase whitespace-nowrap border border-white/5">{periodLabel}</td>
+                                      <td className="px-4 py-3 whitespace-nowrap border border-white/5 text-right">
+                                        <span className="text-[11px] font-black text-white/80">{formatCurrency(invoice.amount ?? 0).replace("Rp", "").trim()}</span>
+                                      </td>
+                                      <td className="px-4 py-3 whitespace-nowrap border border-white/5 text-center">
+                                        <span className={`inline-flex justify-center items-center w-full max-w-[120px] px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-widest border ${statusMeta.badgeClass.includes("emerald") ? "bg-emerald-500/5 text-emerald-500/50 border-emerald-500/10" : "bg-white/5 text-white/25 border-white/5"}`}>
+                                          <span className="truncate">{statusMeta.label}</span>
+                                        </span>
+                                      </td>
+                                      <td className="px-4 py-3 text-[10px] font-bold text-white/30 whitespace-nowrap border border-white/5 text-center">{formatDate(invoice.paidAt)}</td>
+                                      <td className="px-4 py-3 whitespace-nowrap border border-white/5">
+                                        <div className="flex items-center justify-center gap-2">
+                                          {hasInvoiceFile ? (
+                                            <a href={invoice.invoiceFileUrl} target="_blank" rel="noopener noreferrer" className="text-[8px] font-black uppercase tracking-widest text-gold-accent hover:underline">Invoice</a>
+                                          ) : (
+                                            <span className="text-[8px] font-bold uppercase tracking-widest text-white/15">Invoice</span>
+                                          )}
+                                          {hasPaymentProof ? (
+                                            <a href={invoice.paymentProofFileUrl} target="_blank" rel="noopener noreferrer" className="text-[8px] font-black uppercase tracking-widest text-emerald-400 hover:underline">Bukti</a>
+                                          ) : (
+                                            <span className="text-[8px] font-bold uppercase tracking-widest text-white/15">Bukti</span>
+                                          )}
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
-              );
-            })()}
+              )}
+            </section>
           </div>
         )}
 
@@ -5868,15 +6306,15 @@ function TenantDetailPage({
                 </div>
 
                 <div className="space-y-2.5">
-                  {(() => {
-                    const filteredAndSortedDocs = allDocuments
-                      .filter(doc => {
-                        if (!documentSearch) return true;
-                        const searchLower = documentSearch.toLowerCase();
-                        const label = (documentTypeLabelMap[doc?.jenisDokumen] || doc?.jenisDokumen || "").toLowerCase();
-                        const noRef = (doc?.nomorDokumen || "").toLowerCase();
-                        return label.includes(searchLower) || noRef.includes(searchLower);
-                      })
+	                  {(() => {
+	                    const filteredAndSortedDocs = allDocuments
+	                      .filter(doc => {
+	                        if (!documentSearch) return true;
+	                        const searchLower = documentSearch.toLowerCase();
+	                        const label = resolveDocumentTypeLabel(doc?.jenisDokumen).toLowerCase();
+	                        const noRef = (doc?.nomorDokumen || "").toLowerCase();
+	                        return label.includes(searchLower) || noRef.includes(searchLower);
+	                      })
                       .sort((a, b) => {
                         const dateA = a?.tanggalDokumen ? new Date(a.tanggalDokumen).getTime() : 0;
                         const dateB = b?.tanggalDokumen ? new Date(b.tanggalDokumen).getTime() : 0;
@@ -5900,9 +6338,9 @@ function TenantDetailPage({
                                   <span className="material-symbols-outlined" style={{ fontSize: "16px" }}>description</span>
                                 </div>
                                 <div className="space-y-0.5">
-                                  <p className="text-[11px] md:text-[12px] font-black text-white uppercase tracking-tight group-hover/doc:text-gold-accent transition-colors">
-                                    {documentTypeLabelMap[doc?.jenisDokumen] || doc?.jenisDokumen}
-                                  </p>
+	                                  <p className="text-[11px] md:text-[12px] font-black text-white uppercase tracking-tight group-hover/doc:text-gold-accent transition-colors">
+	                                    {resolveDocumentTypeLabel(doc?.jenisDokumen)}
+	                                  </p>
                                   <p className="text-[8px] font-bold text-white/30 uppercase tracking-widest">
                                     {doc?.nomorDokumen || "No Ref: —"} • {formatDate(doc?.tanggalDokumen)}
                                   </p>
@@ -6401,7 +6839,7 @@ function TenantDetailPage({
 
         {renewalConfirmData && createPortal(
           <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0f141e]/80 backdrop-blur-sm px-4">
-            <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto glass-card rounded-premium border border-white/10 shadow-glass-depth p-4 md:p-5 relative">
+            <div className="max-h-[90vh] w-full max-w-xl overflow-y-auto glass-card rounded-premium border border-white/10 shadow-glass-depth p-4 md:p-5 relative">
               {/* Header */}
               <div className="mb-3 flex items-start justify-between gap-4 border-b border-white/[0.05] pb-3">
                 <div className="space-y-1.5">
@@ -6483,6 +6921,94 @@ function TenantDetailPage({
                     />
                   </div>
                 )}
+
+                <div className="space-y-3 p-3 rounded-xl border border-emerald-500/10 bg-emerald-500/[0.03]">
+                  <div className="space-y-1">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-emerald-400">
+                      Atur Ulang Billing Iuran
+                    </p>
+                    <p className="text-[9px] font-bold text-white/35 leading-relaxed">
+                      Berlaku untuk invoice aktif yang belum lunas setelah tanggapan perpanjangan dikonfirmasi.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                    {[
+                      { value: "monthly", label: "Per Bulan" },
+                      { value: "quarterly", label: "3 Bulan" },
+                      { value: "custom", label: "Custom" },
+                    ].map((option) => (
+                      <label
+                        className={`flex h-10 items-center justify-center rounded-xl border text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer ${
+                          renewalConfirmData.billingMode === option.value
+                            ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-300"
+                            : "border-white/10 bg-white/[0.02] text-white/45 hover:bg-white/[0.05] hover:text-white"
+                        }`}
+                        key={option.value}
+                      >
+                        <input
+                          type="radio"
+                          name="renewalBillingMode"
+                          checked={renewalConfirmData.billingMode === option.value}
+                          onChange={() =>
+                            setRenewalConfirmData((previous) => {
+                              if (!previous) {
+                                return previous;
+                              }
+
+                              if (option.value === "monthly") {
+                                return {
+                                  ...previous,
+                                  billingMode: option.value,
+                                  billingEvery: "1",
+                                  billingUnit: "bulan",
+                                };
+                              }
+                              if (option.value === "quarterly") {
+                                return {
+                                  ...previous,
+                                  billingMode: option.value,
+                                  billingEvery: "3",
+                                  billingUnit: "bulan",
+                                };
+                              }
+
+                              return { ...previous, billingMode: option.value };
+                            })
+                          }
+                          className="sr-only"
+                        />
+                        {option.label}
+                      </label>
+                    ))}
+                  </div>
+
+                  {renewalConfirmData.billingMode === "custom" && (
+                    <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                      <GlassInput
+                        label="Frekuensi Billing"
+                        type="number"
+                        min="1"
+                        value={renewalConfirmData.billingEvery}
+                        onChange={(e) => setRenewalConfirmData((previous) => (
+                          previous ? { ...previous, billingEvery: e.target.value } : previous
+                        ))}
+                      />
+                      <GlassSelect
+                        label="Satuan Billing"
+                        value={renewalConfirmData.billingUnit}
+                        onChange={(value) => setRenewalConfirmData((previous) => (
+                          previous ? { ...previous, billingUnit: value } : previous
+                        ))}
+                        options={[
+                          { value: "hari", label: "Hari" },
+                          { value: "bulan", label: "Bulan" },
+                          { value: "tahun", label: "Tahun" },
+                        ]}
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Actions */}
@@ -6497,7 +7023,7 @@ function TenantDetailPage({
                 <button
                   className="h-9 px-4 rounded-xl bg-emerald-500 text-[9px] font-black uppercase tracking-widest text-[#0f141e] transition-all hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
                   onClick={async () => {
-                    const { row, decision, file, followUpId, usePreviousPackage, packageType, coreTotal, ratio, monthlyAmount } = renewalConfirmData;
+                    const { row, decision, file, followUpId, usePreviousPackage, packageType, coreTotal, ratio, monthlyAmount, billingMode, billingEvery, billingUnit } = renewalConfirmData;
 
                     let packageOverrides = null;
                     if (!usePreviousPackage) {
@@ -6511,8 +7037,23 @@ function TenantDetailPage({
                       };
                     }
 
+                    const nextBillingCycle = billingMode === "monthly"
+                      ? { every: 1, unit: "bulan" }
+                      : billingMode === "quarterly"
+                        ? { every: 3, unit: "bulan" }
+                        : { every: Number(billingEvery), unit: String(billingUnit ?? "bulan") };
+
+                    if (
+                      !Number.isFinite(nextBillingCycle.every)
+                      || nextBillingCycle.every <= 0
+                      || !["hari", "bulan", "tahun"].includes(nextBillingCycle.unit)
+                    ) {
+                      setError("Periode billing perpanjangan harus diisi dengan frekuensi lebih dari 0 dan satuan yang valid.");
+                      return;
+                    }
+
                     setRenewalConfirmData(null);
-                    await handleRespondTenantRenewal(row, decision, file, followUpId, packageOverrides);
+                    await handleRespondTenantRenewal(row, decision, file, followUpId, packageOverrides, nextBillingCycle);
                   }}
                   type="button"
                 >

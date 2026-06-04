@@ -12,6 +12,28 @@ const QUERY_CHUNK_CONCURRENCY = 4;
 
 const resolveInvoiceDueDate = (periodStartDate) => getNextMonthIsoDate(periodStartDate, 1);
 
+const resolveBillingCycleInvoiceAmount = (monthlyAmount, billingCycle) => {
+  const amount = Number(monthlyAmount ?? 0);
+  const every = Number(billingCycle?.every ?? 1);
+  const unit = String(billingCycle?.unit ?? 'bulan');
+
+  if (!Number.isFinite(amount) || amount <= 0 || !Number.isFinite(every) || every <= 0) {
+    return 0;
+  }
+
+  if (unit === 'tahun') {
+    return amount * every * 12;
+  }
+  if (unit === 'bulan') {
+    return amount * every;
+  }
+  if (unit === 'hari') {
+    return Math.round((amount / 30) * every);
+  }
+
+  return amount;
+};
+
 const chunkArray = (items, size = QUERY_CHUNK_SIZE) => {
   const chunks = [];
   for (let index = 0; index < items.length; index += size) {
@@ -331,6 +353,24 @@ const getFirstDayOfNextMonthIso = (dateValue) => {
   const date = new Date(`${String(dateValue).slice(0, 10)}T00:00:00.000Z`);
   if (Number.isNaN(date.getTime())) return null;
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 1)).toISOString().slice(0, 10);
+};
+
+const inferNextContractPeriod = (startDateValue, endDateValue) => {
+  const startDate = new Date(`${String(startDateValue ?? '').slice(0, 10)}T00:00:00.000Z`);
+  const endDate = new Date(`${String(endDateValue ?? '').slice(0, 10)}T00:00:00.000Z`);
+
+  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime()) || endDate < startDate) {
+    return { startDate: null, endDate: null };
+  }
+
+  const durationDays = Math.max(0, Math.round((endDate.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000)));
+  const nextStartDate = addDaysToIsoDate(endDateValue, 1);
+  const nextEndDate = addDaysToIsoDate(nextStartDate, durationDays);
+
+  return {
+    startDate: nextStartDate,
+    endDate: nextEndDate,
+  };
 };
 
 const getIsoDateValue = (dateValue) => {
@@ -3853,6 +3893,7 @@ export const contractVersionsApi = {
         every: mainContract?.billing_every ?? 1,
         unit: mainContract?.billing_unit ?? 'bulan'
       };
+      const invoiceAmount = resolveBillingCycleInvoiceAmount(data.monthly_amount, billingCycle);
 
       const newInvoiceRows = buildInvoiceScheduleRows(newStart, newEnd, billingCycle);
       if (newInvoiceRows.length > 0) {
@@ -3870,7 +3911,7 @@ export const contractVersionsApi = {
             period_year: periodYear,
             period_month: periodMonth,
             due_date: resolveInvoiceDueDate(row.periodStartDate),
-            amount: data.monthly_amount,
+            amount: invoiceAmount,
             status: 'belum_ditagih',
             schedule_status: 'active',
             updated_at: new Date().toISOString()
@@ -4553,8 +4594,6 @@ export const contractVersionRenewalFollowUpsApi = {
         .select('id')
         .eq('contract_id', currentVersion.contract_id)
         .gt('version_number', Number(currentVersion.version_number ?? 0))
-        .is('start_date', null)
-        .is('end_date', null)
         .is('deleted_at', null)
         .order('version_number', { ascending: false })
         .limit(1);
@@ -4578,12 +4617,17 @@ export const contractVersionRenewalFollowUpsApi = {
       const coreType = packageOverrides
         ? (packageOverrides.coreType ?? packageOverrides.core_type ?? 'core')
         : currentVersion.core_type;
-      const coreTotal = packageOverrides
-        ? Number(packageOverrides.coreTotal ?? packageOverrides.core_total ?? 0)
-        : currentVersion.core_total;
-      const sharedCoreRatio = packageOverrides
-        ? (packageOverrides.sharedCoreRatio ?? packageOverrides.shared_core_ratio ?? null)
-        : currentVersion.shared_core_ratio;
+      const normalizedCoreType = coreType === 'sharing_core' ? 'sharing_core' : 'core';
+      const coreTotal = normalizedCoreType === 'core'
+        ? Math.max(1, Number(packageOverrides
+          ? (packageOverrides.coreTotal ?? packageOverrides.core_total ?? currentVersion.core_total ?? 0)
+          : (currentVersion.core_total ?? 0)))
+        : 0;
+      const sharedCoreRatio = normalizedCoreType === 'sharing_core'
+        ? (packageOverrides
+          ? (packageOverrides.sharedCoreRatio ?? packageOverrides.shared_core_ratio ?? currentVersion.shared_core_ratio ?? null)
+          : (currentVersion.shared_core_ratio ?? null))
+        : null;
       const monthlyAmount = packageOverrides
         ? Number(packageOverrides.monthlyAmount ?? packageOverrides.monthly_amount ?? 0)
         : currentVersion.monthly_amount;
@@ -4591,25 +4635,71 @@ export const contractVersionRenewalFollowUpsApi = {
         ? Number(packageOverrides.yearlyAmount ?? packageOverrides.yearly_amount ?? (monthlyAmount * 12))
         : currentVersion.yearly_amount;
 
-      // 3. Buat versi kontrak baru (Version aktif berikutnya) dengan nilai kosong agar diisi manual
+      const nextPeriod = inferNextContractPeriod(currentVersion.start_date, currentVersion.end_date);
+      if (!nextPeriod.startDate || !nextPeriod.endDate) {
+        throw new Error('Periode kontrak berjalan tidak valid untuk membuat perpanjangan otomatis.');
+      }
+
+      // 3. Buat versi kontrak baru dengan periode default agar schema non-null tetap valid.
       if (!existingDraftVersion) {
-        const { error: newVerErr } = await supabase
+        const { data: newVersion, error: newVerErr } = await supabase
           .from('contract_versions')
           .insert(withUpdatedAt({
             contract_id: currentVersion.contract_id,
             customer_id: currentVersion.customer_id,
             contract_number: null,
             version_number: nextVersionNumber,
-            start_date: null,
-            end_date: null,
-            core_type: coreType,
+            start_date: nextPeriod.startDate,
+            end_date: nextPeriod.endDate,
+            core_type: normalizedCoreType,
             core_total: coreTotal,
             shared_core_ratio: sharedCoreRatio,
             monthly_amount: monthlyAmount,
             yearly_amount: yearlyAmount,
-            remarks: null
-          }));
+            remarks: 'Perpanjangan otomatis dari tanggapan tenant. Lengkapi nomor kontrak/BAK jika sudah tersedia.'
+          }))
+          .select()
+          .single();
         if (newVerErr) throw newVerErr;
+
+        const { data: mainContract, error: mainContractError } = await supabase
+          .from('contracts')
+          .select('billing_every, billing_unit')
+          .eq('id', currentVersion.contract_id)
+          .single();
+        if (mainContractError) throw mainContractError;
+
+        const billingCycle = followUpData.billingCycle ?? followUpData.billing_cycle ?? {
+          every: mainContract?.billing_every ?? 1,
+          unit: mainContract?.billing_unit ?? 'bulan',
+        };
+        const newInvoiceRows = buildInvoiceScheduleRows(nextPeriod.startDate, nextPeriod.endDate, billingCycle);
+        const invoiceAmount = resolveBillingCycleInvoiceAmount(monthlyAmount, billingCycle);
+
+        if (newInvoiceRows.length > 0) {
+          const newInvoicePayload = newInvoiceRows.map((row) => {
+            const periodDate = new Date(`${row.periodStartDate}T00:00:00.000Z`);
+            return {
+              customer_id: currentVersion.customer_id,
+              contract_id: currentVersion.contract_id,
+              contract_version_id: newVersion.id,
+              contract_number: null,
+              period_start_date: row.periodStartDate,
+              period_end_date: row.periodEndDate,
+              period_year: periodDate.getUTCFullYear(),
+              period_month: periodDate.getUTCMonth() + 1,
+              due_date: resolveInvoiceDueDate(row.periodStartDate),
+              amount: invoiceAmount,
+              status: 'belum_ditagih',
+              schedule_status: 'active',
+              updated_at: new Date().toISOString(),
+            };
+          });
+          const { error: invoiceInsertError } = await supabase
+            .from('invoices')
+            .insert(newInvoicePayload);
+          if (invoiceInsertError) throw invoiceInsertError;
+        }
       }
     }
 
