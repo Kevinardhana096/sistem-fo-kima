@@ -1721,9 +1721,18 @@ function TenantDetailPage({
       (event) => event?.type !== "invoice",
     );
     const synthesizedTimeline = [];
+    const seenTimelineKeys = new Set();
+    const pushTimelineEvent = (event) => {
+      const key = String(event?.id ?? `${event?.type}-${event?.date}-${event?.title}`);
+      if (seenTimelineKeys.has(key)) {
+        return;
+      }
+      seenTimelineKeys.add(key);
+      synthesizedTimeline.push(event);
+    };
 
     if (pendingInvoiceCount > 0) {
-      synthesizedTimeline.push({
+      pushTimelineEvent({
         id: `invoice-pending-summary-${customer.id}`,
         customerId: customer.id,
         date: todayIso,
@@ -1734,7 +1743,7 @@ function TenantDetailPage({
     }
 
     if (nextActionMeta) {
-      synthesizedTimeline.push({
+      pushTimelineEvent({
         id: `invoice-hminus7-${nextActionInvoice?.id ?? "none"}`,
         customerId: customer.id,
         date: todayIso,
@@ -1743,6 +1752,65 @@ function TenantDetailPage({
         description: nextActionMeta.message,
       });
     }
+
+    allDocuments.forEach((doc) => {
+      const documentDate = doc?.createdAt ?? doc?.created_at ?? doc?.tanggalDokumen ?? doc?.tanggal_dokumen ?? todayIso;
+      pushTimelineEvent({
+        id: `document-${doc?.id ?? documentDate}`,
+        customerId: customer.id,
+        date: documentDate,
+        type: "document",
+        title: `Dokumen ${resolveDocumentTypeLabel(doc?.jenisDokumen)} diunggah`,
+        description: `${doc?.nomorDokumen ? `No. ${doc.nomorDokumen}. ` : ""}${isOpenableFileUrl(doc?.fileUrl) ? "Berkas tersedia di tab Dokumen." : "Metadata dokumen tersimpan."}`,
+      });
+    });
+
+    versions.forEach((version) => {
+      const versionNumber = version?.versionNumber ?? version?.version_number ?? "-";
+      pushTimelineEvent({
+        id: `contract-version-${version?.id ?? versionNumber}`,
+        customerId: customer.id,
+        date: version?.createdAt ?? version?.created_at ?? version?.startDate ?? version?.start_date ?? todayIso,
+        type: "contract_version",
+        title: `Versi kontrak #${versionNumber} tercatat`,
+        description: `Periode ${formatDate(version?.startDate ?? version?.start_date)} - ${formatDate(version?.endDate ?? version?.end_date)}.`,
+      });
+
+      (Array.isArray(version?.renewalFollowUps) ? version.renewalFollowUps : []).forEach((followUp) => {
+        const followUpDate = followUp?.updatedAt ?? followUp?.updated_at ?? followUp?.createdAt ?? followUp?.created_at ?? todayIso;
+        if (isOpenableFileUrl(followUp?.renewalFileUrl)) {
+          pushTimelineEvent({
+            id: `renewal-upload-${followUp?.id ?? followUpDate}`,
+            customerId: customer.id,
+            date: followUpDate,
+            type: "contract",
+            title: "Surat perpanjangan diunggah",
+            description: followUp?.renewalFileName ? `File: ${followUp.renewalFileName}.` : "Berkas perpanjangan kontrak tersedia.",
+          });
+        }
+        if (isOpenableFileUrl(followUp?.responseFileUrl)) {
+          pushTimelineEvent({
+            id: `renewal-response-${followUp?.id ?? followUpDate}`,
+            customerId: customer.id,
+            date: followUpDate,
+            type: "contract",
+            title: "Tanggapan perpanjangan diterima",
+            description: `${followUp?.responseStatus ? `Keputusan: ${toTitleCase(followUp.responseStatus)}. ` : ""}${followUp?.responseFileName ? `File: ${followUp.responseFileName}.` : "Berkas tanggapan tersedia."}`,
+          });
+        }
+      });
+    });
+
+    (Array.isArray(detail?.route?.history) ? detail.route.history : []).forEach((routeEvent) => {
+      pushTimelineEvent({
+        id: `route-history-${routeEvent?.id ?? routeEvent?.createdAt ?? routeEvent?.created_at}`,
+        customerId: customer.id,
+        date: routeEvent?.createdAt ?? routeEvent?.created_at ?? todayIso,
+        type: "contract",
+        title: ROUTE_OPERATION_LABEL_MAP[routeEvent?.operation] ?? "Aktivitas jalur FO",
+        description: routeEvent?.note ?? routeEvent?.changeNote ?? "Riwayat jalur FO diperbarui.",
+      });
+    });
 
     const toTimestamp = (value) => {
       const normalized =
@@ -1757,14 +1825,19 @@ function TenantDetailPage({
       (left, right) => toTimestamp(right.date) - toTimestamp(left.date),
     );
 
-    return [...synthesizedTimeline, ...sortedNonInvoiceTimeline];
+    return [...synthesizedTimeline, ...sortedNonInvoiceTimeline].sort(
+      (left, right) => toTimestamp(right.date) - toTimestamp(left.date),
+    );
   }, [
+    allDocuments,
     customer.id,
+    detail?.route?.history,
     nextActionMeta,
     nextActionInvoice?.id,
     pendingInvoiceCount,
     timeline,
     todayIso,
+    versions,
   ]);
 
   const billingEvery = Number(contract?.billingEvery ?? 1);
@@ -2071,21 +2144,48 @@ function TenantDetailPage({
       ?? 0,
     );
     const scheduledAmount = resolveBillingCycleAmount(targetMonthlyAmount, nextBillingCycle);
-    const rowsForContract = invoiceRows.filter(
-      (invoice) => Number(invoice?.contractId ?? invoice?.contract_id) === Number(targetContract.id),
-    );
-    const unpaidRows = rowsForContract.filter((invoice) => !isInvoicePaid(invoice));
-    const paidRows = rowsForContract.filter(isInvoicePaid);
+    const persistedRowsForContract = invoices.filter((invoice) => {
+      const invoiceId = Number(invoice?.id);
+      const invoiceContractId = Number(invoice?.contractId ?? invoice?.contract_id);
+      return Number.isFinite(invoiceId) && invoiceContractId === Number(targetContract.id);
+    });
+    const paidRows = persistedRowsForContract.filter(isInvoicePaid);
+    const unpaidActiveRows = persistedRowsForContract.filter((invoice) => {
+      const scheduleStatus = String(invoice?.scheduleStatus ?? invoice?.schedule_status ?? "active").toLowerCase();
+      return scheduleStatus !== "history" && !isInvoicePaid(invoice);
+    });
     const paidPeriodKeys = new Set(
       paidRows.map((invoice) => `${invoice.periodStartDate ?? ""}-${invoice.periodEndDate ?? ""}`),
     );
+    const activePeriodKeys = new Set(
+      scheduleRows.map((row) => `${row.periodStartDate}-${row.periodEndDate}`),
+    );
+    const reusableRowsByPeriod = new Map();
+
+    unpaidActiveRows.forEach((invoice) => {
+      const key = `${String(invoice?.periodStartDate ?? invoice?.period_start_date ?? "").slice(0, 10)}-${String(invoice?.periodEndDate ?? invoice?.period_end_date ?? "").slice(0, 10)}`;
+      if (activePeriodKeys.has(key) && !reusableRowsByPeriod.has(key)) {
+        reusableRowsByPeriod.set(key, invoice);
+      }
+    });
+
+    await Promise.all(
+      unpaidActiveRows
+        .filter((invoice) => {
+          const key = `${String(invoice?.periodStartDate ?? invoice?.period_start_date ?? "").slice(0, 10)}-${String(invoice?.periodEndDate ?? invoice?.period_end_date ?? "").slice(0, 10)}`;
+          return !activePeriodKeys.has(key);
+        })
+        .map((invoice) => api.invoices.update(invoice.id, { scheduleStatus: "history" })),
+    );
+
     const availableScheduleRows = scheduleRows.filter(
       (row) => !paidPeriodKeys.has(`${row.periodStartDate}-${row.periodEndDate}`),
     );
 
     await Promise.all(
-      availableScheduleRows.map((row, index) => {
-        const existingInvoice = unpaidRows[index] ?? null;
+      availableScheduleRows.map((row) => {
+        const key = `${row.periodStartDate}-${row.periodEndDate}`;
+        const existingInvoice = reusableRowsByPeriod.get(key) ?? null;
         const periodDate = new Date(`${row.periodStartDate}T00:00:00.000Z`);
         const periodYear = Number.isFinite(periodDate.getTime())
           ? periodDate.getUTCFullYear()
@@ -2096,6 +2196,7 @@ function TenantDetailPage({
         const payload = {
           customerId: customer.id,
           contractId: targetContract.id,
+          contractVersionId: activeBillingPeriod?.versionId ?? null,
           contractNumber: targetContractNumber,
           periodStartDate: row.periodStartDate,
           periodEndDate: row.periodEndDate,
@@ -2115,13 +2216,6 @@ function TenantDetailPage({
           status: "belum_ditagih",
         });
       }),
-    );
-
-    const surplusRows = unpaidRows.slice(availableScheduleRows.length);
-    await Promise.all(
-      surplusRows.map((invoice) =>
-        api.invoices.update(invoice.id, { scheduleStatus: "history" }),
-      ),
     );
   };
 
@@ -6264,7 +6358,7 @@ function TenantDetailPage({
                         )}
                       </div>
                     );
-                  })}
+                  })()}
                 </div>
               )}
             </section>
@@ -6364,7 +6458,7 @@ function TenantDetailPage({
                         ))}
                       </>
                     );
-                  })}
+                  })()}
                 </div>
               </div>
             </section>
