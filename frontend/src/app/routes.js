@@ -19,6 +19,11 @@ import {
 } from "../roles/teknisi/routes";
 
 const routeRegistry = {
+    [APP_ROLES.guest]: {
+        paths: ADMIN_PATHS,
+        getSectionPath: getAdminSectionPath,
+        parseRoute: parseAdminRoute,
+    },
     [APP_ROLES.admin]: {
         paths: ADMIN_PATHS,
         getSectionPath: getAdminSectionPath,
@@ -36,21 +41,21 @@ const routeRegistry = {
     },
 };
 
-function getRouteModule(roleKey = APP_ROLES.admin) {
-    return routeRegistry[roleKey] ?? routeRegistry[APP_ROLES.admin];
+function getRouteModule(roleKey = APP_ROLES.guest) {
+    return routeRegistry[roleKey] ?? routeRegistry[APP_ROLES.guest];
 }
 
 export const APP_PATHS = ADMIN_PATHS;
 
-export function getAppPaths(roleKey = APP_ROLES.admin) {
+export function getAppPaths(roleKey = APP_ROLES.guest) {
     return getRouteModule(roleKey).paths;
 }
 
-export function getSectionPath(sectionKey, roleKey = APP_ROLES.admin) {
+export function getSectionPath(sectionKey, roleKey = APP_ROLES.guest) {
     return getRouteModule(roleKey).getSectionPath(sectionKey);
 }
 
-export function parseAppRoute(pathname, search, roleKey = APP_ROLES.admin) {
+export function parseAppRoute(pathname, search, roleKey = APP_ROLES.guest) {
     return getRouteModule(roleKey).parseRoute(pathname, search);
 }
 

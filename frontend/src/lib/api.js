@@ -198,7 +198,7 @@ const createActivityLog = async ({ metadata = {}, ...payload }) => {
     const { actor } = await getCurrentActor();
     if (!actor.actor_user_id) return null;
 
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('activity_logs')
       .insert({
         ...actor,
@@ -206,12 +206,10 @@ const createActivityLog = async ({ metadata = {}, ...payload }) => {
         ...payload,
         entity_id: payload.entity_id !== undefined && payload.entity_id !== null ? String(payload.entity_id) : null,
         metadata,
-      })
-      .select()
-      .single();
+      });
 
     if (error) throw error;
-    return data;
+    return true;
   } catch (error) {
     console.error('Failed to write activity log:', error);
     return null;
@@ -1871,6 +1869,13 @@ export const customersApi = {
 
     if (error) throw error;
 
+    const rollbackCustomerCreate = async () => {
+      await supabase.from('invoices').delete().eq('customer_id', data.id);
+      await supabase.from('contracts').delete().eq('customer_id', data.id);
+      await supabase.from('customer_isp_memberships').delete().eq('customer_id', data.id);
+      await supabase.from('customers').delete().eq('id', data.id);
+    };
+
     try {
       if (ispIds.length > 0) {
         const membershipPayload = ispIds.map((ispId) => ({
@@ -1958,7 +1963,11 @@ export const customersApi = {
         }
       }
     } catch (relatedError) {
-      await supabase.from('customers').delete().eq('id', data.id);
+      try {
+        await rollbackCustomerCreate();
+      } catch (rollbackError) {
+        console.error('Failed to rollback customer create:', rollbackError);
+      }
       throw relatedError;
     }
 
@@ -4168,31 +4177,45 @@ export const customerRoutesApi = {
       version = structuredVersion.data;
     }
 
-    if (points.length > 0) {
-      const buildPoint = (point, index, withCoords) => {
-        const base = {
-          route_version_id: version.id,
-          path_name: point.pathName ?? point.path_name ?? null,
-          point_type: point.pointType ?? point.point_type ?? null,
-          note: point.note ?? null,
-          order_number: point.orderNumber ?? point.order_number ?? index + 1,
-          updated_at: now,
-        };
-        if (!withCoords) return base;
-        const coords = resolvePointCoordinates(point);
-        return { ...base, latitude: coords?.lat ?? null, longitude: coords?.lng ?? null };
-      };
+    const rollbackRouteVersion = async () => {
+      await supabase.from('customer_route_points').delete().eq('route_version_id', version.id);
+      await supabase.from('customer_route_versions').delete().eq('id', version.id);
+    };
 
-      const structuredPoints = await supabase
-        .from('customer_route_points')
-        .insert(points.map((point, index) => buildPoint(point, index, true)));
-      if (structuredPoints.error) {
-        if (!isUnknownColumnError(structuredPoints.error)) throw structuredPoints.error;
-        const legacyPoints = await supabase
+    try {
+      if (points.length > 0) {
+        const buildPoint = (point, index, withCoords) => {
+          const base = {
+            route_version_id: version.id,
+            path_name: point.pathName ?? point.path_name ?? null,
+            point_type: point.pointType ?? point.point_type ?? null,
+            note: point.note ?? null,
+            order_number: point.orderNumber ?? point.order_number ?? index + 1,
+            updated_at: now,
+          };
+          if (!withCoords) return base;
+          const coords = resolvePointCoordinates(point);
+          return { ...base, latitude: coords?.lat ?? null, longitude: coords?.lng ?? null };
+        };
+
+        const structuredPoints = await supabase
           .from('customer_route_points')
-          .insert(points.map((point, index) => buildPoint(point, index, false)));
-        if (legacyPoints.error) throw legacyPoints.error;
+          .insert(points.map((point, index) => buildPoint(point, index, true)));
+        if (structuredPoints.error) {
+          if (!isUnknownColumnError(structuredPoints.error)) throw structuredPoints.error;
+          const legacyPoints = await supabase
+            .from('customer_route_points')
+            .insert(points.map((point, index) => buildPoint(point, index, false)));
+          if (legacyPoints.error) throw legacyPoints.error;
+        }
       }
+    } catch (pointsError) {
+      try {
+        await rollbackRouteVersion();
+      } catch (rollbackError) {
+        console.error('Failed to rollback route version:', rollbackError);
+      }
+      throw pointsError;
     }
 
     return version;
@@ -4671,12 +4694,14 @@ export const ispRenewalFollowUpsApi = {
       nextPeriodStartDate.setDate(nextPeriodStartDate.getDate() + 1);
       const nextPeriodStartIso = nextPeriodStartDate.toISOString().slice(0, 10);
 
-      const { data: rowExists } = await supabase
+      const { data: rowExists, error: rowExistsError } = await supabase
         .from('isp_contract_rows')
         .select('id, period_start, period_end')
-      .eq('isp_id', currentRow.isp_id)
-      .eq('period_start', nextPeriodStartIso)
-      .limit(1);
+        .eq('isp_id', currentRow.isp_id)
+        .eq('period_start', nextPeriodStartIso)
+        .limit(1);
+
+      if (rowExistsError) throw rowExistsError;
 
       if (Array.isArray(rowExists) && rowExists.length > 0) {
         return data;
