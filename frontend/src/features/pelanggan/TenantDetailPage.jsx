@@ -2298,19 +2298,47 @@ function TenantDetailPage({
         }
       }
 
-      const payload = {
-        contractNumber,
-        startDate,
-        endDate,
-        monthlyAmount: monthlyAmount > 0 ? monthlyAmount : 0,
-        billingEvery,
-        billingUnit,
+      const originalRow = contractRowsForTable.find((row) => row.id === editorState.rowId);
+      const buildChangedPayload = () => {
+        const payload = {};
+
+        if (!originalRow || contractNumber !== String(originalRow.contractNumber ?? "").trim()) {
+          payload.contractNumber = contractNumber;
+        }
+        if (!originalRow || startDate !== String(originalRow.periodStart ?? "").slice(0, 10)) {
+          payload.startDate = startDate;
+        }
+        if (!originalRow || endDate !== String(originalRow.periodEnd ?? "").slice(0, 10)) {
+          payload.endDate = endDate;
+        }
+
+        if (editorState.versionId) {
+          const originalMonthlyAmount = Number(originalRow?.monthlyAmount ?? 0);
+          if (!originalRow || monthlyAmount !== originalMonthlyAmount) {
+            payload.monthlyAmount = monthlyAmount > 0 ? monthlyAmount : 0;
+          }
+          return payload;
+        }
+
+        const originalBillingEvery = Number(contract?.billingEvery ?? 1);
+        const originalBillingUnit = String(contract?.billingUnit ?? "bulan");
+        if (!Number.isFinite(originalBillingEvery) || billingEvery !== originalBillingEvery) {
+          payload.billingEvery = billingEvery;
+        }
+        if (billingUnit !== originalBillingUnit) {
+          payload.billingUnit = billingUnit;
+        }
+
+        return payload;
       };
 
-      if (editorState.versionId) {
-        await api.contractVersions.update(editorState.versionId, payload);
-      } else {
-        await api.contracts.update(editorState.contractId, payload);
+      const payload = buildChangedPayload();
+      if (Object.keys(payload).length > 0) {
+        if (editorState.versionId) {
+          await api.contractVersions.update(editorState.versionId, payload);
+        } else {
+          await api.contracts.update(editorState.contractId, payload);
+        }
       }
 
       const uploadDocumentIfNeeded = async (file, jenisDokumen, label) => {

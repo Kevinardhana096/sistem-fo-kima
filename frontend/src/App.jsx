@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react
 import AppShell from "./components/layout/AppShell";
 import { sectionMeta } from "./app/constants";
 import { mapCustomerToRow } from "./app/utils";
-import { signOut } from "./lib/supabase";
+import { signOut, supabase } from "./lib/supabase";
 import api from "./lib/api";
 
 // Lazy load heavy components
@@ -25,13 +25,15 @@ import {
     resolveIspByIdentifier,
 } from "./app/routes";
 import { APP_ROLES, canAccessRoute, getRoleConfig } from "./roles";
-import { getStoredRole, persistRole } from "./app/session/role-session";
+import { getStoredRole, normalizeAppRole, persistRole } from "./app/session/role-session";
 import "./App.css";
 
 const CUSTOMER_PAGE_SIZE = 500;
 
 function App() {
     const [currentRole, setCurrentRole] = useState(() => getStoredRole());
+    const [authSession, setAuthSession] = useState(null);
+    const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
     const appPaths = useMemo(() => getAppPaths(currentRole), [currentRole]);
     const [locationState, setLocationState] = useState(() => ({
         pathname: typeof window !== "undefined"
@@ -73,6 +75,42 @@ function App() {
         () => canAccessRoute(currentRole, route),
         [currentRole, route],
     );
+    const isLoggedIn = Boolean(authSession?.user);
+
+    useEffect(() => {
+        let isActive = true;
+
+        const applySession = (nextSession) => {
+            if (!isActive) return;
+            const nextRole = nextSession?.user
+                ? normalizeAppRole(nextSession.user.user_metadata?.role)
+                : APP_ROLES.guest;
+            setAuthSession(nextSession ?? null);
+            setCurrentRole(nextRole);
+            persistRole(nextRole);
+        };
+
+        void supabase.auth.getSession()
+            .then(({ data }) => {
+                applySession(data?.session ?? null);
+            })
+            .catch(() => {
+                applySession(null);
+            })
+            .finally(() => {
+                if (isActive) setHasCheckedAuth(true);
+            });
+
+        const { data: authListener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+            applySession(nextSession);
+            setHasCheckedAuth(true);
+        });
+
+        return () => {
+            isActive = false;
+            authListener?.subscription?.unsubscribe();
+        };
+    }, []);
 
     const loadCustomers = useCallback(async ({ append = false, offset = 0 } = {}) => {
         setHasRequestedCustomers(true);
@@ -133,7 +171,9 @@ function App() {
     // Only load data when user is authenticated (not on login page)
     useEffect(() => {
         if (
-            route.type !== "login"
+            hasCheckedAuth
+            && isLoggedIn
+            && route.type !== "login"
             && customers.length === 0
             && !isLoadingCustomers
             && !customersError
@@ -141,7 +181,7 @@ function App() {
         ) {
             void loadCustomers();
         }
-    }, [customers.length, customersError, hasRequestedCustomers, isLoadingCustomers, loadCustomers, route.type]);
+    }, [customers.length, customersError, hasCheckedAuth, hasRequestedCustomers, isLoadingCustomers, isLoggedIn, loadCustomers, route.type]);
 
     const loadIsps = useCallback(async () => {
         setHasRequestedIsps(true);
@@ -167,7 +207,9 @@ function App() {
     // Only load ISPs when user is authenticated (not on login page)
     useEffect(() => {
         if (
-            route.type !== "login"
+            hasCheckedAuth
+            && isLoggedIn
+            && route.type !== "login"
             && isps.length === 0
             && !isLoadingIsps
             && !ispsError
@@ -175,7 +217,7 @@ function App() {
         ) {
             void loadIsps();
         }
-    }, [hasRequestedIsps, isLoadingIsps, isps.length, ispsError, loadIsps, route.type]);
+    }, [hasCheckedAuth, hasRequestedIsps, isLoadingIsps, isLoggedIn, isps.length, ispsError, loadIsps, route.type]);
 
     const loadNotifications = useCallback(async () => {
         try {
@@ -196,10 +238,10 @@ function App() {
     }, [loadCustomers, loadIsps, loadNotifications, refreshDashboardMetrics]);
 
     useEffect(() => {
-        if (route.type !== "login") {
+        if (hasCheckedAuth && isLoggedIn && route.type !== "login") {
             void loadNotifications();
         }
-    }, [loadNotifications, route.type]);
+    }, [hasCheckedAuth, isLoggedIn, loadNotifications, route.type]);
 
     const notificationCountsByCustomerId = useMemo(() => {
         return notifications.reduce((counts, notification) => {
@@ -293,6 +335,23 @@ function App() {
             navigateTo(route.to, { replace: true });
         }
     }, [navigateTo, route]);
+
+    useEffect(() => {
+        if (!hasCheckedAuth || route.type === "redirect") {
+            return;
+        }
+
+        if (!isLoggedIn && route.type !== "login") {
+            navigateTo(appPaths.login, { replace: true });
+            return;
+        }
+
+        if (isLoggedIn && route.type === "login") {
+            const landingRoleConfig = getRoleConfig(currentRole);
+            const landingPath = appPaths[landingRoleConfig.defaultSection] ?? appPaths.customers;
+            navigateTo(landingPath, { replace: true });
+        }
+    }, [appPaths, currentRole, hasCheckedAuth, isLoggedIn, navigateTo, route.type]);
 
     // Reset scroll to top on route change
     useEffect(() => {
@@ -554,8 +613,9 @@ function App() {
             console.error('Logout error:', error);
         } finally {
             // Clear role and redirect to login
-            setCurrentRole(APP_ROLES.admin);
-            persistRole(APP_ROLES.admin);
+            setAuthSession(null);
+            setCurrentRole(APP_ROLES.guest);
+            persistRole(APP_ROLES.guest);
             navigateTo(appPaths.login, { replace: true });
         }
     }, [appPaths.login, navigateTo]);
@@ -569,6 +629,18 @@ function App() {
 
         handleOpenTenantDetail(targetCustomer, initialTab);
     }, [customers, handleOpenTenantDetail]);
+
+    if (!hasCheckedAuth || (!isLoggedIn && route.type !== "login") || (isLoggedIn && route.type === "login")) {
+        return (
+            <RouteLoadingPage
+                activeSection={activeSection}
+                currentRole={currentRole}
+                onNavigate={handleNavigate}
+                onLogout={handleLogout}
+                message="Memeriksa sesi login..."
+            />
+        );
+    }
 
     if (route.type === "redirect") {
         return (
@@ -601,11 +673,12 @@ function App() {
                 <LoginPage
                     onLoginSuccess={async ({ user }) => {
                         // Extract role from user metadata
-                        const nextRole = user?.user_metadata?.role ?? APP_ROLES.admin;
+                        const nextRole = normalizeAppRole(user?.user_metadata?.role);
                         const nextRoleConfig = getRoleConfig(nextRole);
                         const nextRolePaths = getAppPaths(nextRole);
                         const landingPath = nextRolePaths[nextRoleConfig.defaultSection] ?? nextRolePaths.customers;
 
+                        setAuthSession({ user });
                         setCurrentRole(nextRole);
                         persistRole(nextRole);
                         setCustomersError("");
