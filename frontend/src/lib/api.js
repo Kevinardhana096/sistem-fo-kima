@@ -3642,9 +3642,14 @@ export const contractsApi = {
 
   // Update contract
   async update(id, contractData) {
+    const payload = mapContractPayload(contractData);
+    if (Object.keys(payload).length === 0) {
+      return null;
+    }
+
     const { data, error } = await supabase
       .from('contracts')
-      .update(withUpdatedAt(mapContractPayload(contractData)))
+      .update(withUpdatedAt(payload))
       .eq('id', id)
       .select()
       .single();
@@ -3771,6 +3776,11 @@ export const contractVersionsApi = {
 
   // Update contract version
   async update(id, versionData) {
+    const payload = mapContractVersionPayload(versionData);
+    if (Object.keys(payload).length === 0) {
+      return null;
+    }
+
     const { data: oldVersion, error: oldVersionError } = await supabase
       .from('contract_versions')
       .select('*')
@@ -3780,7 +3790,7 @@ export const contractVersionsApi = {
 
     const { data, error } = await supabase
       .from('contract_versions')
-      .update(withUpdatedAt(mapContractVersionPayload(versionData)))
+      .update(withUpdatedAt(payload))
       .eq('id', id)
       .select()
       .single();
