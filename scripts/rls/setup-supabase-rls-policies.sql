@@ -425,6 +425,126 @@ USING (
 );
 
 -- ============================================================================
+-- LEGACY USERS TABLE
+-- ============================================================================
+
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Admin full access on users" ON public.users;
+DROP POLICY IF EXISTS "Authenticated read own user row" ON public.users;
+
+CREATE POLICY "Admin full access on users"
+ON public.users
+FOR ALL
+USING (public.get_user_role() = 'admin')
+WITH CHECK (public.get_user_role() = 'admin');
+
+CREATE POLICY "Authenticated read own user row"
+ON public.users
+FOR SELECT
+USING (
+  auth.uid() IS NOT NULL
+  AND (id::TEXT = auth.uid()::TEXT OR email = auth.jwt() ->> 'email')
+);
+
+-- ============================================================================
+-- INVOICE_FOLLOW_UPS TABLE
+-- ============================================================================
+
+ALTER TABLE public.invoice_follow_ups ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Admin full access on invoice_follow_ups" ON public.invoice_follow_ups;
+DROP POLICY IF EXISTS "Teknisi read all invoice follow ups" ON public.invoice_follow_ups;
+DROP POLICY IF EXISTS "ISP read own invoice follow ups" ON public.invoice_follow_ups;
+
+CREATE POLICY "Admin full access on invoice_follow_ups"
+ON public.invoice_follow_ups
+FOR ALL
+USING (public.get_user_role() = 'admin')
+WITH CHECK (public.get_user_role() = 'admin');
+
+CREATE POLICY "Teknisi read all invoice follow ups"
+ON public.invoice_follow_ups
+FOR SELECT
+USING (public.get_user_role() = 'teknisi');
+
+CREATE POLICY "ISP read own invoice follow ups"
+ON public.invoice_follow_ups
+FOR SELECT
+USING (
+  public.get_user_role() = 'isp'
+  AND EXISTS (
+    SELECT 1
+    FROM public.invoices i
+    WHERE i.id = invoice_follow_ups.invoice_id
+      AND public.can_current_isp_access_customer(i.customer_id)
+  )
+);
+
+-- ============================================================================
+-- CONTRACT_VERSION_RENEWAL_FOLLOW_UPS TABLE
+-- ============================================================================
+
+ALTER TABLE public.contract_version_renewal_follow_ups ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Admin full access on contract version renewal follow ups" ON public.contract_version_renewal_follow_ups;
+DROP POLICY IF EXISTS "Teknisi read all contract version renewal follow ups" ON public.contract_version_renewal_follow_ups;
+DROP POLICY IF EXISTS "ISP read own contract version renewal follow ups" ON public.contract_version_renewal_follow_ups;
+
+CREATE POLICY "Admin full access on contract version renewal follow ups"
+ON public.contract_version_renewal_follow_ups
+FOR ALL
+USING (public.get_user_role() = 'admin')
+WITH CHECK (public.get_user_role() = 'admin');
+
+CREATE POLICY "Teknisi read all contract version renewal follow ups"
+ON public.contract_version_renewal_follow_ups
+FOR SELECT
+USING (public.get_user_role() = 'teknisi');
+
+CREATE POLICY "ISP read own contract version renewal follow ups"
+ON public.contract_version_renewal_follow_ups
+FOR SELECT
+USING (
+  public.get_user_role() = 'isp'
+  AND EXISTS (
+    SELECT 1
+    FROM public.contract_versions cv
+    WHERE cv.id = contract_version_renewal_follow_ups.version_id
+      AND public.can_current_isp_access_customer(cv.customer_id)
+  )
+);
+
+-- ============================================================================
+-- CUSTOMER_ROUTE_HISTORY TABLE
+-- ============================================================================
+
+ALTER TABLE public.customer_route_history ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Admin full access on customer_route_history" ON public.customer_route_history;
+DROP POLICY IF EXISTS "Teknisi read all customer route history" ON public.customer_route_history;
+DROP POLICY IF EXISTS "ISP read own customer route history" ON public.customer_route_history;
+
+CREATE POLICY "Admin full access on customer_route_history"
+ON public.customer_route_history
+FOR ALL
+USING (public.get_user_role() = 'admin')
+WITH CHECK (public.get_user_role() = 'admin');
+
+CREATE POLICY "Teknisi read all customer route history"
+ON public.customer_route_history
+FOR SELECT
+USING (public.get_user_role() = 'teknisi');
+
+CREATE POLICY "ISP read own customer route history"
+ON public.customer_route_history
+FOR SELECT
+USING (
+  public.get_user_role() = 'isp'
+  AND public.can_current_isp_access_customer(customer_id)
+);
+
+-- ============================================================================
 -- VERIFY POLICIES
 -- ============================================================================
 

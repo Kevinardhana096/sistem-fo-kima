@@ -1911,6 +1911,7 @@ export const customersApi = {
 
     const rollbackCustomerCreate = async () => {
       await supabase.from('invoices').delete().eq('customer_id', data.id);
+      await supabase.from('contract_versions').delete().eq('customer_id', data.id);
       await supabase.from('contracts').delete().eq('customer_id', data.id);
       await supabase.from('customer_isp_memberships').delete().eq('customer_id', data.id);
       await supabase.from('customers').delete().eq('id', data.id);
@@ -1960,6 +1961,30 @@ export const customersApi = {
 
         if (contractError) throw contractError;
 
+        const monthlyAmount = Number(customerData.monthlyAmount ?? customerData.monthly_amount ?? 0);
+        const yearlyAmount = Number(customerData.yearlyAmount ?? customerData.yearly_amount ?? (monthlyAmount * 12));
+
+        const { data: contractVersionData, error: contractVersionError } = await supabase
+          .from('contract_versions')
+          .insert(withUpdatedAt({
+            contract_id: contractData.id,
+            customer_id: data.id,
+            contract_number: contractData.contract_number,
+            version_number: 1,
+            start_date: customerData.contractPeriodStart,
+            end_date: customerData.contractPeriodEnd,
+            core_type: isCore ? 'core' : 'sharing_core',
+            core_total: isCore ? Math.max(0, Number(customerData.jumlah || 0)) : 0,
+            shared_core_ratio: isCore ? null : customerData.contractSharingRatio ?? null,
+            monthly_amount: Number.isFinite(monthlyAmount) && monthlyAmount > 0 ? monthlyAmount : 0,
+            yearly_amount: Number.isFinite(yearlyAmount) && yearlyAmount > 0 ? yearlyAmount : Math.max(0, monthlyAmount * 12),
+            remarks: 'Versi awal dibuat otomatis saat lokasi dibuat.',
+          }))
+          .select('id, monthly_amount')
+          .single();
+
+        if (contractVersionError) throw contractVersionError;
+
         const invoiceRows = buildInvoiceScheduleRows(
           customerData.contractPeriodStart,
           customerData.contractPeriodEnd,
@@ -1982,13 +2007,17 @@ export const customersApi = {
             return {
               customer_id: data.id,
               contract_id: contractData.id,
+              contract_version_id: contractVersionData.id,
               contract_number: contractData.contract_number,
               period_start_date: row.periodStartDate,
               period_end_date: row.periodEndDate,
               period_year: periodYear,
               period_month: periodMonth,
               due_date: resolveInvoiceDueDate(row.periodStartDate),
-              amount: 0,
+              amount: resolveBillingCycleInvoiceAmount(contractVersionData.monthly_amount, {
+                every: billingSchedule.billing_every,
+                unit: billingSchedule.billing_unit,
+              }),
               status: 'belum_ditagih',
               schedule_status: 'active',
               updated_at: now,

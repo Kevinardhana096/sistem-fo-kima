@@ -456,8 +456,8 @@ export default function DashboardPage({
                                 <LegendItem dotColor="bg-[#f43f5e]" label="1:32" small />
                             </div>
                         )}
-                        <div ref={coreTrendChartRef} className="h-[220px] w-full min-w-0 md:h-[240px]">
-                            <ResponsiveContainer width="100%" height="100%">
+                        <div ref={coreTrendChartRef} className="h-[220px] min-h-[220px] w-full min-w-[1px] md:h-[240px] md:min-h-[240px]">
+                            <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1} debounce={100}>
                                 <LineChart data={coreChartType === "sharing" ? visibleSharingTrendData : visibleCoreTrendData} margin={{ top: 5, right: 5, bottom: 5, left: -25 }}>
                                     <CartesianGrid strokeDasharray="0" vertical={false} stroke="rgba(255,255,255,0.08)" />
                                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 8, fontWeight: 900, fill: 'rgba(255,255,255,0.6)' }} dy={10} />
@@ -576,8 +576,8 @@ export default function DashboardPage({
                                 </div>
                             </div>
                         </div>
-                        <div className="flex-1 w-full min-w-0 min-h-[220px] -ml-2 pb-2">
-                            <ResponsiveContainer width="100%" height="100%">
+                        <div className="flex-1 w-full min-w-[1px] min-h-[220px] -ml-2 pb-2">
+                            <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1} debounce={100}>
                                 <LineChart data={growthData[growthType]} margin={{ top: 5, right: 5, bottom: 5, left: -25 }}>
                                     <CartesianGrid strokeDasharray="0" vertical={false} stroke="rgba(255,255,255,0.08)" />
                                     <XAxis dataKey="year" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 900, fill: 'rgba(255,255,255,0.6)' }} dy={15} />

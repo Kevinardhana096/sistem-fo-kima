@@ -142,14 +142,14 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
         return Number(numberString) || 0;
     };
 
-    const handleActivationFeeChange = (e) => {
-        const input = e.target;
+    const updateRupiahField = (event, fieldName) => {
+        const input = event.target;
         const rawValue = input.value;
         const selectionStart = input.selectionStart;
         const oldLength = rawValue.length;
         const formatted = formatRupiahInput(rawValue);
 
-        setForm(p => ({ ...p, activationFeeAmount: formatted }));
+        setForm(p => ({ ...p, [fieldName]: formatted }));
 
         requestAnimationFrame(() => {
             const newLength = formatted.length;
@@ -161,6 +161,9 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
             }
         });
     };
+
+    const handleActivationFeeChange = (event) => updateRupiahField(event, "activationFeeAmount");
+    const handleMonthlyAmountChange = (event) => updateRupiahField(event, "monthlyAmount");
 
     const [form, setForm] = useState({
         name: "",
@@ -176,6 +179,7 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
         billingPeriodMode: "bulanan",
         billingCustomEvery: "",
         billingCustomUnit: "bulan",
+        monthlyAmount: "0",
         activationFeeAmount: "0",
         logoFileDataUrl: "",
     });
@@ -285,6 +289,7 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                     billingPeriodMode: form.billingPeriodMode,
                     billingCustomEvery: form.billingPeriodMode === "custom" ? Number(form.billingCustomEvery) : undefined,
                     billingCustomUnit: form.billingPeriodMode === "custom" ? form.billingCustomUnit : undefined,
+                    monthlyAmount: Math.round(parseRupiahInput(form.monthlyAmount || 0)),
                     activationFeeAmount: Math.round(parseRupiahInput(form.activationFeeAmount || 0)),
                 };
 
@@ -648,6 +653,15 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                                             </div>
                                         )}
                                     </div>
+
+                                    <GlassFieldInput
+                                        label="Nominal Paket Bulanan (IDR)"
+                                        icon="paid"
+                                        type="text"
+                                        placeholder="0"
+                                        value={form.monthlyAmount}
+                                        onRawChange={handleMonthlyAmountChange}
+                                    />
 
                                     <GlassFieldInput
                                         label="Biaya Aktivasi (IDR)"
