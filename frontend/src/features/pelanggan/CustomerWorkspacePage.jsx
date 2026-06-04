@@ -15,6 +15,16 @@ const getTenantOperationalStatus = (tenant, todayIso) => {
     return contractEndDate && contractEndDate < todayIso ? "expired" : "beroperasi";
 };
 const isTenantActive = (tenant, todayIso) => getTenantOperationalStatus(tenant, todayIso) === "beroperasi";
+const getIspOperationalStatus = (isp, todayIso) => {
+    const rawStatus = normalizeOperationalStatus(isp?.status);
+    if (isStoppedStatus(rawStatus)) return "berhenti";
+    if (rawStatus === "expired") return "expired";
+
+    const contractPeriodEnd = typeof isp?.contractPeriodEnd === "string"
+        ? isp.contractPeriodEnd.slice(0, 10)
+        : "";
+    return contractPeriodEnd && contractPeriodEnd < todayIso ? "expired" : "beroperasi";
+};
 const resolveTenantRouteStatus = (tenant, todayIso) => getTenantOperationalStatus(tenant, todayIso) === "berhenti"
     ? "nonaktif"
     : String(tenant?.routeStatus || "aktif").trim().toLowerCase();
@@ -319,7 +329,8 @@ function CustomerWorkspacePage({
     // --- LOGIC: Stats ---
     const totalActiveTenants = customers.filter((tenant) => isTenantActive(tenant, todayIso)).length;
     const totalExpiredTenants = customers.filter((tenant) => getTenantOperationalStatus(tenant, todayIso) === "expired").length;
-    const totalStoppedTenants = customers.filter((tenant) => getTenantOperationalStatus(tenant, todayIso) === "berhenti").length;
+    const totalActiveOrExpiredTenants = totalActiveTenants + totalExpiredTenants;
+    const totalIspExpired = isps.filter((isp) => getIspOperationalStatus(isp, todayIso) === "expired").length;
     const filteredTenantCount = allGroups.reduce((total, group) => total + group.tenants.length, 0);
     const isAnyFilterActive = Boolean(normalizedSearch)
         || contractStatusFilter !== "all"
@@ -470,13 +481,12 @@ function CustomerWorkspacePage({
                 )}
 
                 {/* 3. SUMMARY CARDS */}
-                <section className="grid grid-cols-2 lg:grid-cols-5 gap-2.5">
+                <section className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
                     {[
                         { label: "Total ISP", value: isps.length, icon: "domain", color: "text-white", bg: "bg-white/5", border: "border-white/10" },
-                        { label: "Total Lokasi", value: totalCustomerCount, icon: "groups", color: "text-white", bg: "bg-white/5", border: "border-white/10" },
-                        { label: "Lokasi Beroperasi", value: totalActiveTenants, icon: "check_circle", color: "text-[#00c853]", bg: "bg-[#00c853]/10", border: "border-[#00c853]/20" },
-                        { label: "Belum Diperpanjang", value: totalExpiredTenants, icon: "event_busy", color: "text-[#ffab00]", bg: "bg-[#ffab00]/10", border: "border-[#ffab00]/20" },
-                        { label: "Lokasi Berhenti", value: totalStoppedTenants, icon: "cancel", color: "text-[#ff2400]", bg: "bg-[#ff2400]/10", border: "border-[#ff2400]/20" },
+                        { label: "Total Lokasi", value: totalActiveOrExpiredTenants, icon: "groups", color: "text-white", bg: "bg-white/5", border: "border-white/10" },
+                        { label: "ISP Belum Diperpanjang", value: totalIspExpired, icon: "dns", color: "text-[#ffab00]", bg: "bg-[#ffab00]/10", border: "border-[#ffab00]/20" },
+                        { label: "Lokasi Belum Diperpanjang", value: totalExpiredTenants, icon: "event_busy", color: "text-[#ffab00]", bg: "bg-[#ffab00]/10", border: "border-[#ffab00]/20" },
                     ].map(({ label, value, icon, color, bg, border }) => (
                         <div key={label} className={`relative overflow-hidden glass-card rounded-xl p-4 group border ${border} transition-all duration-300 hover:scale-[1.03] hover:shadow-xl cursor-default`}>
                             <div className="flex items-center justify-between mb-3">

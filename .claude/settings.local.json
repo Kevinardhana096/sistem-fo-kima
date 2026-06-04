@@ -1,6 +1,9 @@
 {
   "enabledMcpjsonServers": [
     "serena",
-    "supabase"
+    "supabase",
+    "playwright",
+    "context7",
+    "depwire"
   ]
 }

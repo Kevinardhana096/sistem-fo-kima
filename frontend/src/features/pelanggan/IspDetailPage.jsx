@@ -26,6 +26,21 @@ import {
 
 const getPrimaryIspContractRowId = (ispId) => `primary-isp-contract-${ispId}`;
 
+const getContractRowStatus = (row, todayIso) => {
+    const rawStatus = normalizeOperationalStatus(row?.status ?? row?.renewalStatus ?? row?.renewal_status);
+    if (isStoppedStatus(rawStatus)) return "berhenti";
+    if (rawStatus === "expired" || rawStatus === "belum_diperpanjang") return "expired";
+    const periodEnd = String(row?.periodEnd ?? row?.period_end ?? "").slice(0, 10);
+    return periodEnd && periodEnd < todayIso ? "expired" : "beroperasi";
+};
+
+const getContractRowStatusLabel = (row, todayIso) => {
+    const status = getContractRowStatus(row, todayIso);
+    if (status === "expired") return "Belum Diperpanjang";
+    if (status === "berhenti") return "Berhenti";
+    return "Beroperasi";
+};
+
 const buildPrimaryIspContractRow = (ispDetail, fallbackIsp) => {
     const source = ispDetail ?? fallbackIsp ?? {};
     const hasPrimaryContractData = [
@@ -42,6 +57,7 @@ const buildPrimaryIspContractRow = (ispDetail, fallbackIsp) => {
     return {
         id: getPrimaryIspContractRowId(source.id ?? fallbackIsp?.id),
         isPrimaryIspContract: true,
+        status: source.status ?? fallbackIsp?.status ?? null,
         contractReference: source.contractReference ?? source.contract_reference ?? null,
         contractFileUrl: source.contractFileUrl ?? source.contract_file_url ?? null,
         contractFileName: source.contractFileName ?? source.contract_file_name ?? null,
@@ -52,6 +68,78 @@ const buildPrimaryIspContractRow = (ispDetail, fallbackIsp) => {
         bakFileName: source.bakFileName ?? source.bak_file_name ?? null,
         renewalFollowUps: [],
     };
+};
+
+const buildPrimaryIspContractRowPayload = (source = {}) => ({
+    ispId: source.ispId ?? source.id ?? null,
+    contractReference: source.contractReference ?? source.contract_reference ?? "Tanpa Nomor Kontrak",
+    contractStartDate: source.contractStartDate ?? source.contract_start_date ?? source.contractPeriodStart ?? source.contract_period_start ?? null,
+    periodStart: source.contractPeriodStart ?? source.contract_period_start ?? source.contractStartDate ?? source.contract_start_date ?? null,
+    periodEnd: source.contractPeriodEnd ?? source.contract_period_end ?? source.contractStartDate ?? source.contract_start_date ?? null,
+    bakFileUrl: source.bakFileUrl ?? source.bak_file_url ?? null,
+    bakFileName: source.bakFileName ?? source.bak_file_name ?? null,
+    contractFileUrl: source.contractFileUrl ?? source.contract_file_url ?? null,
+    contractFileName: source.contractFileName ?? source.contract_file_name ?? null,
+    status: 'aktif',
+    renewalStatus: 'active',
+});
+
+const isSyntheticPrimaryRowId = (rowId) => String(rowId ?? '').startsWith('primary-isp-contract-');
+const isPendingPrimaryRenewalFollowUpId = (followUpId) => String(followUpId ?? '').startsWith('pending-primary-renewal-');
+
+const buildPendingPrimaryRenewalFollowUp = (rowId, fileUrl, fileName) => ({
+    id: `pending-primary-renewal-${rowId}`,
+    rowId,
+    splitOrder: 1,
+    source: 'upload',
+    title: 'Surat perpanjangan dikirim',
+    description: 'Berkas perpanjangan ISP sudah diunggah dari detail ISP.',
+    status: 'pending_response',
+    renewalFileUrl: fileUrl,
+    renewalFileName: fileName,
+    responseFileUrl: null,
+    responseFileName: null,
+    responseStatus: null,
+    isPendingPrimaryRenewal: true,
+});
+
+const getIspRowDate = (value) => String(value ?? '').slice(0, 10);
+
+const isSamePrimaryIspContractPeriod = (row, primaryRow) => {
+    if (!row || !primaryRow) return false;
+
+    const rowStart = getIspRowDate(row.periodStart ?? row.period_start);
+    const rowEnd = getIspRowDate(row.periodEnd ?? row.period_end);
+    const primaryStart = getIspRowDate(primaryRow.periodStart);
+    const primaryEnd = getIspRowDate(primaryRow.periodEnd);
+
+    if (!rowStart || !rowEnd || !primaryStart || !primaryEnd) {
+        return false;
+    }
+
+    const rowReference = String(row.contractReference ?? row.contract_reference ?? '').trim();
+    const primaryReference = String(primaryRow.contractReference ?? '').trim();
+    const isSameReference = !rowReference || !primaryReference || rowReference === primaryReference;
+
+    return rowStart === primaryStart && rowEnd === primaryEnd && isSameReference;
+};
+
+const mergePrimaryIspContractDisplayData = (persistedRow, primaryRow) => ({
+    ...primaryRow,
+    ...persistedRow,
+    contractStartDate: primaryRow?.contractStartDate ?? persistedRow?.contractStartDate ?? persistedRow?.contract_start_date ?? null,
+    contractFileUrl: persistedRow?.contractFileUrl ?? persistedRow?.contract_file_url ?? primaryRow?.contractFileUrl ?? null,
+    contractFileName: persistedRow?.contractFileName ?? persistedRow?.contract_file_name ?? primaryRow?.contractFileName ?? null,
+    bakFileUrl: persistedRow?.bakFileUrl ?? persistedRow?.bak_file_url ?? primaryRow?.bakFileUrl ?? null,
+    bakFileName: persistedRow?.bakFileName ?? persistedRow?.bak_file_name ?? primaryRow?.bakFileName ?? null,
+    isPrimaryIspContract: false,
+});
+
+const getIspContractRowEditStatus = (row) => {
+    const rawStatus = String(row?.status ?? row?.renewalStatus ?? row?.renewal_status ?? '').trim().toLowerCase();
+    if (rawStatus === 'berhenti' || rawStatus === 'nonaktif') return 'berhenti';
+    if (rawStatus === 'expired' || rawStatus === 'belum_diperpanjang') return 'expired';
+    return 'aktif';
 };
 const getTenantActionCount = (tenant) => {
     const priorityCount = Number(tenant?.todoSummary?.counts?.priority ?? 0);
@@ -142,6 +230,39 @@ const GlassCustomSelect = ({ label, value, onChange, options, icon, heightClass 
     );
 };
 
+const FilePickerButton = ({ label, onPickFile, className = "", disabled = false }) => {
+    const inputRef = useRef(null);
+
+    return (
+        <>
+            <button
+                className={className}
+                disabled={disabled}
+                onClick={() => inputRef.current?.click()}
+                type="button"
+            >
+                {label}
+            </button>
+            <input
+                ref={inputRef}
+                className="hidden"
+                onChange={(event) => {
+                    const file = event.target.files?.[0] ?? null;
+                    if (!file) return;
+                    onPickFile(file);
+                    event.target.value = "";
+                }}
+                type="file"
+            />
+        </>
+    );
+};
+
+const fileActionButtonClass = "inline-flex items-center gap-1.5 cursor-pointer font-bold text-[9px] uppercase tracking-wider px-2.5 py-1 rounded-md transition-all";
+const fileActionPrimaryClass = "border border-gold-accent/20 bg-gold-accent/10 text-gold-accent hover:bg-gold-accent hover:text-white";
+const fileActionSuccessClass = "border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white";
+const fileActionMutedClass = "border border-white/10 bg-white/5 text-white/30 hover:bg-white/10 hover:text-white";
+
 function IspDetailPage({
     isp,
     onBack,
@@ -164,14 +285,16 @@ function IspDetailPage({
     onTabChange,
 }) {
     const isTeknisi = currentRole === "teknisi";
+    const todayIso = new Date().toISOString().slice(0, 10);
     const [detail, setDetail] = useState(null);
     const [activeTab, setActiveTab] = useState(initialTab);
     const [error, setError] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [timeline, setTimeline] = useState([]);
     const [contractRows, setContractRows] = useState([]);
+    const [pendingPrimaryRenewals, setPendingPrimaryRenewals] = useState({});
     const [, setIsActionLoading] = useState(false);
-    const [editingRow, setEditingRow] = useState(null);
+    const [inlineDrafts, setInlineDrafts] = useState({});
     const [contractDraft, setContractDraft] = useState(null);
     const [contractDraftSaving, setContractDraftSaving] = useState(false);
     const [risalahRows, setRisalahRows] = useState([]);
@@ -205,6 +328,31 @@ function IspDetailPage({
     const [userPopupMode, setUserPopupMode] = useState("view"); // "view" | "edit"
     const [userForm, setUserForm] = useState({ username: "", email: "", password: "", displayName: "" });
     const [showPassword, setShowPassword] = useState(false);
+
+    const getRowDraft = (row) => inlineDrafts[row.id] ?? {
+        contractReference: row.contractReference ?? "",
+        periodStart: row.periodStart ?? "",
+        periodEnd: row.periodEnd ?? "",
+    };
+
+    const setRowDraft = (rowId, patch) => {
+        setInlineDrafts((prev) => ({
+            ...prev,
+            [rowId]: {
+                ...(prev[rowId] ?? {}),
+                ...patch,
+            },
+        }));
+    };
+
+    const clearRowDraft = (rowId) => {
+        setInlineDrafts((prev) => {
+            if (!Object.prototype.hasOwnProperty.call(prev, rowId)) return prev;
+            const next = { ...prev };
+            delete next[rowId];
+            return next;
+        });
+    };
 
     const openUserPopup = async () => {
         setUserPopupOpen(true);
@@ -301,10 +449,18 @@ function IspDetailPage({
             const ispResult = await api.isps.getById(isp.id);
             const rowsResult = Array.isArray(ispResult?.contractRows) ? ispResult.contractRows : [];
             const primaryContractRow = buildPrimaryIspContractRow(ispResult, isp);
+            const persistedPrimaryRow = primaryContractRow
+                ? rowsResult.find((row) => isSamePrimaryIspContractPeriod(row, primaryContractRow))
+                : null;
             const nextContractRows = primaryContractRow
                 ? [
-                    primaryContractRow,
-                    ...rowsResult.filter((row) => !row?.isPrimaryIspContract),
+                    persistedPrimaryRow
+                        ? mergePrimaryIspContractDisplayData(persistedPrimaryRow, primaryContractRow)
+                        : primaryContractRow,
+                    ...rowsResult.filter((row) => (
+                        !row?.isPrimaryIspContract
+                        && (!persistedPrimaryRow || Number(row?.id) !== Number(persistedPrimaryRow.id))
+                    )),
                 ]
                 : rowsResult;
 
@@ -368,6 +524,30 @@ function IspDetailPage({
         setActiveTab(nextTab);
         onTabChange?.(nextTab);
     }, [onTabChange]);
+
+    const resolveIspActionTargetTab = (item = {}) => {
+        if (item.targetPath) {
+            const queryIndex = String(item.targetPath).indexOf("?");
+            if (queryIndex >= 0) {
+                const params = new URLSearchParams(String(item.targetPath).slice(queryIndex + 1));
+                const targetTab = params.get("tab");
+                if (targetTab) return targetTab;
+            }
+        }
+
+        const actionKey = String(item.code ?? item.type ?? item.id ?? item.key ?? "").toLowerCase();
+        if (actionKey.includes("document") || actionKey.includes("contract") || actionKey.includes("renewal") || actionKey.includes("bak")) {
+            return "contracts";
+        }
+        if (actionKey.includes("route") || actionKey.includes("jalur")) {
+            return "jalur";
+        }
+        return "contracts";
+    };
+
+    const handleIspActionClick = (item) => {
+        handleTabChange(resolveIspActionTargetTab(item));
+    };
 
     const allTenants = useMemo(
         () => Array.isArray(detail?.tenants)
@@ -524,8 +704,39 @@ function IspDetailPage({
         setError("");
         try {
             const targetRow = contractRows.find((row) => row.id === rowId);
-            if (targetRow?.isPrimaryIspContract && !["bak", "contract"].includes(type)) {
-                setError("Perpanjangan dan tanggapan dikelola melalui baris adendum.");
+
+            if (
+                type === "renewal"
+                && (targetRow?.isPrimaryIspContract || isSyntheticPrimaryRowId(rowId))
+            ) {
+                const fileDataUrl = await uploadFileForRecord(file, ["isps", isp.id, "renewals"]);
+                setPendingPrimaryRenewals((previous) => ({
+                    ...previous,
+                    [rowId]: buildPendingPrimaryRenewalFollowUp(rowId, fileDataUrl, file.name),
+                }));
+                return;
+            }
+
+            if (type === "renewal" && !followUpId) {
+                let actualRowId = rowId;
+
+                if (!actualRowId || !Number.isFinite(Number(actualRowId))) {
+                    throw new Error("Baris kontrak ISP belum siap untuk perpanjangan.");
+                }
+
+                const createdFollowUp = await api.ispRenewalFollowUps.createForContractRow(actualRowId);
+                const createdFollowUpId = createdFollowUp?.id;
+                if (!createdFollowUpId) {
+                    throw new Error("Gagal membuat baris perpanjangan.");
+                }
+
+                const fileDataUrl = await uploadFileForRecord(file, ["isps", isp.id, "renewals"]);
+                await api.ispRenewalFollowUps.update(createdFollowUpId, {
+                    renewal_file_url: fileDataUrl,
+                    renewal_file_name: file.name,
+                });
+                await loadDetail();
+                if (onRefreshAll) onRefreshAll();
                 return;
             }
 
@@ -541,8 +752,6 @@ function IspDetailPage({
                     renewal_file_url: fileDataUrl,
                     renewal_file_name: file.name,
                 });
-            } else if (type === "renewal") {
-                await api.ispRenewalFollowUps.create(rowId);
             } else {
                 const fieldMap = {
                     bak: { bak_file_url: fileDataUrl, bak_file_name: file.name },
@@ -561,18 +770,46 @@ function IspDetailPage({
 
     const handleRespondRenewal = async (rowId, decision, file, followUpId = null) => {
         if (!file) { setError("Harap pilih berkas tanggapan."); return; }
+        if (!followUpId) {
+            setError("Berkas tanggapan harus menempel pada baris perpanjangan.");
+            return;
+        }
         setIsActionLoading(true);
         setError("");
         try {
             const fileDataUrl = await uploadFileForRecord(file, ["isps", isp.id, "responses"]);
-            if (followUpId) {
-                await api.ispRenewalFollowUps.update(followUpId, {
+            if (isPendingPrimaryRenewalFollowUpId(followUpId)) {
+                const targetRow = contractRows.find((row) => row.id === rowId);
+                const pendingRenewal = pendingPrimaryRenewals[rowId];
+                if (!targetRow?.isPrimaryIspContract || !pendingRenewal?.renewalFileUrl) {
+                    throw new Error("Berkas perpanjangan belum siap untuk ditanggapi.");
+                }
+
+                const rowPayload = buildPrimaryIspContractRowPayload(detail ?? isp);
+                const createdRow = await api.ispContractRows.create(rowPayload);
+                const actualRowId = createdRow?.id;
+                if (!actualRowId || !Number.isFinite(Number(actualRowId))) {
+                    throw new Error("Baris kontrak ISP belum siap untuk tanggapan.");
+                }
+
+                const createdFollowUp = await api.ispRenewalFollowUps.createForContractRow(actualRowId);
+                await api.ispRenewalFollowUps.update(createdFollowUp.id, {
+                    renewal_file_url: pendingRenewal.renewalFileUrl,
+                    renewal_file_name: pendingRenewal.renewalFileName,
+                    status: 'completed',
                     response_file_url: fileDataUrl,
                     response_file_name: file.name,
                     response_status: decision,
                 });
+
+                setPendingPrimaryRenewals((previous) => {
+                    const next = { ...previous };
+                    delete next[rowId];
+                    return next;
+                });
             } else {
-                await api.ispContractRows.update(rowId, {
+                await api.ispRenewalFollowUps.update(followUpId, {
+                    status: 'completed',
                     response_file_url: fileDataUrl,
                     response_file_name: file.name,
                     response_status: decision,
@@ -591,7 +828,19 @@ function IspDetailPage({
         setIsActionLoading(true);
         setError("");
         try {
-            await api.ispRenewalFollowUps.create(rowId);
+            const targetRow = contractRows.find((row) => row.id === rowId);
+            let actualRowId = rowId;
+            if (targetRow?.isPrimaryIspContract || isSyntheticPrimaryRowId(rowId)) {
+                const rowPayload = buildPrimaryIspContractRowPayload(detail ?? isp);
+                const createdRow = await api.ispContractRows.create(rowPayload);
+                actualRowId = createdRow?.id;
+            }
+
+            if (!actualRowId || !Number.isFinite(Number(actualRowId))) {
+                throw new Error("Baris kontrak ISP belum siap untuk perpanjangan.");
+            }
+
+            await api.ispRenewalFollowUps.createForContractRow(actualRowId);
             await loadDetail();
             if (onRefreshAll) onRefreshAll();
         } catch (requestError) {
@@ -602,32 +851,34 @@ function IspDetailPage({
     };
 
     const hasInitialRenewalUpload = (row) => {
-        const followUps = Array.isArray(row?.renewalFollowUps) ? row.renewalFollowUps : [];
+        const followUps = row?.isPrimaryIspContract
+            ? (pendingPrimaryRenewals[row.id] ? [pendingPrimaryRenewals[row.id]] : [])
+            : (Array.isArray(row?.renewalFollowUps) ? row.renewalFollowUps : []);
         return followUps.some((followUp) => isOpenableFileUrl(followUp?.renewalFileUrl));
     };
 
     const renderRenewalFollowUps = (row, columnType) => {
-        if (row?.isPrimaryIspContract) {
-            return <span className="text-[10px] font-bold text-white/20 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">Baris utama ISP</span>;
-        }
-
-        const followUps = Array.isArray(row?.renewalFollowUps) ? row.renewalFollowUps : [];
+        const followUps = row?.isPrimaryIspContract
+            ? (pendingPrimaryRenewals[row.id] ? [pendingPrimaryRenewals[row.id]] : [])
+            : (Array.isArray(row?.renewalFollowUps) ? row.renewalFollowUps : []);
         if (followUps.length === 0) {
             if (columnType === "renewal") {
                 return (
-                    <label className="cursor-pointer font-bold text-[10px] text-white/40 bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg hover:bg-white/10 transition-all">
-                        Upload
-                        <input type="file" className="hidden" onChange={(e) => handleFileUpload(row.id, "renewal", e.target.files?.[0] ?? null)} />
-                    </label>
+                    <FilePickerButton
+                        label="Upload"
+                        className={`${fileActionButtonClass} ${fileActionMutedClass}`}
+                        onPickFile={(file) => void handleFileUpload(row.id, "renewal", file)}
+                    />
                 );
             }
-            return <span className="text-[10px] font-bold text-white/20 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">Belum Ada</span>;
+            return <span className="text-[10px] font-bold text-white/20 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">Menunggu Perpanjangan</span>;
         }
         return (
             <div className="flex flex-col gap-3">
                 {followUps.map((followUp) => {
                     const hasRenewalFile = isOpenableFileUrl(followUp?.renewalFileUrl);
                     const hasResponseFile = isOpenableFileUrl(followUp?.responseFileUrl);
+                    const currentDecision = followUp?.responseStatus ?? "lanjut";
                     const sourceLabel = followUp?.source === "auto" ? "Otomatis" : followUp?.source === "manual" ? "Manual" : "Unggah";
                     return (
                         <div key={followUp.id} className="px-4 py-3 rounded-xl border border-white/10 bg-black/40 min-w-[160px]">
@@ -637,27 +888,40 @@ function IspDetailPage({
                             </div>
                             <p className="text-[11px] font-bold text-white tracking-wide">{followUp.title}</p>
                             {columnType === "renewal" ? (
-                                <div className="mt-3">
-                                    {hasRenewalFile ? (
-                                        <button onClick={() => openSafeFile(followUp.renewalFileUrl, followUp.renewalFileName)} className="text-gold-accent hover:text-white font-bold text-[10px] transition-colors">Buka Berkas</button>
-                                    ) : (
-                                        <label className="cursor-pointer font-bold text-[10px] text-white/40 bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg hover:bg-white/10 transition-all">
-                                            Upload
-                                            <input type="file" className="hidden" onChange={(e) => handleFileUpload(row.id, "renewal", e.target.files?.[0] ?? null, followUp.id)} />
-                                        </label>
+                                <div className="mt-3 flex items-center gap-2 flex-wrap">
+                                    {hasRenewalFile && (
+                                        <button onClick={() => openSafeFile(followUp.renewalFileUrl, followUp.renewalFileName)} className="inline-flex items-center gap-1.5 font-bold text-[10px] uppercase tracking-wider text-gold-accent hover:text-white transition-colors">Buka</button>
                                     )}
+                                    <FilePickerButton
+                                        label={hasRenewalFile ? "Ganti" : "Upload"}
+                                        className={`${fileActionButtonClass} ${fileActionMutedClass}`}
+                                        onPickFile={(file) => void handleFileUpload(row.id, "renewal", file, followUp.id)}
+                                    />
                                 </div>
                             ) : (
-                                <div className="mt-3">
-                                    {hasResponseFile ? (
-                                        <button onClick={() => openSafeFile(followUp.responseFileUrl, followUp.responseFileName)} className="text-emerald-400 hover:text-white font-bold text-[10px] transition-colors">Tanggapan</button>
-                                    ) : hasRenewalFile ? (
-                                        <div className="flex flex-col items-start gap-2">
-                                            <label className="relative rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-[10px] font-bold text-emerald-400 cursor-pointer hover:bg-emerald-500 hover:text-white transition-all">Lanjut<input type="file" className="absolute inset-0 cursor-pointer opacity-0" onChange={(e) => handleRespondRenewal(row.id, "lanjut", e.target.files?.[0] ?? null, followUp.id)} /></label>
-                                            <label className="relative rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-[10px] font-bold text-white/40 cursor-pointer hover:bg-white/10 hover:text-white transition-all">Tidak<input type="file" className="absolute inset-0 cursor-pointer opacity-0" onChange={(e) => handleRespondRenewal(row.id, "tidak", e.target.files?.[0] ?? null, followUp.id)} /></label>
-                                        </div>
+                                <div className="mt-3 flex items-center gap-2 flex-wrap">
+                                    {hasResponseFile && (
+                                        <button onClick={() => openSafeFile(followUp.responseFileUrl, followUp.responseFileName)} className="inline-flex items-center gap-1.5 font-bold text-[10px] uppercase tracking-wider text-emerald-400 hover:text-white transition-colors">Buka</button>
+                                    )}
+                                    {!hasResponseFile ? (
+                                        <>
+                                            <FilePickerButton
+                                                label="Lanjut"
+                                                className={`${fileActionButtonClass} ${fileActionSuccessClass}`}
+                                                onPickFile={(file) => void handleRespondRenewal(row.id, "lanjut", file, followUp.id)}
+                                            />
+                                            <FilePickerButton
+                                                label="Tidak"
+                                                className={`${fileActionButtonClass} ${fileActionMutedClass}`}
+                                                onPickFile={(file) => void handleRespondRenewal(row.id, "tidak", file, followUp.id)}
+                                            />
+                                        </>
                                     ) : (
-                                        <span className="text-[10px] font-bold text-white/10">Menunggu unggah</span>
+                                        <FilePickerButton
+                                            label="Ganti"
+                                            className={`${fileActionButtonClass} ${fileActionSuccessClass}`}
+                                            onPickFile={(file) => void handleRespondRenewal(row.id, currentDecision, file, followUp.id)}
+                                        />
                                     )}
                                 </div>
                             )}
@@ -673,17 +937,64 @@ function IspDetailPage({
         try {
             const targetRow = contractRows.find((row) => row.id === rowId);
             if (targetRow?.isPrimaryIspContract) {
-                await api.isps.update(isp.id, {
+                const payload = {
                     contractReference: updates.contract_reference,
+                    contractStartDate: updates.contract_start_date,
                     contractPeriodStart: updates.period_start,
                     contractPeriodEnd: updates.period_end,
-                });
+                };
+                if (Object.prototype.hasOwnProperty.call(updates, "status")) {
+                    payload.status = updates.status;
+                }
+                await api.isps.update(isp.id, payload);
             } else {
                 await api.ispContractRows.update(rowId, updates);
             }
-            setEditingRow(null);
+            clearRowDraft(rowId);
             await loadDetail();
         } catch { setError("Gagal memperbarui data baris."); } finally { setIsActionLoading(false); }
+    };
+
+    const handleInlineRowSave = async (row) => {
+        const draft = getRowDraft(row);
+        const contractReference = String(draft.contractReference ?? "").trim();
+        const contractStartDate = String(draft.contractStartDate ?? "").slice(0, 10);
+        const periodStart = String(draft.periodStart ?? "").slice(0, 10);
+        const periodEnd = String(draft.periodEnd ?? "").slice(0, 10);
+
+        if (!contractReference) {
+            setError("Nomor kontrak wajib diisi.");
+            return;
+        }
+        if (!periodStart) {
+            setError("Periode berjalan awal wajib diisi.");
+            return;
+        }
+        if (!periodEnd) {
+            setError("Periode berjalan akhir wajib diisi.");
+            return;
+        }
+        if (periodStart > periodEnd) {
+            setError("Periode awal tidak boleh lebih besar dari periode akhir.");
+            return;
+        }
+
+        setError("");
+        await handleUpdateRow(row.id, {
+            contract_reference: contractReference,
+            contract_start_date: contractStartDate || null,
+            period_start: periodStart,
+            period_end: periodEnd,
+        });
+    };
+
+    const handleSetRowStatus = async (row, status) => {
+        setIsActionLoading(true);
+        try {
+            await handleUpdateRow(row.id, { status });
+        } finally {
+            setIsActionLoading(false);
+        }
     };
 
     const openContractDraft = () => {
@@ -1414,17 +1725,30 @@ function IspDetailPage({
                                                         const toneStyle = severityToneMap[item.severity] || fallbackToneMap[item.tone] || fallbackToneMap.orange;
                                                         const itemTitle = item.title || "Tindak lanjut ISP";
                                                         const itemDescription = item.message || item.description || "Ada administrasi ISP yang perlu dilengkapi.";
-                                                        const itemKey = item.id || item.key || itemTitle;
-                                                        const actionLabel = item.actionLabel || "Tindakan Admin";
-                                                        const statusLabel = item.readAt ? "Dibaca" : "Belum Dibaca";
+	                                                        const itemKey = item.id || item.key || itemTitle;
+	                                                        const actionLabel = item.actionLabel || "Tindakan Admin";
+	                                                        const statusLabel = item.readAt ? "Dibaca" : "Belum Dibaca";
 
-                                                        return (
-                                                            <div key={itemKey} className={`flex flex-col lg:flex-row lg:items-center justify-between gap-2 rounded-sm p-2 border transition-all hover:scale-[1.01] hover:shadow-lg ${toneStyle}`}>
-                                                                <div className="space-y-1">
-                                                                    <div className="flex items-center gap-1.5">
-                                                                        <span className="material-symbols-outlined" style={{ fontSize: "15px" }}>contract_edit</span>
-                                                                        <h4 className="text-xs font-bold">{itemTitle}</h4>
-                                                                        {item.id && <span className="h-1.5 w-1.5 rounded-full bg-current opacity-60" title={statusLabel} />}
+	                                                        return (
+	                                                            <div
+	                                                                key={itemKey}
+	                                                                className={`flex flex-col lg:flex-row lg:items-center justify-between gap-2 rounded-sm p-2 border transition-all hover:scale-[1.01] hover:shadow-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-gold-accent/40 ${toneStyle}`}
+	                                                                onClick={() => handleIspActionClick(item)}
+	                                                                onKeyDown={(event) => {
+	                                                                    if (event.key === "Enter" || event.key === " ") {
+	                                                                        event.preventDefault();
+	                                                                        handleIspActionClick(item);
+	                                                                    }
+	                                                                }}
+	                                                                role="button"
+	                                                                tabIndex={0}
+	                                                                title="Buka area penyelesaian"
+	                                                            >
+	                                                                <div className="space-y-1">
+	                                                                    <div className="flex items-center gap-1.5">
+	                                                                        <span className="material-symbols-outlined" style={{ fontSize: "15px" }}>contract_edit</span>
+	                                                                        <h4 className="text-xs font-bold">{itemTitle}</h4>
+	                                                                        {item.id && <span className="h-1.5 w-1.5 rounded-full bg-current opacity-60" title={statusLabel} />}
                                                                     </div>
                                                                     <p className="text-[9px] font-bold opacity-70 leading-relaxed max-w-xl">{itemDescription}</p>
                                                                 </div>
@@ -2082,13 +2406,13 @@ function IspDetailPage({
                                                 <tr className="bg-white/5 border-b border-white/10">
                                                     <th rowSpan="2" className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">No</th>
                                                     <th rowSpan="2" className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-gold-accent border-r border-white/10">Nomor Kontrak</th>
+                                                    <th rowSpan="2" className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Status</th>
                                                     <th rowSpan="2" className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Berkas Kontrak</th>
                                                     <th rowSpan="2" className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Periode Awal Kontrak</th>
                                                     <th colSpan="2" className="px-3 py-1.5 text-center text-[8px] font-black tracking-[0.4em] text-white/30 uppercase border-b border-white/10">Periode Berjalan</th>
                                                     <th rowSpan="2" className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-l border-white/10">BAK</th>
                                                     <th rowSpan="2" className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-l border-white/10">Perpanjangan</th>
                                                     <th rowSpan="2" className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-l border-white/10">Tanggapan</th>
-                                                    <th rowSpan="2" className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-l border-white/10">Aksi</th>
                                                 </tr>
                                                 <tr className="bg-white/5">
                                                     <th className="px-3 py-1.5 text-center text-[7px] font-black tracking-[0.2em] text-white/20 uppercase border-r border-white/10">Awal</th>
@@ -2097,86 +2421,137 @@ function IspDetailPage({
                                             </thead>
                                         <tbody className="divide-y divide-white/10">
                                             {filteredContracts.map((row, idx) => (
-                                                <tr key={row.id} className={`${editingRow?.id === row.id ? 'bg-gold-accent/5' : 'hover:bg-white/[0.02] transition-colors'}`}>
+                                                <tr key={row.id} className="hover:bg-white/[0.02] transition-colors">
                                                     <td className="px-3 py-2.5 text-center text-[11px] font-bold text-white/20 border-r border-white/10">{String(idx + 1).padStart(2, '0')}</td>
                                                     <td className="px-3 py-2.5 text-center border-r border-white/10">
-                                                        {editingRow?.id === row.id ? (
-                                                            <input type="text" className="w-full rounded-lg bg-white/10 border border-white/20 px-3 py-1.5 text-[11px] font-bold text-white outline-none focus:border-gold-accent transition-all" value={editingRow.contractReference || ""} onChange={(e) => setEditingRow({ ...editingRow, contractReference: e.target.value })} />
-                                                        ) : <span className="text-[11px] font-bold text-white">{row.contractReference || "-"}</span>}
+                                                        <input
+                                                            type="text"
+                                                            className="w-full rounded-lg bg-white/10 border border-white/20 px-3 py-1.5 text-[11px] font-bold text-white outline-none focus:border-gold-accent transition-all"
+                                                            value={getRowDraft(row).contractReference || ""}
+                                                            onChange={(e) => setRowDraft(row.id, { contractReference: e.target.value })}
+                                                            onBlur={() => void handleInlineRowSave(row)}
+                                                            onKeyDown={(event) => {
+                                                                if (event.key === "Enter") {
+                                                                    event.preventDefault();
+                                                                    void handleInlineRowSave(row);
+                                                                }
+                                                                if (event.key === "Escape") {
+                                                                    clearRowDraft(row.id);
+                                                                }
+                                                            }}
+                                                            />
+                                                        </td>
+                                                    <td className="px-3 py-2.5 text-center border-r border-white/10">
+                                                        <div className="flex flex-col items-center gap-2">
+                                                            {(() => {
+                                                                const status = getContractRowStatus(row, todayIso);
+                                                                const label = getContractRowStatusLabel(row, todayIso);
+                                                                const classes = status === 'berhenti'
+                                                                    ? 'bg-white/5 text-white/30 border-white/10'
+                                                                    : status === 'expired'
+                                                                        ? 'bg-[#ff2400]/10 text-[#ff2400] border-[#ff2400]/20'
+                                                                        : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+                                                                return <span className={`inline-flex items-center rounded-full border px-3 py-1 text-[8px] font-black uppercase tracking-widest ${classes}`}>{label}</span>;
+                                                            })()}
+                                                                <select
+                                                                 value={getIspContractRowEditStatus(row)}
+                                                                 onChange={(event) => void handleSetRowStatus(row, event.target.value)}
+                                                                 className="w-full rounded-lg bg-white/10 border border-white/20 px-2 py-1.5 text-[10px] font-bold text-white outline-none focus:border-gold-accent transition-all uppercase"
+                                                             >
+                                                                 <option value="aktif">Beroperasi</option>
+                                                                 <option value="expired">Belum Diperpanjang</option>
+                                                                 <option value="berhenti">Berhenti</option>
+                                                              </select>
+                                                        </div>
                                                     </td>
                                                     <td className="px-3 py-2.5 text-center border-r border-white/10">
-                                                        {isOpenableFileUrl(row.contractFileUrl) ? (
-                                                            <button onClick={() => openSafeFile(row.contractFileUrl, row.contractFileName)} className="inline-flex items-center gap-1.5 text-gold-accent hover:text-white font-bold text-[9px] uppercase tracking-wider bg-gold-accent/10 border border-gold-accent/20 px-2.5 py-1 rounded-md transition-all"><span className="material-symbols-outlined" style={{ fontSize: "14px" }}>description</span>Buka</button>
-                                                        ) : <label className="inline-flex items-center gap-1.5 cursor-pointer font-bold text-[9px] uppercase tracking-wider text-white/30 bg-white/5 border border-white/10 border-dashed px-2.5 py-1 rounded-md hover:bg-white/10 transition-all"><span className="material-symbols-outlined" style={{ fontSize: "14px" }}>upload</span>Upload<input type="file" className="hidden" onChange={(e) => handleFileUpload(row.id, 'contract', e.target.files[0])} /></label>}
+                                                        <div className="flex items-center justify-center gap-2 flex-wrap">
+                                                            {isOpenableFileUrl(row.contractFileUrl) ? (
+                                                                <button onClick={() => openSafeFile(row.contractFileUrl, row.contractFileName)} className={`${fileActionButtonClass} ${fileActionPrimaryClass}`}><span className="material-symbols-outlined" style={{ fontSize: "14px" }}>description</span>Buka</button>
+                                                            ) : null}
+                                                            <FilePickerButton
+                                                                label={isOpenableFileUrl(row.contractFileUrl) ? "Ganti" : "Upload"}
+                                                                className={`${fileActionButtonClass} ${fileActionMutedClass}`}
+                                                                onPickFile={(file) => void handleFileUpload(row.id, 'contract', file)}
+                                                            />
+                                                        </div>
                                                     </td>
                                                     <td className="px-3 py-2.5 border-r border-white/10 text-center">
-                                                        <span className="text-[11px] font-bold text-white/60 uppercase">{formatDate(row.contractStartDate ?? detail?.contractStartDate ?? detail?.contract_start_date ?? isp.contractStartDate ?? isp.contract_start_date)}</span>
+                                                        {row.isPrimaryIspContract ? (
+                                                            (() => {
+                                                                const draft = getRowDraft(row);
+                                                                const fallbackValue = row.contractStartDate ?? detail?.contractStartDate ?? detail?.contract_start_date ?? isp.contractStartDate ?? isp.contract_start_date ?? "";
+                                                                return (
+                                                                    <DateInput
+                                                                        value={draft.contractStartDate || fallbackValue}
+                                                                        onChange={(val) => setRowDraft(row.id, { contractStartDate: val })}
+                                                                        onBlur={() => void handleInlineRowSave(row)}
+                                                                        onKeyDown={(event) => {
+                                                                            if (event.key === "Enter") {
+                                                                                event.preventDefault();
+                                                                                void handleInlineRowSave(row);
+                                                                            }
+                                                                        }}
+                                                                        className="rounded-md bg-white/10 border border-white/20 w-28 h-7"
+                                                                        inputClass="w-full h-full bg-transparent px-2 text-[11px] text-white outline-none uppercase pr-8"
+                                                                    />
+                                                                );
+                                                            })()
+                                                        ) : (
+                                                            <span className="text-[11px] font-bold text-white/60 uppercase">{formatDate(row.contractStartDate ?? detail?.contractStartDate ?? detail?.contract_start_date ?? isp.contractStartDate ?? isp.contract_start_date)}</span>
+                                                        )}
                                                     </td>
                                                     <td className="px-3 py-2.5 text-center border-r border-white/10">
-                                                        {editingRow?.id === row.id ? (
-                                                            <DateInput
-                                                                value={editingRow.periodStart || ""}
-                                                                onChange={(val) => setEditingRow({ ...editingRow, periodStart: val })}
-                                                                className="rounded-md bg-white/10 border border-white/20 w-28 h-7"
-                                                                inputClass="w-full h-full bg-transparent px-2 text-[11px] text-white outline-none uppercase pr-8"
+                                                        <DateInput
+                                                            value={getRowDraft(row).periodStart || ""}
+                                                            onChange={(val) => setRowDraft(row.id, { periodStart: val })}
+                                                            onBlur={() => void handleInlineRowSave(row)}
+                                                            onKeyDown={(event) => {
+                                                                if (event.key === "Enter") {
+                                                                    event.preventDefault();
+                                                                    void handleInlineRowSave(row);
+                                                                }
+                                                            }}
+                                                            className="rounded-md bg-white/10 border border-white/20 w-28 h-7"
+                                                            inputClass="w-full h-full bg-transparent px-2 text-[11px] text-white outline-none uppercase pr-8"
+                                                        />
+                                                    </td>
+                                                    <td className="px-3 py-2.5 text-center border-r border-white/10">
+                                                        <DateInput
+                                                            value={getRowDraft(row).periodEnd || ""}
+                                                            onChange={(val) => setRowDraft(row.id, { periodEnd: val })}
+                                                            onBlur={() => void handleInlineRowSave(row)}
+                                                            onKeyDown={(event) => {
+                                                                if (event.key === "Enter") {
+                                                                    event.preventDefault();
+                                                                    void handleInlineRowSave(row);
+                                                                }
+                                                            }}
+                                                            className="rounded-md bg-white/10 border border-white/20 w-28 h-7"
+                                                            inputClass="w-full h-full bg-transparent px-2 text-[11px] text-white outline-none uppercase pr-8"
+                                                        />
+                                                    </td>
+                                                    <td className="px-3 py-2.5 text-center border-r border-white/10">
+                                                        <div className="flex items-center justify-center gap-2 flex-wrap">
+                                                            {isOpenableFileUrl(row.bakFileUrl) ? (
+                                                                <button onClick={() => openSafeFile(row.bakFileUrl, row.bakFileName)} className={`${fileActionButtonClass} ${fileActionSuccessClass}`}><span className="material-symbols-outlined" style={{ fontSize: "14px" }}>task_alt</span>Buka BAK</button>
+                                                            ) : null}
+                                                            <FilePickerButton
+                                                                label={isOpenableFileUrl(row.bakFileUrl) ? "Ganti" : "Upload BAK"}
+                                                                className={`${fileActionButtonClass} ${fileActionMutedClass}`}
+                                                                onPickFile={(file) => void handleFileUpload(row.id, 'bak', file)}
                                                             />
-                                                        ) : <span className="text-[11px] font-bold text-white uppercase">{formatDate(row.periodStart)}</span>}
-                                                    </td>
-                                                    <td className="px-3 py-2.5 text-center border-r border-white/10">
-                                                        {editingRow?.id === row.id ? (
-                                                            <DateInput
-                                                                value={editingRow.periodEnd || ""}
-                                                                onChange={(val) => setEditingRow({ ...editingRow, periodEnd: val })}
-                                                                className="rounded-md bg-white/10 border border-white/20 w-28 h-7"
-                                                                inputClass="w-full h-full bg-transparent px-2 text-[11px] text-white outline-none uppercase pr-8"
-                                                            />
-                                                        ) : <span className="text-[11px] font-bold text-gold-accent italic uppercase">{formatDate(row.periodEnd)}</span>}
-                                                    </td>
-                                                    <td className="px-3 py-2.5 text-center border-r border-white/10">
-                                                        {isOpenableFileUrl(row.bakFileUrl) ? (
-                                                            <button onClick={() => openSafeFile(row.bakFileUrl, row.bakFileName)} className="inline-flex items-center gap-1.5 text-emerald-400 hover:text-white font-bold text-[9px] uppercase tracking-wider bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-md transition-all"><span className="material-symbols-outlined" style={{ fontSize: "14px" }}>task_alt</span>Buka BAK</button>
-                                                        ) : <label className="inline-flex items-center gap-1.5 cursor-pointer font-bold text-[9px] uppercase tracking-wider text-white/20 border border-white/10 border-dashed px-2.5 py-1 rounded-md hover:bg-white/5 transition-all">Upload BAK<input type="file" className="hidden" onChange={(e) => handleFileUpload(row.id, 'bak', e.target.files[0])} /></label>}
+                                                        </div>
                                                     </td>
                                                     <td className="px-3 py-2.5 min-w-[280px] border-r border-white/10 text-center">
                                                         <div className="flex items-center justify-center gap-2">
                                                             {renderRenewalFollowUps(row, "renewal")}
-                                                            <button className="shrink-0 w-6 h-6 flex items-center justify-center rounded-md bg-white/5 border border-white/10 text-white/40 transition-all hover:bg-white/10 disabled:opacity-30" disabled={row.isPrimaryIspContract || !hasInitialRenewalUpload(row)} onClick={() => handleAddRenewalSplit(row.id)} type="button">
+                                                            <button className="shrink-0 w-6 h-6 flex items-center justify-center rounded-md bg-white/5 border border-white/10 text-white/40 transition-all hover:bg-white/10 disabled:opacity-30" disabled={row.isPrimaryIspContract || !hasInitialRenewalUpload(row)} onClick={() => handleAddRenewalSplit(row.id)} type="button" title="Tambah split perpanjangan">
                                                                 <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>add_circle</span>
                                                             </button>
                                                         </div>
                                                     </td>
                                                     <td className="px-3 py-2.5 min-w-[240px] border-r border-white/10 text-center">{renderRenewalFollowUps(row, "response")}</td>
-                                                    <td className="px-3 py-2.5 text-center">
-                                                        {editingRow?.id === row.id ? (
-                                                            <div className="flex justify-center gap-1.5">
-                                                                <button
-                                                                    className="w-6 h-6 flex items-center justify-center rounded-md bg-emerald-500 text-white shadow-lg shadow-emerald-500/20 active:scale-90 transition-all"
-                                                                    onClick={() => handleUpdateRow(row.id, { contract_reference: editingRow.contractReference, period_start: editingRow.periodStart, period_end: editingRow.periodEnd })}
-                                                                    title="Simpan"
-                                                                >
-                                                                    <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>check</span>
-                                                                </button>
-                                                                <button
-                                                                    className="w-6 h-6 flex items-center justify-center rounded-md bg-white/10 text-white hover:bg-white/20 active:scale-90 transition-all"
-                                                                    onClick={() => setEditingRow(null)}
-                                                                    title="Batal"
-                                                                >
-                                                                    <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>close</span>
-                                                                </button>
-                                                            </div>
-                                                        ) : (
-                                                            <div className="flex justify-center">
-                                                                <button
-                                                                    className="w-6 h-6 flex items-center justify-center rounded-md bg-white/5 border border-white/10 text-gold-accent hover:bg-gold-accent hover:text-white transition-all shadow-sm"
-                                                                    onClick={() => setEditingRow({ ...row })}
-                                                                    type="button"
-                                                                    title="Edit Baris"
-                                                                >
-                                                                    <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>edit_note</span>
-                                                                </button>
-                                                            </div>
-                                                        )}
-                                                    </td>
                                                 </tr>
                                             ))}
                                             {filteredContracts.length === 0 && (

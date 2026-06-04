@@ -378,7 +378,11 @@ const createDerivedNotification = ({ code, type, severity = 'warning', title, me
   resolvedAt: null,
 });
 
-const createIspDerivedNotification = ({ code, type, severity = 'warning', title, message, ispId, ispName, actionLabel = 'Buka ISP' }) => ({
+const getIspNotificationTargetPath = (ispId, tab = 'overview') => (
+  ispId ? `/isps/${ispId}${tab && tab !== 'overview' ? `?tab=${tab}` : ''}` : null
+);
+
+const createIspDerivedNotification = ({ code, type, severity = 'warning', title, message, ispId, ispName, actionLabel = 'Buka ISP', targetTab = 'overview' }) => ({
   id: `${code}-${ispId ?? 'general'}`,
   source: 'derived',
   type,
@@ -390,7 +394,7 @@ const createIspDerivedNotification = ({ code, type, severity = 'warning', title,
   ispId: ispId ?? null,
   customerName: ispName ?? null,
   actionLabel,
-  targetPath: ispId ? `/isps/${ispId}` : null,
+  targetPath: getIspNotificationTargetPath(ispId, targetTab),
   dueDate: null,
   createdAt: new Date().toISOString(),
   readAt: null,
@@ -454,6 +458,8 @@ const getIspDerivedNotifications = async () => {
         message: `${ispName} belum memiliki nomor kontrak/referensi kontrak.`,
         ispId,
         ispName,
+        actionLabel: 'Buka Kontrak',
+        targetTab: 'contracts',
       }));
     }
     if (!isp.contract_start_date) {
@@ -464,6 +470,8 @@ const getIspDerivedNotifications = async () => {
         message: `${ispName} belum memiliki tanggal awal kontrak.`,
         ispId,
         ispName,
+        actionLabel: 'Buka Kontrak',
+        targetTab: 'contracts',
       }));
     }
     if (!isp.contract_period_start || !isp.contract_period_end) {
@@ -474,6 +482,8 @@ const getIspDerivedNotifications = async () => {
         message: `${ispName} belum memiliki periode berjalan awal dan akhir yang lengkap.`,
         ispId,
         ispName,
+        actionLabel: 'Buka Kontrak',
+        targetTab: 'contracts',
       }));
     }
     if (missingBakIds.has(Number(ispId))) {
@@ -484,7 +494,8 @@ const getIspDerivedNotifications = async () => {
         message: `${ispName} belum memiliki file BAK.`,
         ispId,
         ispName,
-        actionLabel: 'Buka Dokumen',
+        actionLabel: 'Buka Kontrak',
+        targetTab: 'contracts',
       }));
     }
     if (missingContractIds.has(Number(ispId))) {
@@ -495,7 +506,8 @@ const getIspDerivedNotifications = async () => {
         message: `${ispName} belum memiliki file kontrak.`,
         ispId,
         ispName,
-        actionLabel: 'Buka Dokumen',
+        actionLabel: 'Buka Kontrak',
+        targetTab: 'contracts',
       }));
     }
 
@@ -1129,6 +1141,24 @@ const mapDocumentPayload = (documentData = {}) => {
   return payload;
 };
 
+const normalizeStatusValue = (value) => String(value ?? '').trim().toLowerCase();
+
+const normalizeIspStatusForDb = (value) => {
+  const raw = normalizeStatusValue(value);
+  if (['aktif', 'beroperasi', 'active'].includes(raw)) return 'aktif';
+  if (['expired', 'belum_diperpanjang'].includes(raw)) return 'expired';
+  if (['berhenti', 'nonaktif', 'terminated'].includes(raw)) return 'berhenti';
+  return raw || null;
+};
+
+const normalizeIspContractRowStatusForDb = (value) => {
+  const raw = normalizeStatusValue(value);
+  if (['aktif', 'beroperasi', 'active'].includes(raw)) return 'aktif';
+  if (['expired', 'belum_diperpanjang'].includes(raw)) return 'expired';
+  if (['berhenti', 'nonaktif', 'terminated'].includes(raw)) return 'berhenti';
+  return raw || null;
+};
+
 const mapInvoicePayload = (invoiceData = {}) => {
   const payload = {};
   assignIfPresent(payload, invoiceData, ['customer_id', 'customerId'], 'customer_id');
@@ -1196,6 +1226,7 @@ const mapIspContractRowPayload = (rowData = {}) => {
   assignIfPresent(payload, rowData, ['period_start', 'periodStart', 'start_date', 'startDate'], 'period_start');
   assignIfPresent(payload, rowData, ['period_end', 'periodEnd', 'end_date', 'endDate'], 'period_end');
   assignIfPresent(payload, rowData, ['renewal_status', 'renewalStatus'], 'renewal_status');
+  assignIfPresent(payload, rowData, ['status'], 'status', normalizeIspContractRowStatusForDb);
   assignIfPresent(payload, rowData, ['bak_file_url', 'bakFileUrl'], 'bak_file_url');
   assignIfPresent(payload, rowData, ['bak_file_name', 'bakFileName'], 'bak_file_name');
   assignIfPresent(payload, rowData, ['renewal_file_url', 'renewalFileUrl'], 'renewal_file_url');
@@ -2065,7 +2096,7 @@ const mapIspPayload = (ispData = {}) => {
   const payload = {};
 
   if (Object.prototype.hasOwnProperty.call(ispData, 'name')) payload.name = ispData.name;
-  if (Object.prototype.hasOwnProperty.call(ispData, 'status')) payload.status = ispData.status;
+  if (Object.prototype.hasOwnProperty.call(ispData, 'status')) payload.status = normalizeIspStatusForDb(ispData.status);
   if (Object.prototype.hasOwnProperty.call(ispData, 'logoUrl')) payload.logo_url = ispData.logoUrl;
   if (Object.prototype.hasOwnProperty.call(ispData, 'logo_url')) payload.logo_url = ispData.logo_url;
   if (Object.prototype.hasOwnProperty.call(ispData, 'contractReference')) payload.contract_reference = ispData.contractReference || null;
@@ -2180,6 +2211,7 @@ const ISP_DETAIL_SELECT = `
     contract_reference,
     period_start,
     period_end,
+    status,
     renewal_status,
     bak_file_url,
     bak_file_name,
@@ -4504,9 +4536,38 @@ export const contractVersionRenewalFollowUpsApi = {
 
 export const ispRenewalFollowUpsApi = {
   async create(rowId) {
+    return this.createForContractRow(rowId);
+  },
+
+  async createForContractRow(rowId) {
+    const { data: existingFollowUps, error: existingFollowUpsError } = await supabase
+      .from('isp_renewal_follow_ups')
+      .select('split_order')
+      .eq('row_id', rowId)
+      .order('split_order', { ascending: true });
+
+    if (existingFollowUpsError) throw existingFollowUpsError;
+
+    const nextSplitOrder = (
+      (Array.isArray(existingFollowUps)
+        ? existingFollowUps.reduce(
+          (maxSplitOrder, followUp) => Math.max(maxSplitOrder, Number(followUp?.split_order ?? 0)),
+          0,
+        )
+        : 0)
+      + 1
+    );
+
     const { data, error } = await supabase
       .from('isp_renewal_follow_ups')
-      .insert({ row_id: rowId, source: 'manual' })
+      .insert(withUpdatedAt({
+        row_id: rowId,
+        split_order: nextSplitOrder,
+        source: 'manual',
+        title: 'Surat perpanjangan dikirim',
+        description: 'Berkas perpanjangan ISP sudah diunggah dari detail ISP.',
+        status: 'pending_response',
+      }))
       .select()
       .single();
 
@@ -4523,8 +4584,93 @@ export const ispRenewalFollowUpsApi = {
       .single();
 
     if (error) throw error;
+
+    const decision = followUpData.response_status ?? followUpData.responseStatus ?? followUpData.response_decision ?? followUpData.responseDecision;
+    const shouldPromote = followUpData.status === 'completed' && decision === 'lanjut';
+
+    if (shouldPromote) {
+      const { data: currentRow, error: currentRowErr } = await supabase
+        .from('isp_contract_rows')
+        .select('*')
+        .eq('id', data.row_id)
+        .single();
+      if (currentRowErr) throw currentRowErr;
+
+      const todayIso = new Date().toISOString().slice(0, 10);
+      const currentRowStatus = resolveIspContractRowStatus(currentRow, todayIso);
+      if (currentRowStatus !== 'beroperasi') {
+        return data;
+      }
+
+    const currentEnd = String(currentRow.periodEnd ?? currentRow.period_end ?? '').slice(0, 10);
+    if (!currentEnd) {
+      return data;
+    }
+
+    const currentRowId = Number(currentRow.id);
+    if (!Number.isFinite(currentRowId)) {
+      return data;
+    }
+
+      const nextPeriodStart = String(new Date(`${currentEnd}T00:00:00.000Z`).toISOString().slice(0, 10));
+      const nextPeriodStartDate = new Date(`${nextPeriodStart}T00:00:00.000Z`);
+      nextPeriodStartDate.setDate(nextPeriodStartDate.getDate() + 1);
+      const nextPeriodStartIso = nextPeriodStartDate.toISOString().slice(0, 10);
+
+      const { data: rowExists } = await supabase
+        .from('isp_contract_rows')
+        .select('id, period_start, period_end')
+      .eq('isp_id', currentRow.isp_id)
+      .eq('period_start', nextPeriodStartIso)
+      .limit(1);
+
+      if (Array.isArray(rowExists) && rowExists.length > 0) {
+        return data;
+      }
+
+      const newRowPayload = buildNewIspContractRowFromRenewal(currentRow, data);
+      const { error: insertRowErr } = await supabase
+        .from('isp_contract_rows')
+        .insert(withUpdatedAt(newRowPayload));
+      if (insertRowErr) throw insertRowErr;
+    }
+
     return data;
   },
+};
+
+const resolveIspContractRowStatus = (row = {}, todayIso = new Date().toISOString().slice(0, 10)) => {
+  const rawStatus = String(row.status ?? row.renewalStatus ?? row.renewal_status ?? '').trim().toLowerCase();
+  if (['berhenti', 'nonaktif'].includes(rawStatus)) return 'berhenti';
+  if (rawStatus === 'expired' || rawStatus === 'belum_diperpanjang') return 'expired';
+  if (['aktif', 'active', 'beroperasi'].includes(rawStatus)) return 'beroperasi';
+  const periodEnd = String(row.periodEnd ?? row.period_end ?? '').slice(0, 10);
+  return periodEnd && periodEnd < todayIso ? 'expired' : 'beroperasi';
+};
+
+const buildNewIspContractRowFromRenewal = (currentRow, followUpData = {}) => {
+  const currentEnd = String(currentRow.periodEnd ?? currentRow.period_end ?? '').slice(0, 10);
+  const startBase = currentEnd ? new Date(`${currentEnd}T00:00:00.000Z`) : new Date();
+  startBase.setDate(startBase.getDate() + 1);
+  const newStartDate = startBase.toISOString().slice(0, 10);
+  const newEndDate = new Date(startBase);
+  newEndDate.setFullYear(newEndDate.getFullYear() + 1);
+  newEndDate.setDate(newEndDate.getDate() - 1);
+
+  return {
+    isp_id: currentRow.ispId ?? currentRow.isp_id,
+    contract_reference: currentRow.contractReference ?? currentRow.contract_reference ?? null,
+    period_start: newStartDate,
+    period_end: newEndDate.toISOString().slice(0, 10),
+    renewal_status: 'active',
+    status: 'beroperasi',
+    bak_file_url: currentRow.bakFileUrl ?? currentRow.bak_file_url ?? null,
+    bak_file_name: currentRow.bakFileName ?? currentRow.bak_file_name ?? null,
+    contract_file_url: currentRow.contractFileUrl ?? currentRow.contract_file_url ?? null,
+    contract_file_name: currentRow.contractFileName ?? currentRow.contract_file_name ?? null,
+    response_file_url: followUpData.response_file_url ?? followUpData.responseFileUrl ?? null,
+    response_file_name: followUpData.response_file_name ?? followUpData.responseFileName ?? null,
+  };
 };
 
 // ============================================================================

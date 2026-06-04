@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { createPortal } from "react-dom";
 import AppShell from "../../components/layout/AppShell";
 import {
@@ -542,7 +542,7 @@ function TenantDetailPage({
   const [versionError, setVersionError] = useState("");
   const [isSubmittingVersion, setIsSubmittingVersion] = useState(false);
   const [contractRowEditor, setContractRowEditor] = useState(null);
-  const [isDeletingContractRow, setIsDeletingContractRow] = useState(false);
+  const isSelectingFileRef = useRef(false);
   const [isSavingContractRow, setIsSavingContractRow] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [ispPopupOpen, setIspPopupOpen] = useState(false);
@@ -598,6 +598,16 @@ function TenantDetailPage({
     setActiveTab(isStandaloneJalurView ? "jalur" : initialTab);
     void loadDetail();
   }, [initialTab, isStandaloneJalurView, loadDetail]);
+
+  useEffect(() => {
+    const handleWindowFocus = () => {
+      setTimeout(() => {
+        isSelectingFileRef.current = false;
+      }, 300);
+    };
+    window.addEventListener("focus", handleWindowFocus);
+    return () => window.removeEventListener("focus", handleWindowFocus);
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -1666,6 +1676,10 @@ function TenantDetailPage({
       )
       : (contractRow.contractNumber ?? contractRow.contract_number);
 
+    const contractDoc = version?.id
+      ? contractDocumentByVersionId.get(Number(version.id)) ?? contractDocumentByContractId.get(Number(contractRow.id)) ?? null
+      : contractDocumentByContractId.get(Number(contractRow.id)) ?? null;
+
     return {
       id,
       contractId: contractRow.id ?? null,
@@ -1682,6 +1696,8 @@ function TenantDetailPage({
       jumlahPaket: resolveContractActualValue(rowSource),
       monthlyAmount: resolveContractMonthlyAmount(contractRow, version),
       yearlyAmount: version?.yearlyAmount ?? version?.yearly_amount ?? null,
+      contractFileUrl: contractDoc?.fileUrl ?? null,
+      contractDocumentId: contractDoc?.id ?? null,
       hasBak: Boolean(
         version?.id
           ? bakDocumentByVersionId.get(Number(version.id))
@@ -2005,7 +2021,7 @@ function TenantDetailPage({
     setVersionError("");
   };
 
-  const openContractRowEditor = (row) => {
+  const openContractRowEditor = (row, focusField = null) => {
     if (!row?.contractId) {
       setError("Data kontrak tidak valid untuk diedit.");
       return;
@@ -2038,8 +2054,68 @@ function TenantDetailPage({
       bakFileUrl: String(bakDoc?.fileUrl ?? "").trim(),
       bakUploadedFile: null,
       bakUploadedFileName: "",
+      contractDocId: contractDoc?.id ?? null,
+      bakDocId: bakDoc?.id ?? null,
+      focusField,
     });
     setError("");
+  };
+
+  const getOverviewTodoTargetTab = (item) => {
+    const code = String(item?.code ?? item?.type ?? "").toLowerCase();
+
+    if (
+      code.includes("invoice") ||
+      code.includes("payment") ||
+      code.includes("upload_h_minus") ||
+      code.includes("warning_unpaid")
+    ) {
+      return "invoices";
+    }
+
+    if (
+      code.includes("contract") ||
+      code.includes("bak") ||
+      code.includes("renewal")
+    ) {
+      return "contracts";
+    }
+
+    if (code.includes("document")) {
+      return "documents";
+    }
+
+    if (code.includes("route")) {
+      return "jalur";
+    }
+
+    return "overview";
+  };
+
+  const handleOverviewTodoNavigation = (item) => {
+    const targetTab = getOverviewTodoTargetTab(item);
+    setActiveTab(targetTab);
+
+    if (targetTab === "contracts" && canEditTenant) {
+      const targetContractRow =
+        contractRowsForTable.find((row) => row.id === primaryContractRowMarkerId) ??
+        contractRowsForTable.find((row) => row.isActive) ??
+        contractRowsForTable[0] ??
+        null;
+
+      if (targetContractRow) {
+        openContractRowEditor(targetContractRow);
+      }
+    }
+  };
+
+  const handleOverviewTodoKeyDown = (event, item) => {
+    if (event.key !== "Enter" && event.key !== " ") {
+      return;
+    }
+
+    event.preventDefault();
+    handleOverviewTodoNavigation(item);
   };
 
   const handleCreateVersion = async (event) => {
@@ -2113,20 +2189,27 @@ function TenantDetailPage({
     }
   };
 
-  const handleSaveContractRow = async (event) => {
-    event.preventDefault();
+  const handleSaveContractRow = async (event = null, overrides = {}) => {
+    if (event && event.preventDefault) {
+      event.preventDefault();
+    }
     if (!contractRowEditor) {
       return;
     }
 
-    const contractNumber = String(contractRowEditor.contractNumber ?? "").trim();
-    const startDate = String(contractRowEditor.startDate ?? "").slice(0, 10);
-    const endDate = String(contractRowEditor.endDate ?? "").slice(0, 10);
-    const monthlyAmount = Number(contractRowEditor.monthlyAmount);
-    const billingEvery = Number(contractRowEditor.billingEvery);
-    const billingUnit = String(contractRowEditor.billingUnit ?? "");
-    const contractUploadedFile = contractRowEditor.contractUploadedFile;
-    const bakUploadedFile = contractRowEditor.bakUploadedFile;
+    const editorState = {
+      ...contractRowEditor,
+      ...overrides,
+    };
+
+    const contractNumber = String(editorState.contractNumber ?? "").trim();
+    const startDate = String(editorState.startDate ?? "").slice(0, 10);
+    const endDate = String(editorState.endDate ?? "").slice(0, 10);
+    const monthlyAmount = Number(editorState.monthlyAmount);
+    const billingEvery = Number(editorState.billingEvery);
+    const billingUnit = String(editorState.billingUnit ?? "");
+    const contractUploadedFile = editorState.contractUploadedFile;
+    const bakUploadedFile = editorState.bakUploadedFile;
 
     if (!contractNumber) {
       setError("Nomor kontrak wajib diisi.");
@@ -2162,6 +2245,22 @@ function TenantDetailPage({
     setDocumentFeedback("");
 
     try {
+      // Delete documents if they were cleared or are being replaced by a new uploaded file
+      if (editorState.contractDocId && (!editorState.contractFileUrl || contractUploadedFile)) {
+        try {
+          await api.documents.delete(editorState.contractDocId);
+        } catch (e) {
+          console.warn("Failed to delete previous contract document:", e);
+        }
+      }
+      if (editorState.bakDocId && (!editorState.bakFileUrl || bakUploadedFile)) {
+        try {
+          await api.documents.delete(editorState.bakDocId);
+        } catch (e) {
+          console.warn("Failed to delete previous BAK document:", e);
+        }
+      }
+
       const payload = {
         contractNumber,
         startDate,
@@ -2171,26 +2270,22 @@ function TenantDetailPage({
         billingUnit,
       };
 
-      if (contractRowEditor.versionId) {
-        await api.contractVersions.update(contractRowEditor.versionId, payload);
+      if (editorState.versionId) {
+        await api.contractVersions.update(editorState.versionId, payload);
       } else {
-        await api.contracts.update(contractRowEditor.contractId, payload);
+        await api.contracts.update(editorState.contractId, payload);
       }
 
-      const uploadDocumentIfNeeded = async (file, jenisDokumen, existingUrl, label) => {
+      const uploadDocumentIfNeeded = async (file, jenisDokumen, label) => {
         if (!(file instanceof File)) {
-          return;
-        }
-
-        if (isOpenableFileUrl(existingUrl)) {
           return;
         }
 
         const fileUrl = await uploadFileForRecord(file, ["customers", customer.id, "documents"]);
         await api.documents.create({
           customer_id: customer.id,
-          contract_id: contractRowEditor.contractId,
-          contract_version_id: contractRowEditor.versionId ? Number(contractRowEditor.versionId) : null,
+          contract_id: editorState.contractId,
+          contract_version_id: editorState.versionId ? Number(editorState.versionId) : null,
           contract_number: contractNumber,
           jenis_dokumen: jenisDokumen,
           nomor_dokumen: contractNumber || null,
@@ -2202,8 +2297,8 @@ function TenantDetailPage({
       };
 
       await Promise.all([
-        uploadDocumentIfNeeded(contractUploadedFile, "kontrak", contractRowEditor.contractFileUrl, "kontrak"),
-        uploadDocumentIfNeeded(bakUploadedFile, "BAK", contractRowEditor.bakFileUrl, "bak"),
+        uploadDocumentIfNeeded(contractUploadedFile, "kontrak", "kontrak"),
+        uploadDocumentIfNeeded(bakUploadedFile, "BAK", "bak"),
       ]);
 
       setContractRowEditor(null);
@@ -2220,44 +2315,28 @@ function TenantDetailPage({
     }
   };
 
-  const handleDeleteContractRow = async () => {
-    if (!contractRowEditor) {
-      return;
-    }
+  const triggerAutoSave = async () => {
+    if (!contractRowEditor) return;
+    if (isSelectingFileRef.current) return;
 
-    const confirmed = window.confirm(
-      `Hapus ${contractRowEditor.rowLabel} ini? Data akan dipindahkan ke sampah.`,
-    );
-    if (!confirmed) {
-      return;
-    }
+    const originalRow = contractRowsForTable.find(r => r.id === contractRowEditor.rowId);
+    if (!originalRow) return;
 
-    setIsDeletingContractRow(true);
-    setError("");
-    setDocumentFeedback("");
+    const hasChanges =
+      String(contractRowEditor.contractNumber ?? "").trim() !== String(originalRow.contractNumber ?? "").trim() ||
+      String(contractRowEditor.startDate ?? "").slice(0, 10) !== String(originalRow.periodStart ?? "").slice(0, 10) ||
+      String(contractRowEditor.endDate ?? "").slice(0, 10) !== String(originalRow.periodEnd ?? "").slice(0, 10) ||
+      Number(contractRowEditor.monthlyAmount) !== Number(originalRow.monthlyAmount ?? 0) ||
+      contractRowEditor.contractUploadedFile !== null ||
+      contractRowEditor.bakUploadedFile !== null;
 
-    try {
-      if (contractRowEditor.versionId) {
-        await api.contractVersions.delete(contractRowEditor.versionId);
-      } else if (contractRowEditor.contractId) {
-        await api.contracts.delete(contractRowEditor.contractId);
-      } else {
-        throw new Error("Data kontrak tidak valid untuk dihapus.");
-      }
-
+    if (hasChanges) {
+      await handleSaveContractRow();
+    } else {
       setContractRowEditor(null);
-      setDocumentFeedback("Data baris kontrak berhasil dihapus.");
-      await Promise.all([loadDetail(), onRefreshAll?.()]);
-    } catch (requestError) {
-      setError(
-        requestError instanceof Error
-          ? requestError.message
-          : "Gagal menghapus data baris kontrak.",
-      );
-    } finally {
-      setIsDeletingContractRow(false);
     }
   };
+
 
   const handleUploadDocument = async (event) => {
     event.preventDefault();
@@ -3943,11 +4022,22 @@ function TenantDetailPage({
                             <span className="text-[8px] font-black text-red-400 uppercase tracking-widest">Prioritas Tinggi</span>
                           </div>
                           {displayPriorityTodos.map((item) => (
-                            <div key={item.id} className="p-3.5 rounded-xl bg-red-500/5 border border-red-500/10 group/item hover:bg-red-500/10 transition-all backdrop-blur-md">
+                            <div
+                              key={item.id}
+                              className="p-3.5 rounded-xl bg-red-500/5 border border-red-500/10 group/item hover:bg-red-500/10 transition-all backdrop-blur-md cursor-pointer focus:outline-none focus:ring-2 focus:ring-red-400/40"
+                              onClick={() => handleOverviewTodoNavigation(item)}
+                              onKeyDown={(event) => handleOverviewTodoKeyDown(event, item)}
+                              role="button"
+                              tabIndex={0}
+                              title="Buka halaman penyelesaian"
+                            >
                               <div className="flex gap-3">
                                 <span className="material-symbols-outlined text-[16px] text-red-400 mt-0.5">error</span>
                                 <div className="flex-1">
-                                  <p className="text-xs font-black text-white group-hover/item:text-red-400 transition-colors">{item.title}</p>
+                                  <div className="flex items-start justify-between gap-3">
+                                    <p className="text-xs font-black text-white group-hover/item:text-red-400 transition-colors">{item.title}</p>
+                                    <span className="material-symbols-outlined text-[14px] text-red-400/40 group-hover/item:text-red-400 transition-colors">arrow_forward</span>
+                                  </div>
                                   <p className="mt-0.5 text-[10px] font-bold text-white/40 leading-relaxed">{item.message}</p>
                                   {item.dueDate && (
                                     <div className="mt-2 flex items-center gap-1.5 text-[8px] font-black uppercase text-red-400/60">
@@ -3969,14 +4059,29 @@ function TenantDetailPage({
                             <span className="text-[8px] font-black text-amber-400 uppercase tracking-widest">Perlu Tindakan</span>
                           </div>
                           {displayNeedActionTodos.map((item) => (
-                            <div key={item.id} className="p-3.5 rounded-xl bg-amber-500/5 border border-amber-500/10 group/item hover:bg-amber-500/10 transition-all">
+                            <div
+                              key={item.id}
+                              className="p-3.5 rounded-xl bg-amber-500/5 border border-amber-500/10 group/item hover:bg-amber-500/10 transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-amber-400/40"
+                              onClick={() => handleOverviewTodoNavigation(item)}
+                              onKeyDown={(event) => handleOverviewTodoKeyDown(event, item)}
+                              role="button"
+                              tabIndex={0}
+                              title="Buka halaman penyelesaian"
+                            >
                               <div className="flex gap-3">
                                 <span className="material-symbols-outlined text-[16px] text-amber-400 mt-0.5">warning</span>
                                 <div className="flex-1">
-                                  <p className="text-xs font-black text-white group-hover/item:text-amber-400 transition-colors">{item.title}</p>
+                                  <div className="flex items-start justify-between gap-3">
+                                    <p className="text-xs font-black text-white group-hover/item:text-amber-400 transition-colors">{item.title}</p>
+                                    <span className="material-symbols-outlined text-[14px] text-amber-400/40 group-hover/item:text-amber-400 transition-colors">arrow_forward</span>
+                                  </div>
                                   <p className="mt-0.5 text-[10px] font-bold text-white/40 leading-relaxed">{item.message}</p>
                                   {item.code === "contract_number_missing_local" && (
-                                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                                    <div
+                                      className="mt-3 flex flex-wrap items-center gap-2"
+                                      onClick={(event) => event.stopPropagation()}
+                                      onKeyDown={(event) => event.stopPropagation()}
+                                    >
                                       <div className="relative group/input flex-1 min-w-[150px]">
                                         <input
                                           className="w-full h-8 px-3 rounded-lg bg-black/40 border border-white/5 text-[10px] text-white focus:border-amber-500/50 focus:outline-none transition-all placeholder:text-white/10"
@@ -4540,7 +4645,6 @@ function TenantDetailPage({
                       <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5" rowSpan="2">BAK</th>
                       <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5" rowSpan="2">Perpanjangan</th>
                       <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5" rowSpan="2">Tanggapan</th>
-                      <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 text-right whitespace-nowrap border border-white/5" rowSpan="2">Aksi</th>
                     </tr>
                     <tr className="bg-white/[0.02]">
                       <th className="px-4 py-2 text-[8px] font-black uppercase tracking-[0.2em] text-white/20 text-center whitespace-nowrap border border-white/5">Awal</th>
@@ -4550,13 +4654,10 @@ function TenantDetailPage({
                   <tbody>
                     {contractRowsForTable.length === 0 && (
                       <tr>
-                        <td className="px-4 py-8 text-center text-[9px] text-white/20 italic uppercase tracking-[0.2em] border border-white/5" colSpan="14">Belum ada data kontrak.</td>
+                        <td className="px-4 py-8 text-center text-[9px] text-white/20 italic uppercase tracking-[0.2em] border border-white/5" colSpan="13">Belum ada data kontrak.</td>
                       </tr>
                     )}
                     {contractRowsForTable.map((row) => {
-                      const contractDoc = row.contractId ? contractDocumentByContractId.get(Number(row.contractId)) : null;
-                      const contractFileUrl = String(contractDoc?.fileUrl ?? "");
-                      const hasContractFile = isOpenableFileUrl(contractFileUrl);
                       const isEditingContractRow = contractRowEditor?.rowId === row.id;
 
                       // Keterangan badge
@@ -4575,129 +4676,237 @@ function TenantDetailPage({
                           : "hover:bg-white/[0.02]";
 
                       return (
-                        <tr key={row.id} className={`${rowStateClass} transition-colors group/row`}>
+                        <tr 
+                          key={row.id} 
+                          className={`${rowStateClass} transition-colors group/row`}
+                          onBlur={(e) => {
+                            if (!isEditingContractRow) return;
+                            const currentTarget = e.currentTarget;
+                            setTimeout(() => {
+                              if (!currentTarget.contains(document.activeElement)) {
+                                void triggerAutoSave();
+                              }
+                            }, 100);
+                          }}
+                        >
 
                           {/* No */}
-                          <td className="px-4 py-3 text-[10px] font-black text-white/20 whitespace-nowrap border border-white/5">{row.number}</td>
+                          <td className="px-4 py-3 text-[10px] font-black text-white/20 whitespace-nowrap border border-white/5 text-center">
+                            {row.number}
+                          </td>
 
                           {/* Nomor Kontrak */}
-                          <td className="px-4 py-3 whitespace-nowrap border border-white/5">
-                            {isEditingContractRow ? (
-                              <input
-                                className="h-8 w-full rounded-lg border border-white/10 bg-white/[0.04] px-2.5 text-[10px] font-black uppercase tracking-tight text-white outline-none transition-all focus:border-gold-accent/40 focus:bg-white/[0.06]"
-                                placeholder="Nomor kontrak / BAK"
-                                value={contractRowEditor.contractNumber ?? ""}
-                                onChange={(e) => setContractRowEditor((previous) => previous ? { ...previous, contractNumber: e.target.value } : previous)}
-                              />
-                            ) : (
-                              <span className="text-[11px] font-black text-white/60">
-                                {row.contractNumber ? (
-                                  <span className="text-white uppercase tracking-tight">{row.contractNumber}</span>
-                                ) : (
-                                  "—"
-                                )}
-                              </span>
-                            )}
+                          <td className="px-4 py-3 whitespace-nowrap border border-white/5 p-0">
+                            <input
+                              className="h-9 w-full bg-transparent px-4 text-[11px] font-black uppercase tracking-tight text-white border-transparent focus:border-gold-accent/40 focus:bg-white/[0.04] hover:bg-white/[0.02] outline-none transition-all disabled:opacity-50"
+                              placeholder="Nomor kontrak / BAK"
+                              disabled={isSavingContractRow}
+                              value={isEditingContractRow ? (contractRowEditor.contractNumber ?? "") : (row.contractNumber ?? "")}
+                              onChange={(e) => {
+                                setContractRowEditor((previous) => previous ? { ...previous, contractNumber: e.target.value } : previous);
+                              }}
+                              onFocus={() => {
+                                if (!isEditingContractRow) {
+                                  openContractRowEditor(row, null);
+                                }
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.currentTarget.blur();
+                                } else if (e.key === "Escape") {
+                                  setContractRowEditor(null);
+                                  e.currentTarget.blur();
+                                }
+                              }}
+                            />
                           </td>
 
                           {/* Berkas Kontrak */}
-                      <td className="px-4 py-3 whitespace-nowrap border border-white/5">
-                            {isEditingContractRow ? (
-                              <label className="inline-flex h-8 cursor-pointer items-center gap-1 rounded-lg border border-white/10 bg-white/[0.04] px-2.5 text-[8px] font-black uppercase tracking-widest text-white/60 transition-all hover:bg-white/[0.06] hover:text-white">
-                                <span className="material-symbols-outlined text-[12px]">upload_file</span>
-                                {contractRowEditor.contractUploadedFileName
-                                  ? contractRowEditor.contractUploadedFileName
-                                  : (contractRowEditor.contractFileUrl ? "Ganti File" : "Upload")}
-                                <input
-                                  type="file"
-                                  className="hidden"
-                                  onChange={(event) => {
-                                    const file = event.target.files?.[0] ?? null;
-                                    setContractRowEditor((previous) => (
-                                      previous ? {
-                                        ...previous,
-                                        contractUploadedFile: file,
-                                        contractUploadedFileName: file?.name ?? "",
-                                      } : previous
-                                    ));
-                                  }}
-                                />
-                              </label>
-                            ) : hasContractFile ? (
-                              <a
-                                className="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-gold-accent/20 bg-gold-accent/10 text-[7px] font-black text-gold-accent uppercase tracking-widest hover:bg-gold-accent hover:text-[#0f141e] transition-all"
-                                href={contractFileUrl}
-                                target="_blank" rel="noopener noreferrer"
-                              >
-                                <span className="material-symbols-outlined text-[10px]">visibility</span>
-                                Lihat
-                              </a>
-                            ) : (
-                              <span className="text-[11px] font-black text-white/20">—</span>
-                            )}
+                          <td className="px-4 py-3 whitespace-nowrap border border-white/5 text-center">
+                            <div className="flex items-center justify-center gap-1.5">
+                              {isEditingContractRow && contractRowEditor.contractUploadedFile ? (
+                                <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-blue-500/10 border border-blue-500/20 max-w-[150px]">
+                                  <span className="text-[8px] font-bold text-blue-400 truncate" title={contractRowEditor.contractUploadedFileName}>
+                                    {contractRowEditor.contractUploadedFileName}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setContractRowEditor(prev => prev ? {
+                                        ...prev,
+                                        contractUploadedFile: null,
+                                        contractUploadedFileName: ""
+                                      } : null);
+                                    }}
+                                    className="text-white/40 hover:text-white flex items-center justify-center"
+                                    title="Batal berkas baru"
+                                  >
+                                    <span className="material-symbols-outlined text-[10px]">close</span>
+                                  </button>
+                                </div>
+                              ) : (isEditingContractRow ? contractRowEditor.contractFileUrl : row.contractFileUrl) ? (
+                                <div className="flex items-center gap-1.5">
+                                  <a
+                                    className="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-gold-accent/20 bg-gold-accent/10 text-[7px] font-black text-gold-accent uppercase tracking-widest hover:bg-gold-accent hover:text-[#0f141e] transition-all"
+                                    href={isEditingContractRow ? contractRowEditor.contractFileUrl : row.contractFileUrl}
+                                    target="_blank" rel="noopener noreferrer"
+                                  >
+                                    <span className="material-symbols-outlined text-[10px]">visibility</span>
+                                    Lihat
+                                  </a>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (!isEditingContractRow) {
+                                        openContractRowEditor(row, null);
+                                        setTimeout(() => {
+                                          setContractRowEditor(prev => prev ? { ...prev, contractFileUrl: "" } : null);
+                                        }, 50);
+                                      } else {
+                                        setContractRowEditor(prev => prev ? { ...prev, contractFileUrl: "" } : null);
+                                      }
+                                    }}
+                                    className="h-6 w-6 rounded border border-[#ff2400]/20 bg-[#ff2400]/10 flex items-center justify-center text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all"
+                                    title="Hapus berkas"
+                                  >
+                                    <span className="material-symbols-outlined text-[10px]">close</span>
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => openContractRowEditor(row, "contractFile")}
+                                  className="inline-flex h-7 items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all"
+                                >
+                                  <span className="material-symbols-outlined text-[12px]">upload_file</span>
+                                  Upload
+                                </button>
+                              )}
+
+                              {isEditingContractRow && (
+                                <label 
+                                  className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded border border-white/10 bg-white/5 text-white/40 hover:text-white hover:border-white/20 transition-all"
+                                  onClick={() => { isSelectingFileRef.current = true; }}
+                                  title="Ganti berkas"
+                                >
+                                  <span className="material-symbols-outlined text-[12px]">upload_file</span>
+                                  <input
+                                    type="file"
+                                    className="hidden"
+                                    disabled={isSavingContractRow}
+                                    onChange={async (event) => {
+                                      isSelectingFileRef.current = false;
+                                      const file = event.target.files?.[0] ?? null;
+                                      if (file) {
+                                        setContractRowEditor((previous) => (
+                                          previous ? {
+                                            ...previous,
+                                            contractUploadedFile: file,
+                                            contractUploadedFileName: file.name,
+                                          } : previous
+                                        ));
+                                        await handleSaveContractRow(null, { contractUploadedFile: file });
+                                      }
+                                    }}
+                                    ref={(el) => {
+                                      if (el && contractRowEditor?.focusField === "contractFile") {
+                                        isSelectingFileRef.current = true;
+                                        el.click();
+                                        setContractRowEditor((prev) => prev ? { ...prev, focusField: null } : null);
+                                      }
+                                    }}
+                                  />
+                                </label>
+                              )}
+                            </div>
                           </td>
 
                           {/* Keterangan */}
                           <td className="px-4 py-3 whitespace-nowrap border border-white/5">
-                            {isEditingContractRow ? (
-                              <span className={`inline-flex items-center px-2 py-1 rounded-md border text-[8px] font-black uppercase tracking-widest ${noteStyle}`}>
-                                {(() => {
-                                  let note = row.note || "—";
-                                  return note.replace(/^Kontrak\s+/i, "").replace(/\./g, "").trim();
-                                })()}
-                              </span>
-                            ) : (
-                              <span className={`inline-flex items-center px-2 py-1 rounded-md border text-[8px] font-black uppercase tracking-widest ${noteStyle}`}>
-                                {(() => {
-                                  let note = row.note || "—";
-                                  return note.replace(/^Kontrak\s+/i, "").replace(/\./g, "").trim();
-                                })()}
-                              </span>
-                            )}
+                            <span className={`inline-flex items-center px-2 py-1 rounded-md border text-[8px] font-black uppercase tracking-widest ${noteStyle}`}>
+                              {(() => {
+                                let note = row.note || "—";
+                                return note.replace(/^Kontrak\s+/i, "").replace(/\./g, "").trim();
+                              })()}
+                            </span>
                           </td>
 
                           {/* Periode Awal Kontrak */}
-                          <td className="px-4 py-3 whitespace-nowrap border border-white/5 text-center">
-                            {isEditingContractRow ? (
-                              <input
-                                className="h-8 w-full rounded-lg border border-white/10 bg-white/[0.04] px-2 text-[10px] font-black text-white outline-none transition-all focus:border-gold-accent/40 focus:bg-white/[0.06]"
-                                type="date"
-                                value={contractRowEditor.startDate ?? ""}
-                                onChange={(e) => setContractRowEditor((previous) => previous ? { ...previous, startDate: e.target.value } : previous)}
-                              />
-                            ) : (
-                              <span className="text-[11px] font-black text-white/60">
-                                {contractPeriodInfo.contractStartDate ? formatDate(contractPeriodInfo.contractStartDate) : "—"}
-                              </span>
-                            )}
+                          <td className="px-4 py-3 whitespace-nowrap border border-white/5 text-center p-0">
+                            <input
+                              className="h-9 w-full bg-transparent px-4 text-[10px] font-black text-white border-transparent focus:border-gold-accent/40 focus:bg-white/[0.04] hover:bg-white/[0.02] outline-none transition-all text-center disabled:opacity-50"
+                              type="date"
+                              disabled={isSavingContractRow}
+                              value={isEditingContractRow ? (contractRowEditor.startDate ?? "") : (contractPeriodInfo.contractStartDate ?? "").slice(0, 10)}
+                              onChange={(e) => {
+                                setContractRowEditor((previous) => previous ? { ...previous, startDate: e.target.value } : previous);
+                              }}
+                              onFocus={() => {
+                                if (!isEditingContractRow) {
+                                  openContractRowEditor(row, null);
+                                }
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.currentTarget.blur();
+                                } else if (e.key === "Escape") {
+                                  setContractRowEditor(null);
+                                  e.currentTarget.blur();
+                                }
+                              }}
+                            />
                           </td>
 
                           {/* Periode Berjalan Awal */}
-                          <td className="px-4 py-3 whitespace-nowrap border border-white/5">
-                            {isEditingContractRow ? (
-                              <input
-                                className="h-8 w-full rounded-lg border border-white/10 bg-white/[0.04] px-2 text-[10px] font-black text-white outline-none transition-all focus:border-gold-accent/40 focus:bg-white/[0.06]"
-                                type="date"
-                                value={contractRowEditor.startDate ?? ""}
-                                onChange={(e) => setContractRowEditor((previous) => previous ? { ...previous, startDate: e.target.value } : previous)}
-                              />
-                            ) : (
-                              <span className="text-[11px] font-black text-white/60">{row.periodStart ? formatDate(row.periodStart) : "—"}</span>
-                            )}
+                          <td className="px-4 py-3 whitespace-nowrap border border-white/5 p-0">
+                            <input
+                              className="h-9 w-full bg-transparent px-4 text-[10px] font-black text-white border-transparent focus:border-gold-accent/40 focus:bg-white/[0.04] hover:bg-white/[0.02] outline-none transition-all text-center disabled:opacity-50"
+                              type="date"
+                              disabled={isSavingContractRow}
+                              value={isEditingContractRow ? (contractRowEditor.startDate ?? "") : (row.periodStart ?? "").slice(0, 10)}
+                              onChange={(e) => {
+                                setContractRowEditor((previous) => previous ? { ...previous, startDate: e.target.value } : previous);
+                              }}
+                              onFocus={() => {
+                                if (!isEditingContractRow) {
+                                  openContractRowEditor(row, null);
+                                }
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.currentTarget.blur();
+                                } else if (e.key === "Escape") {
+                                  setContractRowEditor(null);
+                                  e.currentTarget.blur();
+                                }
+                              }}
+                            />
                           </td>
 
                           {/* Periode Berjalan Akhir */}
-                          <td className="px-4 py-3 whitespace-nowrap border border-white/5">
-                            {isEditingContractRow ? (
-                              <input
-                                className="h-8 w-full rounded-lg border border-white/10 bg-white/[0.04] px-2 text-[10px] font-black text-white outline-none transition-all focus:border-gold-accent/40 focus:bg-white/[0.06]"
-                                type="date"
-                                value={contractRowEditor.endDate ?? ""}
-                                onChange={(e) => setContractRowEditor((previous) => previous ? { ...previous, endDate: e.target.value } : previous)}
-                              />
-                            ) : (
-                              <span className="text-[11px] font-black text-white/60">{row.periodEnd ? formatDate(row.periodEnd) : "—"}</span>
-                            )}
+                          <td className="px-4 py-3 whitespace-nowrap border border-white/5 p-0">
+                            <input
+                              className="h-9 w-full bg-transparent px-4 text-[10px] font-black text-white border-transparent focus:border-gold-accent/40 focus:bg-white/[0.04] hover:bg-white/[0.02] outline-none transition-all text-center disabled:opacity-50"
+                              type="date"
+                              disabled={isSavingContractRow}
+                              value={isEditingContractRow ? (contractRowEditor.endDate ?? "") : (row.periodEnd ?? "").slice(0, 10)}
+                              onChange={(e) => {
+                                setContractRowEditor((previous) => previous ? { ...previous, endDate: e.target.value } : previous);
+                              }}
+                              onFocus={() => {
+                                if (!isEditingContractRow) {
+                                  openContractRowEditor(row, null);
+                                }
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.currentTarget.blur();
+                                } else if (e.key === "Escape") {
+                                  setContractRowEditor(null);
+                                  e.currentTarget.blur();
+                                }
+                              }}
+                            />
                           </td>
 
                           {/* Paket */}
@@ -4711,58 +4920,131 @@ function TenantDetailPage({
                           </td>
 
                           {/* Nominal */}
-                          <td className="px-4 py-3 whitespace-nowrap border border-white/5">
-                            {isEditingContractRow ? (
-                              <input
-                                className="h-8 w-full rounded-lg border border-white/10 bg-white/[0.04] px-2 text-[10px] font-black text-white outline-none transition-all focus:border-gold-accent/40 focus:bg-white/[0.06]"
-                                min="0"
-                                placeholder="Nominal / bulan"
-                                type="number"
-                                value={contractRowEditor.monthlyAmount ?? ""}
-                                onChange={(e) => setContractRowEditor((previous) => previous ? { ...previous, monthlyAmount: e.target.value } : previous)}
-                              />
-                            ) : (
-                              <span className="text-[11px] font-black text-white/70">
-                                {Number(row.monthlyAmount ?? 0) > 0 ? formatCurrency(Number(row.monthlyAmount)) : "—"}
-                              </span>
-                            )}
+                          <td className="px-4 py-3 whitespace-nowrap border border-white/5 p-0">
+                            <input
+                              className="h-9 w-full bg-transparent px-4 text-[11px] font-black text-white border-transparent focus:border-gold-accent/40 focus:bg-white/[0.04] hover:bg-white/[0.02] outline-none transition-all text-right disabled:opacity-50"
+                              type="number"
+                              min="0"
+                              placeholder="Nominal / bulan"
+                              disabled={isSavingContractRow}
+                              value={isEditingContractRow ? (contractRowEditor.monthlyAmount ?? "") : (row.monthlyAmount ?? "")}
+                              onChange={(e) => {
+                                setContractRowEditor((previous) => previous ? { ...previous, monthlyAmount: e.target.value } : previous);
+                              }}
+                              onFocus={() => {
+                                if (!isEditingContractRow) {
+                                  openContractRowEditor(row, null);
+                                }
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.currentTarget.blur();
+                                } else if (e.key === "Escape") {
+                                  setContractRowEditor(null);
+                                  e.currentTarget.blur();
+                                }
+                              }}
+                            />
                           </td>
 
                           {/* BAK */}
-                          <td className="px-4 py-3 whitespace-nowrap border border-white/5">
-                            {isEditingContractRow ? (
-                              <label className="inline-flex h-8 cursor-pointer items-center gap-1 rounded-lg border border-white/10 bg-white/[0.04] px-2.5 text-[8px] font-black uppercase tracking-widest text-white/60 transition-all hover:bg-white/[0.06] hover:text-white">
-                                <span className="material-symbols-outlined text-[12px]">upload_file</span>
-                                {contractRowEditor.bakUploadedFileName
-                                  ? contractRowEditor.bakUploadedFileName
-                                  : (contractRowEditor.bakFileUrl ? "Ganti BAK" : "Upload")}
-                                <input
-                                  type="file"
-                                  className="hidden"
-                                  onChange={(event) => {
-                                    const file = event.target.files?.[0] ?? null;
-                                    setContractRowEditor((previous) => (
-                                      previous ? {
-                                        ...previous,
-                                        bakUploadedFile: file,
-                                        bakUploadedFileName: file?.name ?? "",
-                                      } : previous
-                                    ));
-                                  }}
-                                />
-                              </label>
-                            ) : isOpenableFileUrl(row.bakFileUrl) ? (
-                              <a
-                                className="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-gold-accent/20 bg-gold-accent/10 text-[7px] font-black text-gold-accent uppercase tracking-widest hover:bg-gold-accent hover:text-[#0f141e] transition-all"
-                                href={row.bakFileUrl}
-                                target="_blank" rel="noopener noreferrer"
-                              >
-                                <span className="material-symbols-outlined text-[10px]">visibility</span>
-                                Lihat
-                              </a>
-                            ) : (
-                              <span className="text-[11px] font-black text-white/20">—</span>
-                            )}
+                          <td className="px-4 py-3 whitespace-nowrap border border-white/5 text-center">
+                            <div className="flex items-center justify-center gap-1.5">
+                              {isEditingContractRow && contractRowEditor.bakUploadedFile ? (
+                                <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-blue-500/10 border border-blue-500/20 max-w-[150px]">
+                                  <span className="text-[8px] font-bold text-blue-400 truncate" title={contractRowEditor.bakUploadedFileName}>
+                                    {contractRowEditor.bakUploadedFileName}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setContractRowEditor(prev => prev ? {
+                                        ...prev,
+                                        bakUploadedFile: null,
+                                        bakUploadedFileName: ""
+                                      } : null);
+                                    }}
+                                    className="text-white/40 hover:text-white flex items-center justify-center"
+                                    title="Batal berkas baru"
+                                  >
+                                    <span className="material-symbols-outlined text-[10px]">close</span>
+                                  </button>
+                                </div>
+                              ) : (isEditingContractRow ? contractRowEditor.bakFileUrl : row.bakFileUrl) ? (
+                                <div className="flex items-center gap-1.5">
+                                  <a
+                                    className="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-gold-accent/20 bg-gold-accent/10 text-[7px] font-black text-gold-accent uppercase tracking-widest hover:bg-gold-accent hover:text-[#0f141e] transition-all"
+                                    href={isEditingContractRow ? contractRowEditor.bakFileUrl : row.bakFileUrl}
+                                    target="_blank" rel="noopener noreferrer"
+                                  >
+                                    <span className="material-symbols-outlined text-[10px]">visibility</span>
+                                    Lihat
+                                  </a>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (!isEditingContractRow) {
+                                        openContractRowEditor(row, null);
+                                        setTimeout(() => {
+                                          setContractRowEditor(prev => prev ? { ...prev, bakFileUrl: "" } : null);
+                                        }, 50);
+                                      } else {
+                                        setContractRowEditor(prev => prev ? { ...prev, bakFileUrl: "" } : null);
+                                      }
+                                    }}
+                                    className="h-6 w-6 rounded border border-[#ff2400]/20 bg-[#ff2400]/10 flex items-center justify-center text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all"
+                                    title="Hapus berkas"
+                                  >
+                                    <span className="material-symbols-outlined text-[10px]">close</span>
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => openContractRowEditor(row, "bakFile")}
+                                  className="inline-flex h-7 items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all"
+                                >
+                                  <span className="material-symbols-outlined text-[12px]">upload_file</span>
+                                  Upload
+                                </button>
+                              )}
+
+                              {isEditingContractRow && (
+                                <label 
+                                  className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded border border-white/10 bg-white/5 text-white/40 hover:text-white hover:border-white/20 transition-all"
+                                  onClick={() => { isSelectingFileRef.current = true; }}
+                                  title="Ganti berkas"
+                                >
+                                  <span className="material-symbols-outlined text-[12px]">upload_file</span>
+                                  <input
+                                    type="file"
+                                    className="hidden"
+                                    disabled={isSavingContractRow}
+                                    onChange={async (event) => {
+                                      isSelectingFileRef.current = false;
+                                      const file = event.target.files?.[0] ?? null;
+                                      if (file) {
+                                        setContractRowEditor((previous) => (
+                                          previous ? {
+                                            ...previous,
+                                            bakUploadedFile: file,
+                                            bakUploadedFileName: file.name,
+                                          } : previous
+                                        ));
+                                        await handleSaveContractRow(null, { bakUploadedFile: file });
+                                      }
+                                    }}
+                                    ref={(el) => {
+                                      if (el && contractRowEditor?.focusField === "bakFile") {
+                                        isSelectingFileRef.current = true;
+                                        el.click();
+                                        setContractRowEditor((prev) => prev ? { ...prev, focusField: null } : null);
+                                      }
+                                    }}
+                                  />
+                                </label>
+                              )}
+                            </div>
                           </td>
 
                           {/* Perpanjangan */}
@@ -4784,54 +5066,6 @@ function TenantDetailPage({
                           {/* Tanggapan */}
                           <td className="px-4 py-3 whitespace-nowrap border border-white/5">
                             {renderTenantRenewalFollowUps(row, "response")}
-                          </td>
-
-                          {/* Aksi */}
-                          <td className="px-4 py-3 text-right whitespace-nowrap border border-white/5">
-                            {isEditingContractRow ? (
-                              <div className="flex justify-end gap-2">
-                                <button
-                                  className="h-8 w-8 rounded-lg border border-white/10 bg-white/5 flex items-center justify-center text-white/20 hover:text-white hover:border-white/20 hover:bg-white/10 transition-all backdrop-blur-md disabled:cursor-not-allowed disabled:opacity-50"
-                                  disabled={isSavingContractRow || isDeletingContractRow}
-                                  onClick={() => setContractRowEditor(null)}
-                                  title="Batal edit"
-                                  type="button"
-                                >
-                                  <span className="material-symbols-outlined text-base">close</span>
-                                </button>
-                                <button
-                                  className="h-8 w-8 rounded-lg border border-red-500/20 bg-red-500/10 flex items-center justify-center text-red-400 hover:text-red-300 hover:border-red-500/40 hover:bg-red-500/20 transition-all backdrop-blur-md disabled:cursor-not-allowed disabled:opacity-50"
-                                  disabled={isSavingContractRow || isDeletingContractRow}
-                                  onClick={() => void handleDeleteContractRow()}
-                                  title="Hapus data baris"
-                                  type="button"
-                                >
-                                  <span className="material-symbols-outlined text-base">delete</span>
-                                </button>
-                                <button
-                                  className="h-8 w-8 rounded-lg border border-gold-accent/20 bg-gold-accent/10 flex items-center justify-center text-gold-accent hover:text-[#0f141e] hover:border-gold-accent/30 hover:bg-gold-accent transition-all backdrop-blur-md disabled:cursor-not-allowed disabled:opacity-50"
-                                  disabled={isSavingContractRow || isDeletingContractRow}
-                                  onClick={(event) => void handleSaveContractRow(event)}
-                                  title="Simpan perubahan"
-                                  type="button"
-                                >
-                                  {isSavingContractRow ? (
-                                    <span className="material-symbols-outlined text-base animate-pulse">progress_activity</span>
-                                  ) : (
-                                    <span className="material-symbols-outlined text-base">save</span>
-                                  )}
-                                </button>
-                              </div>
-                            ) : (
-                              <button
-                                className="h-8 w-8 rounded-lg border border-white/10 bg-white/5 flex items-center justify-center text-white/20 hover:text-gold-accent hover:border-gold-accent/30 hover:bg-gold-accent/10 transition-all backdrop-blur-md"
-                                onClick={() => openContractRowEditor(row)}
-                                title="Edit Data Baris"
-                                type="button"
-                              >
-                                <span className="material-symbols-outlined text-base">edit_note</span>
-                              </button>
-                            )}
                           </td>
                         </tr>
                       );

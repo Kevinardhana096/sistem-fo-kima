@@ -59,6 +59,10 @@ export default function DateInput({
     className = "",
     inputClass = "",
     placeholder = "DD/MM/YYYY",
+    onBlur,
+    onKeyDown,
+    onFocus,
+    ...inputProps
 }) {
     const textRef = useRef(null);
 
@@ -96,6 +100,15 @@ export default function DateInput({
         if (textRef.current) {
             textRef.current.value = isoToDisplay(value);
         }
+        onBlur?.();
+    }
+
+    function handleTextKeyDown(event) {
+        onKeyDown?.(event);
+    }
+
+    function handleTextFocus(event) {
+        onFocus?.(event);
     }
 
     function handleHiddenChange(e) {
@@ -129,10 +142,13 @@ export default function DateInput({
                 defaultValue={isoToDisplay(value)}
                 onChange={handleTextChange}
                 onBlur={handleTextBlur}
+                onKeyDown={handleTextKeyDown}
+                onFocus={handleTextFocus}
                 disabled={disabled}
                 placeholder={placeholder}
                 maxLength={10}
                 className={`w-full ${inputClass}`}
+                {...inputProps}
             />
 
             {/* Tombol icon kalender */}

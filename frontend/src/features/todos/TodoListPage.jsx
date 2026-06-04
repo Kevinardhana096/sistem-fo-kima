@@ -186,6 +186,9 @@ export default function TodoListPage({ activeSection, onNavigate, onLogout, curr
     };
     const markRead = async (n) => { await api.notifications.markRead(n.id); await loadNotifications(); };
     const markResolved = async (n) => { await api.notifications.markResolved(n.id); await loadNotifications(); };
+    const stopActionClick = (event) => {
+        event.stopPropagation();
+    };
 
     const STAT_CARDS = [
         { label: "Aktif", value: counts.active, icon: "task_alt", color: "text-gold-accent", bg: "bg-gold-accent/10", border: "border-gold-accent/20" },
@@ -306,7 +309,21 @@ export default function TodoListPage({ activeSection, onNavigate, onLogout, curr
                                 const cfg = SEVERITY_CONFIG[n.severity] || SEVERITY_CONFIG.info;
                                 const sk = getStatusKey(n);
                                 return (
-                                    <div key={n.id} className={`group relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl bg-white/5 p-4 transition-all hover:bg-white/10 ${cfg.hover} backdrop-blur-md overflow-hidden border border-white/10 ${n.resolvedAt ? "opacity-60" : ""}`}>
+                                    <div
+                                        key={n.id}
+                                        className={`group relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl bg-white/5 p-4 transition-all hover:bg-white/10 ${cfg.hover} backdrop-blur-md overflow-hidden border border-white/10 ${n.targetPath ? "cursor-pointer focus:outline-none focus:ring-2 focus:ring-gold-accent/40" : "cursor-default"} ${n.resolvedAt ? "opacity-60" : ""}`}
+                                        onClick={() => n.targetPath && openNotification(n)}
+                                        onKeyDown={(event) => {
+                                            if (!n.targetPath) return;
+                                            if (event.key === "Enter" || event.key === " ") {
+                                                event.preventDefault();
+                                                void openNotification(n);
+                                            }
+                                        }}
+                                        role={n.targetPath ? "button" : undefined}
+                                        tabIndex={n.targetPath ? 0 : undefined}
+                                        title={n.targetPath ? "Buka halaman penyelesaian" : undefined}
+                                    >
                                         <div className="flex items-center gap-3">
                                             <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border ${cfg.border} ${cfg.bg}`}>
                                                 <span className={`material-symbols-outlined text-xl ${cfg.text}`}>{TYPE_ICON[n.type] || "task_alt"}</span>
@@ -335,7 +352,7 @@ export default function TodoListPage({ activeSection, onNavigate, onLogout, curr
                                         <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
                                             <button
                                                 className="flex h-8 items-center gap-1.5 rounded-lg border border-gold-accent/20 bg-gold-accent/10 px-3 text-[8px] font-black uppercase tracking-widest text-gold-accent transition-all hover:bg-gold-accent hover:text-black active:scale-95 backdrop-blur-md"
-                                                onClick={() => openNotification(n)} type="button"
+                                                onClick={(event) => { stopActionClick(event); void openNotification(n); }} type="button"
                                             >
                                                 <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>open_in_new</span>
                                                 {n.actionLabel || "Buka"}
@@ -343,13 +360,13 @@ export default function TodoListPage({ activeSection, onNavigate, onLogout, curr
                                             {!n.readAt && (
                                                 <button
                                                     className="flex h-8 items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-3 text-[8px] font-black uppercase tracking-widest text-white/50 transition-all hover:bg-white/10 hover:text-white active:scale-95 backdrop-blur-md"
-                                                    onClick={() => markRead(n)} type="button"
+                                                    onClick={(event) => { stopActionClick(event); void markRead(n); }} type="button"
                                                 >Dibaca</button>
                                             )}
                                             {!n.resolvedAt && (
                                                 <button
                                                     className="flex h-8 items-center gap-1 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 text-[8px] font-black uppercase tracking-widest text-emerald-400 transition-all hover:bg-emerald-500 hover:text-white active:scale-95 backdrop-blur-md"
-                                                    onClick={() => markResolved(n)} type="button"
+                                                    onClick={(event) => { stopActionClick(event); void markResolved(n); }} type="button"
                                                 >Selesai</button>
                                             )}
                                         </div>
@@ -457,4 +474,3 @@ export default function TodoListPage({ activeSection, onNavigate, onLogout, curr
         </AppShell>
     );
 }
-
