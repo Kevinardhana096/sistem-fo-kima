@@ -51,6 +51,36 @@ export const signUpAdmin = async ({ email, password, displayName }) => {
   return data;
 };
 
+export const updateCurrentUserProfile = async ({ displayName, password, currentPassword, email }) => {
+  const trimmedDisplayName = String(displayName ?? '').trim();
+
+  if (password) {
+    if (!email) {
+      throw new Error('Email user tidak tersedia untuk verifikasi password.');
+    }
+
+    const { error: verifyError } = await supabase.auth.signInWithPassword({
+      email,
+      password: currentPassword,
+    });
+    if (verifyError) throw verifyError;
+  }
+
+  const updates = {
+    data: {
+      display_name: trimmedDisplayName,
+    },
+  };
+
+  if (password) {
+    updates.password = password;
+  }
+
+  const { data, error } = await supabase.auth.updateUser(updates);
+  if (error) throw error;
+  return data;
+};
+
 // Helper function to sign out
 export const signOut = async () => {
   const { error } = await supabase.auth.signOut();

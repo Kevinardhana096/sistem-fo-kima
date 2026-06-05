@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import AppShell from "../../components/layout/AppShell";
 import { formatDate } from "../../app/utils";
 import api from "../../lib/api";
@@ -8,6 +8,7 @@ const TYPE_CONFIG = {
     Jalur: { icon: "route", color: "text-indigo-400", bg: "bg-indigo-400/10" },
     Lokasi: { icon: "location_on", color: "text-amber-400", bg: "bg-amber-400/10" },
     Kontrak: { icon: "article", color: "text-emerald-400", bg: "bg-emerald-400/10" },
+    "Versi Kontrak": { icon: "history_edu", color: "text-lime-400", bg: "bg-lime-400/10" },
     Invoice: { icon: "receipt_long", color: "text-[#ff2400]", bg: "bg-[#ff2400]/10" },
     Dokumen: { icon: "description", color: "text-slate-400", bg: "bg-slate-400/10" },
 };
@@ -16,6 +17,7 @@ const TABLE_MAP = {
     ISP: 'isps',
     Lokasi: 'customers',
     Kontrak: 'contracts',
+    "Versi Kontrak": 'contract_versions',
     Invoice: 'invoices',
     Dokumen: 'documents',
     Jalur: 'customer_route_versions',
@@ -69,17 +71,18 @@ export default function TrashPage({ activeSection, onNavigate, onLogout: _onLogo
     const [deletionStats, setDeletionStats] = useState({
         lastClearedAt: new Date().toISOString(),
         totalItems: 0,
-        breakdown: { ISP: 0, Jalur: 0, Lokasi: 0, Kontrak: 0, Invoice: 0, Dokumen: 0 }
+        breakdown: { ISP: 0, Jalur: 0, Lokasi: 0, Kontrak: 0, "Versi Kontrak": 0, Invoice: 0, Dokumen: 0 }
     });
     const [sortOrder, setSortOrder] = useState("newest");
     const [isLoading, setIsLoading] = useState(false);
 
-    const loadTrashData = async () => {
+    const loadTrashData = useCallback(async () => {
         setIsLoading(true);
         try {
+            const trashOptions = isTeknisi ? { tables: [TABLE_MAP.Jalur] } : undefined;
             const [data, stats] = await Promise.all([
-                api.trash.list(),
-                api.trash.getStats()
+                api.trash.list(trashOptions),
+                api.trash.getStats(trashOptions)
             ]);
 
             // Transform data to UI format
@@ -107,6 +110,14 @@ export default function TrashPage({ activeSection, onNavigate, onLogout: _onLogo
                     origin: `${item.customers?.name || 'N/A'} / Kontrak`,
                     deletedAt: item.deleted_at,
                     table: 'contracts'
+                })),
+                ...data.contractVersions.map(item => ({
+                    id: item.id,
+                    name: item.version_number ? `Versi ${item.version_number}` : 'Versi Kontrak',
+                    type: 'Versi Kontrak',
+                    origin: `${item.customers?.name || 'N/A'} / ${item.contracts?.contract_number || 'Kontrak'}`,
+                    deletedAt: item.deleted_at,
+                    table: 'contract_versions'
                 })),
                 ...data.invoices.map(item => ({
                     id: item.id,
@@ -142,11 +153,11 @@ export default function TrashPage({ activeSection, onNavigate, onLogout: _onLogo
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [isTeknisi]);
 
     useEffect(() => {
         loadTrashData();
-    }, []);
+    }, [loadTrashData]);
 
     const filteredItems = trashItems
         .filter(item => {
@@ -180,6 +191,11 @@ export default function TrashPage({ activeSection, onNavigate, onLogout: _onLogo
         if (!window.confirm(`Hapus "${item.name}" secara permanen? Tindakan ini tidak dapat dibatalkan!`)) return;
 
         try {
+            if (isTeknisi) {
+                alert('Role teknisi tidak diizinkan menghapus permanen data.');
+                return;
+            }
+
             await api.trash.deletePermanently(item.table, item.id);
             alert('Data berhasil dihapus permanen');
             loadTrashData();
@@ -252,7 +268,7 @@ export default function TrashPage({ activeSection, onNavigate, onLogout: _onLogo
                             <div>
                                 <h2 className="text-sm font-black text-white uppercase tracking-wider">Statistik Pembersihan</h2>
                                 <p className="text-[9px] font-bold text-white/40 mt-0.5 uppercase tracking-widest leading-relaxed">
-                                    Terakhir: <span className="text-gold-accent">{formatDate(deletionStats.lastClearedAt)}</span>
+                                    Terakhir: <span className="text-gold-accent">{deletionStats.lastClearedAt ? formatDate(deletionStats.lastClearedAt) : "-"}</span>
                                 </p>
                             </div>
                         </div>
@@ -265,6 +281,7 @@ export default function TrashPage({ activeSection, onNavigate, onLogout: _onLogo
                                     Jalur: "hover:border-indigo-500/40",
                                     Lokasi: "hover:border-amber-500/40",
                                     Kontrak: "hover:border-emerald-500/40",
+                                    "Versi Kontrak": "hover:border-lime-500/40",
                                     Invoice: "hover:border-[#ff2400]/40",
                                     Dokumen: "hover:border-white/30",
                                 }[type] || "hover:border-white/20";
@@ -343,13 +360,14 @@ export default function TrashPage({ activeSection, onNavigate, onLogout: _onLogo
                                         Jalur: "hover:border-indigo-500/40",
                                         Lokasi: "hover:border-amber-500/40",
                                         Kontrak: "hover:border-emerald-500/40",
+                                        "Versi Kontrak": "hover:border-lime-500/40",
                                         Invoice: "hover:border-[#ff2400]/40",
                                         Dokumen: "hover:border-white/30",
                                     }[item.type] || "hover:border-white/20";
 
                                     return (
                                         <div
-                                            key={item.id}
+                                            key={`${item.table}-${item.id}`}
                                             className={`group relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl bg-white/5 p-4 transition-all hover:bg-white/10 ${hoverBorderClass} hover:scale-[1.01] backdrop-blur-md overflow-hidden border border-white/10`}
                                         >
                                             <div className="flex items-center gap-4">
@@ -396,14 +414,16 @@ export default function TrashPage({ activeSection, onNavigate, onLogout: _onLogo
                                                     <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>restore_from_trash</span>
                                                     Pulihkan
                                                 </button>
-                                                <button
-                                                    onClick={() => handleDeletePermanently(item)}
-                                                    className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#ff2400]/10 border border-[#ff2400]/20 text-[#ff2400] transition-all hover:bg-[#ff2400] hover:text-white active:scale-95 backdrop-blur-md"
-                                                    title="Hapus Permanen"
-                                                    disabled={isLoading}
-                                                >
-                                                    <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>delete_forever</span>
-                                                </button>
+                                                {!isTeknisi && (
+                                                    <button
+                                                        onClick={() => handleDeletePermanently(item)}
+                                                        className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#ff2400]/10 border border-[#ff2400]/20 text-[#ff2400] transition-all hover:bg-[#ff2400] hover:text-white active:scale-95 backdrop-blur-md"
+                                                        title="Hapus Permanen"
+                                                        disabled={isLoading}
+                                                    >
+                                                        <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>delete_forever</span>
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                     );

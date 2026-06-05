@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { getSectionPath } from "../../app/routes";
 import { getRoleConfig } from "../../roles";
 import api from "../../lib/api";
+import { supabase, updateCurrentUserProfile } from "../../lib/supabase";
 
 export default function AppShell({
     activeSection,
@@ -14,6 +15,15 @@ export default function AppShell({
 }) {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [authUser, setAuthUser] = useState(null);
+    const [profileForm, setProfileForm] = useState({
+        displayName: "",
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+    });
+    const [profileStatus, setProfileStatus] = useState({ type: "", message: "" });
+    const [isSavingProfile, setIsSavingProfile] = useState(false);
 
     // Initialize state from localStorage to ensure persistence
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
@@ -22,6 +32,10 @@ export default function AppShell({
     });
 
     const roleConfig = getRoleConfig(currentRole);
+    const profileDisplayName = authUser?.user_metadata?.display_name
+        || authUser?.user_metadata?.username
+        || roleConfig.profileTitle;
+    const profileAvatarName = profileDisplayName || roleConfig.profileTitle;
 
     const handleMobileNavigate = (sectionKey) => {
         onNavigate(sectionKey);
@@ -32,6 +46,92 @@ export default function AppShell({
     useEffect(() => {
         localStorage.setItem("sidebar_collapsed", String(isSidebarCollapsed));
     }, [isSidebarCollapsed]);
+
+    useEffect(() => {
+        let isActive = true;
+
+        void supabase.auth.getSession().then(({ data }) => {
+            if (isActive) setAuthUser(data?.session?.user ?? null);
+        });
+
+        const { data: authListener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+            setAuthUser(nextSession?.user ?? null);
+        });
+
+        return () => {
+            isActive = false;
+            authListener?.subscription?.unsubscribe();
+        };
+    }, []);
+
+    const openEditProfile = () => {
+        setProfileForm({
+            displayName: profileDisplayName,
+            currentPassword: "",
+            newPassword: "",
+            confirmPassword: "",
+        });
+        setProfileStatus({ type: "", message: "" });
+        setIsEditModalOpen(true);
+    };
+
+    const updateProfileField = (key, value) => {
+        setProfileForm((previous) => ({ ...previous, [key]: value }));
+        setProfileStatus({ type: "", message: "" });
+    };
+
+    const handleSaveProfile = async (event) => {
+        event.preventDefault();
+
+        const displayName = profileForm.displayName.trim();
+        const hasPasswordChange = Boolean(profileForm.newPassword || profileForm.confirmPassword || profileForm.currentPassword);
+
+        if (!displayName) {
+            setProfileStatus({ type: "error", message: "Username wajib diisi." });
+            return;
+        }
+
+        if (hasPasswordChange) {
+            if (!profileForm.currentPassword) {
+                setProfileStatus({ type: "error", message: "Password lama wajib diisi untuk mengubah password." });
+                return;
+            }
+            if (profileForm.newPassword.length < 8) {
+                setProfileStatus({ type: "error", message: "Password baru minimal 8 karakter." });
+                return;
+            }
+            if (profileForm.newPassword !== profileForm.confirmPassword) {
+                setProfileStatus({ type: "error", message: "Konfirmasi password baru tidak sama." });
+                return;
+            }
+        }
+
+        setIsSavingProfile(true);
+        try {
+            const { user } = await updateCurrentUserProfile({
+                displayName,
+                email: authUser?.email,
+                currentPassword: hasPasswordChange ? profileForm.currentPassword : "",
+                password: hasPasswordChange ? profileForm.newPassword : "",
+            });
+            setAuthUser(user ?? null);
+            setProfileForm((previous) => ({
+                ...previous,
+                displayName,
+                currentPassword: "",
+                newPassword: "",
+                confirmPassword: "",
+            }));
+            setProfileStatus({ type: "success", message: "Profile berhasil diperbarui." });
+        } catch (error) {
+            setProfileStatus({
+                type: "error",
+                message: error instanceof Error ? error.message : "Gagal memperbarui profile.",
+            });
+        } finally {
+            setIsSavingProfile(false);
+        }
+    };
 
     if (full) {
         return (
@@ -59,7 +159,9 @@ export default function AppShell({
                     onToggleMenu={() => setIsMobileMenuOpen((prev) => !prev)}
                     onLogout={onLogout}
                     roleConfig={roleConfig}
-                    onEditProfile={() => setIsEditModalOpen(true)}
+                    profileDisplayName={profileDisplayName}
+                    profileAvatarName={profileAvatarName}
+                    onEditProfile={openEditProfile}
                 />
             )}
 
@@ -104,25 +206,35 @@ export default function AppShell({
                         </div>
 
                         <div className="flex flex-col items-center mb-5">
-                            <div className="relative group cursor-pointer">
+                            <div className="relative">
                                 <img
                                     alt="Profile"
-                                    className="h-20 w-20 rounded-2xl object-cover ring-2 ring-white/10 shadow-xl bg-white transition-opacity duration-200 group-hover:opacity-70"
-                                    src={`https://ui-avatars.com/api/?name=${encodeURIComponent(roleConfig.profileTitle)}&background=f1f5f9&color=94a3b8&bold=true&size=128`}
+                                    className="h-20 w-20 rounded-2xl object-cover ring-2 ring-white/10 shadow-xl bg-white"
+                                    src={`https://ui-avatars.com/api/?name=${encodeURIComponent(profileAvatarName)}&background=f1f5f9&color=94a3b8&bold=true&size=128`}
                                 />
-                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <div className="h-8 w-8 bg-black/50 backdrop-blur-md rounded-xl flex items-center justify-center text-white">
-                                        <span className="material-symbols-outlined text-sm">photo_camera</span>
-                                    </div>
-                                </div>
                             </div>
-                            <p className="text-[9px] font-bold text-gold-accent uppercase tracking-widest mt-3 cursor-pointer hover:underline">Ubah Foto Profil</p>
                         </div>
 
-                        <div className="space-y-4">
+                        <form className="space-y-4" onSubmit={handleSaveProfile}>
+                            {profileStatus.message && (
+                                <div
+                                    className={`rounded-xl border px-3 py-2 text-[10px] font-bold leading-relaxed ${
+                                        profileStatus.type === "success"
+                                            ? "border-emerald-400/25 bg-emerald-500/10 text-emerald-200"
+                                            : "border-red-400/25 bg-red-500/10 text-red-200"
+                                    }`}
+                                >
+                                    {profileStatus.message}
+                                </div>
+                            )}
                             <div>
                                 <label className="block text-[9px] font-bold text-on-surface-variant uppercase tracking-widest mb-1.5">Username</label>
-                                <input type="text" defaultValue={roleConfig.profileTitle} className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs font-medium text-white focus:outline-none focus:ring-1 focus:ring-gold-accent/50 transition-[background-color,border-color,box-shadow] duration-200" />
+                                <input
+                                    type="text"
+                                    value={profileForm.displayName}
+                                    onChange={(event) => updateProfileField("displayName", event.target.value)}
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs font-medium text-white focus:outline-none focus:ring-1 focus:ring-gold-accent/50 transition-[background-color,border-color,box-shadow] duration-200"
+                                />
                             </div>
                             
                             <div className="pt-3 border-t border-white/10">
@@ -130,28 +242,55 @@ export default function AppShell({
                                 <div className="space-y-2.5">
                                     <div>
                                         <label className="block text-[8px] font-bold text-on-surface-variant uppercase tracking-widest mb-1">Password Lama</label>
-                                        <input type="password" placeholder="Masukkan password saat ini" className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs font-medium text-white focus:outline-none focus:ring-1 focus:ring-gold-accent/50 transition-[background-color,border-color,box-shadow] duration-200 placeholder:text-white/30" />
+                                        <input
+                                            type="password"
+                                            value={profileForm.currentPassword}
+                                            onChange={(event) => updateProfileField("currentPassword", event.target.value)}
+                                            placeholder="Masukkan password saat ini"
+                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs font-medium text-white focus:outline-none focus:ring-1 focus:ring-gold-accent/50 transition-[background-color,border-color,box-shadow] duration-200 placeholder:text-white/30"
+                                        />
                                     </div>
                                     <div>
                                         <label className="block text-[8px] font-bold text-on-surface-variant uppercase tracking-widest mb-1">Password Baru</label>
-                                        <input type="password" placeholder="Masukkan password baru" className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs font-medium text-white focus:outline-none focus:ring-1 focus:ring-gold-accent/50 transition-[background-color,border-color,box-shadow] duration-200 placeholder:text-white/30" />
+                                        <input
+                                            type="password"
+                                            value={profileForm.newPassword}
+                                            onChange={(event) => updateProfileField("newPassword", event.target.value)}
+                                            placeholder="Masukkan password baru"
+                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs font-medium text-white focus:outline-none focus:ring-1 focus:ring-gold-accent/50 transition-[background-color,border-color,box-shadow] duration-200 placeholder:text-white/30"
+                                        />
                                     </div>
                                     <div>
                                         <label className="block text-[8px] font-bold text-on-surface-variant uppercase tracking-widest mb-1">Konfirmasi Password Baru</label>
-                                        <input type="password" placeholder="Ulangi password baru" className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs font-medium text-white focus:outline-none focus:ring-1 focus:ring-gold-accent/50 transition-[background-color,border-color,box-shadow] duration-200 placeholder:text-white/30" />
+                                        <input
+                                            type="password"
+                                            value={profileForm.confirmPassword}
+                                            onChange={(event) => updateProfileField("confirmPassword", event.target.value)}
+                                            placeholder="Ulangi password baru"
+                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs font-medium text-white focus:outline-none focus:ring-1 focus:ring-gold-accent/50 transition-[background-color,border-color,box-shadow] duration-200 placeholder:text-white/30"
+                                        />
                                     </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <div className="mt-6 flex gap-3">
-                            <button onClick={() => setIsEditModalOpen(false)} className="flex-1 py-2.5 rounded-xl font-bold text-[11px] bg-white/5 text-on-surface hover:bg-white/10 anim-surface">
-                                Batal
-                            </button>
-                            <button onClick={() => setIsEditModalOpen(false)} className="flex-1 py-2.5 rounded-xl font-black text-[11px] bg-gold-accent text-white shadow-gold-glow hover:opacity-90 transition-opacity duration-200">
-                                Simpan Perubahan
-                            </button>
-                        </div>
+                            <div className="mt-6 flex gap-3">
+                                <button
+                                    onClick={() => setIsEditModalOpen(false)}
+                                    className="flex-1 py-2.5 rounded-xl font-bold text-[11px] bg-white/5 text-on-surface hover:bg-white/10 anim-surface"
+                                    disabled={isSavingProfile}
+                                    type="button"
+                                >
+                                    Batal
+                                </button>
+                                <button
+                                    className="flex-1 py-2.5 rounded-xl font-black text-[11px] bg-gold-accent text-white shadow-gold-glow hover:opacity-90 transition-opacity duration-200 disabled:cursor-not-allowed disabled:opacity-55"
+                                    disabled={isSavingProfile}
+                                    type="submit"
+                                >
+                                    {isSavingProfile ? "Menyimpan..." : "Simpan Perubahan"}
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}
@@ -159,7 +298,15 @@ export default function AppShell({
     );
 }
 
-function TopNav({ isSidebarCollapsed, onToggleMenu, onLogout, roleConfig, onEditProfile }) {
+function TopNav({
+    isSidebarCollapsed,
+    onToggleMenu,
+    onLogout,
+    roleConfig,
+    profileDisplayName,
+    profileAvatarName,
+    onEditProfile,
+}) {
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
     const [notifications, setNotifications] = useState([]);
@@ -351,11 +498,11 @@ function TopNav({ isSidebarCollapsed, onToggleMenu, onLogout, roleConfig, onEdit
                             <img
                                 alt="Profile"
                                 className="h-8 w-8 rounded-full object-cover ring-2 ring-white/50 shadow-sm bg-white"
-                                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(roleConfig.profileTitle)}&background=f1f5f9&color=94a3b8&bold=true`}
+                                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(profileAvatarName)}&background=f1f5f9&color=94a3b8&bold=true`}
                             />
                         </div>
                         <div className="hidden text-left md:block">
-                            <p className="text-[10px] font-black text-on-surface tracking-tight leading-none">{roleConfig.profileTitle}</p>
+                            <p className="text-[10px] font-black text-on-surface tracking-tight leading-none">{profileDisplayName}</p>
                             <p className="text-[8px] font-bold uppercase tracking-[0.1em] text-gold-accent mt-0.5">
                                 {roleConfig.profileSubtitle}
                             </p>
@@ -367,7 +514,7 @@ function TopNav({ isSidebarCollapsed, onToggleMenu, onLogout, roleConfig, onEdit
                             <div className="fixed inset-0 z-50" onClick={() => setIsProfileOpen(false)}></div>
                             <div className="!absolute right-0 top-full z-[60] mt-3 w-52 origin-top-right rounded-2xl glass-premium anim-popover p-2 shadow-glass-depth animate-in fade-in zoom-in duration-300 md:w-56">
                                 <div className="px-3 py-3 border-b border-white/10 mb-1.5">
-                                    <p className="text-xs font-black text-on-surface truncate">{roleConfig.profileTitle}</p>
+                                    <p className="text-xs font-black text-on-surface truncate">{profileDisplayName}</p>
                                     <p className="text-[9px] font-bold text-on-surface-variant uppercase mt-0.5 truncate">{roleConfig.profileSubtitle}</p>
                                 </div>
                                 

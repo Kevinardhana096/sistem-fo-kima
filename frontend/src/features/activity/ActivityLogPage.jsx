@@ -160,7 +160,9 @@ export default function ActivityLogPage({ activeSection, onNavigate, onLogout, c
     const isScrollingProgrammatically = useRef(false);
 
     const [selectedLog, setSelectedLog] = useState(null);
+    const [selectedLogIds, setSelectedLogIds] = useState(() => new Set());
     const [isLoading, setIsLoading] = useState(false);
+    const [isDeletingLogs, setIsDeletingLogs] = useState(false);
     const [error, setError] = useState("");
 
     const handleDateModeChange = (mode) => {
@@ -205,6 +207,8 @@ export default function ActivityLogPage({ activeSection, onNavigate, onLogout, c
                 limit: 150,
             });
             setLogs(data);
+            const existingIds = new Set(data.map((log) => Number(log.id)));
+            setSelectedLogIds((previous) => new Set([...previous].filter((id) => existingIds.has(Number(id)))));
         } catch (err) {
             console.error("Failed to load activity logs:", err);
             setError(err instanceof Error ? err.message : "Gagal memuat activity log.");
@@ -234,6 +238,17 @@ export default function ActivityLogPage({ activeSection, onNavigate, onLogout, c
 
     const totalPages = Math.max(Math.ceil(logs.length / itemsPerPage), 1);
     const startIndex = (currentPage - 1) * itemsPerPage;
+    const visibleLogs = useMemo(
+        () => logs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage),
+        [currentPage, itemsPerPage, logs],
+    );
+    const selectedCount = selectedLogIds.size;
+    const visibleSelectableIds = useMemo(
+        () => visibleLogs.map((log) => Number(log.id)).filter(Number.isFinite),
+        [visibleLogs],
+    );
+    const areVisibleLogsSelected = visibleSelectableIds.length > 0
+        && visibleSelectableIds.every((id) => selectedLogIds.has(id));
 
     const handlePaginationScroll = useCallback((e) => {
         if (isScrollingProgrammatically.current) return;
@@ -260,6 +275,72 @@ export default function ActivityLogPage({ activeSection, onNavigate, onLogout, c
         }
         return pages;
     }, [totalPages]);
+
+    const toggleLogSelection = (logId) => {
+        const normalizedId = Number(logId);
+        if (!Number.isFinite(normalizedId)) return;
+        setSelectedLogIds((previous) => {
+            const next = new Set(previous);
+            if (next.has(normalizedId)) {
+                next.delete(normalizedId);
+            } else {
+                next.add(normalizedId);
+            }
+            return next;
+        });
+    };
+
+    const toggleVisibleSelection = () => {
+        setSelectedLogIds((previous) => {
+            const next = new Set(previous);
+            if (areVisibleLogsSelected) {
+                visibleSelectableIds.forEach((id) => next.delete(id));
+            } else {
+                visibleSelectableIds.forEach((id) => next.add(id));
+            }
+            return next;
+        });
+    };
+
+    const handleDeleteSelectedLogs = async () => {
+        if (selectedCount === 0) return;
+        if (!window.confirm(`Hapus ${selectedCount} log aktivitas terpilih? Tindakan ini tidak dapat dibatalkan.`)) return;
+
+        setIsDeletingLogs(true);
+        setError("");
+        try {
+            await api.activityLogs.deleteMany([...selectedLogIds]);
+            if (selectedLog && selectedLogIds.has(Number(selectedLog.id))) {
+                setSelectedLog(null);
+            }
+            setSelectedLogIds(new Set());
+            await loadLogs();
+        } catch (err) {
+            console.error("Failed to delete selected activity logs:", err);
+            setError(err instanceof Error ? err.message : "Gagal menghapus log terpilih.");
+        } finally {
+            setIsDeletingLogs(false);
+        }
+    };
+
+    const handleDeleteAllLogs = async () => {
+        if (logs.length === 0) return;
+        if (!window.confirm("Hapus SEMUA log aktivitas? Tindakan ini tidak dapat dibatalkan.")) return;
+
+        setIsDeletingLogs(true);
+        setError("");
+        try {
+            await api.activityLogs.deleteAll();
+            setSelectedLog(null);
+            setSelectedLogIds(new Set());
+            await loadLogs();
+        } catch (err) {
+            console.error("Failed to delete all activity logs:", err);
+            setError(err instanceof Error ? err.message : "Gagal menghapus semua log aktivitas.");
+        } finally {
+            setIsDeletingLogs(false);
+        }
+    };
 
     return (
         <AppShell activeSection={activeSection} onNavigate={onNavigate} onLogout={onLogout} currentRole={currentRole}>
@@ -431,14 +512,57 @@ export default function ActivityLogPage({ activeSection, onNavigate, onLogout, c
                 </div>
 
                 <section className="glass-card rounded-2xl p-5 cursor-default relative z-40">
-                    <div className="mb-5 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <span className="h-4 w-1 bg-gold-accent rounded-full shadow-gold-glow"></span>
-                            <h2 className="text-sm font-black uppercase tracking-widest text-white">Riwayat Aktivitas</h2>
+                    <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                        <div className="flex flex-wrap items-center gap-3">
+                            <div className="flex items-center gap-2">
+                                <span className="h-4 w-1 bg-gold-accent rounded-full shadow-gold-glow"></span>
+                                <h2 className="text-sm font-black uppercase tracking-widest text-white">Riwayat Aktivitas</h2>
+                            </div>
+                            {logs.length > 0 && (
+                                <button
+                                    className={`flex h-8 items-center gap-2 rounded-lg border px-3 text-[8px] font-black uppercase tracking-widest transition-all backdrop-blur-md ${
+                                        areVisibleLogsSelected
+                                            ? "border-gold-accent/40 bg-gold-accent/15 text-gold-accent"
+                                            : "border-white/10 bg-white/5 text-white/45 hover:bg-white/10 hover:text-white"
+                                    }`}
+                                    disabled={isLoading || isDeletingLogs || visibleSelectableIds.length === 0}
+                                    onClick={toggleVisibleSelection}
+                                    type="button"
+                                >
+                                    <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>
+                                        {areVisibleLogsSelected ? "check_box" : "check_box_outline_blank"}
+                                    </span>
+                                    Pilih Halaman
+                                </button>
+                            )}
                         </div>
-                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 backdrop-blur-md">
-                            <span className="text-[8px] font-black text-white/30 uppercase tracking-[0.2em]">Total Log:</span>
-                            <span className="text-sm font-black text-gold-accent">{logs.length}</span>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <button
+                                className="flex h-8 items-center gap-1.5 rounded-lg border border-[#ff2400]/20 bg-[#ff2400]/10 px-3 text-[8px] font-black uppercase tracking-widest text-[#ff2400] transition-all hover:bg-[#ff2400] hover:text-white disabled:cursor-not-allowed disabled:opacity-40 backdrop-blur-md"
+                                disabled={isLoading || isDeletingLogs || selectedCount === 0}
+                                onClick={handleDeleteSelectedLogs}
+                                type="button"
+                            >
+                                <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>
+                                    {isDeletingLogs && selectedCount > 0 ? "sync" : "delete"}
+                                </span>
+                                Hapus Terpilih{selectedCount > 0 ? ` (${selectedCount})` : ""}
+                            </button>
+                            <button
+                                className="flex h-8 items-center gap-1.5 rounded-lg border border-[#ff2400]/30 bg-[#ff2400]/15 px-3 text-[8px] font-black uppercase tracking-widest text-[#ff2400] transition-all hover:bg-[#ff2400] hover:text-white disabled:cursor-not-allowed disabled:opacity-40 backdrop-blur-md"
+                                disabled={isLoading || isDeletingLogs || logs.length === 0}
+                                onClick={handleDeleteAllLogs}
+                                type="button"
+                            >
+                                <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>
+                                    {isDeletingLogs ? "sync" : "delete_sweep"}
+                                </span>
+                                Hapus Semua
+                            </button>
+                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 backdrop-blur-md">
+                                <span className="text-[8px] font-black text-white/30 uppercase tracking-[0.2em]">Total Log:</span>
+                                <span className="text-sm font-black text-gold-accent">{logs.length}</span>
+                            </div>
                         </div>
                     </div>
 
@@ -455,7 +579,7 @@ export default function ActivityLogPage({ activeSection, onNavigate, onLogout, c
                         </div>
                     ) : logs.length > 0 ? (
                         <div className="space-y-2.5">
-                            {logs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((log) => {
+                            {visibleLogs.map((log) => {
                                 const config = ENTITY_CONFIG[log.entity_type] || { icon: "history", color: "text-white/40", bg: "bg-white/5" };
                                 const hoverBorderClass = {
                                     customer: "hover:border-amber-500/40",
@@ -465,9 +589,25 @@ export default function ActivityLogPage({ activeSection, onNavigate, onLogout, c
                                     document: "hover:border-white/30",
                                     route: "hover:border-indigo-500/40",
                                 }[log.entity_type] || "hover:border-white/20";
+                                const isSelected = selectedLogIds.has(Number(log.id));
                                 return (
-                                    <div key={log.id} className={`group relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl bg-white/5 p-4 transition-all hover:bg-white/10 ${hoverBorderClass} backdrop-blur-md overflow-hidden border border-white/10`}>
+                                    <div key={log.id} className={`group relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl bg-white/5 p-4 transition-all hover:bg-white/10 ${hoverBorderClass} backdrop-blur-md overflow-hidden border ${isSelected ? "border-gold-accent/50 bg-gold-accent/10" : "border-white/10"}`}>
                                         <div className="flex items-center gap-3">
+                                            <button
+                                                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border transition-all backdrop-blur-md ${
+                                                    isSelected
+                                                        ? "border-gold-accent/50 bg-gold-accent/15 text-gold-accent"
+                                                        : "border-white/10 bg-white/5 text-white/35 hover:bg-white/10 hover:text-white"
+                                                }`}
+                                                disabled={isDeletingLogs}
+                                                onClick={() => toggleLogSelection(log.id)}
+                                                title={isSelected ? "Batalkan pilihan" : "Pilih log"}
+                                                type="button"
+                                            >
+                                                <span className="material-symbols-outlined" style={{ fontSize: "16px" }}>
+                                                    {isSelected ? "check_box" : "check_box_outline_blank"}
+                                                </span>
+                                            </button>
                                             <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/5 ${config.bg}`}>
                                                 <span className={`material-symbols-outlined text-xl ${config.color}`}>{config.icon}</span>
                                             </div>

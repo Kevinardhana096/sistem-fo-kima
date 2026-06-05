@@ -9,6 +9,39 @@ import { supabase } from './supabase';
 const LIST_PAGE_SIZE = 500;
 const QUERY_CHUNK_SIZE = 100;
 const QUERY_CHUNK_CONCURRENCY = 4;
+const ISP_LIST_CACHE_TTL_MS = 60_000;
+const NOTIFICATION_LIST_CACHE_TTL_MS = 15_000;
+
+let ispListCache = {
+  data: null,
+  expiresAt: 0,
+  promise: null,
+};
+
+const notificationListCache = new Map();
+
+const cloneIspList = (items) => (Array.isArray(items) ? items.map((isp) => ({
+  ...isp,
+  entryPoints: Array.isArray(isp.entryPoints)
+    ? isp.entryPoints.map((point) => ({ ...point }))
+    : isp.entryPoints,
+})) : []);
+
+const cloneNotifications = (items) => (Array.isArray(items)
+  ? items.map((item) => ({ ...item, metadata: item.metadata ? { ...item.metadata } : item.metadata }))
+  : []);
+
+const clearIspListCache = () => {
+  ispListCache = {
+    data: null,
+    expiresAt: 0,
+    promise: null,
+  };
+};
+
+const clearNotificationListCache = () => {
+  notificationListCache.clear();
+};
 
 const resolveInvoiceDueDate = (periodStartDate) => getNextMonthIsoDate(periodStartDate, 1);
 
@@ -281,6 +314,7 @@ const ACTIVITY_ENTITY_CONFIG = {
   isps: { entityType: 'isp', nameFields: ['name'] },
   customers: { entityType: 'customer', nameFields: ['name'] },
   contracts: { entityType: 'contract', nameFields: ['contract_number'] },
+  contract_versions: { entityType: 'contract_version', nameFields: ['version_number', 'change_note', 'remarks'] },
   invoices: { entityType: 'invoice', nameFields: ['invoice_number'] },
   documents: { entityType: 'document', nameFields: ['nomor_dokumen', 'jenis_dokumen'] },
   customer_route_versions: { entityType: 'route', nameFields: ['change_note', 'flow_status', 'version_number'] },
@@ -293,6 +327,7 @@ const getEntityDisplayName = (row, fallback = 'Data') => {
     ?? row.invoice_number
     ?? row.nomor_dokumen
     ?? row.jenis_dokumen
+    ?? (row.version_number && row.contract_id ? `Versi Kontrak ${row.version_number}` : null)
     ?? row.change_note
     ?? (row.version_number ? `Jalur v${row.version_number}` : null)
     ?? row.flow_status
@@ -849,59 +884,94 @@ const notificationsApi = {
   async list({ year = new Date().getUTCFullYear(), limit = 30, includeResolved = false } = {}) {
     const cappedLimit = Math.max(1, Math.min(Number(limit) || 30, 500));
     const { user } = await getCurrentActor();
-    const latestRouteByCustomerId = await getLatestRouteVersionByCustomerId();
-    const [result, customerDerivedNotifications, ispDerivedNotifications] = await Promise.all([
-      monitoringApi.getAlerts({ year, latestRouteByCustomerId }),
-      getDerivedNotifications(latestRouteByCustomerId),
-      getIspDerivedNotifications(),
-    ]);
-    const alerts = Array.isArray(result) ? result : (result?.alerts ?? []);
-    const notifications = [
-      ...alerts.map(mapAlertToNotification),
-      ...customerDerivedNotifications,
-      ...ispDerivedNotifications,
-    ];
-    const notificationKeys = notifications.map((item) => item.id);
-    let stateByKey = new Map();
-
-    if (user?.id && notificationKeys.length > 0) {
-      const { data: states, error: statesError } = await supabase
-        .from('notification_states')
-        .select('notification_key,read_at,resolved_at')
-        .eq('actor_user_id', user.id)
-        .in('notification_key', notificationKeys);
-
-      if (statesError) throw statesError;
-      stateByKey = new Map((states || []).map((state) => [state.notification_key, state]));
+    const cacheKey = [
+      user?.id ?? 'anonymous',
+      Number(year) || new Date().getUTCFullYear(),
+      cappedLimit,
+      includeResolved ? 'resolved' : 'active',
+    ].join(':');
+    const now = Date.now();
+    const cached = notificationListCache.get(cacheKey);
+    if (cached?.data && cached.expiresAt > now) {
+      return cloneNotifications(cached.data);
     }
 
-    return notifications
-      .map((notification) => {
-        const state = stateByKey.get(notification.id);
-        return {
-          ...notification,
-          readAt: state?.read_at ?? null,
-          resolvedAt: state?.resolved_at ?? null,
-        };
-      })
-      .filter((notification) => includeResolved || !notification.resolvedAt)
-      .sort((left, right) => {
-        const unreadDiff = Number(Boolean(left.readAt)) - Number(Boolean(right.readAt));
-        if (unreadDiff !== 0) return unreadDiff;
-        const severityDiff = getNotificationSeverityRank(left.severity) - getNotificationSeverityRank(right.severity);
-        if (severityDiff !== 0) return severityDiff;
-        return String(left.customerName || '').localeCompare(String(right.customerName || ''));
-      })
-      .slice(0, cappedLimit);
+    if (!cached?.promise) {
+      const promise = (async () => {
+        const latestRouteByCustomerId = await getLatestRouteVersionByCustomerId();
+        const [result, customerDerivedNotifications, ispDerivedNotifications] = await Promise.all([
+          monitoringApi.getAlerts({ year, latestRouteByCustomerId }),
+          getDerivedNotifications(latestRouteByCustomerId),
+          getIspDerivedNotifications(),
+        ]);
+        const alerts = Array.isArray(result) ? result : (result?.alerts ?? []);
+        const notifications = [
+          ...alerts.map(mapAlertToNotification),
+          ...customerDerivedNotifications,
+          ...ispDerivedNotifications,
+        ];
+        const notificationKeys = notifications.map((item) => item.id);
+        let stateByKey = new Map();
+
+        if (user?.id && notificationKeys.length > 0) {
+          const { data: states, error: statesError } = await supabase
+            .from('notification_states')
+            .select('notification_key,read_at,resolved_at')
+            .eq('actor_user_id', user.id)
+            .in('notification_key', notificationKeys);
+
+          if (statesError) throw statesError;
+          stateByKey = new Map((states || []).map((state) => [state.notification_key, state]));
+        }
+
+        return notifications
+          .map((notification) => {
+            const state = stateByKey.get(notification.id);
+            return {
+              ...notification,
+              readAt: state?.read_at ?? null,
+              resolvedAt: state?.resolved_at ?? null,
+            };
+          })
+          .filter((notification) => includeResolved || !notification.resolvedAt)
+          .sort((left, right) => {
+            const unreadDiff = Number(Boolean(left.readAt)) - Number(Boolean(right.readAt));
+            if (unreadDiff !== 0) return unreadDiff;
+            const severityDiff = getNotificationSeverityRank(left.severity) - getNotificationSeverityRank(right.severity);
+            if (severityDiff !== 0) return severityDiff;
+            return String(left.customerName || '').localeCompare(String(right.customerName || ''));
+          })
+          .slice(0, cappedLimit);
+      })();
+      notificationListCache.set(cacheKey, { data: null, expiresAt: 0, promise });
+    }
+
+    const activeCacheEntry = notificationListCache.get(cacheKey);
+    try {
+      const notifications = await activeCacheEntry.promise;
+      notificationListCache.set(cacheKey, {
+        data: notifications,
+        expiresAt: Date.now() + NOTIFICATION_LIST_CACHE_TTL_MS,
+        promise: null,
+      });
+      return cloneNotifications(notifications);
+    } catch (error) {
+      notificationListCache.delete(cacheKey);
+      throw error;
+    }
   },
 
   async markRead(notificationKey) {
-    return upsertNotificationState(notificationKey, { read_at: new Date().toISOString() });
+    const data = await upsertNotificationState(notificationKey, { read_at: new Date().toISOString() });
+    clearNotificationListCache();
+    return data;
   },
 
   async markResolved(notificationKey) {
     const now = new Date().toISOString();
-    return upsertNotificationState(notificationKey, { read_at: now, resolved_at: now });
+    const data = await upsertNotificationState(notificationKey, { read_at: now, resolved_at: now });
+    clearNotificationListCache();
+    return data;
   },
 };
 
@@ -929,6 +999,34 @@ const activityLogsApi = {
 
   async create(payload) {
     return createActivityLog(payload);
+  },
+
+  async deleteMany(ids = []) {
+    const normalizedIds = Array.from(new Set((Array.isArray(ids) ? ids : [])
+      .map((id) => Number(id))
+      .filter(Number.isFinite)));
+
+    if (normalizedIds.length === 0) {
+      return { deletedCount: 0 };
+    }
+
+    const { error } = await supabase
+      .from('activity_logs')
+      .delete()
+      .in('id', normalizedIds);
+
+    if (error) throw error;
+    return { deletedCount: normalizedIds.length };
+  },
+
+  async deleteAll() {
+    const { error } = await supabase
+      .from('activity_logs')
+      .delete()
+      .not('id', 'is', null);
+
+    if (error) throw error;
+    return { success: true };
   },
 };
 
@@ -2421,49 +2519,71 @@ const ISP_DETAIL_SELECT = `
 export const ispsApi = {
   // Get all ISPs
   async getAll() {
-    const { data, error } = await supabase
-      .from('isps')
-      .select(`
-        id,
-        name,
-        status,
-        logo_url,
-        contract_reference,
-        contract_start_date,
-        contract_period_start,
-        contract_period_end,
-        bak_file_name,
-        contract_file_name,
-        paket,
-        jumlah,
-        billing_period_mode,
-        activation_fee_amount,
-        created_at,
-        updated_at,
-        user_id,
-        entryPoints:isp_entry_points(
-          id,
-          isp_id,
-          label,
-          latitude,
-          longitude,
-          status,
-          description,
-          capacity_note,
-          fiber_type,
-          core_capacity,
-          is_default,
-          created_at,
-          updated_at,
-          deleted_at,
-          deleted_by
-        )
-      `)
-      .is('deleted_at', null)
-      .order('name', { ascending: true });
+    const now = Date.now();
+    if (ispListCache.data && ispListCache.expiresAt > now) {
+      return cloneIspList(ispListCache.data);
+    }
 
-    if (error) throw error;
-    return Array.isArray(data) ? data.map(mapIsp) : [];
+    if (!ispListCache.promise) {
+      ispListCache.promise = (async () => {
+        const { data, error } = await supabase
+          .from('isps')
+          .select(`
+            id,
+            name,
+            status,
+            logo_url,
+            contract_reference,
+            contract_start_date,
+            contract_period_start,
+            contract_period_end,
+            bak_file_name,
+            contract_file_name,
+            paket,
+            jumlah,
+            billing_period_mode,
+            activation_fee_amount,
+            created_at,
+            updated_at,
+            user_id,
+            entryPoints:isp_entry_points(
+              id,
+              isp_id,
+              label,
+              latitude,
+              longitude,
+              status,
+              description,
+              capacity_note,
+              fiber_type,
+              core_capacity,
+              is_default,
+              created_at,
+              updated_at,
+              deleted_at,
+              deleted_by
+            )
+          `)
+          .is('deleted_at', null)
+          .order('name', { ascending: true });
+
+        if (error) throw error;
+
+        const mappedData = Array.isArray(data) ? data.map(mapIsp) : [];
+        ispListCache.data = mappedData;
+        ispListCache.expiresAt = Date.now() + ISP_LIST_CACHE_TTL_MS;
+        return mappedData;
+      })();
+    }
+
+    try {
+      return cloneIspList(await ispListCache.promise);
+    } catch (error) {
+      clearIspListCache();
+      throw error;
+    } finally {
+      ispListCache.promise = null;
+    }
   },
 
   // Get ISP by ID
@@ -2538,6 +2658,7 @@ export const ispsApi = {
       },
     });
 
+    clearIspListCache();
     return data;
   },
 
@@ -2596,6 +2717,7 @@ export const ispsApi = {
       },
     });
 
+    clearIspListCache();
     return data;
   },
 
@@ -2660,6 +2782,7 @@ export const ispsApi = {
       },
     });
 
+    clearIspListCache();
     return { deletedCustomersCount: customerIds.length };
   },
 };
@@ -4387,6 +4510,7 @@ export const ispEntryPointsApi = {
       .single();
 
     if (error) throw error;
+    clearIspListCache();
     return mapIspEntryPoint(data);
   },
 
@@ -4399,6 +4523,7 @@ export const ispEntryPointsApi = {
       .single();
 
     if (error) throw error;
+    clearIspListCache();
     return mapIspEntryPoint(data);
   },
 
@@ -4410,9 +4535,11 @@ export const ispEntryPointsApi = {
       .eq('id', id);
 
     if (error) throw error;
+    clearIspListCache();
   },
 
   async replaceForIsp(ispId, points = []) {
+    clearIspListCache();
     const now = new Date().toISOString();
     const normalizedPoints = (Array.isArray(points) ? points : [])
       .map((point, index) => ({ ...point, isDefault: Boolean(point?.isDefault) || index === 0 }))
@@ -4929,52 +5056,209 @@ const buildNewIspContractRowFromRenewal = (currentRow, followUpData = {}) => {
   };
 };
 
+const TRASH_TABLES = [
+  'isps',
+  'customers',
+  'contracts',
+  'contract_versions',
+  'invoices',
+  'documents',
+  'customer_route_versions',
+];
+
+const normalizeTrashTables = (tables) => {
+  if (!Array.isArray(tables) || tables.length === 0) return TRASH_TABLES;
+  const selected = tables.filter((table) => TRASH_TABLES.includes(table));
+  return selected.length > 0 ? selected : TRASH_TABLES;
+};
+
+const assertTrashTable = (table) => {
+  if (!TRASH_TABLES.includes(table)) {
+    throw new Error('Tabel tempat sampah tidak valid.');
+  }
+};
+
+const restoreTrashRows = async (table, applyFilters) => {
+  const { error } = await applyFilters(
+    supabase
+      .from(table)
+      .update({ deleted_at: null, deleted_by: null })
+  );
+  if (error) throw error;
+};
+
+const deleteRows = async (table, applyFilters) => {
+  const { error } = await applyFilters(supabase.from(table).delete());
+  if (error) throw error;
+};
+
+const restoreTrashDependencies = async ({ table, item }) => {
+  const deletedAt = item?.deleted_at;
+  if (!deletedAt) return;
+
+  if (table === 'isps') {
+    const { data: memberships, error } = await supabase
+      .from('customer_isp_memberships')
+      .select('customer_id')
+      .eq('isp_id', item.id);
+    if (error) throw error;
+
+    const customerIds = (memberships || []).map((membership) => Number(membership.customer_id)).filter(Number.isFinite);
+    if (customerIds.length > 0) {
+      await restoreTrashRows('customers', (query) => query.in('id', customerIds).eq('deleted_at', deletedAt));
+    }
+    return;
+  }
+
+  if (table === 'contracts') {
+    await restoreTrashRows('contract_versions', (query) => query.eq('contract_id', item.id).eq('deleted_at', deletedAt));
+    await restoreTrashRows('documents', (query) => query.eq('contract_id', item.id).eq('deleted_at', deletedAt));
+    return;
+  }
+
+  if (table === 'contract_versions') {
+    await restoreTrashRows('documents', (query) => query.eq('contract_version_id', item.id).eq('deleted_at', deletedAt));
+    return;
+  }
+
+  if (table === 'customer_route_versions') {
+    await restoreTrashRows('customer_route_points', (query) => query.eq('route_version_id', item.id).eq('deleted_at', deletedAt));
+  }
+};
+
+const deleteCustomerTrashGroup = async (customerIds = []) => {
+  const ids = Array.from(new Set(customerIds.map((id) => Number(id)).filter(Number.isFinite)));
+  if (ids.length === 0) return;
+
+  const { data: routeVersions, error: routeVersionsError } = await supabase
+    .from('customer_route_versions')
+    .select('id')
+    .in('customer_id', ids);
+  if (routeVersionsError) throw routeVersionsError;
+
+  const routeVersionIds = (routeVersions || []).map((route) => Number(route.id)).filter(Number.isFinite);
+  if (routeVersionIds.length > 0) {
+    await deleteRows('customer_route_points', (query) => query.in('route_version_id', routeVersionIds));
+  }
+
+  await deleteRows('documents', (query) => query.in('customer_id', ids));
+  await deleteRows('invoices', (query) => query.in('customer_id', ids));
+  await deleteRows('contract_versions', (query) => query.in('customer_id', ids));
+  await deleteRows('contracts', (query) => query.in('customer_id', ids));
+  await deleteRows('customer_route_versions', (query) => query.in('customer_id', ids));
+  await deleteRows('customer_isp_entry_points', (query) => query.in('customer_id', ids));
+  await deleteRows('customer_isp_memberships', (query) => query.in('customer_id', ids));
+  await deleteRows('customers', (query) => query.in('id', ids));
+};
+
+const deleteTrashDependencies = async ({ table, item }) => {
+  if (table === 'isps') {
+    const { data: memberships, error } = await supabase
+      .from('customer_isp_memberships')
+      .select('customer_id')
+      .eq('isp_id', item.id);
+    if (error) throw error;
+
+    const membershipCustomerIds = (memberships || []).map((membership) => Number(membership.customer_id)).filter(Number.isFinite);
+    let customerIds = membershipCustomerIds;
+    if (membershipCustomerIds.length > 0 && item.deleted_at) {
+      const { data: deletedCustomers, error: customersError } = await supabase
+        .from('customers')
+        .select('id')
+        .in('id', membershipCustomerIds)
+        .eq('deleted_at', item.deleted_at);
+      if (customersError) throw customersError;
+      customerIds = (deletedCustomers || []).map((customer) => Number(customer.id)).filter(Number.isFinite);
+    }
+    await deleteCustomerTrashGroup(customerIds);
+    await deleteRows('isp_entry_points', (query) => query.eq('isp_id', item.id));
+    await deleteRows('isp_contract_rows', (query) => query.eq('isp_id', item.id));
+    return;
+  }
+
+  if (table === 'customers') {
+    await deleteCustomerTrashGroup([item.id]);
+    return;
+  }
+
+  if (table === 'contracts') {
+    await deleteRows('documents', (query) => query.eq('contract_id', item.id).not('deleted_at', 'is', null));
+    await deleteRows('invoices', (query) => query.eq('contract_id', item.id).not('deleted_at', 'is', null));
+    await deleteRows('contract_versions', (query) => query.eq('contract_id', item.id).not('deleted_at', 'is', null));
+    return;
+  }
+
+  if (table === 'contract_versions') {
+    await deleteRows('documents', (query) => query.eq('contract_version_id', item.id).not('deleted_at', 'is', null));
+    await deleteRows('invoices', (query) => query.eq('contract_version_id', item.id).not('deleted_at', 'is', null));
+    return;
+  }
+
+  if (table === 'documents') {
+    await deleteRows('invoices', (query) => query.eq('document_id', item.id).not('deleted_at', 'is', null));
+    return;
+  }
+
+  if (table === 'customer_route_versions') {
+    await deleteRows('customer_route_points', (query) => query.eq('route_version_id', item.id));
+  }
+};
+
 // ============================================================================
 // TRASH API (Soft Delete Management)
 // ============================================================================
 
 export const trashApi = {
   // Get all soft-deleted items
-  async list() {
-    const [isps, customers, contracts, invoices, documents, routes] = await Promise.all([
-      supabase
+  async list({ tables } = {}) {
+    const selectedTables = normalizeTrashTables(tables);
+    const emptyResult = { data: [], error: null };
+    const shouldLoad = (table) => selectedTables.includes(table);
+    const [isps, customers, contracts, contractVersions, invoices, documents, routes] = await Promise.all([
+      shouldLoad('isps') ? supabase
         .from('isps')
         .select('id, name, status, created_at, deleted_at, deleted_by')
         .not('deleted_at', 'is', null)
-        .order('deleted_at', { ascending: false }),
+        .order('deleted_at', { ascending: false }) : emptyResult,
       
-      supabase
+      shouldLoad('customers') ? supabase
         .from('customers')
         .select('id, name, customer_code, isp_name, status, created_at, deleted_at, deleted_by')
         .not('deleted_at', 'is', null)
-        .order('deleted_at', { ascending: false }),
+        .order('deleted_at', { ascending: false }) : emptyResult,
       
-      supabase
+      shouldLoad('contracts') ? supabase
         .from('contracts')
         .select('id, contract_number, customer_id, start_date, end_date, created_at, deleted_at, deleted_by, customers(name)')
         .not('deleted_at', 'is', null)
-        .order('deleted_at', { ascending: false }),
+        .order('deleted_at', { ascending: false }) : emptyResult,
+
+      shouldLoad('contract_versions') ? supabase
+        .from('contract_versions')
+        .select('id, contract_id, customer_id, version_number, start_date, end_date, remarks, created_at, deleted_at, deleted_by, customers(name), contracts(contract_number)')
+        .not('deleted_at', 'is', null)
+        .order('deleted_at', { ascending: false }) : emptyResult,
       
-      supabase
+      shouldLoad('invoices') ? supabase
         .from('invoices')
         .select('id, invoice_number, customer_id, period_year, period_month, amount, created_at, deleted_at, deleted_by, customers(name)')
         .not('deleted_at', 'is', null)
-        .order('deleted_at', { ascending: false }),
+        .order('deleted_at', { ascending: false }) : emptyResult,
       
-      supabase
+      shouldLoad('documents') ? supabase
         .from('documents')
         .select('id, nomor_dokumen, jenis_dokumen, customer_id, file_url, created_at, deleted_at, deleted_by, customers(name)')
         .not('deleted_at', 'is', null)
-        .order('deleted_at', { ascending: false }),
+        .order('deleted_at', { ascending: false }) : emptyResult,
       
-      supabase
+      shouldLoad('customer_route_versions') ? supabase
         .from('customer_route_versions')
         .select('id, customer_id, version_number, flow_status, change_note, created_at, deleted_at, deleted_by, customers(name)')
         .not('deleted_at', 'is', null)
-        .order('deleted_at', { ascending: false }),
+        .order('deleted_at', { ascending: false }) : emptyResult,
     ]);
 
-    const queryErrors = [isps, customers, contracts, invoices, documents, routes]
+    const queryErrors = [isps, customers, contracts, contractVersions, invoices, documents, routes]
       .map((result) => result.error)
       .filter(Boolean);
     if (queryErrors.length > 0) {
@@ -4985,6 +5269,7 @@ export const trashApi = {
       isps: isps.data || [],
       customers: customers.data || [],
       contracts: contracts.data || [],
+      contractVersions: contractVersions.data || [],
       invoices: invoices.data || [],
       documents: documents.data || [],
       routes: routes.data || [],
@@ -4993,6 +5278,7 @@ export const trashApi = {
 
   // Restore item (set deleted_at to null)
   async restore(table, id) {
+    assertTrashTable(table);
     const config = ACTIVITY_ENTITY_CONFIG[table];
     let previousItem = null;
 
@@ -5006,6 +5292,8 @@ export const trashApi = {
       if (previousError) throw previousError;
       previousItem = data;
     }
+
+    await restoreTrashDependencies({ table, item: previousItem });
 
     const { error } = await supabase
       .from(table)
@@ -5028,76 +5316,109 @@ export const trashApi = {
         },
       });
     }
+
+    if (table === 'isps') {
+      clearIspListCache();
+    }
   },
 
   // Permanent delete (hard delete from database)
   async deletePermanently(table, id) {
+    assertTrashTable(table);
+    const { data: item, error: itemError } = await supabase
+      .from(table)
+      .select('*')
+      .eq('id', id)
+      .not('deleted_at', 'is', null)
+      .single();
+
+    if (itemError) throw itemError;
+    await deleteTrashDependencies({ table, item });
+
     const { error } = await supabase
       .from(table)
       .delete()
       .eq('id', id);
     
     if (error) throw error;
+    if (table === 'isps') {
+      clearIspListCache();
+    }
   },
 
   // Empty trash (delete all soft-deleted items permanently)
-  async emptyTrash() {
-    const tables = ['isps', 'customers', 'contracts', 'invoices', 'documents', 'customer_route_versions'];
-    
-    const results = await Promise.allSettled(
-      tables.map(table =>
-        supabase
-          .from(table)
-          .delete()
-          .not('deleted_at', 'is', null)
-      )
-    );
+  async emptyTrash({ tables } = {}) {
+    const selectedTables = normalizeTrashTables(tables);
+    const deleteOrder = [
+      'customer_route_points',
+      'documents',
+      'invoices',
+      'contract_versions',
+      'contracts',
+      'customer_route_versions',
+      'customers',
+      'isp_entry_points',
+      'isps',
+    ];
 
-    const errors = results
-      .map((result) => result.status === 'rejected' ? result.reason : result.value?.error)
-      .filter(Boolean);
-    if (errors.length > 0) {
-      throw new Error(`Failed to empty trash: ${errors.map((error) => error.message ?? String(error)).join(', ')}`);
+    for (const table of deleteOrder) {
+      if (TRASH_TABLES.includes(table) && !selectedTables.includes(table)) continue;
+      const { error } = await supabase
+        .from(table)
+        .delete()
+        .not('deleted_at', 'is', null);
+      if (error) throw error;
     }
 
+    clearIspListCache();
     return { success: true };
   },
 
   // Get trash statistics
-  async getStats() {
-    const [isps, customers, contracts, invoices, documents, routes] = await Promise.all([
-      supabase.from('isps').select('id', { count: 'exact', head: true }).not('deleted_at', 'is', null),
-      supabase.from('customers').select('id', { count: 'exact', head: true }).not('deleted_at', 'is', null),
-      supabase.from('contracts').select('id', { count: 'exact', head: true }).not('deleted_at', 'is', null),
-      supabase.from('invoices').select('id', { count: 'exact', head: true }).not('deleted_at', 'is', null),
-      supabase.from('documents').select('id', { count: 'exact', head: true }).not('deleted_at', 'is', null),
-      supabase.from('customer_route_versions').select('id', { count: 'exact', head: true }).not('deleted_at', 'is', null),
+  async getStats({ tables } = {}) {
+    const selectedTables = normalizeTrashTables(tables);
+    const emptyCount = { count: 0, error: null };
+    const shouldLoad = (table) => selectedTables.includes(table);
+    const [isps, customers, contracts, contractVersions, invoices, documents, routes] = await Promise.all([
+      shouldLoad('isps') ? supabase.from('isps').select('id', { count: 'exact', head: true }).not('deleted_at', 'is', null) : emptyCount,
+      shouldLoad('customers') ? supabase.from('customers').select('id', { count: 'exact', head: true }).not('deleted_at', 'is', null) : emptyCount,
+      shouldLoad('contracts') ? supabase.from('contracts').select('id', { count: 'exact', head: true }).not('deleted_at', 'is', null) : emptyCount,
+      shouldLoad('contract_versions') ? supabase.from('contract_versions').select('id', { count: 'exact', head: true }).not('deleted_at', 'is', null) : emptyCount,
+      shouldLoad('invoices') ? supabase.from('invoices').select('id', { count: 'exact', head: true }).not('deleted_at', 'is', null) : emptyCount,
+      shouldLoad('documents') ? supabase.from('documents').select('id', { count: 'exact', head: true }).not('deleted_at', 'is', null) : emptyCount,
+      shouldLoad('customer_route_versions') ? supabase.from('customer_route_versions').select('id', { count: 'exact', head: true }).not('deleted_at', 'is', null) : emptyCount,
     ]);
 
-    const countErrors = [isps, customers, contracts, invoices, documents, routes]
+    const countErrors = [isps, customers, contracts, contractVersions, invoices, documents, routes]
       .map((result) => result.error)
       .filter(Boolean);
     if (countErrors.length > 0) {
       throw countErrors[0];
     }
 
-    // Get last cleared timestamp (oldest deleted_at)
-    const { data: lastCleared } = await supabase
-      .from('isps')
+    const lastDeletedResults = await Promise.all(selectedTables.map((table) => supabase
+      .from(table)
       .select('deleted_at')
       .not('deleted_at', 'is', null)
       .order('deleted_at', { ascending: true })
       .limit(1)
-      .maybeSingle();
+      .maybeSingle()));
+    const lastDeletedAt = lastDeletedResults
+      .map((result) => result.data?.deleted_at)
+      .filter(Boolean)
+      .sort()[0];
+    const lastDeletedError = lastDeletedResults.map((result) => result.error).find(Boolean);
+    if (lastDeletedError) throw lastDeletedError;
 
     return {
-      lastClearedAt: lastCleared?.deleted_at || new Date().toISOString(),
-      totalItems: (isps.count || 0) + (customers.count || 0) + (contracts.count || 0) + 
+      lastClearedAt: lastDeletedAt || null,
+      totalItems: (isps.count || 0) + (customers.count || 0) + (contracts.count || 0) + (contractVersions.count || 0) +
                   (invoices.count || 0) + (documents.count || 0) + (routes.count || 0),
       breakdown: {
         ISP: isps.count || 0,
         Lokasi: customers.count || 0,
         Kontrak: contracts.count || 0,
+        "Versi Kontrak": contractVersions.count || 0,
         Invoice: invoices.count || 0,
         Dokumen: documents.count || 0,
         Jalur: routes.count || 0,
