@@ -11,9 +11,6 @@ vi.mock('../../../lib/api', () => ({
       create: vi.fn(),
       update: vi.fn(),
     },
-    ispEntryPoints: {
-      replaceForIsp: vi.fn().mockResolvedValue([]),
-    },
   },
   getApiErrorDetails: vi.fn((err, fallback) => ({
     message: err?.message ?? fallback,
@@ -174,39 +171,7 @@ describe('IspAdminFormPage — Tambah ISP Baru', () => {
     expect(defaultProps.onCancel).toHaveBeenCalledTimes(1);
   });
 
-  // 6. Tambah titik masuk FO
-  it('menambahkan baris entry point saat tombol Tambah Titik diklik', async () => {
-    renderForm();
-    fireEvent.click(screen.getByRole('button', { name: /tambah titik/i }));
-    await waitFor(() => {
-      // Komponen merender "Titik #1" di dua tempat (button peta + label baris)
-      expect(screen.getAllByText(/titik #1/i).length).toBeGreaterThanOrEqual(1);
-    });
-  });
-
-  // 7. Validasi entry point: label wajib jika ada nilai lain
-  it('menampilkan error entry point jika koordinat diisi tapi label kosong', async () => {
-    renderForm();
-
-    // Tambah titik
-    fireEvent.click(screen.getByRole('button', { name: /tambah titik/i }));
-
-    // Isi latitude tapi biarkan label kosong
-    const latInput = screen.getByPlaceholderText(/-5\.0929/i);
-    await userEvent.type(latInput, '-5.092956');
-
-    // Isi nama ISP agar tidak kena validasi nama
-    const namaInput = screen.getByPlaceholderText(/pt\. internet cepat/i);
-    await userEvent.type(namaInput, 'PT. Test ISP');
-
-    fireEvent.click(screen.getByRole('button', { name: /tambah isp/i }));
-
-    await waitFor(() => {
-      expect(screen.getByText(/nama titik wajib diisi/i)).toBeInTheDocument();
-    });
-  });
-
-  // 8. Mode edit: tombol submit bertuliskan "Simpan Perubahan"
+  // 6. Mode edit: tombol submit bertuliskan "Simpan Perubahan"
   it('menampilkan teks "Simpan Perubahan" pada mode edit', () => {
     renderForm({
       mode: 'edit',

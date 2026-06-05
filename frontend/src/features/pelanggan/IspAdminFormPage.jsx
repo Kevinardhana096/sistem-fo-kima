@@ -172,7 +172,6 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
     const [submitError, setSubmitError] = useState("");
     const [fieldErrors, setFieldErrors] = useState({});
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [entryPoints, setEntryPoints] = useState([]);
     const isEditMode = mode === "edit";
 
     useEffect(() => {
@@ -199,18 +198,6 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
         }));
     }, [initialData]);
 
-    const handleAddEntryPoint = () => {
-        setEntryPoints((previous) => [
-            ...previous,
-            {
-                id: `entry-${Date.now()}`,
-                label: "",
-                latitude: "",
-                longitude: "",
-            },
-        ]);
-    };
-
     const handleSubmit = async (event) => {
         event.preventDefault();
         setFieldErrors({});
@@ -222,16 +209,6 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
         if (form.contractPeriodStart && form.contractPeriodEnd && form.contractPeriodStart > form.contractPeriodEnd) {
             setSubmitError("Periode berjalan akhir tidak boleh lebih awal dari tanggal mulai.");
             setFieldErrors({ contractPeriodStart: "Periksa tanggal mulai.", contractPeriodEnd: "Periksa tanggal akhir." });
-            return;
-        }
-        const invalidEntryPoint = entryPoints.find((point) => {
-            const label = String(point?.label ?? "").trim();
-            const latitude = String(point?.latitude ?? "").trim();
-            const longitude = String(point?.longitude ?? "").trim();
-            return (latitude || longitude) && !label;
-        });
-        if (invalidEntryPoint) {
-            setSubmitError("Nama titik wajib diisi.");
             return;
         }
 
@@ -255,12 +232,6 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
                 packageQuantity: form.packageQuantity,
                 userEmail: form.userEmail.trim() || undefined,
                 userPassword: form.userPassword.trim() || undefined,
-                entryPoints: entryPoints.map((point) => ({
-                    ...point,
-                    label: String(point.label ?? "").trim(),
-                    latitude: String(point.latitude ?? "").trim(),
-                    longitude: String(point.longitude ?? "").trim(),
-                })),
             };
 
             const result = isEditMode && initialData?.id
@@ -429,53 +400,6 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
                                             ...(!form.contractPeriodStart ? [{ value: "berhenti", label: "BERHENTI" }] : [])
                                         ]}
                                     />
-                                </div>
-
-                                <div className="mt-4 space-y-3">
-                                    <div className="flex items-center justify-between gap-3">
-                                        <div>
-                                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gold-accent/60 ml-1">Titik Masuk</p>
-                                            <p className="mt-1 text-[9px] font-bold text-white/40">Tambah titik akses yang dipakai ISP.</p>
-                                        </div>
-                                        <button
-                                            className="h-8 px-4 rounded-xl bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-[0.2em] text-white/60 hover:text-white hover:bg-white/10 transition-all"
-                                            onClick={handleAddEntryPoint}
-                                            type="button"
-                                        >
-                                            Tambah Titik
-                                        </button>
-                                    </div>
-                                    <div className="space-y-2">
-                                        {entryPoints.length === 0 ? (
-                                            <div className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-[9px] font-bold text-white/30">
-                                                Belum ada titik masuk.
-                                            </div>
-                                        ) : entryPoints.map((point, index) => (
-                                            <div key={point.id ?? index} className="rounded-xl border border-white/10 bg-black/20 p-3 space-y-2">
-                                                <div className="text-[9px] font-black uppercase tracking-widest text-white/50">Titik #{index + 1}</div>
-                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
-                                                    <GlassFieldInput
-                                                        label="Nama Titik"
-                                                        placeholder="Nama titik"
-                                                        value={point.label ?? ""}
-                                                        onChange={(val) => setEntryPoints((previous) => previous.map((item, itemIndex) => (itemIndex === index ? { ...item, label: val } : item)))}
-                                                    />
-                                                    <GlassFieldInput
-                                                        label="Latitude"
-                                                        placeholder="-5.0929"
-                                                        value={point.latitude ?? ""}
-                                                        onChange={(val) => setEntryPoints((previous) => previous.map((item, itemIndex) => (itemIndex === index ? { ...item, latitude: val } : item)))}
-                                                    />
-                                                    <GlassFieldInput
-                                                        label="Longitude"
-                                                        placeholder="119.5018"
-                                                        value={point.longitude ?? ""}
-                                                        onChange={(val) => setEntryPoints((previous) => previous.map((item, itemIndex) => (itemIndex === index ? { ...item, longitude: val } : item)))}
-                                                    />
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
