@@ -1230,6 +1230,29 @@ const getEffectiveContractVersion = (contract, date = getTodayIso()) => (
   ?? null
 );
 
+const resolveActiveContractPeriodForAlert = (contract, todayIso) => {
+  const activeVersion = sortContractVersions(contract?.versions).find((version) => {
+    const startDate = String(version?.startDate ?? version?.start_date ?? '').slice(0, 10);
+    const endDate = String(version?.endDate ?? version?.end_date ?? '').slice(0, 10);
+    return startDate && endDate && startDate <= todayIso && endDate >= todayIso;
+  });
+  const source = activeVersion ?? contract;
+  const endDate = String(source?.endDate ?? source?.end_date ?? '').slice(0, 10);
+  const startDate = String(source?.startDate ?? source?.start_date ?? '').slice(0, 10);
+
+  return {
+    startDate,
+    endDate,
+    contractNumber:
+      source?.contractNumber
+      ?? source?.contract_number
+      ?? contract?.contractNumber
+      ?? contract?.contract_number
+      ?? null,
+    versionId: activeVersion?.id ?? null,
+  };
+};
+
 const getContractLatestPeriodTimestamp = (contract) => {
   const latestVersion = getLatestContractVersion(contract);
   return getDateValue(
@@ -3404,12 +3427,19 @@ export const monitoringApi = {
         .select(`
           id,
           contract_number,
+          start_date,
           end_date,
           status,
+          versions:contract_versions(
+            id,
+            contract_number,
+            version_number,
+            start_date,
+            end_date,
+            deleted_at
+          ),
           customer:customers(id, name, status)
         `)
-        .gte('end_date', today)
-        .lte('end_date', warningDateIso)
         .eq('status', 'aktif')
         .is('deleted_at', null),
       supabase
@@ -3437,13 +3467,19 @@ export const monitoringApi = {
     const alerts = [];
 
     (contractsResult.data || []).forEach(contract => {
+      const activePeriod = resolveActiveContractPeriodForAlert(contract, today);
+      if (!activePeriod.endDate || activePeriod.endDate < today || activePeriod.endDate > warningDateIso) {
+        return;
+      }
+
+      const contractLabel = activePeriod.contractNumber || contract.contract_number || 'Kontrak';
       alerts.push({
         code: 'contract_expiring',
         type: 'contract_expiring',
         customerId: contract.customer?.id,
         customerName: contract.customer?.name || 'Customer',
         title: 'Kontrak akan berakhir',
-        message: `${contract.customer?.name || 'Customer'} berakhir pada ${contract.end_date}`,
+        message: `${contract.customer?.name || 'Customer'} ${contractLabel} berakhir pada ${activePeriod.endDate}`,
         severity: 'warning',
       });
     });

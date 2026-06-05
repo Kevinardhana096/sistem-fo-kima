@@ -516,6 +516,15 @@ const parseRupiahInput = (value) => {
   return Number(numberString) || 0;
 };
 
+const getDaysUntilIsoDate = (targetDateValue, todayIso) => {
+  const targetDate = new Date(`${String(targetDateValue ?? "").slice(0, 10)}T00:00:00.000Z`);
+  const todayDate = new Date(`${String(todayIso ?? "").slice(0, 10)}T00:00:00.000Z`);
+  const diffMs = targetDate.getTime() - todayDate.getTime();
+  return Number.isFinite(diffMs)
+    ? Math.floor(diffMs / (1000 * 60 * 60 * 24))
+    : null;
+};
+
 const resolveDocumentTypeLabel = (jenisDokumen) => {
   const rawType = typeof jenisDokumen === "string" ? jenisDokumen : String(jenisDokumen ?? "");
   const mappedLabel = documentTypeLabelMap[rawType];
@@ -614,7 +623,7 @@ function TenantDetailPage({
   const [invoiceDrafts, setInvoiceDrafts] = useState({});
   const [invoiceFeedback, setInvoiceFeedback] = useState("");
   const [isSavingInvoice, setIsSavingInvoice] = useState(false);
-  const [invoiceEditingId, setInvoiceEditingId] = useState(null);
+  const savingInvoiceIdsRef = useRef(new Set());
   const [billingEditor, setBillingEditor] = useState(null);
   const [billingError, setBillingError] = useState("");
   const [isSavingBilling, setIsSavingBilling] = useState(false);
@@ -910,6 +919,36 @@ function TenantDetailPage({
       amount: Number(contract?.monthlyAmount ?? contract?.monthly_amount ?? 0),
     };
   }, [contract, todayIso, versions]);
+
+  const activeContractRenewalMeta = useMemo(() => {
+    const periodEnd = String(
+      activeBillingPeriod?.endDate
+      ?? contract?.endDate
+      ?? contract?.end_date
+      ?? "",
+    ).slice(0, 10);
+
+    if (!periodEnd) {
+      return null;
+    }
+
+    const activeVersionId = Number(activeBillingPeriod?.versionId);
+    const activeVersion = Number.isFinite(activeVersionId) && activeVersionId > 0
+      ? versions.find((version) => Number(version?.id) === activeVersionId) ?? activeBillingPeriod?.version ?? null
+      : null;
+    const renewalFollowUps = Array.isArray(activeVersion?.renewalFollowUps)
+      ? activeVersion.renewalFollowUps
+      : [];
+
+    return {
+      contractId: activeBillingPeriod?.contractId ?? contract?.id ?? null,
+      versionId: Number.isFinite(activeVersionId) && activeVersionId > 0 ? activeVersionId : null,
+      periodEnd,
+      daysUntilEnd: getDaysUntilIsoDate(periodEnd, todayIso),
+      hasRenewalUpload: renewalFollowUps.some((followUp) => isOpenableFileUrl(followUp?.renewalFileUrl)),
+      hasResponse: renewalFollowUps.some((followUp) => isOpenableFileUrl(followUp?.responseFileUrl)),
+    };
+  }, [activeBillingPeriod, contract, todayIso, versions]);
 
   const resolveInvoiceContractPeriodEnd = useCallback((invoice) => {
     const versionKey = Number(invoice?.contractVersionId ?? invoice?.contract_version_id);
@@ -1742,52 +1781,46 @@ function TenantDetailPage({
   }
 
   // Contract renewal warnings (H-3, H-2, H-1 months)
-  if (contract?.endDate) {
-    const endDate = new Date(contract.endDate);
-    const today = new Date(todayIso);
-    const daysUntilEnd = Math.floor((endDate - today) / (1000 * 60 * 60 * 24));
-
-    const primaryContract = Array.isArray(detail?.contracts)
-      ? detail.contracts.find((contractRow) => Number(contractRow?.id) === Number(contract.id))
-      : null;
-    const renewalFollowUps = Array.isArray(primaryContract?.versions)
-      ? primaryContract.versions.flatMap((version) => (
-        Array.isArray(version?.renewalFollowUps) ? version.renewalFollowUps : []
-      ))
-      : [];
-    const hasRenewalUpload = renewalFollowUps.some((followUp) => followUp?.renewalFileUrl);
-    const hasResponse = renewalFollowUps.some((followUp) => followUp?.responseFileUrl);
+  if (activeContractRenewalMeta?.periodEnd && Number.isFinite(activeContractRenewalMeta.daysUntilEnd)) {
+    const {
+      daysUntilEnd,
+      hasRenewalUpload,
+      hasResponse,
+      periodEnd,
+      versionId,
+    } = activeContractRenewalMeta;
+    const renewalIdSuffix = versionId ? `version-${versionId}` : `contract-${activeContractRenewalMeta.contractId ?? customer.id}`;
 
     // H-3 months warning (90 days before end)
     if (daysUntilEnd <= 90 && daysUntilEnd > 60 && !hasRenewalUpload) {
       derivedNeedActionTodos.push({
-        id: `derived-renewal-h3-${customer.id}`,
+        id: `derived-renewal-h3-${customer.id}-${renewalIdSuffix}`,
         code: "renewal_h3_warning",
         title: "Kontrak akan berakhir dalam 3 bulan",
         message: `Kontrak akan berakhir dalam ${daysUntilEnd} hari (H-3 bulan). Segera buat dan upload surat perpanjangan kontrak.`,
-        dueDate: contract.endDate,
+        dueDate: periodEnd,
       });
     }
 
     // H-2 months warning (60 days before end)
     if (daysUntilEnd <= 60 && daysUntilEnd > 30 && hasRenewalUpload && !hasResponse) {
       derivedNeedActionTodos.push({
-        id: `derived-renewal-h2-${customer.id}`,
+        id: `derived-renewal-h2-${customer.id}-${renewalIdSuffix}`,
         code: "renewal_h2_warning",
         title: "Kontrak akan berakhir dalam 2 bulan",
         message: `Kontrak akan berakhir dalam ${daysUntilEnd} hari (H-2 bulan). Surat perpanjangan sudah diupload. Menunggu tanggapan dari lokasi.`,
-        dueDate: contract.endDate,
+        dueDate: periodEnd,
       });
     }
 
     // H-1 month warning (30 days before end)
     if (daysUntilEnd <= 30 && daysUntilEnd > 0 && !hasResponse) {
       derivedNeedActionTodos.push({
-        id: `derived-renewal-h1-${customer.id}`,
+        id: `derived-renewal-h1-${customer.id}-${renewalIdSuffix}`,
         code: "renewal_h1_warning",
         title: "Kontrak akan berakhir dalam 1 bulan",
         message: `Kontrak akan berakhir dalam ${daysUntilEnd} hari (H-1 bulan). ${hasRenewalUpload ? 'Belum ada tanggapan perpanjangan. Segera follow up dengan lokasi.' : 'Segera upload surat perpanjangan kontrak!'}`,
-        dueDate: contract.endDate,
+        dueDate: periodEnd,
       });
     }
   }
@@ -3468,32 +3501,6 @@ function TenantDetailPage({
     };
   };
 
-  const resetInvoiceDraftFromSource = (invoice) => {
-    const nextFollowUpDrafts = {};
-    getInvoiceFollowUps(invoice).forEach((followUp) => {
-      nextFollowUpDrafts[String(followUp.id)] = {
-        invoiceNumber: String(followUp?.invoiceNumber ?? ""),
-      };
-    });
-    nextFollowUpDrafts.initial = { invoiceNumber: String(invoice?.invoiceNumber ?? "") };
-
-    const parsedAmt = Number(invoice?.amount);
-    const formattedAmt = Number.isFinite(parsedAmt)
-      ? formatRupiahInput(Math.max(0, Math.round(parsedAmt)))
-      : "";
-
-    setInvoiceDrafts((previousDrafts) => ({
-      ...previousDrafts,
-      [invoice.id]: {
-        invoiceNumber: String(invoice?.invoiceNumber ?? ""),
-        dueDate: String(invoice?.dueDate ?? ""),
-        status: String(invoice?.status ?? "belum_ditagih"),
-        amount: formattedAmt,
-        followUps: nextFollowUpDrafts,
-      },
-    }));
-  };
-
   const validateInvoiceDraftBase = (draft) => {
     if (!draft.dueDate) {
       return "Set date (tanggal terakhir pembayaran) wajib diisi sebelum upload invoice.";
@@ -3515,14 +3522,48 @@ function TenantDetailPage({
     return validateInvoiceDraftBase(draft);
   };
 
-  const handleSaveInvoiceRow = async (invoice) => {
-    const draft = getInvoiceDraft(invoice);
+  const hasInvoiceDraftChanges = (invoice, draft) => {
+    const sourceAmount = Number(invoice?.amount);
+    const currentAmount = Number.isFinite(sourceAmount) ? Math.max(0, Math.round(sourceAmount)) : 0;
+    const draftAmount = parseRupiahInput(draft.amount);
+    const selectedStatus = INVOICE_STATUS_OPTIONS.some((option) => option.value === draft.status)
+      ? draft.status
+      : "belum_ditagih";
+    const hasFollowUpChanges = getInvoiceFollowUps(invoice).some((followUp) => (
+      String(getInvoiceFollowUpDraft(invoice, followUp).invoiceNumber ?? "").trim() !==
+      String(followUp?.invoiceNumber ?? "").trim()
+    ));
+
+    return (
+      String(draft.invoiceNumber ?? "").trim() !== String(invoice?.invoiceNumber ?? "").trim() ||
+      String(draft.dueDate ?? "") !== String(invoice?.dueDate ?? "") ||
+      draftAmount !== currentAmount ||
+      selectedStatus !== String(invoice?.status ?? "belum_ditagih") ||
+      hasFollowUpChanges
+    );
+  };
+
+  const handleSaveInvoiceRow = async (invoice, draftOverrides = {}) => {
+    const draft = {
+      ...getInvoiceDraft(invoice),
+      ...draftOverrides,
+    };
     const amount = parseRupiahInput(draft.amount);
 
     if (!Number.isFinite(amount) || amount < 0) {
       setError("Jumlah dibayar harus berupa angka dan tidak boleh negatif.");
       return;
     }
+
+    if (!hasInvoiceDraftChanges(invoice, draft)) {
+      return;
+    }
+
+    const invoiceKey = String(invoice.id);
+    if (savingInvoiceIdsRef.current.has(invoiceKey)) {
+      return;
+    }
+    savingInvoiceIdsRef.current.add(invoiceKey);
 
     setIsSavingInvoice(true);
     setError("");
@@ -3568,9 +3609,6 @@ function TenantDetailPage({
           }),
         ),
       );
-      setInvoiceEditingId((current) =>
-        current === invoice.id ? null : current,
-      );
       setInvoiceFeedback(`Invoice #${persistedInvoice.id} berhasil disimpan.`);
       await Promise.all([loadDetail(), onRefreshAll?.()]);
     } catch (requestError) {
@@ -3580,7 +3618,27 @@ function TenantDetailPage({
           : "Gagal menyimpan invoice.",
       );
     } finally {
+      savingInvoiceIdsRef.current.delete(invoiceKey);
       setIsSavingInvoice(false);
+    }
+  };
+
+  const handleInvoiceAutoSave = (invoice, draftOverrides = {}) => {
+    void handleSaveInvoiceRow(invoice, draftOverrides);
+  };
+
+  const handleInvoiceFileInputChange = async (event, invoice, type, splitOrder = null) => {
+    const input = event.target;
+    const file = input.files?.[0] ?? null;
+
+    try {
+      if (type === "payment-proof") {
+        await handleUploadPaymentProof(invoice, file);
+      } else {
+        await handleUploadInvoiceFile(invoice, file, splitOrder);
+      }
+    } finally {
+      input.value = "";
     }
   };
 
@@ -3671,9 +3729,6 @@ function TenantDetailPage({
           invoiceFileUrl,
         });
       }
-      setInvoiceEditingId((current) =>
-        current === invoice.id ? null : current,
-      );
       setInvoiceFeedback(`Invoice #${invoice.id} berhasil diunggah.`);
       await Promise.all([loadDetail(), onRefreshAll?.()]);
     } catch (requestError) {
@@ -5349,15 +5404,8 @@ function TenantDetailPage({
               )}
 
               {(() => {
-                if (!contract?.endDate) return null;
-                const endDate = new Date(contract.endDate);
-                const today = new Date(todayIso);
-                const daysUntilEnd = Math.floor((endDate - today) / (1000 * 60 * 60 * 24));
-
-                const primaryContractRow = contractRowsForTable.find(row => row.contractId === contract.id);
-                const renewalFollowUps = Array.isArray(primaryContractRow?.renewalFollowUps) ? primaryContractRow.renewalFollowUps : [];
-                const hasRenewalUpload = renewalFollowUps.some((followUp) => followUp?.renewalFileUrl);
-                const hasResponse = renewalFollowUps.some((followUp) => followUp?.responseFileUrl);
+                if (!activeContractRenewalMeta?.periodEnd || !Number.isFinite(activeContractRenewalMeta.daysUntilEnd)) return null;
+                const { daysUntilEnd, hasRenewalUpload, hasResponse } = activeContractRenewalMeta;
 
                 let warningLevel = null;
                 let warningMessage = null;
@@ -6103,7 +6151,6 @@ function TenantDetailPage({
                     )}
                     {displayInvoiceRows.map((invoice, idx) => {
                       const draft = getInvoiceDraft(invoice);
-                      const isEditingRow = invoiceEditingId === invoice.id;
                       const isSetDateLockedByGlobal = invoiceSetDateMode === "fixed_day";
                       const workflowMeta = invoice.workflowMeta ?? getInvoiceWorkflowMeta(invoice, workflowInvoiceRows);
                       const statusMeta = invoice.statusMeta ?? resolveInvoiceStatusMeta({ ...invoice, workflowMeta });
@@ -6128,7 +6175,7 @@ function TenantDetailPage({
                       })();
 
                       return (
-                        <tr key={invoice.id} className={`transition-colors group/row ${isEditingRow ? 'bg-white/[0.04]' : 'hover:bg-white/[0.02]'}`}>
+                        <tr key={invoice.id} className="transition-colors group/row hover:bg-white/[0.02]">
                           {/* No */}
                           <td className="px-4 py-3 text-[10px] font-black text-white/20 whitespace-nowrap border border-white/5 text-center">{idx + 1}</td>
 
@@ -6139,93 +6186,76 @@ function TenantDetailPage({
 
                           {/* Nomor Invoice */}
                           <td className="px-4 py-3 whitespace-nowrap border border-white/5">
-                            {isEditingRow ? (
-                              <input
-                                className="h-8 w-36 rounded-lg border border-white/20 bg-white/5 px-2.5 text-[10px] font-bold text-white outline-none focus:border-gold-accent/50 transition-all placeholder:text-white/10 backdrop-blur-md"
-                                disabled={isSavingInvoice}
-                                onChange={(e) => updateInvoiceDraftField(invoice.id, "invoiceNumber", e.target.value)}
-                                placeholder="No. Invoice..."
-                                type="text"
-                                value={draft.invoiceNumber}
-                              />
-                            ) : (
-                              <span className="text-[11px] font-black text-white/60">
-                                {invoice.invoiceNumber || <span className="text-white/20 italic font-normal">—</span>}
-                              </span>
-                            )}
+                            <input
+                              className="h-8 w-36 rounded-lg border border-white/10 bg-white/[0.03] px-2.5 text-[10px] font-bold text-white outline-none transition-all placeholder:text-white/15 focus:border-gold-accent/50 focus:bg-white/5 disabled:opacity-50"
+                              disabled={isSavingInvoice}
+                              onBlur={() => handleInvoiceAutoSave(invoice)}
+                              onChange={(e) => updateInvoiceDraftField(invoice.id, "invoiceNumber", e.target.value)}
+                              placeholder="No. Invoice..."
+                              type="text"
+                              value={draft.invoiceNumber}
+                            />
                           </td>
 
                           {/* Terakhir Bayar (set date / due date) */}
                           <td className="px-4 py-3 whitespace-nowrap border border-white/5 text-center">
-                            {isEditingRow ? (
-                              <div className="space-y-1 flex flex-col items-center">
-                                <DateInput
-                                  value={draft.dueDate}
-                                  onChange={(val) => updateInvoiceDraftField(invoice.id, "dueDate", val)}
-                                  disabled={isSetDateLockedByGlobal || isSavingInvoice}
-                                  className="h-8 w-36 rounded-lg border border-white/20 bg-white/5 backdrop-blur-md transition-all focus-within:border-gold-accent/50"
-                                  inputClass="w-full h-full bg-transparent px-2.5 pr-8 text-[10px] font-bold text-white text-center outline-none"
-                                />
-                                {isSetDateLockedByGlobal && (
-                                  <p className="text-[8px] font-black text-white/20 uppercase tracking-widest">Global Locked</p>
-                                )}
-                              </div>
-                            ) : (
-                              <div className="space-y-1 flex flex-col items-center">
-                                <span className="text-[11px] font-black text-white/60">
-                                  {draft.dueDate ? formatDate(draft.dueDate) : <span className="text-white/20 italic font-normal">Belum diset</span>}
-                                </span>
-                                {workflowMeta.setupWarnings.some((warning) => warning.code === "missing_due_date") && (
-                                  <p className="text-[8px] font-black text-rose-300 uppercase tracking-widest">Atur batas bayar</p>
-                                )}
-                              </div>
-                            )}
+                            <div className="space-y-1 flex flex-col items-center">
+                              <DateInput
+                                value={draft.dueDate}
+                                onChange={(val) => {
+                                  updateInvoiceDraftField(invoice.id, "dueDate", val);
+                                  handleInvoiceAutoSave(invoice, { dueDate: val });
+                                }}
+                                disabled={isSetDateLockedByGlobal || isSavingInvoice}
+                                className="h-8 w-36 rounded-lg border border-white/10 bg-white/[0.03] transition-all focus-within:border-gold-accent/50 focus-within:bg-white/5"
+                                inputClass="w-full h-full bg-transparent px-2.5 pr-8 text-[10px] font-bold text-white text-center outline-none"
+                              />
+                              {isSetDateLockedByGlobal && (
+                                <p className="text-[8px] font-black text-white/20 uppercase tracking-widest">Global Locked</p>
+                              )}
+                              {workflowMeta.setupWarnings.some((warning) => warning.code === "missing_due_date") && !draft.dueDate && (
+                                <p className="text-[8px] font-black text-rose-300 uppercase tracking-widest">Atur batas bayar</p>
+                              )}
+                            </div>
                           </td>
 
                           {/* Jumlah Dibayar */}
                           <td className="px-4 py-3 whitespace-nowrap border border-white/5 text-right">
-                            {isEditingRow ? (
-                              <div className="flex items-center justify-end gap-1.5 h-8 px-2.5 rounded-lg border border-white/20 bg-white/5 w-32 backdrop-blur-md ml-auto">
+                            <div className="space-y-1">
+                              <div className="flex items-center justify-end gap-1.5 h-8 px-2.5 rounded-lg border border-white/10 bg-white/[0.03] w-32 ml-auto transition-all focus-within:border-gold-accent/50 focus-within:bg-white/5">
                                 <input
                                   className="bg-transparent text-[10px] font-black text-white outline-none w-full text-right"
                                   disabled={isSavingInvoice}
+                                  onBlur={() => handleInvoiceAutoSave(invoice)}
                                   onChange={(e) => handleInvoiceDraftAmountChange(e, invoice.id)}
+                                  placeholder="0"
                                   type="text"
                                   value={draft.amount}
                                 />
                               </div>
-                            ) : (
-                              <div className="space-y-1">
-                                <span className="text-[11px] font-black text-white/80">
-                                  {parseRupiahInput(draft.amount) > 0 ? formatCurrency(parseRupiahInput(draft.amount)).replace('Rp', '').trim() : <span className="text-white/20 italic font-normal">—</span>}
-                                </span>
-                                {workflowMeta.setupWarnings.some((warning) => warning.code === "missing_amount") && (
-                                  <p className="text-[8px] font-black text-rose-300 uppercase tracking-widest text-right">Atur nominal</p>
-                                )}
-                              </div>
-                            )}
+                              {workflowMeta.setupWarnings.some((warning) => warning.code === "missing_amount") && parseRupiahInput(draft.amount) <= 0 && (
+                                <p className="text-[8px] font-black text-rose-300 uppercase tracking-widest text-right">Atur nominal</p>
+                              )}
+                            </div>
                           </td>
 
                           {/* Status Pembayaran */}
                           <td className="px-4 py-3 whitespace-nowrap border border-white/5 text-center">
-                            {isEditingRow ? (
-                              <select
-                                className="h-8 w-36 mx-auto rounded-lg border border-white/20 bg-[#121824] px-2 text-[9px] font-black uppercase tracking-widest text-white outline-none focus:border-gold-accent/50 transition-all"
-                                disabled={isSavingInvoice}
-                                onChange={(e) => updateInvoiceDraftField(invoice.id, "status", e.target.value)}
-                                value={draft.status}
-                              >
-                                {INVOICE_STATUS_OPTIONS.map((option) => (
-                                  <option key={option.value} value={option.value}>
-                                    {option.label}
-                                  </option>
-                                ))}
-                              </select>
-                            ) : (
-                              <span className={`inline-flex justify-center items-center w-full max-w-[120px] px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-widest border ${statusStyle}`}>
-                                <span className="truncate">{statusMeta.label}</span>
-                              </span>
-                            )}
+                            <select
+                              className={`h-8 w-36 mx-auto rounded-md border px-2 text-[8px] font-black uppercase tracking-widest outline-none transition-all ${statusStyle} bg-[#121824] focus:border-gold-accent/50 disabled:opacity-50`}
+                              disabled={isSavingInvoice}
+                              onChange={(e) => {
+                                updateInvoiceDraftField(invoice.id, "status", e.target.value);
+                                handleInvoiceAutoSave(invoice, { status: e.target.value });
+                              }}
+                              value={draft.status}
+                            >
+                              {INVOICE_STATUS_OPTIONS.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </select>
                           </td>
 
                           {/* Waktu Terbayar */}
@@ -6244,7 +6274,7 @@ function TenantDetailPage({
                                 <input
                                   className="absolute inset-0 opacity-0 cursor-pointer"
                                   disabled={!canUploadInvoiceFile}
-                                  onChange={(e) => void handleUploadInvoiceFile(invoice, e.target.files?.[0] ?? null)}
+                                  onChange={(e) => void handleInvoiceFileInputChange(e, invoice, "invoice")}
                                   type="file"
                                 />
                               </label>
@@ -6263,6 +6293,7 @@ function TenantDetailPage({
                                   <input
                                     className="h-6 w-full rounded border border-orange-500/20 bg-black/20 px-1.5 text-[8px] font-bold text-white outline-none placeholder:text-white/10 text-center"
                                     disabled={isSavingInvoice}
+                                    onBlur={() => handleInvoiceAutoSave(invoice)}
                                     onChange={(e) => updateInvoiceFollowUpDraftField(invoice.id, secondWarningDraftKey, "invoiceNumber", e.target.value)}
                                     placeholder="No. invoice ke-2"
                                     type="text"
@@ -6274,7 +6305,7 @@ function TenantDetailPage({
                                     <input
                                       className="absolute inset-0 cursor-pointer opacity-0"
                                       disabled={!canUploadSecondWarning}
-                                      onChange={(e) => void handleUploadInvoiceFile(invoice, e.target.files?.[0] ?? null, 2)}
+                                      onChange={(e) => void handleInvoiceFileInputChange(e, invoice, "invoice", 2)}
                                       type="file"
                                     />
                                   </label>
@@ -6292,7 +6323,7 @@ function TenantDetailPage({
                                 <input
                                   className="absolute inset-0 opacity-0 cursor-pointer"
                                   disabled={!canUploadPaymentProof}
-                                  onChange={(e) => void handleUploadPaymentProof(invoice, e.target.files?.[0] ?? null)}
+                                  onChange={(e) => void handleInvoiceFileInputChange(e, invoice, "payment-proof")}
                                   type="file"
                                 />
                               </label>
@@ -6311,43 +6342,20 @@ function TenantDetailPage({
 
                           {/* Aksi */}
                           <td className="px-4 py-3 whitespace-nowrap border border-white/5 text-right">
-                            {isEditingRow ? (
-                              <div className="flex justify-end gap-1.5">
+                            <div className="flex justify-end gap-1.5">
+                              {canMarkPaid ? (
                                 <button
-                                  className="h-7 px-2.5 rounded border border-white/10 bg-white/5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:text-white transition-all backdrop-blur-md"
-                                  onClick={() => { setInvoiceEditingId(null); resetInvoiceDraftFromSource(invoice); }}
+                                  className="h-7 rounded border border-emerald-500/20 bg-emerald-500/10 px-2.5 text-[8px] font-black uppercase tracking-widest text-emerald-300 transition-all hover:border-emerald-500/40 hover:text-emerald-200 disabled:opacity-50"
+                                  disabled={!canMarkPaid}
+                                  onClick={() => void handleMarkInvoicePaid(invoice)}
+                                  title="Sudah Bayar"
                                 >
-                                  Batal
+                                  Sudah Bayar
                                 </button>
-                                <button
-                                  className="h-7 px-2.5 rounded bg-gold-accent text-[#0f141e] text-[8px] font-black uppercase tracking-widest hover:opacity-90 transition-all disabled:opacity-50 shadow-gold-glow"
-                                  disabled={isSavingInvoice}
-                                  onClick={() => void handleSaveInvoiceRow(invoice)}
-                                >
-                                  {isSavingInvoice ? "..." : "Simpan"}
-                                </button>
-                              </div>
-                            ) : (
-                              <div className="flex justify-end gap-1.5">
-                                {canMarkPaid && (
-                                  <button
-                                    className="h-7 rounded border border-emerald-500/20 bg-emerald-500/10 px-2.5 text-[8px] font-black uppercase tracking-widest text-emerald-300 transition-all hover:border-emerald-500/40 hover:text-emerald-200 disabled:opacity-50"
-                                    disabled={!canMarkPaid}
-                                    onClick={() => void handleMarkInvoicePaid(invoice)}
-                                    title="Sudah Bayar"
-                                  >
-                                    Sudah Bayar
-                                  </button>
-                                )}
-                                <button
-                                  className="h-7 w-7 rounded border border-white/10 bg-white/5 flex items-center justify-center text-white/20 hover:text-gold-accent hover:border-gold-accent/30 hover:bg-gold-accent/10 transition-all backdrop-blur-md"
-                                  onClick={() => setInvoiceEditingId(invoice.id)}
-                                  title="Edit"
-                                >
-                                  <span className="material-symbols-outlined text-[14px]">edit_note</span>
-                                </button>
-                              </div>
-                            )}
+                              ) : (
+                                <span className="text-[8px] font-black uppercase tracking-widest text-white/15">Auto Save</span>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       );

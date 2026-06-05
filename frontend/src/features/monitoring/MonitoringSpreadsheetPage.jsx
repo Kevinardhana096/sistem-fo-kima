@@ -108,6 +108,53 @@ const isPendingOperationalStatus = (status) => ["belum_beroperasi", "belum berop
 const resolveRouteStatus = (customerStatus, routeStatus) => (isStoppedStatus(customerStatus) || isPendingOperationalStatus(customerStatus))
     ? "nonaktif"
     : String(routeStatus || "aktif").trim().toLowerCase();
+const getRemainingRentalBadgeMeta = (remainingDays) => {
+    if (remainingDays === null) {
+        return {
+            icon: "remove",
+            label: "-",
+            className: "border-white/10 bg-white/5 text-white/30",
+        };
+    }
+
+    if (remainingDays < 0) {
+        return {
+            icon: "error",
+            label: `${Math.abs(remainingDays)} hari`,
+            className: "border-rose-500/30 bg-rose-500/15 text-rose-300",
+        };
+    }
+
+    if (remainingDays === 0) {
+        return {
+            icon: "warning",
+            label: "Akhir hari ini",
+            className: "border-orange-500/30 bg-orange-500/15 text-orange-300",
+        };
+    }
+
+    if (remainingDays <= 30) {
+        return {
+            icon: "priority_high",
+            label: `${remainingDays} hari`,
+            className: "border-amber-500/30 bg-amber-500/15 text-amber-300",
+        };
+    }
+
+    if (remainingDays <= 90) {
+        return {
+            icon: "schedule",
+            label: `${remainingDays} hari`,
+            className: "border-blue-500/30 bg-blue-500/15 text-blue-300",
+        };
+    }
+
+    return {
+        icon: "event_available",
+        label: `${remainingDays} hari`,
+        className: "border-emerald-500/30 bg-emerald-500/15 text-emerald-300",
+    };
+};
 
 function MonitoringSpreadsheetPage({
     activeSection,
@@ -248,9 +295,16 @@ function MonitoringSpreadsheetPage({
                     </div>
                     <div className="rounded-xl bg-white/5 border border-white/5 p-3 transition-colors hover:bg-white/[0.07] backdrop-blur-md">
                         <dt className="text-[9px] font-black uppercase tracking-[0.15em] text-white/30 mb-1.5">Sisa Masa Sewa</dt>
-                        <dd className="text-[11px] font-bold text-white/70 flex items-center gap-2">
-                            <span className="material-symbols-outlined text-gold-accent" style={{ fontSize: "16px" }}>timer</span>
-                            {getRemainingRentalDays(selectedInvoiceCell.contractEnd)} Hari
+                        <dd>
+                            {(() => {
+                                const badgeMeta = getRemainingRentalBadgeMeta(getRemainingRentalDays(selectedInvoiceCell.contractEnd));
+                                return (
+                                    <span className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[9px] font-black uppercase tracking-widest ${badgeMeta.className}`}>
+                                        <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>{badgeMeta.icon}</span>
+                                        {badgeMeta.label}
+                                    </span>
+                                );
+                            })()}
                         </dd>
                     </div>
                 </div>
@@ -939,22 +993,13 @@ function MonitoringSpreadsheetPage({
                                 )}
                                 <td className="px-6 py-3 whitespace-nowrap transition-colors group-hover:bg-white/5 border-r border-white/5 text-center backdrop-blur-md">
                                     {(() => {
-                                        const remainingDays = getRemainingRentalDays(row.contractEnd);
-
-                                        if (remainingDays === null) {
-                                            return <span className="text-on-surface-variant opacity-30">-</span>;
-                                        }
-
-                                        if (remainingDays < 0) {
-                                            return <span className="font-black text-rose-500 uppercase text-[10px] tracking-widest flex items-center gap-1 justify-center"><span className="material-symbols-outlined" style={{ fontSize: "16px" }}>error</span> {Math.abs(remainingDays)} hari</span>;
-                                        }
-
-                                        if (remainingDays === 0) {
-                                            return <span className="font-black text-amber-500 uppercase text-[10px] tracking-widest flex items-center gap-1 justify-center"><span className="material-symbols-outlined" style={{ fontSize: "16px" }}>warning</span> Akhir hari ini</span>;
-                                        }
-
-                                        const colorClass = remainingDays < 30 ? "text-amber-400" : "text-emerald-400";
-                                        return <span className={`font-black ${colorClass} uppercase text-[10px] tracking-widest flex items-center gap-1 justify-center`}><span className="material-symbols-outlined" style={{ fontSize: "16px" }}>schedule</span> {remainingDays} hari</span>;
+                                        const badgeMeta = getRemainingRentalBadgeMeta(getRemainingRentalDays(row.contractEnd));
+                                        return (
+                                            <span className={`inline-flex min-w-[96px] items-center justify-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[9px] font-black uppercase tracking-widest ${badgeMeta.className}`}>
+                                                <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>{badgeMeta.icon}</span>
+                                                {badgeMeta.label}
+                                            </span>
+                                        );
                                     })()}
                                 </td>
                                 <td className="px-6 py-3 text-center transition-colors group-hover:bg-white/5 border-r border-white/5 backdrop-blur-md">
