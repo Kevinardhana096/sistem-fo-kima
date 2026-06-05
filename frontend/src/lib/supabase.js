@@ -36,6 +36,21 @@ export const signIn = async (email, password) => {
   return data;
 };
 
+export const signUpAdmin = async ({ email, password, displayName }) => {
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        role: 'admin',
+        display_name: displayName || 'Administrator',
+      },
+    },
+  });
+  if (error) throw error;
+  return data;
+};
+
 // Helper function to sign out
 export const signOut = async () => {
   const { error } = await supabase.auth.signOut();

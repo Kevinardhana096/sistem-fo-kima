@@ -64,6 +64,42 @@ id | username | email              | role  | display_name  | is_active
 
 ## 🧪 Test Login
 
+## 🔗 URL Register Admin Tersembunyi
+
+Frontend menyediakan halaman register admin khusus untuk kebutuhan provisioning awal:
+
+```text
+/kima-admin/register-7f4c9a2e
+```
+
+Contoh lokal:
+
+```text
+http://localhost:5173/kima-admin/register-7f4c9a2e
+```
+
+Contoh production:
+
+```text
+https://<domain-production>/kima-admin/register-7f4c9a2e
+```
+
+Form ini membuat akun Supabase Auth dengan metadata:
+
+```json
+{
+  "role": "admin",
+  "display_name": "Administrator"
+}
+```
+
+Catatan keamanan:
+- URL ini tidak ditampilkan di menu aplikasi.
+- Jangan sebar URL di kanal publik.
+- URL tersembunyi bukan pengganti proteksi server-side. Untuk production yang lebih ketat, pembuatan admin sebaiknya dilakukan melalui Supabase Dashboard, SQL reviewed script, Edge Function, atau RPC admin-only dengan validasi server-side.
+- Jika Supabase Auth email confirmation aktif, user harus verifikasi email sebelum bisa login.
+- Setelah akun berhasil dibuat, simpan kredensial nyata hanya di password manager.
+
 ### **Via Frontend:**
 1. Buka aplikasi frontend production
 2. Masuk ke halaman login

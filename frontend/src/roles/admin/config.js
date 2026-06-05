@@ -26,6 +26,7 @@ export const adminRoleConfig = {
     allowedRouteTypes: [
         "redirect",
         "login",
+        "admin-register",
         "section",
         "monitoring-fullscreen",
         "customer-create",

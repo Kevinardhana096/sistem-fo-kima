@@ -84,7 +84,7 @@ export default function AppShell({
             )}
 
             <main
-                className={`relative z-10 min-h-screen transition-all duration-700 ease-in-out px-4 sm:px-6 md:px-8 lg:px-10 pb-10 pt-20 lg:pt-24 ${hideSidebar ? "" : (isSidebarCollapsed ? "lg:ml-24" : "lg:ml-60")
+                className={`relative z-10 min-h-screen anim-layout-sidebar px-4 sm:px-6 md:px-8 lg:px-10 pb-10 pt-20 lg:pt-24 ${hideSidebar ? "" : (isSidebarCollapsed ? "lg:ml-24" : "lg:ml-60")
                     }`}
             >
                 <div className="mx-auto max-w-[1600px]">
@@ -95,10 +95,10 @@ export default function AppShell({
             {isEditModalOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
                     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsEditModalOpen(false)}></div>
-                    <div className="relative w-full max-w-sm rounded-2xl glass-premium p-6 shadow-2xl animate-in fade-in zoom-in duration-300 border border-white/10">
+                    <div className="relative w-full max-w-sm rounded-2xl glass-premium anim-popover p-6 shadow-2xl animate-in fade-in zoom-in duration-300 border border-white/10">
                         <div className="flex items-center justify-between mb-5">
                             <h2 className="text-lg font-black text-on-surface">Edit Profile</h2>
-                            <button onClick={() => setIsEditModalOpen(false)} className="h-7 w-7 flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 transition-all">
+                            <button onClick={() => setIsEditModalOpen(false)} className="h-7 w-7 flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 anim-surface">
                                 <span className="material-symbols-outlined text-sm">close</span>
                             </button>
                         </div>
@@ -107,7 +107,7 @@ export default function AppShell({
                             <div className="relative group cursor-pointer">
                                 <img
                                     alt="Profile"
-                                    className="h-20 w-20 rounded-2xl object-cover ring-2 ring-white/10 shadow-xl bg-white transition-all group-hover:opacity-70"
+                                    className="h-20 w-20 rounded-2xl object-cover ring-2 ring-white/10 shadow-xl bg-white transition-opacity duration-200 group-hover:opacity-70"
                                     src={`https://ui-avatars.com/api/?name=${encodeURIComponent(roleConfig.profileTitle)}&background=f1f5f9&color=94a3b8&bold=true&size=128`}
                                 />
                                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -122,7 +122,7 @@ export default function AppShell({
                         <div className="space-y-4">
                             <div>
                                 <label className="block text-[9px] font-bold text-on-surface-variant uppercase tracking-widest mb-1.5">Username</label>
-                                <input type="text" defaultValue={roleConfig.profileTitle} className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs font-medium text-white focus:outline-none focus:ring-1 focus:ring-gold-accent/50 transition-all" />
+                                <input type="text" defaultValue={roleConfig.profileTitle} className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs font-medium text-white focus:outline-none focus:ring-1 focus:ring-gold-accent/50 transition-[background-color,border-color,box-shadow] duration-200" />
                             </div>
                             
                             <div className="pt-3 border-t border-white/10">
@@ -130,25 +130,25 @@ export default function AppShell({
                                 <div className="space-y-2.5">
                                     <div>
                                         <label className="block text-[8px] font-bold text-on-surface-variant uppercase tracking-widest mb-1">Password Lama</label>
-                                        <input type="password" placeholder="Masukkan password saat ini" className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs font-medium text-white focus:outline-none focus:ring-1 focus:ring-gold-accent/50 transition-all placeholder:text-white/30" />
+                                        <input type="password" placeholder="Masukkan password saat ini" className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs font-medium text-white focus:outline-none focus:ring-1 focus:ring-gold-accent/50 transition-[background-color,border-color,box-shadow] duration-200 placeholder:text-white/30" />
                                     </div>
                                     <div>
                                         <label className="block text-[8px] font-bold text-on-surface-variant uppercase tracking-widest mb-1">Password Baru</label>
-                                        <input type="password" placeholder="Masukkan password baru" className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs font-medium text-white focus:outline-none focus:ring-1 focus:ring-gold-accent/50 transition-all placeholder:text-white/30" />
+                                        <input type="password" placeholder="Masukkan password baru" className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs font-medium text-white focus:outline-none focus:ring-1 focus:ring-gold-accent/50 transition-[background-color,border-color,box-shadow] duration-200 placeholder:text-white/30" />
                                     </div>
                                     <div>
                                         <label className="block text-[8px] font-bold text-on-surface-variant uppercase tracking-widest mb-1">Konfirmasi Password Baru</label>
-                                        <input type="password" placeholder="Ulangi password baru" className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs font-medium text-white focus:outline-none focus:ring-1 focus:ring-gold-accent/50 transition-all placeholder:text-white/30" />
+                                        <input type="password" placeholder="Ulangi password baru" className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs font-medium text-white focus:outline-none focus:ring-1 focus:ring-gold-accent/50 transition-[background-color,border-color,box-shadow] duration-200 placeholder:text-white/30" />
                                     </div>
                                 </div>
                             </div>
                         </div>
 
                         <div className="mt-6 flex gap-3">
-                            <button onClick={() => setIsEditModalOpen(false)} className="flex-1 py-2.5 rounded-xl font-bold text-[11px] bg-white/5 text-on-surface hover:bg-white/10 transition-all">
+                            <button onClick={() => setIsEditModalOpen(false)} className="flex-1 py-2.5 rounded-xl font-bold text-[11px] bg-white/5 text-on-surface hover:bg-white/10 anim-surface">
                                 Batal
                             </button>
-                            <button onClick={() => setIsEditModalOpen(false)} className="flex-1 py-2.5 rounded-xl font-black text-[11px] bg-gold-accent text-white shadow-gold-glow hover:opacity-90 transition-all">
+                            <button onClick={() => setIsEditModalOpen(false)} className="flex-1 py-2.5 rounded-xl font-black text-[11px] bg-gold-accent text-white shadow-gold-glow hover:opacity-90 transition-opacity duration-200">
                                 Simpan Perubahan
                             </button>
                         </div>
@@ -210,14 +210,14 @@ function TopNav({ isSidebarCollapsed, onToggleMenu, onLogout, roleConfig, onEdit
 
     return (
         <nav
-            className={`fixed top-4 md:top-5 right-4 md:right-6 z-40 flex items-start justify-between transition-all duration-700 ease-in-out pointer-events-none ${isSidebarCollapsed
+            className={`fixed top-4 md:top-5 right-4 md:right-6 z-40 flex items-start justify-between anim-layout-sidebar pointer-events-none ${isSidebarCollapsed
                     ? "left-4 lg:left-24"
                     : "left-4 lg:left-60"
                 }`}
         >
             <div className="pointer-events-auto">
                 <button
-                    className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 shadow-sm text-on-surface transition-all hover:bg-white/20 lg:hidden"
+                    className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 shadow-sm text-on-surface anim-surface hover:bg-white/20 lg:hidden"
                     onClick={onToggleMenu}
                     type="button"
                 >
@@ -228,7 +228,7 @@ function TopNav({ isSidebarCollapsed, onToggleMenu, onLogout, roleConfig, onEdit
             <div className="absolute right-0 top-0 z-50 flex items-start gap-3 pointer-events-auto">
                 <div className="relative hidden shrink-0 sm:block">
                     <button
-                        className="relative group flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/10 backdrop-blur-md border border-white/15 shadow-sm transition-all hover:bg-white/20"
+                        className="relative group flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/10 backdrop-blur-md border border-white/15 shadow-sm anim-surface hover:bg-white/20"
                         onClick={() => {
                             setIsNotificationsOpen((previous) => !previous);
                             setIsProfileOpen(false);
@@ -247,7 +247,7 @@ function TopNav({ isSidebarCollapsed, onToggleMenu, onLogout, roleConfig, onEdit
                     {isNotificationsOpen && (
                         <>
                             <div className="fixed inset-0 z-50" onClick={() => setIsNotificationsOpen(false)}></div>
-                            <div className="!absolute right-0 top-full z-[60] mt-3 w-[24rem] max-w-[calc(100vw-2rem)] origin-top-right rounded-3xl glass-premium p-3 shadow-glass-depth animate-in fade-in zoom-in duration-300">
+                            <div className="!absolute right-0 top-full z-[60] mt-3 w-[24rem] max-w-[calc(100vw-2rem)] origin-top-right rounded-3xl glass-premium anim-popover p-3 shadow-glass-depth animate-in fade-in zoom-in duration-300">
                                 <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
                                     <div>
                                         <p className="text-sm font-black text-on-surface">Notifikasi</p>
@@ -256,7 +256,7 @@ function TopNav({ isSidebarCollapsed, onToggleMenu, onLogout, roleConfig, onEdit
                                         </p>
                                     </div>
                                     <button
-                                        className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/5 text-on-surface-variant transition-all hover:bg-white/10 backdrop-blur-md"
+                                        className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/5 text-on-surface-variant anim-surface hover:bg-white/10 backdrop-blur-md"
                                         onClick={loadNotifications}
                                         disabled={isLoadingNotifications}
                                         type="button"
@@ -276,7 +276,7 @@ function TopNav({ isSidebarCollapsed, onToggleMenu, onLogout, roleConfig, onEdit
                                             return (
                                                 <div
                                                     key={notification.id}
-                                                    className={`rounded-xl px-3 py-2.5 transition-all hover:bg-white/10 backdrop-blur-md ${notification.readAt ? "opacity-70" : "bg-gold-accent/10"}`}
+                                                    className={`rounded-xl px-3 py-2.5 anim-surface hover:bg-white/10 backdrop-blur-md ${notification.readAt ? "opacity-70" : "bg-gold-accent/10"}`}
                                                 >
                                                     <div className="flex w-full items-start gap-3 text-left">
                                                         <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${severityClass}`}>
@@ -309,7 +309,7 @@ function TopNav({ isSidebarCollapsed, onToggleMenu, onLogout, roleConfig, onEdit
                                                                 <div className="flex items-center gap-1.5">
                                                                     {!notification.readAt && (
                                                                         <button
-                                                                            className="rounded-md bg-white/5 px-2 py-1 text-[8px] font-black uppercase tracking-widest text-on-surface-variant transition-all hover:bg-white/10 hover:text-white backdrop-blur-md"
+                                                                            className="rounded-md bg-white/5 px-2 py-1 text-[8px] font-black uppercase tracking-widest text-on-surface-variant anim-surface hover:bg-white/10 hover:text-white backdrop-blur-md"
                                                                             onClick={(event) => handleMarkRead(event, notification)}
                                                                             type="button"
                                                                         >
@@ -340,7 +340,7 @@ function TopNav({ isSidebarCollapsed, onToggleMenu, onLogout, roleConfig, onEdit
 
                 <div className="relative shrink-0">
                     <button
-                        className="flex shrink-0 items-center gap-2 rounded-full bg-white/10 backdrop-blur-md border border-white/15 shadow-sm p-1 pr-4 transition-all hover:bg-white/20"
+                        className="flex shrink-0 items-center gap-2 rounded-full bg-white/10 backdrop-blur-md border border-white/15 shadow-sm p-1 pr-4 anim-surface hover:bg-white/20"
                         onClick={() => {
                             setIsProfileOpen((previous) => !previous);
                             setIsNotificationsOpen(false);
@@ -365,7 +365,7 @@ function TopNav({ isSidebarCollapsed, onToggleMenu, onLogout, roleConfig, onEdit
                     {isProfileOpen && (
                         <>
                             <div className="fixed inset-0 z-50" onClick={() => setIsProfileOpen(false)}></div>
-                            <div className="!absolute right-0 top-full z-[60] mt-3 w-52 origin-top-right rounded-2xl glass-premium p-2 shadow-glass-depth animate-in fade-in zoom-in duration-300 md:w-56">
+                            <div className="!absolute right-0 top-full z-[60] mt-3 w-52 origin-top-right rounded-2xl glass-premium anim-popover p-2 shadow-glass-depth animate-in fade-in zoom-in duration-300 md:w-56">
                                 <div className="px-3 py-3 border-b border-white/10 mb-1.5">
                                     <p className="text-xs font-black text-on-surface truncate">{roleConfig.profileTitle}</p>
                                     <p className="text-[9px] font-bold text-on-surface-variant uppercase mt-0.5 truncate">{roleConfig.profileSubtitle}</p>
@@ -374,7 +374,7 @@ function TopNav({ isSidebarCollapsed, onToggleMenu, onLogout, roleConfig, onEdit
                                 <div className="px-1.5 mb-1.5 pb-1.5 border-b border-white/10">
                                     <button 
                                         onClick={() => { setIsProfileOpen(false); onEditProfile(); }}
-                                        className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[11px] font-bold text-on-surface hover:bg-white/10 transition-all"
+                                        className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[11px] font-bold text-on-surface hover:bg-white/10 anim-surface"
                                     >
                                         <span className="material-symbols-outlined text-base opacity-80">manage_accounts</span>
                                         <span>Edit Profile</span>
@@ -382,7 +382,7 @@ function TopNav({ isSidebarCollapsed, onToggleMenu, onLogout, roleConfig, onEdit
                                 </div>
 
                                 <button
-                                    className="flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-[11px] font-bold text-rose-400 hover:bg-rose-500/10 transition-all"
+                                    className="flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-[11px] font-bold text-rose-400 hover:bg-rose-500/10 anim-surface"
                                     onClick={() => {
                                         setIsProfileOpen(false);
                                         onLogout?.();
@@ -410,7 +410,7 @@ function Sidebar({ isCollapsed, onToggle, activeSection, onNavigate, roleConfig 
 
     return (
         <aside
-            className={`fixed left-4 lg:left-6 top-4 md:top-5 bottom-4 md:bottom-5 z-50 hidden lg:flex flex-col rounded-[20px] glass-sidebar shadow-glass-depth transition-all duration-700 ease-in-out ${isCollapsed ? "w-16" : "w-52"
+            className={`fixed left-4 lg:left-6 top-4 md:top-5 bottom-4 md:bottom-5 z-50 hidden lg:flex flex-col rounded-[20px] glass-sidebar shadow-glass-depth anim-layout-sidebar ${isCollapsed ? "w-16" : "w-52"
                 }`}
         >
             <button
@@ -427,7 +427,7 @@ function Sidebar({ isCollapsed, onToggle, activeSection, onNavigate, roleConfig 
 
             <button
                 onClick={onToggle}
-                className={`w-full py-5 transition-all duration-500 hover:scale-[1.02] active:scale-[0.98] group focus:outline-none flex items-center ${isCollapsed ? "justify-center px-0" : "px-4 lg:px-5"}`}
+                className={`w-full py-5 transition-[transform,padding] duration-300 hover:scale-[1.02] active:scale-[0.98] group focus:outline-none flex items-center ${isCollapsed ? "justify-center px-0" : "px-4 lg:px-5"}`}
                 title={isCollapsed ? "Buka sidebar" : "Ciutkan sidebar"}
                 type="button"
             >
@@ -453,14 +453,14 @@ function Sidebar({ isCollapsed, onToggle, activeSection, onNavigate, roleConfig 
                             key={item.key}
                             href={href}
                             title={isCollapsed ? item.label : ""}
-                            className={`flex items-center rounded-lg transition-all duration-300 group ${isCollapsed ? "justify-center h-10 w-10 mx-auto" : "gap-3 px-3 py-2"
+                            className={`flex items-center rounded-lg anim-surface group ${isCollapsed ? "justify-center h-10 w-10 mx-auto" : "gap-3 px-3 py-2"
                                 } ${isActive
                                     ? "active-glow-gold text-on-surface font-black"
                                     : "text-on-surface-variant hover:text-on-surface hover:bg-black/5"
                                 }`}
                             onClick={(event) => handleSectionClick(event, item.key)}
                         >
-                            <span className={`material-symbols-outlined text-lg transition-transform duration-300 ${isActive ? "text-gold-accent" : "group-hover:scale-110"}`}>{item.icon}</span>
+                            <span className={`material-symbols-outlined text-lg transition-transform duration-200 ${isActive ? "text-gold-accent" : "group-hover:scale-110"}`}>{item.icon}</span>
                             {!isCollapsed && <span className="text-[10px] font-bold uppercase tracking-widest whitespace-nowrap animate-in fade-in duration-500">{item.label}</span>}
                         </a>
                     );
@@ -474,7 +474,7 @@ function MobileDropdownMenu({ activeSection, onNavigate, onClose, roleConfig }) 
     return (
         <div className="fixed inset-0 z-50 p-4 lg:hidden">
             <div className="fixed inset-0 bg-black/20 backdrop-blur-md" onClick={onClose}></div>
-            <div className="relative h-fit w-full rounded-3xl glass-premium p-6 shadow-glass-depth">
+            <div className="relative h-fit w-full rounded-3xl glass-premium anim-popover p-6 shadow-glass-depth">
                 <div className="flex items-center justify-between mb-8">
                     <div className="flex items-center gap-3">
                         <div className="h-10 w-10 flex items-center justify-center rounded-xl bg-gold-accent">
@@ -482,7 +482,7 @@ function MobileDropdownMenu({ activeSection, onNavigate, onClose, roleConfig }) 
                         </div>
                         <p className="text-lg font-black text-on-surface">KIMA</p>
                     </div>
-                    <button onClick={onClose} className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/[0.05] hover:bg-white/10 transition-all">
+                    <button onClick={onClose} className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/[0.05] hover:bg-white/10 anim-surface">
                         <span className="material-symbols-outlined">close</span>
                     </button>
                 </div>
@@ -493,7 +493,7 @@ function MobileDropdownMenu({ activeSection, onNavigate, onClose, roleConfig }) 
                         return (
                             <button
                                 key={item.key}
-                                className={`flex w-full items-center gap-4 rounded-xl px-6 py-4 transition-all ${isActive ? "bg-white/10 font-black text-white" : "text-on-surface-variant hover:bg-white/5"
+                                className={`flex w-full items-center gap-4 rounded-xl px-6 py-4 anim-surface ${isActive ? "bg-white/10 font-black text-white" : "text-on-surface-variant hover:bg-white/5"
                                     }`}
                                 onClick={() => { onNavigate(item.key); onClose(); }}
                             >

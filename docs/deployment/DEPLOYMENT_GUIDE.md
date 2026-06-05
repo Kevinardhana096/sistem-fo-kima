@@ -103,8 +103,9 @@ npx vercel --prod     # deploy production
    - Tindak Lanjut & Log Aktivitas terisi.
    - Tempat Sampah: lihat/pulihkan/hapus permanen.
    - Route planner FO (jika Valhalla aktif).
-4. Cek console browser & tab network: tidak ada error 401/403/5xx yang tidak terduga.
-5. Supabase Dashboard → Logs: pantau error Auth/RLS/API.
+4. Jika provisioning admin via frontend diperlukan, buka URL register tersembunyi `/kima-admin/register-7f4c9a2e` dan pastikan halaman tampil. Jangan membuat akun test di production kecuali memang bagian dari prosedur provisioning. Detail: [../operations/kredensial-admin.md](../operations/kredensial-admin.md).
+5. Cek console browser & tab network: tidak ada error 401/403/5xx yang tidak terduga.
+6. Supabase Dashboard → Logs: pantau error Auth/RLS/API.
 
 ---
 

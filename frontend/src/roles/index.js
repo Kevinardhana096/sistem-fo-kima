@@ -25,7 +25,7 @@ const guestRoleConfig = {
         canDeleteTenant: false,
     },
     allowedSections: [],
-    allowedRouteTypes: ["redirect", "login", "not-found"],
+    allowedRouteTypes: ["redirect", "login", "admin-register", "not-found"],
 };
 
 export const roleConfigs = {

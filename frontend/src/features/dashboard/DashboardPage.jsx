@@ -14,6 +14,18 @@ import {
     Tooltip,
 } from "recharts";
 
+const chartTooltipContentStyle = {
+    backgroundColor: "rgba(15,20,30,0.88)",
+    border: "1px solid rgba(255,255,255,0.15)",
+    borderRadius: "12px",
+    padding: "12px",
+    backdropFilter: "blur(20px)",
+    color: "#fff",
+};
+const chartTooltipItemStyle = { fontSize: "10px", fontWeight: 900 };
+const chartTooltipLabelStyle = { fontSize: "10px", fontWeight: 900, marginBottom: "8px" };
+const compactChartMargin = { top: 5, right: 5, bottom: 5, left: -25 };
+
 /**
  * Premium Dashboard Page - Light Theme
  * Style: Apple-inspired Glassmorphism, Bright & Elegant
@@ -440,7 +452,7 @@ export default function DashboardPage({
                                         <button
                                             key={type}
                                             onClick={() => setCoreChartType(type)}
-                                            className={`rounded-lg px-4 py-1.5 text-[9px] font-black uppercase tracking-widest transition-all ${coreChartType === type
+                                            className={`rounded-lg px-4 py-1.5 text-[9px] font-black uppercase tracking-widest anim-surface ${coreChartType === type
                                                 ? "bg-gold-accent text-white shadow-gold-glow"
                                                 : "text-white/70 hover:text-white"
                                                 }`}
@@ -462,12 +474,12 @@ export default function DashboardPage({
                             </div>
                         )}
                         <div ref={coreTrendChartRef} className="h-[220px] min-h-[220px] w-full min-w-[1px] md:h-[240px] md:min-h-[240px]">
-                            <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1} debounce={100}>
-                                <LineChart data={coreChartType === "sharing" ? visibleSharingTrendData : visibleCoreTrendData} margin={{ top: 5, right: 5, bottom: 5, left: -25 }}>
+                            <ResponsiveContainer width="100%" height={240} minWidth={1} minHeight={1} debounce={100}>
+                                <LineChart data={coreChartType === "sharing" ? visibleSharingTrendData : visibleCoreTrendData} margin={compactChartMargin}>
                                     <CartesianGrid strokeDasharray="0" vertical={false} stroke="rgba(255,255,255,0.08)" />
                                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 8, fontWeight: 900, fill: 'rgba(255,255,255,0.6)' }} dy={10} />
                                     <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 8, fontWeight: 900, fill: 'rgba(255,255,255,0.6)' }} />
-                                    <Tooltip contentStyle={{ backgroundColor: 'rgba(15,20,30,0.88)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '12px', padding: '12px', backdropFilter: 'blur(20px)', color: '#fff' }} itemStyle={{ fontSize: '10px', fontWeight: 900 }} labelStyle={{ fontSize: '10px', fontWeight: 900, marginBottom: '8px' }} />
+                                    <Tooltip contentStyle={chartTooltipContentStyle} itemStyle={chartTooltipItemStyle} labelStyle={chartTooltipLabelStyle} />
 
                                     {coreChartType === "sharing" ? (
                                         <>
@@ -493,7 +505,7 @@ export default function DashboardPage({
                                     type="button"
                                     onClick={handleExportCoreTrend}
                                     disabled={isExportingCoreTrend}
-                                    className={`flex items-center justify-center gap-1 rounded-lg px-2 py-0.5 text-[7px] font-black uppercase tracking-widest transition-all ${isExportingCoreTrend ? "bg-white/10 text-gold-accent" : "btn-premium"}`}
+                                    className={`flex items-center justify-center gap-1 rounded-lg px-2 py-0.5 text-[7px] font-black uppercase tracking-widest anim-surface ${isExportingCoreTrend ? "bg-white/10 text-gold-accent" : "btn-premium"}`}
                                 >
                                     <span className={`material-symbols-outlined text-[10px] ${isExportingCoreTrend ? "animate-spin" : ""}`}>{isExportingCoreTrend ? "sync" : "download"}</span>
                                     {isExportingCoreTrend ? "Menyiapkan" : "CSV"}
@@ -502,7 +514,7 @@ export default function DashboardPage({
                                     type="button"
                                     onClick={handleExportCoreTrendXlsx}
                                     disabled={isExportingCoreTrendXlsx}
-                                    className={`flex items-center justify-center gap-1 rounded-lg px-2 py-0.5 text-[7px] font-black uppercase tracking-widest transition-all ${isExportingCoreTrendXlsx ? "bg-white/10 text-gold-accent" : "btn-premium"}`}
+                                    className={`flex items-center justify-center gap-1 rounded-lg px-2 py-0.5 text-[7px] font-black uppercase tracking-widest anim-surface ${isExportingCoreTrendXlsx ? "bg-white/10 text-gold-accent" : "btn-premium"}`}
                                 >
                                     <span className={`material-symbols-outlined text-[10px] ${isExportingCoreTrendXlsx ? "animate-spin" : ""}`}>{isExportingCoreTrendXlsx ? "sync" : "insert_chart"}</span>
                                     {isExportingCoreTrendXlsx ? "Menyiapkan" : "XLSX Grafik"}
@@ -523,7 +535,7 @@ export default function DashboardPage({
                         <div className="flex-1 flex flex-col">
                             <div className="space-y-1.5 overflow-y-auto pr-1 custom-scrollbar">
                                 {sharingRows.map((item) => (
-                                    <div key={item.ratio} className="flex items-center justify-between p-2.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/12 transition-all backdrop-blur-md">
+                                    <div key={item.ratio} className="flex items-center justify-between p-2.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/12 anim-surface backdrop-blur-md">
                                         <div className="flex items-center gap-2">
                                             <div>
                                                 <p className="text-[8px] font-black text-white/50 uppercase tracking-widest mb-0.5">Paket</p>
@@ -570,7 +582,7 @@ export default function DashboardPage({
                                         <button
                                             key={type}
                                             onClick={() => setGrowthType(type)}
-                                            className={`rounded-lg px-4 py-1.5 text-[9px] font-black uppercase tracking-widest transition-all ${growthType === type
+                                            className={`rounded-lg px-4 py-1.5 text-[9px] font-black uppercase tracking-widest anim-surface ${growthType === type
                                                 ? "bg-gold-accent text-white shadow-gold-glow"
                                                 : "text-white/70 hover:text-white"
                                                 }`}
@@ -582,12 +594,12 @@ export default function DashboardPage({
                             </div>
                         </div>
                         <div className="flex-1 w-full min-w-[1px] min-h-[220px] -ml-2 pb-2">
-                            <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1} debounce={100}>
-                                <LineChart data={growthData[growthType]} margin={{ top: 5, right: 5, bottom: 5, left: -25 }}>
+                            <ResponsiveContainer width="100%" height={260} minWidth={1} minHeight={1} debounce={100}>
+                                <LineChart data={growthData[growthType]} margin={compactChartMargin}>
                                     <CartesianGrid strokeDasharray="0" vertical={false} stroke="rgba(255,255,255,0.08)" />
                                     <XAxis dataKey="year" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 900, fill: 'rgba(255,255,255,0.6)' }} dy={15} />
                                     <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 900, fill: 'rgba(255,255,255,0.6)' }} />
-                                    <Tooltip contentStyle={{ backgroundColor: 'rgba(15,20,30,0.88)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '12px', padding: '12px', backdropFilter: 'blur(20px)', color: '#fff' }} itemStyle={{ fontSize: '10px', fontWeight: 900 }} labelStyle={{ fontSize: '10px', fontWeight: 900, marginBottom: '8px' }} />
+                                    <Tooltip contentStyle={chartTooltipContentStyle} itemStyle={chartTooltipItemStyle} labelStyle={chartTooltipLabelStyle} />
                                     <Line type="monotone" dataKey="count" name={growthType === "tenant" ? "Lokasi" : "ISP"} stroke={growthType === "tenant" ? "#d4a937" : "#00687b"} strokeWidth={5} dot={{ r: 6, fill: '#fff', strokeWidth: 4, stroke: growthType === "tenant" ? "#d4a937" : "#00687b" }} activeDot={{ r: 8, fill: growthType === "tenant" ? "#d4a937" : "#00687b", stroke: '#fff', strokeWidth: 3 }} />
                                 </LineChart>
                             </ResponsiveContainer>
@@ -605,7 +617,7 @@ export default function DashboardPage({
                         </div>
                         <div className="flex-1 space-y-1.5 overflow-y-auto pr-1 custom-scrollbar">
                             {alerts.map((alert, i) => (
-                                <div key={i} className="flex items-center gap-2 p-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/12 transition-all backdrop-blur-md">
+                                <div key={i} className="flex items-center gap-2 p-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/12 anim-surface backdrop-blur-md">
                                     <div className="h-6 w-6 shrink-0 flex items-center justify-center rounded bg-rose-500/15 text-rose-300">
                                         <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>priority_high</span>
                                     </div>
@@ -714,13 +726,13 @@ function LegendItem({ dotColor, label, small = false }) {
 
 function OperationalStatusRow({ label, count, percent, color, bg }) {
     return (
-        <div className={`group cursor-pointer rounded-lg border p-2.5 transition-all hover:scale-[1.02] ${bg}`}>
+        <div className={`group cursor-pointer rounded-lg border p-2.5 anim-surface hover:scale-[1.02] ${bg}`}>
             <div className="flex items-end justify-between mb-1.5">
                 <span className="text-[10px] font-black uppercase tracking-wider text-on-surface/80 transition-colors group-hover:text-on-surface">{label}</span>
                 <span className="text-base font-black text-on-surface">{count}</span>
             </div>
             <div className="h-1 w-full overflow-hidden rounded-full bg-white/10 border border-white/5 backdrop-blur-md">
-                <div className={`h-full ${color} rounded-full transition-all duration-1000 ease-out`} style={{ width: `${percent}%` }}></div>
+                <div className={`h-full ${color} rounded-full transition-[width] duration-1000 ease-out`} style={{ width: `${percent}%` }}></div>
             </div>
         </div>
     );

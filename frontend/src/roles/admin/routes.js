@@ -1,5 +1,6 @@
 export const ADMIN_PATHS = {
     login: "/login",
+    adminRegister: "/kima-admin/register-7f4c9a2e",
     dashboard: "/dashboard",
     customers: "/customers",
     customerCreate: "/customers/new",
@@ -66,6 +67,10 @@ export function parseAdminRoute(pathname, search) {
 
     if (normalizedPath === ADMIN_PATHS.login) {
         return { type: "login" };
+    }
+
+    if (normalizedPath === ADMIN_PATHS.adminRegister) {
+        return { type: "admin-register" };
     }
 
     if (normalizedPath === ADMIN_PATHS.dashboard) {

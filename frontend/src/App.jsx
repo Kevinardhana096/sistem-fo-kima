@@ -14,6 +14,7 @@ const TenantDetailPage = lazy(() => import("./features/pelanggan/TenantDetailPag
 const TenantAdminFormPage = lazy(() => import("./features/pelanggan/TenantAdminFormPage"));
 const IspAdminFormPage = lazy(() => import("./features/pelanggan/IspAdminFormPage"));
 const LoginPage = lazy(() => import("./features/login/LoginPage"));
+const AdminRegisterPage = lazy(() => import("./features/login/AdminRegisterPage"));
 const TrashPage = lazy(() => import("./features/trash/TrashPage"));
 const ActivityLogPage = lazy(() => import("./features/activity/ActivityLogPage"));
 const TodoListPage = lazy(() => import("./features/todos/TodoListPage"));
@@ -29,6 +30,7 @@ import { getStoredRole, normalizeAppRole, persistRole } from "./app/session/role
 import "./App.css";
 
 const CUSTOMER_PAGE_SIZE = 500;
+const PUBLIC_ROUTE_TYPES = new Set(["login", "admin-register"]);
 
 function App() {
     const [currentRole, setCurrentRole] = useState(() => getStoredRole());
@@ -341,7 +343,7 @@ function App() {
             return;
         }
 
-        if (!isLoggedIn && route.type !== "login") {
+        if (!isLoggedIn && !PUBLIC_ROUTE_TYPES.has(route.type)) {
             navigateTo(appPaths.login, { replace: true });
             return;
         }
@@ -630,7 +632,7 @@ function App() {
         handleOpenTenantDetail(targetCustomer, initialTab);
     }, [customers, handleOpenTenantDetail]);
 
-    if (!hasCheckedAuth || (!isLoggedIn && route.type !== "login") || (isLoggedIn && route.type === "login")) {
+    if (!hasCheckedAuth || (!isLoggedIn && !PUBLIC_ROUTE_TYPES.has(route.type)) || (isLoggedIn && route.type === "login")) {
         return (
             <RouteLoadingPage
                 activeSection={activeSection}
@@ -687,6 +689,14 @@ function App() {
                         void refreshAppData();
                     }}
                 />
+            </Suspense>
+        );
+    }
+
+    if (route.type === "admin-register") {
+        return (
+            <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-[#0a0c12]"><div className="text-sm text-white/60">Memuat...</div></div>}>
+                <AdminRegisterPage onBackToLogin={() => navigateTo(appPaths.login, { replace: true })} />
             </Suspense>
         );
     }

@@ -87,6 +87,7 @@
     -webkit-backdrop-filter: blur(24px);
     border: 1px solid rgba(255, 255, 255, 0.15);
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    contain: paint;
   }
 
   .glass-premium::before {
@@ -110,7 +111,12 @@
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+    transform: translateZ(0);
+    transition:
+      border-color 0.35s cubic-bezier(0.23, 1, 0.32, 1),
+      box-shadow 0.35s cubic-bezier(0.23, 1, 0.32, 1),
+      transform 0.35s cubic-bezier(0.23, 1, 0.32, 1),
+      background-color 0.35s cubic-bezier(0.23, 1, 0.32, 1);
   }
 
   .glass-card:hover {
@@ -156,6 +162,7 @@
     line-height: 1;
     animation: sidebar-hint-nudge 1.15s ease-in-out infinite;
     transition: color 0.25s ease, filter 0.25s ease;
+    will-change: transform, opacity;
   }
 
   .sidebar-collapse-hint:hover .material-symbols-outlined,
@@ -190,6 +197,27 @@
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     border: 1px solid rgba(255, 255, 255, 0.15);
+    contain: paint;
+  }
+
+  .anim-surface {
+    transition-property: background-color, border-color, color, opacity, box-shadow, transform;
+    transition-duration: 200ms;
+    transition-timing-function: ease;
+  }
+
+  .anim-layout-sidebar {
+    transition-property: width, left, margin-left;
+    transition-duration: 420ms;
+    transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .anim-popover {
+    will-change: opacity, transform;
+  }
+
+  .anim-transform {
+    will-change: transform;
   }
 
   .backdrop-blur-sm {
@@ -249,7 +277,7 @@
     background: #d4a937;
     color: #ffffff;
     font-weight: 900;
-    transition: all 0.4s ease;
+    transition: transform 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease, opacity 0.25s ease, background-color 0.25s ease;
     box-shadow: 0 10px 20px rgba(212, 169, 55, 0.3);
   }
 
@@ -257,6 +285,17 @@
     transform: scale(1.02) translateY(-2px);
     box-shadow: 0 15px 30px rgba(212, 169, 55, 0.4);
     filter: brightness(1.05);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      scroll-behavior: auto !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 
   .custom-scrollbar {
