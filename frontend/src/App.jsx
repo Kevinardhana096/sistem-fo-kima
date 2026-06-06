@@ -1097,6 +1097,7 @@ function App() {
                     contextIsp={selectedCustomerContextIsp}
                     initialTab={route.initialTab}
                     currentRole={currentRole}
+                    backLabel={currentRole === APP_ROLES.isp ? "Kembali ke Halaman ISP" : "Kembali ke Daftar Tenant"}
                     onBack={() => {
                         if (currentRole === APP_ROLES.isp && resolvedCurrentIspId) {
                             navigateTo(appPaths.ispDetail(resolvedCurrentIspId), { replace: true });

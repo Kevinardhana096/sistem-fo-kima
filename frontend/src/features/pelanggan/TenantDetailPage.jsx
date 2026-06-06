@@ -4345,16 +4345,14 @@ function TenantDetailPage({
         {/* Top Bar: Back & Status */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            {!isIsp && (
-              <button
-                className="inline-flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.2em] text-white/40 hover:text-gold-accent transition-all group"
-                onClick={onBack}
-                type="button"
-              >
-                <span className="material-symbols-outlined text-[10px] transition-transform group-hover:-translate-x-1">arrow_back</span>
-                {backLabel}
-              </button>
-            )}
+            <button
+              className="inline-flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.2em] text-white/40 hover:text-gold-accent transition-all group"
+              onClick={onBack}
+              type="button"
+            >
+              <span className="material-symbols-outlined text-[10px] transition-transform group-hover:-translate-x-1">arrow_back</span>
+              {backLabel}
+            </button>
           </div>
 
           {!isTeknisi && (
