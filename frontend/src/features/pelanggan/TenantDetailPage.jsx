@@ -586,6 +586,7 @@ function TenantDetailPage({
 }) {
   const isTeknisi = currentRole === "teknisi";
   const isIsp = currentRole === "isp";
+  const canManageRoute = currentRole === "admin" || currentRole === "teknisi";
   const [activeTab, setActiveTab] = useState(initialTab);
   const [detail, setDetail] = useState(null);
   const [timeline, setTimeline] = useState([]);
@@ -719,6 +720,11 @@ function TenantDetailPage({
       return;
     }
 
+    if (!canManageRoute) {
+      window.localStorage.removeItem(routeDraftStorageKey);
+      return;
+    }
+
     try {
       const rawValue = window.localStorage.getItem(routeDraftStorageKey);
       if (!rawValue) {
@@ -750,10 +756,23 @@ function TenantDetailPage({
     } catch {
       window.localStorage.removeItem(routeDraftStorageKey);
     }
-  }, [routeDraftStorageKey]);
+  }, [canManageRoute, routeDraftStorageKey]);
+
+  useEffect(() => {
+    if (!canManageRoute) {
+      setIsRouteDrafting(false);
+      setDraftRoutePoints([]);
+      setRouteChangeNote("");
+    }
+  }, [canManageRoute]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
+      return;
+    }
+
+    if (!canManageRoute) {
+      window.localStorage.removeItem(routeDraftStorageKey);
       return;
     }
 
@@ -771,6 +790,7 @@ function TenantDetailPage({
       }),
     );
   }, [
+    canManageRoute,
     draftRoutePoints,
     draftRouteStatus,
     isRouteDrafting,
@@ -3089,7 +3109,21 @@ function TenantDetailPage({
     );
   };
 
+  const requireRouteManageAccess = () => {
+    if (canManageRoute) {
+      return true;
+    }
+
+    setRouteError("Role ISP hanya dapat melihat titik dan jalur tanpa mengubah peta.");
+    setRouteFeedback("");
+    return false;
+  };
+
   const runRouteMutation = async (body, successMessage) => {
+    if (!requireRouteManageAccess()) {
+      return;
+    }
+
     setRouteBusy(true);
     setRouteError("");
     setRouteFeedback("");
@@ -3150,6 +3184,10 @@ function TenantDetailPage({
   // dipanggil baik dari tombol "Aktifkan" (pakai state) maupun langsung dari
   // planner (pakai data fresh tanpa bergantung state React yang async).
   const commitRouteData = async ({ points, flowStatus, changeNote, snapshotBeforePoints, snapshotBeforeStatus }) => {
+    if (!requireRouteManageAccess()) {
+      return;
+    }
+
     setRouteBusy(true);
     setRouteError("");
     try {
@@ -3200,6 +3238,10 @@ function TenantDetailPage({
   };
 
   const handleCommitDraft = async () => {
+    if (!requireRouteManageAccess()) {
+      return;
+    }
+
     if (!routeChangeNote.trim()) {
       setRouteError(
         "Catatan perubahan wajib diisi untuk menyimpan struktur baru.",
@@ -3226,6 +3268,10 @@ function TenantDetailPage({
   };
 
   const handleDraftMove = (pointId, direction) => {
+    if (!requireRouteManageAccess()) {
+      return;
+    }
+
     setDraftRoutePoints((prev) => {
       const point = prev.find((p) => String(p.id) === String(pointId));
       if (!point || point.pointType !== "transit") return prev;
@@ -3256,6 +3302,10 @@ function TenantDetailPage({
   };
 
   const handleDraftDelete = (pointId) => {
+    if (!requireRouteManageAccess()) {
+      return;
+    }
+
     setDraftRoutePoints((prev) =>
       prev
         .filter(
@@ -3267,6 +3317,10 @@ function TenantDetailPage({
 
 
   const handleDeleteAllHistory = async () => {
+    if (!requireRouteManageAccess()) {
+      return;
+    }
+
     if (
       !confirm(
         "Hapus seluruh riwayat jalur tenant ini? Tindakan ini tidak dapat dibatalkan.",
@@ -3292,6 +3346,10 @@ function TenantDetailPage({
   };
 
   const handleDeleteRoutePoint = async (pointId) => {
+    if (!requireRouteManageAccess()) {
+      return;
+    }
+
     if (isRouteDrafting) {
       handleDraftDelete(pointId);
       return;
@@ -3306,6 +3364,10 @@ function TenantDetailPage({
   };
 
   const handleMoveRoutePoint = async (pointId, direction) => {
+    if (!requireRouteManageAccess()) {
+      return;
+    }
+
     if (isRouteDrafting) {
       handleDraftMove(pointId, direction);
       return;
@@ -3355,6 +3417,10 @@ function TenantDetailPage({
 
 
   const handleApplyPlannedRoute = async (plannedPoints, plannerMeta) => {
+    if (!requireRouteManageAccess()) {
+      return;
+    }
+
     if (!Array.isArray(plannedPoints) || plannedPoints.length < 2) {
       setRouteError(
         "Minimal dua titik diperlukan untuk menerapkan hasil planner.",
@@ -4286,7 +4352,7 @@ function TenantDetailPage({
           {/* Map Container */}
           <div className="h-full w-full">
             <FoRoutePlanner
-              disabled={routeBusy}
+              disabled={routeBusy || !canManageRoute}
               initialControlPoints={previewRoutePoints}
               initialRouteMeta={activeRoutePlannerMeta}
               providerEntryPoints={availableIspEntryPoints}
@@ -5009,7 +5075,7 @@ function TenantDetailPage({
           <div className="flex flex-col gap-4">
             <FoRoutePlanner
               mode="preview"
-              onPreviewClick={!isIsp ? () => onOpenRoutePlanner?.(detail ?? customer) : undefined}
+              onPreviewClick={canManageRoute ? () => onOpenRoutePlanner?.(detail ?? customer) : undefined}
               previewGeometryCoordinates={previewGeometryCoordinates}
               previewRoads={previewRoads}
               previewPoints={previewRoutePoints}
@@ -5042,9 +5108,9 @@ function TenantDetailPage({
                         {displayNamedRoads.length} Ruas Aktif
                       </span>
                     </div>
-                    {!isRouteDrafting ? (
+                    {(!isRouteDrafting || !canManageRoute) ? (
                       <>
-                        {!isPlannerJalurView && !isIsp && (
+                        {!isPlannerJalurView && canManageRoute && (
                           <button
                             className="h-8 px-4 flex items-center gap-2 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white transition-all shadow-sm text-[9px] font-black uppercase tracking-widest group"
                             onClick={() => onOpenRoutePlanner?.(detail ?? customer)}
@@ -5081,7 +5147,12 @@ function TenantDetailPage({
                   </div>
                 </div>
 
-                {isRouteDrafting && (
+                {!canManageRoute && (
+                  <div className="mt-3 rounded-lg border border-sky-500/20 bg-sky-500/5 p-3 text-[9px] font-black uppercase tracking-widest text-sky-200 shadow-inner">
+                    Mode lihat saja: role ISP tidak dapat mengubah titik maupun jalur peta.
+                  </div>
+                )}
+                {canManageRoute && isRouteDrafting && (
                   <div className="mt-3 rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 animate-in zoom-in-95 duration-300 shadow-inner">
                     <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
                       <div className="flex-1 w-full space-y-1">
@@ -5183,7 +5254,7 @@ function TenantDetailPage({
                                     <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover/row:opacity-100 transition-opacity">
                                       <button
                                         className="w-7 h-7 rounded bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-all disabled:opacity-10 backdrop-blur-md"
-                                        disabled={routeBusy || point.pointType !== "transit"}
+                                        disabled={!canManageRoute || routeBusy || point.pointType !== "transit"}
                                         onClick={() => handleMoveRoutePoint(point.id, "up")}
                                         title="Geser ke atas"
                                       >
@@ -5191,7 +5262,7 @@ function TenantDetailPage({
                                       </button>
                                       <button
                                         className="w-7 h-7 rounded bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-all disabled:opacity-10 backdrop-blur-md"
-                                        disabled={routeBusy || point.pointType !== "transit"}
+                                        disabled={!canManageRoute || routeBusy || point.pointType !== "transit"}
                                         onClick={() => handleMoveRoutePoint(point.id, "down")}
                                         title="Geser ke bawah"
                                       >
@@ -5200,7 +5271,7 @@ function TenantDetailPage({
                                       <div className="w-px h-4 bg-white/10 mx-0.5" />
                                       <button
                                         className="w-7 h-7 rounded bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 hover:bg-rose-500 hover:text-white transition-all disabled:opacity-10"
-                                        disabled={routeBusy || point.pointType !== "transit"}
+                                        disabled={!canManageRoute || routeBusy || point.pointType !== "transit"}
                                         onClick={() => void handleDeleteRoutePoint(point.id)}
                                         title="Hapus titik"
                                       >

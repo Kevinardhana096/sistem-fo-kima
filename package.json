@@ -7,8 +7,10 @@
     "doc": "docs"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "mcp:pathfinder": "pathfinder serve --config pathfinder.yaml"
+    "test": "npm --prefix frontend test --",
+    "mcp:pathfinder": "pathfinder serve --config pathfinder.yaml",
+    "lint": "npm --prefix frontend run lint",
+    "build": "npm --prefix frontend run build"
   },
   "repository": {
     "type": "git",
