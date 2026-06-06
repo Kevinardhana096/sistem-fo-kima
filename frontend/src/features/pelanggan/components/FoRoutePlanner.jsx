@@ -795,12 +795,6 @@ export default function FoRoutePlanner({
           : `Segmen ${index + 1}`,
       }));
   const visiblePlannerRoads = displayPlannerRoads.length > 0 ? displayPlannerRoads : fallbackPlannerRoads;
-  const showKimaMarker =
-    !isPreviewMode &&
-    !pointA &&
-    !pointB &&
-    activeWaypoints.length === 0 &&
-    !routeData;
   // Unique named roads only (deduplicate by name and filter placeholders)
   useEffect(() => {
     if (isPreviewMode) {
@@ -1524,6 +1518,9 @@ export default function FoRoutePlanner({
                   fitRouteKey={isPreviewMode ? `preview-${previewControlPoints.length}-${previewGeometryCoordinates.length}-${previewRoadSegments.length}` : `route-${routeData?.geometryCoordinates?.length || 0}`}
                   flyTarget={flyTarget}
                 />
+                <Marker icon={KIMA_ICON} position={KIMA_CENTER} zIndexOffset={1000}>
+                  <Popup>Kawasan Industri Makassar (KIMA)</Popup>
+                </Marker>
                 {visiblePreviewProviderEntryPoints.map((entryPoint) => (
                   <Marker
                     key={`preview-provider-entry-marker-${entryPoint.id}`}
@@ -1769,11 +1766,9 @@ export default function FoRoutePlanner({
               </Popup>
             </Marker>
           )}
-          {showKimaMarker && (
-            <Marker icon={KIMA_ICON} position={KIMA_CENTER}>
-              <Popup>Kawasan Industri Makassar (KIMA)</Popup>
-            </Marker>
-          )}
+          <Marker icon={KIMA_ICON} position={KIMA_CENTER} zIndexOffset={1000}>
+            <Popup>Kawasan Industri Makassar (KIMA)</Popup>
+          </Marker>
           {activeWaypoints.map((point) => (
             <Marker
               key={point.id}

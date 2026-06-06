@@ -14,6 +14,13 @@ import "./FoRoutePlanner.css";
 
 const KIMA_CENTER = [-5.0929568, 119.5018379];
 const DEFAULT_ZOOM = 14;
+const KIMA_ICON = L.icon({
+  iconUrl: "/logo-kima.png",
+  iconSize: [40, 40],
+  iconAnchor: [20, 40],
+  popupAnchor: [0, -36],
+  className: "fo-kima-marker",
+});
 
 const ROUTE_META_PREFIX = "[FO_ROUTE_META]";
 
@@ -201,6 +208,8 @@ export default function FoRouteMultiPreview({ tenants = [], ispLogoUrl = "", isp
           <AttributionControl position="bottomleft" />
           <MapInstanceCapture onReady={(map) => { mapRef.current = map; }} />
           {bounds && <FitBounds bounds={bounds} />}
+
+          <Marker icon={KIMA_ICON} position={KIMA_CENTER} zIndexOffset={1000} />
 
           {/* ISP marker */}
           {routeData[0]?.awalCoord && (

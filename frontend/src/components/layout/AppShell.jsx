@@ -153,17 +153,16 @@ export default function AppShell({
             <div id="bg-glass-overlay"></div>
             <div className="mesh-glow"></div>
 
-            {!hideSidebar && (
-                <TopNav
-                    isSidebarCollapsed={isSidebarCollapsed}
-                    onToggleMenu={() => setIsMobileMenuOpen((prev) => !prev)}
-                    onLogout={onLogout}
-                    roleConfig={roleConfig}
-                    profileDisplayName={profileDisplayName}
-                    profileAvatarName={profileAvatarName}
-                    onEditProfile={openEditProfile}
-                />
-            )}
+            <TopNav
+                hasSidebar={!hideSidebar}
+                isSidebarCollapsed={isSidebarCollapsed}
+                onToggleMenu={() => setIsMobileMenuOpen((prev) => !prev)}
+                onLogout={onLogout}
+                roleConfig={roleConfig}
+                profileDisplayName={profileDisplayName}
+                profileAvatarName={profileAvatarName}
+                onEditProfile={openEditProfile}
+            />
 
             {isMobileMenuOpen && !hideSidebar && (
                 <MobileDropdownMenu
@@ -299,6 +298,7 @@ export default function AppShell({
 }
 
 function TopNav({
+    hasSidebar = true,
     isSidebarCollapsed,
     onToggleMenu,
     onLogout,
@@ -357,19 +357,23 @@ function TopNav({
 
     return (
         <nav
-            className={`fixed top-4 md:top-5 right-4 md:right-6 z-40 flex items-start justify-between anim-layout-sidebar pointer-events-none ${isSidebarCollapsed
+            className={`fixed top-4 md:top-5 right-4 md:right-6 z-40 flex items-start justify-between anim-layout-sidebar pointer-events-none ${!hasSidebar
+                    ? "left-4"
+                    : isSidebarCollapsed
                     ? "left-4 lg:left-24"
                     : "left-4 lg:left-60"
                 }`}
         >
             <div className="pointer-events-auto">
-                <button
-                    className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 shadow-sm text-on-surface anim-surface hover:bg-white/20 lg:hidden"
-                    onClick={onToggleMenu}
-                    type="button"
-                >
-                    <span className="material-symbols-outlined">menu</span>
-                </button>
+                {hasSidebar && (
+                    <button
+                        className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 shadow-sm text-on-surface anim-surface hover:bg-white/20 lg:hidden"
+                        onClick={onToggleMenu}
+                        type="button"
+                    >
+                        <span className="material-symbols-outlined">menu</span>
+                    </button>
+                )}
             </div>
 
             <div className="absolute right-0 top-0 z-50 flex items-start gap-3 pointer-events-auto">

@@ -32,6 +32,22 @@ import "./App.css";
 const CUSTOMER_PAGE_SIZE = 500;
 const PUBLIC_ROUTE_TYPES = new Set(["login", "admin-register"]);
 
+function getAuthUserIspId(user) {
+    const rawIspId = user?.user_metadata?.isp_id;
+    const ispId = Number(rawIspId);
+    return Number.isFinite(ispId) && ispId > 0 ? ispId : null;
+}
+
+function getLandingPathForRole(roleKey, paths, user) {
+    if (roleKey === APP_ROLES.isp) {
+        const ispId = getAuthUserIspId(user);
+        return paths.ispDetail(ispId ?? "me");
+    }
+
+    const roleConfig = getRoleConfig(roleKey);
+    return paths[roleConfig.defaultSection] ?? paths.customers ?? paths.login;
+}
+
 function App() {
     const [currentRole, setCurrentRole] = useState(() => getStoredRole());
     const [authSession, setAuthSession] = useState(null);
@@ -73,6 +89,14 @@ function App() {
     );
     const roleConfig = useMemo(() => getRoleConfig(currentRole), [currentRole]);
     const roleCapabilities = roleConfig.capabilities;
+    const currentUserIspId = useMemo(() => getAuthUserIspId(authSession?.user), [authSession?.user]);
+    const resolvedCurrentIspId = useMemo(() => {
+        if (currentUserIspId) return currentUserIspId;
+        if (currentRole !== APP_ROLES.isp || isps.length !== 1) return null;
+
+        const ispId = Number(isps[0]?.id);
+        return Number.isFinite(ispId) && ispId > 0 ? ispId : null;
+    }, [currentRole, currentUserIspId, isps]);
     const isRouteAllowed = useMemo(
         () => canAccessRoute(currentRole, route),
         [currentRole, route],
@@ -349,11 +373,52 @@ function App() {
         }
 
         if (isLoggedIn && route.type === "login") {
-            const landingRoleConfig = getRoleConfig(currentRole);
-            const landingPath = appPaths[landingRoleConfig.defaultSection] ?? appPaths.customers;
+            const landingPath = getLandingPathForRole(currentRole, appPaths, authSession?.user);
             navigateTo(landingPath, { replace: true });
         }
-    }, [appPaths, currentRole, hasCheckedAuth, isLoggedIn, navigateTo, route.type]);
+    }, [appPaths, authSession?.user, currentRole, hasCheckedAuth, isLoggedIn, navigateTo, route.type]);
+
+    useEffect(() => {
+        if (!hasCheckedAuth || !isLoggedIn || currentRole !== APP_ROLES.isp || route.type === "login" || route.type === "redirect") {
+            return;
+        }
+
+        if (resolvedCurrentIspId === null && (!hasRequestedIsps || isLoadingIsps)) {
+            return;
+        }
+
+        const landingPath = resolvedCurrentIspId
+            ? appPaths.ispDetail(resolvedCurrentIspId)
+            : getLandingPathForRole(currentRole, appPaths, authSession?.user);
+        const routeIspId = Number(route.ispId);
+        const isOwnIspDetail = route.type === "isp-detail"
+            && resolvedCurrentIspId !== null
+            && Number.isFinite(routeIspId)
+            && routeIspId === resolvedCurrentIspId;
+        const routeContextIspId = Number(route.contextIspId);
+        const isOwnCustomerCreate = route.type === "customer-create"
+            && resolvedCurrentIspId !== null
+            && Number.isFinite(routeContextIspId)
+            && routeContextIspId === resolvedCurrentIspId;
+        const isOwnCustomerDetail = route.type === "customer-detail"
+            && (
+                route.contextIspId === null
+                || route.contextIspId === undefined
+                || route.contextIspId === ""
+                || (
+                    resolvedCurrentIspId !== null
+                    && Number.isFinite(routeContextIspId)
+                    && routeContextIspId === resolvedCurrentIspId
+                )
+            );
+        const isAllowedIspRoute = isOwnIspDetail || isOwnCustomerCreate || isOwnCustomerDetail;
+
+        const currentPath = `${locationState.pathname}${locationState.search}`;
+
+        if (!isAllowedIspRoute && currentPath !== landingPath) {
+            navigateTo(landingPath, { replace: true });
+        }
+    }, [appPaths, authSession?.user, currentRole, hasCheckedAuth, hasRequestedIsps, isLoadingIsps, isLoggedIn, locationState.pathname, locationState.search, navigateTo, resolvedCurrentIspId, route.contextIspId, route.ispId, route.type]);
 
     // Reset scroll to top on route change
     useEffect(() => {
@@ -458,10 +523,13 @@ function App() {
     useEffect(() => {
         let isActive = true;
 
-        const shouldLoadIspDetail = (
+        const routeIspId = Number(route.ispId);
+        const canLoadIspDetail = currentRole !== APP_ROLES.isp
+            || (resolvedCurrentIspId !== null && routeIspId === resolvedCurrentIspId);
+        const shouldLoadIspDetail = canLoadIspDetail && (
             route.type === "isp-detail"
             || route.type === "isp-edit"
-        ) && !selectedIsp && Number.isFinite(Number(route.ispId));
+        ) && !selectedIsp && Number.isFinite(routeIspId);
 
         if (!shouldLoadIspDetail) {
             setIspDetailRecord(null);
@@ -496,7 +564,7 @@ function App() {
         return () => {
             isActive = false;
         };
-    }, [route.ispId, route.type, selectedIsp]);
+    }, [currentRole, resolvedCurrentIspId, route.ispId, route.type, selectedIsp]);
 
     const handleNavigate = useCallback((sectionKey) => {
         const targetPath = {
@@ -506,12 +574,15 @@ function App() {
             trash: appPaths.trash,
             activity: appPaths.activity,
             todos: appPaths.todos,
+            "isp-detail": resolvedCurrentIspId
+                ? appPaths.ispDetail(resolvedCurrentIspId)
+                : getLandingPathForRole(currentRole, appPaths, authSession?.user),
         }[sectionKey];
 
         if (targetPath) {
             navigateTo(targetPath);
         }
-    }, [appPaths, navigateTo]);
+    }, [appPaths, authSession?.user, currentRole, navigateTo, resolvedCurrentIspId]);
 
     const handleOpenTenantDetail = useCallback((customer, initialTab = "overview", contextIsp = null) => {
         const resolvedCustomerId = Number(customer?.id);
@@ -565,8 +636,13 @@ function App() {
             return;
         }
 
+        if (currentRole === APP_ROLES.isp && resolvedCurrentIspId) {
+            navigateTo(appPaths.ispDetail(resolvedCurrentIspId), { replace: true });
+            return;
+        }
+
         navigateTo(appPaths.customers, { replace: true });
-    }, [appPaths, navigateTo, resolvedCustomerDetail, resolvedIspDetail, route.type]);
+    }, [appPaths, currentRole, navigateTo, resolvedCurrentIspId, resolvedCustomerDetail, resolvedIspDetail, route.type]);
 
     const handleOpenEditIsp = useCallback((isp) => {
         const resolvedIspId = Number(isp?.id);
@@ -600,13 +676,15 @@ function App() {
         } else {
             const savedCustomerId = Number(savedEntity?.id);
             if (Number.isFinite(savedCustomerId) && savedCustomerId > 0) {
-                navigateTo(appPaths.customerDetail(savedCustomerId), { replace: true });
+                navigateTo(appPaths.customerDetail(savedCustomerId, {
+                    ispId: currentRole === APP_ROLES.isp ? resolvedCurrentIspId : null,
+                }), { replace: true });
                 return;
             }
         }
 
         navigateTo(appPaths.customers, { replace: true });
-    }, [appPaths, navigateTo, refreshAppData]);
+    }, [appPaths, currentRole, navigateTo, refreshAppData, resolvedCurrentIspId]);
 
     const handleLogout = useCallback(async () => {
         try {
@@ -676,9 +754,8 @@ function App() {
                     onLoginSuccess={async ({ user }) => {
                         // Extract role from user metadata
                         const nextRole = normalizeAppRole(user?.user_metadata?.role);
-                        const nextRoleConfig = getRoleConfig(nextRole);
                         const nextRolePaths = getAppPaths(nextRole);
-                        const landingPath = nextRolePaths[nextRoleConfig.defaultSection] ?? nextRolePaths.customers;
+                        const landingPath = getLandingPathForRole(nextRole, nextRolePaths, user);
 
                         setAuthSession({ user });
                         setCurrentRole(nextRole);
@@ -791,11 +868,37 @@ function App() {
     }
 
     if (route.type === "customer-create") {
+        if (currentRole === APP_ROLES.isp && !createTenantContextIsp) {
+            if (!hasRequestedIsps || isLoadingIsps) {
+                return (
+                    <RouteLoadingPage
+                        activeSection={activeSection}
+                        currentRole={currentRole}
+                        onNavigate={handleNavigate}
+                        onLogout={handleLogout}
+                        message="Memuat data ISP untuk lokasi baru..."
+                    />
+                );
+            }
+
+            return (
+                <RouteForbiddenPage
+                    activeSection={fallbackSection}
+                    currentRole={currentRole}
+                    onNavigate={handleNavigate}
+                    onLogout={handleLogout}
+                    defaultSection={fallbackSection}
+                    roleLabel={roleConfig.label}
+                />
+            );
+        }
+
         return (
             <Suspense fallback={<RouteLoadingPage activeSection={activeSection} currentRole={currentRole} onNavigate={handleNavigate} onLogout={handleLogout} message="Memuat form..." />}>
                 <TenantAdminFormPage
                     isps={isps}
                     lockedIsp={createTenantContextIsp}
+                    currentRole={currentRole}
                     onCancel={handleCancelCreate}
                     onNavigate={handleNavigate}
                     onLogout={handleLogout}
@@ -848,6 +951,7 @@ function App() {
                     initialData={editingCustomer}
                     isps={isps}
                     mode="edit"
+                    currentRole={currentRole}
                     onCancel={handleCancelCreate}
                     onNavigate={handleNavigate}
                     onLogout={handleLogout}
@@ -933,7 +1037,12 @@ function App() {
                     isp={resolvedIspDetail}
                     currentRole={currentRole}
                     initialTab={route.initialTab}
-                    onBack={() => navigateTo(appPaths.customers, { replace: true })}
+                    onBack={() => {
+                        const fallbackPath = currentRole === APP_ROLES.isp
+                            ? getLandingPathForRole(currentRole, appPaths, authSession?.user)
+                            : appPaths.customers;
+                        navigateTo(fallbackPath, { replace: true });
+                    }}
                     onEditIsp={handleOpenEditIsp}
                     onNavigate={handleNavigate}
                     onLogout={handleLogout}
@@ -989,6 +1098,11 @@ function App() {
                     initialTab={route.initialTab}
                     currentRole={currentRole}
                     onBack={() => {
+                        if (currentRole === APP_ROLES.isp && resolvedCurrentIspId) {
+                            navigateTo(appPaths.ispDetail(resolvedCurrentIspId), { replace: true });
+                            return;
+                        }
+
                         navigateTo(appPaths.customers, { replace: true });
                     }}
                     onEditTenant={handleOpenEditTenant}
@@ -1228,7 +1342,7 @@ function App() {
 
     function RouteLoadingPage({ activeSection, currentRole, onNavigate, onLogout, message }) {
     return (
-        <AppShell activeSection={activeSection} currentRole={currentRole} onNavigate={onNavigate} onLogout={onLogout}>
+        <AppShell activeSection={activeSection} currentRole={currentRole} onNavigate={onNavigate} onLogout={onLogout} hideSidebar={currentRole === APP_ROLES.isp}>
             <div className="mx-auto flex min-h-[50vh] max-w-4xl items-center justify-center">
                 <div className="rounded-2xl border border-slate-100 bg-surface-container-lowest px-6 py-5 text-sm text-on-surface-variant shadow-sm">
                     {message}
@@ -1240,7 +1354,7 @@ function App() {
 
     function RouteMissingPage({ activeSection, currentRole, onNavigate, onLogout, title, description }) {
     return (
-        <AppShell activeSection={activeSection} currentRole={currentRole} onNavigate={onNavigate} onLogout={onLogout}>
+        <AppShell activeSection={activeSection} currentRole={currentRole} onNavigate={onNavigate} onLogout={onLogout} hideSidebar={currentRole === APP_ROLES.isp}>
             <div className="mx-auto max-w-4xl">
                 <section className="rounded-2xl border border-slate-100 bg-surface-container-lowest p-8 shadow-sm">
                     <div className="mb-6 flex items-center gap-3">
@@ -1273,7 +1387,7 @@ function App() {
 
     function RouteForbiddenPage({ activeSection, currentRole, onNavigate, onLogout, defaultSection, roleLabel }) {
     return (
-        <AppShell activeSection={activeSection} currentRole={currentRole} onNavigate={onNavigate} onLogout={onLogout}>
+        <AppShell activeSection={activeSection} currentRole={currentRole} onNavigate={onNavigate} onLogout={onLogout} hideSidebar={currentRole === APP_ROLES.isp}>
             <div className="mx-auto max-w-4xl">
                 <section className="rounded-2xl border border-amber-100 bg-surface-container-lowest p-8 shadow-sm">
                     <div className="mb-6 flex items-center gap-3">
@@ -1309,7 +1423,7 @@ function App() {
     const isTrashSection = activeSection === "trash";
 
     return (
-        <AppShell activeSection={activeSection} currentRole={currentRole} onNavigate={onNavigate} onLogout={onLogout}>
+        <AppShell activeSection={activeSection} currentRole={currentRole} onNavigate={onNavigate} onLogout={onLogout} hideSidebar={currentRole === APP_ROLES.isp}>
             <div className="mx-auto max-w-5xl">
                 <header className="mb-10">
                     <h1 className="text-4xl font-extrabold tracking-tight text-primary">{section.title}</h1>

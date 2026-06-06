@@ -128,7 +128,7 @@ const GlassCustomSelect = ({ label, value, onChange, options, icon, heightClass 
     );
 };
 
-function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, mode = "create", onCancel, onNavigate, onSaved }) {
+function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, mode = "create", currentRole = "admin", onCancel, onNavigate, onLogout, onSaved }) {
     const formatRupiahInput = (value) => {
         if (value === null || value === undefined || value === "") return "";
         const numberString = String(value).replace(/[^0-9]/g, "");
@@ -309,7 +309,7 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
     };
 
     return (
-        <AppShell activeSection="customers" onNavigate={onNavigate}>
+        <AppShell activeSection="customers" currentRole={currentRole} onNavigate={onNavigate} onLogout={onLogout} hideSidebar={currentRole === "isp"}>
             {/* Background Glows */}
             <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
                 <div className="absolute bottom-[-5%] left-[-5%] w-[30%] h-[30%] rounded-full bg-gold-accent/5 blur-[100px] backdrop-blur-md" />

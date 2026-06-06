@@ -585,6 +585,7 @@ function TenantDetailPage({
   currentRole = "admin",
 }) {
   const isTeknisi = currentRole === "teknisi";
+  const isIsp = currentRole === "isp";
   const [activeTab, setActiveTab] = useState(initialTab);
   const [detail, setDetail] = useState(null);
   const [timeline, setTimeline] = useState([]);
@@ -4337,21 +4338,23 @@ function TenantDetailPage({
       activeSection="customers"
       onNavigate={onNavigate}
       onLogout={onLogout}
-      hideSidebar={hideSidebar}
+      hideSidebar={hideSidebar || isIsp}
       currentRole={currentRole}
     >
       <div className="flex flex-col gap-2">
         {/* Top Bar: Back & Status */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <button
-              className="inline-flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.2em] text-white/40 hover:text-gold-accent transition-all group"
-              onClick={onBack}
-              type="button"
-            >
-              <span className="material-symbols-outlined text-[10px] transition-transform group-hover:-translate-x-1">arrow_back</span>
-              {backLabel}
-            </button>
+            {!isIsp && (
+              <button
+                className="inline-flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.2em] text-white/40 hover:text-gold-accent transition-all group"
+                onClick={onBack}
+                type="button"
+              >
+                <span className="material-symbols-outlined text-[10px] transition-transform group-hover:-translate-x-1">arrow_back</span>
+                {backLabel}
+              </button>
+            )}
           </div>
 
           {!isTeknisi && (
@@ -5442,7 +5445,7 @@ function TenantDetailPage({
                   <thead>
                     <tr className="bg-white/[0.02]">
                       <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5" rowSpan="2">No</th>
-                      <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5" rowSpan="2">Nomor Kontrak</th>
+                      <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 min-w-[240px] w-[240px]" rowSpan="2">Nomor Kontrak</th>
                       <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5" rowSpan="2">Berkas Kontrak</th>
                       <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5" rowSpan="2">Keterangan</th>
                       <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center" rowSpan="2">Periode Awal Kontrak</th>
@@ -5467,6 +5470,14 @@ function TenantDetailPage({
                     )}
                     {contractRowsForTable.map((row) => {
                       const isEditingContractRow = contractRowEditor?.rowId === row.id;
+                      const contractNumberValue = isEditingContractRow ? (contractRowEditor.contractNumber ?? "") : (row.contractNumber ?? "");
+                      const contractNumberTextSizeClass = (() => {
+                        const length = String(contractNumberValue).trim().length;
+                        if (length > 42) return "text-[8px]";
+                        if (length > 32) return "text-[9px]";
+                        if (length > 24) return "text-[10px]";
+                        return "text-[11px]";
+                      })();
 
                       // Keterangan badge
                       const noteStyle = (() => {
@@ -5504,29 +5515,36 @@ function TenantDetailPage({
                           </td>
 
                           {/* Nomor Kontrak */}
-                          <td className="px-4 py-3 whitespace-nowrap border border-white/5 p-0">
-                            <input
-                              className="h-9 w-full bg-transparent px-4 text-[11px] font-black uppercase tracking-tight text-white border-transparent focus:border-gold-accent/40 focus:bg-white/[0.04] hover:bg-white/[0.02] outline-none transition-all disabled:opacity-50"
-                              placeholder="Nomor kontrak / BAK"
-                              disabled={isSavingContractRow}
-                              value={isEditingContractRow ? (contractRowEditor.contractNumber ?? "") : (row.contractNumber ?? "")}
-                              onChange={(e) => {
-                                setContractRowEditor((previous) => previous ? { ...previous, contractNumber: e.target.value } : previous);
-                              }}
-                              onFocus={() => {
-                                if (!isEditingContractRow) {
-                                  openContractRowEditor(row, null);
-                                }
-                              }}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  e.currentTarget.blur();
-                                } else if (e.key === "Escape") {
-                                  setContractRowEditor(null);
-                                  e.currentTarget.blur();
-                                }
-                              }}
-                            />
+                          <td className="px-4 py-3 border border-white/5 p-0 min-w-[240px] w-[240px]">
+                            {isEditingContractRow ? (
+                              <input
+                                className={`min-h-9 w-full bg-transparent px-4 py-2 ${contractNumberTextSizeClass} font-black uppercase tracking-tight text-white border-transparent focus:border-gold-accent/40 focus:bg-white/[0.04] hover:bg-white/[0.02] outline-none transition-all disabled:opacity-50`}
+                                placeholder="Nomor kontrak / BAK"
+                                title={String(contractNumberValue)}
+                                disabled={isSavingContractRow}
+                                value={contractNumberValue}
+                                onChange={(e) => {
+                                  setContractRowEditor((previous) => previous ? { ...previous, contractNumber: e.target.value } : previous);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    e.currentTarget.blur();
+                                  } else if (e.key === "Escape") {
+                                    setContractRowEditor(null);
+                                    e.currentTarget.blur();
+                                  }
+                                }}
+                              />
+                            ) : (
+                              <button
+                                className={`min-h-9 w-full px-4 py-2 text-left ${contractNumberTextSizeClass} font-black uppercase tracking-tight leading-snug text-white whitespace-normal break-words hover:bg-white/[0.02] focus:bg-white/[0.04] focus:outline-none focus:ring-1 focus:ring-gold-accent/40 transition-all`}
+                                title={String(contractNumberValue)}
+                                type="button"
+                                onClick={() => openContractRowEditor(row, null)}
+                              >
+                                {contractNumberValue || <span className="text-white/20">Nomor kontrak / BAK</span>}
+                              </button>
+                            )}
                           </td>
 
                           {/* Berkas Kontrak */}

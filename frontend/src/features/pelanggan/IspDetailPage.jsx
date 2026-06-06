@@ -285,6 +285,8 @@ function IspDetailPage({
     onTabChange,
 }) {
     const isTeknisi = currentRole === "teknisi";
+    const isIsp = currentRole === "isp";
+    const canOpenTenantDetail = typeof onOpenTenant === "function";
     const todayIso = new Date().toISOString().slice(0, 10);
     const [detail, setDetail] = useState(null);
     const [activeTab, setActiveTab] = useState(initialTab);
@@ -1126,7 +1128,7 @@ function IspDetailPage({
     const statusBerhentiCount = allTenants.filter(t => normalizeOperationalStatus(t.status) === "berhenti").length;
 
     return (
-        <AppShell activeSection="customers" onNavigate={onNavigate} onLogout={onLogout} currentRole={currentRole}>
+        <AppShell activeSection="customers" onNavigate={onNavigate} onLogout={onLogout} currentRole={currentRole} hideSidebar={isIsp}>
 
             {/* ── POPUP AKUN ISP ─────────────────────────────────────────── */}
             {userPopupOpen && createPortal(
@@ -1395,14 +1397,16 @@ function IspDetailPage({
                     {/* Top Bar: Back & Actions */}
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                            <button
-                                className="inline-flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.2em] text-white/40 hover:text-gold-accent transition-all group"
-                                onClick={onBack}
-                                type="button"
-                            >
-                                <span className="material-symbols-outlined text-[10px] transition-transform group-hover:-translate-x-1">arrow_back</span>
-                                KEMBALI KE WORKSPACE
-                            </button>
+                            {!isIsp && (
+                                <button
+                                    className="inline-flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.2em] text-white/40 hover:text-gold-accent transition-all group"
+                                    onClick={onBack}
+                                    type="button"
+                                >
+                                    <span className="material-symbols-outlined text-[10px] transition-transform group-hover:-translate-x-1">arrow_back</span>
+                                    KEMBALI KE WORKSPACE
+                                </button>
+                            )}
                         </div>
 
                         {!isTeknisi && (
@@ -1416,14 +1420,16 @@ function IspDetailPage({
                                     Refresh
                                 </button>
                                 {/* Tombol Akun ISP */}
-                                <button
-                                    className="inline-flex items-center gap-1.5 h-7 px-3 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white transition-all shadow-sm text-[8px] font-black uppercase tracking-widest backdrop-blur-md"
-                                    onClick={() => void openUserPopup()}
-                                    title="Lihat / Edit Akun ISP"
-                                >
-                                    <span className="material-symbols-outlined text-[10px]">manage_accounts</span>
-                                    Akun Akses
-                                </button>
+                                {!isIsp && (
+                                    <button
+                                        className="inline-flex items-center gap-1.5 h-7 px-3 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white transition-all shadow-sm text-[8px] font-black uppercase tracking-widest backdrop-blur-md"
+                                        onClick={() => void openUserPopup()}
+                                        title="Lihat / Edit Akun ISP"
+                                    >
+                                        <span className="material-symbols-outlined text-[10px]">manage_accounts</span>
+                                        Akun Akses
+                                    </button>
+                                )}
                                 {canEditIsp && (
                                     <button
                                         className="h-7 px-3 flex items-center gap-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500 hover:text-white transition-all shadow-sm text-[8px] font-black uppercase tracking-widest backdrop-blur-md"
@@ -1788,8 +1794,10 @@ function IspDetailPage({
                                                         return (
                                                             <div
                                                                 key={`loc-${t.id}`}
-                                                                className={`flex flex-col lg:flex-row lg:items-center justify-between gap-2 rounded-sm p-2 border transition-all hover:scale-[1.01] hover:shadow-lg cursor-pointer ${isGangguan ? "bg-[#ff2400]/10 border-[#ff2400]/20 text-[#ff2400]" : "bg-white/5 border-white/10 text-white/80"}`}
-                                                                onClick={() => onOpenTenant(t, isGangguan ? "jalur" : "overview")}
+                                                                className={`flex flex-col lg:flex-row lg:items-center justify-between gap-2 rounded-sm p-2 border transition-all ${canOpenTenantDetail ? "hover:scale-[1.01] hover:shadow-lg cursor-pointer" : ""} ${isGangguan ? "bg-[#ff2400]/10 border-[#ff2400]/20 text-[#ff2400]" : "bg-white/5 border-white/10 text-white/80"}`}
+                                                                onClick={() => {
+                                                                    if (canOpenTenantDetail) onOpenTenant(t, isGangguan ? "jalur" : "overview");
+                                                                }}
                                                             >
                                                                 <div className="space-y-1">
                                                                     <div className="flex items-center gap-1.5">
@@ -1800,9 +1808,11 @@ function IspDetailPage({
                                                                         {isGangguan ? "Terdeteksi gangguan jalur fiber optik." : `Terdapat ${t.totalActions || 1} rincian berkas yang perlu dilengkapi.`}
                                                                     </p>
                                                                 </div>
-                                                                <div className="flex items-center gap-2">
-                                                                    <span className="text-[8px] font-bold bg-white/10 px-3 py-1 rounded-full border border-white/10">Buka Lokasi</span>
-                                                                </div>
+                                                                {canOpenTenantDetail && (
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-[8px] font-bold bg-white/10 px-3 py-1 rounded-full border border-white/10">Buka Lokasi</span>
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         );
                                                     });
@@ -2066,14 +2076,16 @@ function IspDetailPage({
                                                     </td>
                                                     <td className="px-3 py-2.5 text-right">
                                                         <div className="flex justify-end gap-1.5">
-                                                            {!isTeknisi && (
+                                                            {!isTeknisi && canOpenTenantDetail && (
                                                                 <button className="w-6 h-6 flex items-center justify-center rounded-md bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all shadow-sm" onClick={() => onOpenTenant(tenant, "invoices")} title="Invoice">
                                                                     <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>receipt_long</span>
                                                                 </button>
                                                             )}
-                                                            <button className="w-6 h-6 flex items-center justify-center rounded-md bg-white/5 text-white hover:bg-white/10 transition-all shadow-sm" onClick={() => onOpenTenant(tenant, isTeknisi ? "jalur" : "overview")} title="Detail">
+                                                            {canOpenTenantDetail && (
+                                                                <button className="w-6 h-6 flex items-center justify-center rounded-md bg-white/5 text-white hover:bg-white/10 transition-all shadow-sm" onClick={() => onOpenTenant(tenant, isTeknisi ? "jalur" : "overview")} title="Detail">
                                                                     <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>visibility</span>
-                                                            </button>
+                                                                </button>
+                                                            )}
                                                             {!isTeknisi && canEditTenant && (
                                                                 <button className="w-6 h-6 flex items-center justify-center rounded-md bg-amber-500/10 text-amber-400 hover:bg-amber-500 hover:text-white transition-all shadow-sm" onClick={() => onEditTenant?.(tenant)} title="Edit">
                                                                     <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>edit</span>
@@ -2263,6 +2275,7 @@ function IspDetailPage({
                                             ispLogoUrl={detail?.logo_url ?? isp.logo_url ?? ""}
                                             ispName={ispName}
                                             onTenantClick={(tenantId) => {
+                                                if (!canOpenTenantDetail) return;
                                                 const tenant = allTenants.find((t) => t.id === tenantId);
                                                 if (tenant) onOpenTenant(tenant, "jalur");
                                             }}
