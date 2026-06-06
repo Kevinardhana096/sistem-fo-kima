@@ -887,7 +887,7 @@ export default function FoRoutePlanner({
   }, [initialPlannerControlPoints, initialRouteMeta, isPreviewMode]);
 
   const applyProviderEntryPoint = (entryPoint) => {
-    if (!entryPoint) return;
+    if (disabled || !entryPoint) return;
     setPointA({
       id: `provider-entry-${entryPoint.id}`,
       lat: entryPoint.lat,
@@ -899,7 +899,7 @@ export default function FoRoutePlanner({
   };
 
   const handleUndoToInitial = () => {
-    if (isPreviewMode || !initialPlannerStateRef.current) {
+    if (disabled || isPreviewMode || !initialPlannerStateRef.current) {
       return;
     }
 
@@ -986,6 +986,11 @@ export default function FoRoutePlanner({
   };
 
   const handleGenerateManualRoute = async () => {
+    if (disabled) {
+      setRouteError("Mode lihat saja aktif. Jalur tidak dapat diubah.");
+      return;
+    }
+
     if (!canGenerateManualRoute) {
       setRouteError("Tentukan Titik ISP (A) dan Titik Lokasi sebelum membuat custom jalur.");
       return;
@@ -1053,6 +1058,11 @@ export default function FoRoutePlanner({
   };
 
   const handleGenerateValhallaRoute = async () => {
+    if (disabled) {
+      setRouteError("Mode lihat saja aktif. Jalur tidak dapat diubah.");
+      return;
+    }
+
     if (!canGenerateRoute) {
       setRouteError("Tentukan Titik ISP (A) dan Titik Lokasi sebelum menghitung jalur.");
       return;
@@ -1119,6 +1129,10 @@ export default function FoRoutePlanner({
   };
 
   const assignPoint = (role, lat, lng, label) => {
+    if (disabled) {
+      return;
+    }
+
     const nextPoint = {
       id: `${role}-${Date.now()}`,
       lat: Number(lat),
@@ -1254,6 +1268,11 @@ export default function FoRoutePlanner({
   };
 
   const handlePasteImportedCoordinate = async (preferredTarget = null) => {
+    if (disabled) {
+      pushToast("Mode Lihat Saja", "Titik dan jalur tidak dapat diubah oleh role ini.", "info");
+      return;
+    }
+
     if (!navigator?.clipboard?.readText) {
       pushToast(
         "Clipboard Tidak Didukung",
@@ -1303,6 +1322,10 @@ export default function FoRoutePlanner({
   };
 
   const handleMarkerDrag = (role, id, lat, lng) => {
+    if (disabled) {
+      return;
+    }
+
     if (role === "provider") {
       setPointA((previous) =>
         previous ? { ...previous, lat, lng } : previous,
@@ -1325,11 +1348,19 @@ export default function FoRoutePlanner({
   };
 
   const handleDeleteWaypoint = (pointId) => {
+    if (disabled) {
+      return;
+    }
+
     setManualWaypoints((previous) => previous.filter((point) => point.id !== pointId));
     pushToast("Waypoint Dihapus", "Titik lintasan berhasil dihapus.", "info");
   };
 
   const handleClearWaypoints = () => {
+    if (disabled) {
+      return;
+    }
+
     if (manualWaypoints.length === 0) {
       return;
     }
@@ -1339,6 +1370,10 @@ export default function FoRoutePlanner({
   };
 
   const handleResetPlanner = () => {
+    if (disabled) {
+      return;
+    }
+
     setPointA(null);
     setPointB(null);
     setManualWaypoints([]);
@@ -1406,6 +1441,11 @@ export default function FoRoutePlanner({
   };
 
   const handleApplyPlanner = () => {
+    if (disabled) {
+      pushToast("Mode Lihat Saja", "Role ini tidak dapat menerapkan perubahan jalur.", "info");
+      return;
+    }
+
     if (!pointA || !pointB) {
       pushToast(
         "Titik Belum Lengkap",
@@ -1915,6 +1955,7 @@ export default function FoRoutePlanner({
             <div className="mt-4 flex rounded-xl bg-slate-950/50 p-1 border border-white/5 shadow-inner">
               <button
                 className={`flex-1 rounded-lg py-1.5 text-[10px] font-black uppercase tracking-widest transition-all ${!customRouteMode ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'text-white/40 hover:text-white/80 hover:bg-white/5'}`}
+                disabled={disabled}
                 onClick={() => setCustomRouteMode(false)}
                 type="button"
               >
@@ -1922,6 +1963,7 @@ export default function FoRoutePlanner({
               </button>
               <button
                 className={`flex-1 rounded-lg py-1.5 text-[10px] font-black uppercase tracking-widest transition-all ${customRouteMode ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20' : 'text-white/40 hover:text-white/80 hover:bg-white/5'}`}
+                disabled={disabled}
                 onClick={() => setCustomRouteMode(true)}
                 type="button"
               >
@@ -1947,6 +1989,7 @@ export default function FoRoutePlanner({
                       <button
                         key={item.value}
                         className={`flex min-h-[44px] flex-col items-center justify-center gap-1 rounded-lg border px-2 py-2 text-[9px] font-black uppercase tracking-widest transition-all ${active ? "border-sky-400/50 bg-sky-500/20 text-sky-100 shadow-lg shadow-sky-500/10" : "border-white/8 bg-slate-950/35 text-white/45 hover:border-white/15 hover:bg-white/5 hover:text-white/75"}`}
+                        disabled={disabled}
                         onClick={() => setProfile(item.value)}
                         type="button"
                       >
@@ -1968,6 +2011,7 @@ export default function FoRoutePlanner({
                   </div>
                   <button
                     className={`px-3 py-1 rounded-md text-[8px] font-black uppercase tracking-widest transition-all ${placementMode === 'waypoint' ? 'bg-amber-500 text-white shadow-md' : 'bg-slate-950/50 text-white/40 border border-white/5 hover:text-white/80'}`}
+                    disabled={disabled}
                     onClick={() => {
                       setPlacementMode('waypoint');
                       setCoordinateImportTarget('waypoint');
@@ -2057,7 +2101,8 @@ export default function FoRoutePlanner({
                   {selectedProviderEntryPoints.slice(0, 4).map((entryPoint, index) => (
                     <button
                       key={entryPoint.id}
-                      className={`w-full rounded-lg border px-3 py-2 text-left transition ${pointA?.id === entryPoint.id ? 'border-primary bg-primary/10' : 'border-white/10 bg-black/20 hover:border-gold-accent/40'}`}
+                      className={`w-full rounded-lg border px-3 py-2 text-left transition disabled:cursor-not-allowed disabled:opacity-50 ${pointA?.id === entryPoint.id ? 'border-primary bg-primary/10' : 'border-white/10 bg-black/20 hover:border-gold-accent/40'}`}
+                      disabled={disabled}
                       onClick={() => applyProviderEntryPoint(entryPoint)}
                       type="button"
                     >
@@ -2083,6 +2128,7 @@ export default function FoRoutePlanner({
                 <div className="flex rounded-md bg-slate-950/50 p-0.5 border border-white/5">
                   <button
                     className={`px-2 py-1 rounded text-[8px] font-black uppercase tracking-widest transition-all ${placementMode === 'b' ? 'bg-primary text-white shadow-md' : 'text-white/40 hover:text-white/80'}`}
+                    disabled={disabled}
                     onClick={() => {
                       setPlacementMode('b');
                       setCoordinateImportTarget('b');
@@ -2093,6 +2139,7 @@ export default function FoRoutePlanner({
                   </button>
                   <button
                     className={`px-2 py-1 rounded text-[8px] font-black uppercase tracking-widest transition-all ${coordinateImportTarget === 'b' && placementMode !== 'b' ? 'bg-sky-500 text-white shadow-md' : 'text-white/40 hover:text-white/80'}`}
+                    disabled={disabled}
                     onClick={() => {
                       setPlacementMode('none');
                       setCoordinateImportTarget('b');
@@ -2118,12 +2165,14 @@ export default function FoRoutePlanner({
                 <div className="space-y-2 animate-fade-in-up">
                   <textarea
                     className="w-full min-h-[60px] rounded-lg border border-white/10 bg-slate-950/65 px-2.5 py-2 text-[10px] font-mono leading-relaxed text-white outline-none resize-none placeholder-white/30 transition focus:border-sky-500/50"
+                    disabled={disabled}
                     onChange={(e) => setCoordinateImportValue(e.target.value)}
                     placeholder="Tempel URL Maps atau koordinat"
                     value={coordinateImportValue}
                   />
                   <button
                     className="w-full rounded-md bg-sky-500/20 border border-sky-400/30 py-2 text-[9px] font-black text-sky-200 uppercase tracking-widest hover:bg-sky-500/30 transition-all active:scale-[0.98]"
+                    disabled={disabled}
                     onClick={() => handlePasteImportedCoordinate("b")}
                     type="button"
                   >
@@ -2149,7 +2198,7 @@ export default function FoRoutePlanner({
                     : 'bg-primary hover:bg-primary-hover shadow-primary/30'
                 }`}
                 onClick={customRouteMode ? handleGenerateManualRoute : () => void handleGenerateValhallaRoute()}
-                disabled={isCalculating || !pointA || !pointB || (!customRouteMode && valhallaStatus === "offline")}
+                disabled={disabled || isCalculating || !pointA || !pointB || (!customRouteMode && valhallaStatus === "offline")}
                 type="button"
               >
                 {isCalculating ? (
@@ -2236,7 +2285,8 @@ export default function FoRoutePlanner({
                   <div>
                     <label className="mb-1.5 block text-[9px] font-black uppercase tracking-widest text-white/60">Alasan Ubah Jalur</label>
                     <textarea 
-                      className="w-full min-h-[60px] rounded-xl border border-white/10 bg-slate-950/65 px-3 py-2 text-[10px] font-medium leading-relaxed text-white outline-none placeholder:text-white/30 resize-none focus:border-amber-500/50 transition-colors"
+                      className="w-full min-h-[60px] rounded-xl border border-white/10 bg-slate-950/65 px-3 py-2 text-[10px] font-medium leading-relaxed text-white outline-none placeholder:text-white/30 resize-none focus:border-amber-500/50 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                      disabled={disabled}
                       placeholder="Masukkan alasan mengapa jalur ini diubah..."
                       value={editReason}
                       onChange={(e) => setEditReason(e.target.value)}
@@ -2247,6 +2297,7 @@ export default function FoRoutePlanner({
                 <div className="grid grid-cols-2 gap-2 mt-2">
                   <button
                     className="py-1.5 px-2 bg-white/5 border border-white/10 text-white/70 hover:text-white rounded-xl transition backdrop-blur-md flex justify-center items-center gap-1.5 text-[8px] font-black uppercase tracking-widest"
+                    disabled={disabled}
                     onClick={handleUndoToInitial}
                     title="Undo ke setelan awal"
                     type="button"
@@ -2255,6 +2306,7 @@ export default function FoRoutePlanner({
                   </button>
                   <button
                     className="py-1.5 px-2 bg-white/5 border border-white/10 text-white/70 hover:text-rose-400 hover:border-rose-400/30 rounded-xl transition backdrop-blur-md flex justify-center items-center gap-1.5 text-[8px] font-black uppercase tracking-widest"
+                    disabled={disabled}
                     onClick={handleResetPlanner}
                     title="Reset Semua"
                     type="button"
@@ -2265,7 +2317,7 @@ export default function FoRoutePlanner({
 
                 <button
                   className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-[9px] font-black uppercase tracking-widest py-2 rounded-xl transition shadow-lg shadow-emerald-900/20 disabled:opacity-50 flex items-center justify-center gap-2 active:scale-[0.98]"
-                  disabled={!routeData?.geometryCoordinates || routeData.geometryCoordinates.length < 2 || isCalculating || (initialControlPoints.length > 0 && editReason.trim() === '')}
+                  disabled={disabled || !routeData?.geometryCoordinates || routeData.geometryCoordinates.length < 2 || isCalculating || (initialControlPoints.length > 0 && editReason.trim() === '')}
                   onClick={handleApplyPlanner}
                   type="button"
                 >

@@ -286,6 +286,7 @@ function IspDetailPage({
 }) {
     const isTeknisi = currentRole === "teknisi";
     const isIsp = currentRole === "isp";
+    const canManageEntryPoints = currentRole === "admin" || currentRole === "teknisi";
     const canOpenTenantDetail = typeof onOpenTenant === "function";
     const todayIso = new Date().toISOString().slice(0, 10);
     const [detail, setDetail] = useState(null);
@@ -661,8 +662,31 @@ function IspDetailPage({
     const ispName = detail?.name ?? isp.name;
     const contractRef = detail?.contractReference ?? isp.contractReference ?? "-";
 
+    useEffect(() => {
+        if (!canManageEntryPoints) {
+            setEntryPointEditor(null);
+        }
+    }, [canManageEntryPoints]);
+
+    const requireEntryPointManageAccess = () => {
+        if (canManageEntryPoints) return true;
+        setError("Role ISP hanya dapat melihat titik masuk ISP tanpa mengubah peta.");
+        return false;
+    };
+
+    const openEntryPointEditor = (editorConfig) => {
+        if (!requireEntryPointManageAccess()) return;
+        setError("");
+        setEntryPointEditor(editorConfig);
+    };
+
     // ── Entry Point CRUD handlers ──
     const handleSaveEntryPoint = async () => {
+        if (!requireEntryPointManageAccess()) {
+            setEntryPointEditor(null);
+            return;
+        }
+
         if (!entryPointEditor) return;
         const { mode, data } = entryPointEditor;
         const label = String(data.label ?? "").trim();
@@ -684,6 +708,7 @@ function IspDetailPage({
     };
 
     const handleDeleteEntryPoint = async (pointId) => {
+        if (!requireEntryPointManageAccess()) return;
         if (!window.confirm("Hapus titik masuk ini?")) return;
         try {
             await api.ispEntryPoints.softDelete(pointId);
@@ -692,6 +717,8 @@ function IspDetailPage({
     };
 
     const handleMoveEntryPoint = async (pointId, lat, lng) => {
+        if (!requireEntryPointManageAccess()) return;
+
         try {
             const point = (detail?.entryPoints || []).find((p) => p.id === pointId);
             if (!point) return;
@@ -2295,11 +2322,11 @@ function IspDetailPage({
                                                         <span className="px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-[8px] font-black text-white/50 uppercase tracking-widest shadow-inner-glass">
                                                             {(detail?.entryPoints || []).length} Titik
                                                         </span>
-                                                        {!isTeknisi && !isIsp && (
+                                                        {canManageEntryPoints && (
                                                             <button 
                                                                 type="button" 
                                                                 className="flex items-center justify-center w-6 h-6 rounded-md bg-gold-accent/10 border border-gold-accent/20 text-gold-accent hover:bg-gold-accent hover:text-[#0f141e] transition-all shadow-sm" 
-                                                                onClick={() => setEntryPointEditor({ mode: "add", data: { label: "", latitude: "", longitude: "", status: "aktif", fiberType: "", coreCapacity: "", description: "", isDefault: false } })}
+                                                                onClick={() => openEntryPointEditor({ mode: "add", data: { label: "", latitude: "", longitude: "", status: "aktif", fiberType: "", coreCapacity: "", description: "", isDefault: false } })}
                                                                 title="Tambah Titik"
                                                             >
                                                                 <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>add</span>
@@ -2313,10 +2340,10 @@ function IspDetailPage({
                                             <div className="p-2 border-b border-white/5 bg-black/20">
                                                 <IspEntryPointMap
                                                     entryPoints={detail?.entryPoints || []}
-                                                    readOnly={isTeknisi || isIsp}
-                                                    onAddPoint={(lat, lng) => setEntryPointEditor({ mode: "add", data: { label: "", latitude: lat, longitude: lng, status: "aktif", fiberType: "", coreCapacity: "", description: "", isDefault: false } })}
+                                                    readOnly={!canManageEntryPoints}
+                                                    onAddPoint={(lat, lng) => openEntryPointEditor({ mode: "add", data: { label: "", latitude: lat, longitude: lng, status: "aktif", fiberType: "", coreCapacity: "", description: "", isDefault: false } })}
                                                     onMovePoint={handleMoveEntryPoint}
-                                                    onEditPoint={(point) => setEntryPointEditor({ mode: "edit", data: { id: point.id, label: point.label, latitude: String(point.latitude), longitude: String(point.longitude), status: point.status, fiberType: point.fiberType || "", coreCapacity: point.coreCapacity != null ? String(point.coreCapacity) : "", description: point.description || "", isDefault: point.isDefault } })}
+                                                    onEditPoint={(point) => openEntryPointEditor({ mode: "edit", data: { id: point.id, label: point.label, latitude: String(point.latitude), longitude: String(point.longitude), status: point.status, fiberType: point.fiberType || "", coreCapacity: point.coreCapacity != null ? String(point.coreCapacity) : "", description: point.description || "", isDefault: point.isDefault } })}
                                                     onDeletePoint={handleDeleteEntryPoint}
                                                 />
                                             </div>
@@ -2340,9 +2367,9 @@ function IspDetailPage({
                                                                 </div>
                                                                 <p className="text-[9px] font-bold text-white/40 font-mono truncate tracking-wider">{point.latitude}, {point.longitude}</p>
                                                             </div>
-                                                            {!isTeknisi && (
+                                                            {canManageEntryPoints && (
                                                                 <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                    <button type="button" className="w-7 h-7 flex items-center justify-center rounded-md bg-white/5 border border-white/5 hover:bg-gold-accent/10 hover:border-gold-accent/20 text-white/40 hover:text-gold-accent transition-all shadow-sm" onClick={() => setEntryPointEditor({ mode: "edit", data: { id: point.id, label: point.label, latitude: String(point.latitude), longitude: String(point.longitude), status: point.status, fiberType: point.fiberType || "", coreCapacity: point.coreCapacity != null ? String(point.coreCapacity) : "", description: point.description || "", isDefault: point.isDefault } })}>
+                                                                    <button type="button" className="w-7 h-7 flex items-center justify-center rounded-md bg-white/5 border border-white/5 hover:bg-gold-accent/10 hover:border-gold-accent/20 text-white/40 hover:text-gold-accent transition-all shadow-sm" onClick={() => openEntryPointEditor({ mode: "edit", data: { id: point.id, label: point.label, latitude: String(point.latitude), longitude: String(point.longitude), status: point.status, fiberType: point.fiberType || "", coreCapacity: point.coreCapacity != null ? String(point.coreCapacity) : "", description: point.description || "", isDefault: point.isDefault } })}>
                                                                         <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>edit</span>
                                                                     </button>
                                                                     <button type="button" className="w-7 h-7 flex items-center justify-center rounded-md bg-white/5 border border-white/5 hover:bg-red-400/10 hover:border-red-400/20 text-white/40 hover:text-red-400 transition-all shadow-sm" onClick={() => handleDeleteEntryPoint(point.id)}>
