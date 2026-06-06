@@ -5009,7 +5009,7 @@ function TenantDetailPage({
           <div className="flex flex-col gap-4">
             <FoRoutePlanner
               mode="preview"
-              onPreviewClick={() => onOpenRoutePlanner?.(detail ?? customer)}
+              onPreviewClick={!isIsp ? () => onOpenRoutePlanner?.(detail ?? customer) : undefined}
               previewGeometryCoordinates={previewGeometryCoordinates}
               previewRoads={previewRoads}
               previewPoints={previewRoutePoints}
@@ -5044,7 +5044,7 @@ function TenantDetailPage({
                     </div>
                     {!isRouteDrafting ? (
                       <>
-                        {!isPlannerJalurView && (
+                        {!isPlannerJalurView && !isIsp && (
                           <button
                             className="h-8 px-4 flex items-center gap-2 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white transition-all shadow-sm text-[9px] font-black uppercase tracking-widest group"
                             onClick={() => onOpenRoutePlanner?.(detail ?? customer)}

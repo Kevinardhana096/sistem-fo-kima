@@ -36,20 +36,32 @@ export const signIn = async (email, password) => {
   return data;
 };
 
-export const signUpAdmin = async ({ email, password, displayName }) => {
+const SIGNUP_ROLE_DEFAULT_NAMES = {
+  admin: 'Administrator',
+  teknisi: 'Teknisi',
+};
+
+export const signUpInternalUser = async ({ email, password, displayName, role = 'admin' }) => {
+  const normalizedRole = Object.hasOwn(SIGNUP_ROLE_DEFAULT_NAMES, role) ? role : 'admin';
+  const defaultDisplayName = SIGNUP_ROLE_DEFAULT_NAMES[normalizedRole];
+
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
       data: {
-        role: 'admin',
-        display_name: displayName || 'Administrator',
+        role: normalizedRole,
+        display_name: displayName || defaultDisplayName,
       },
     },
   });
   if (error) throw error;
   return data;
 };
+
+export const signUpAdmin = async ({ email, password, displayName }) => (
+  signUpInternalUser({ email, password, displayName, role: 'admin' })
+);
 
 export const updateCurrentUserProfile = async ({ displayName, password, currentPassword, email }) => {
   const trimmedDisplayName = String(displayName ?? '').trim();

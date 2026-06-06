@@ -64,9 +64,9 @@ id | username | email              | role  | display_name  | is_active
 
 ## 🧪 Test Login
 
-## 🔗 URL Register Admin Tersembunyi
+## 🔗 URL Register Internal Tersembunyi
 
-Frontend menyediakan halaman register admin khusus untuk kebutuhan provisioning awal:
+Frontend menyediakan halaman register internal khusus untuk kebutuhan provisioning awal admin dan teknisi:
 
 ```text
 /kima-admin/register-7f4c9a2e
@@ -84,12 +84,12 @@ Contoh production:
 https://<domain-production>/kima-admin/register-7f4c9a2e
 ```
 
-Form ini membuat akun Supabase Auth dengan metadata:
+Form ini membuat akun Supabase Auth dengan metadata sesuai role yang dipilih:
 
 ```json
 {
-  "role": "admin",
-  "display_name": "Administrator"
+  "role": "admin | teknisi",
+  "display_name": "Administrator | Teknisi"
 }
 ```
 

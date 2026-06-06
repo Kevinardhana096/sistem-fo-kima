@@ -1485,12 +1485,14 @@ export default function FoRoutePlanner({
           
           {/* Left Column: Map Preview */}
           <div className="relative overflow-hidden rounded-xl border border-white/10 lg:col-span-3 min-h-[250px] shadow-sm z-10 h-full w-full">
-            <button
-              aria-label="Buka halaman planner jalur"
-              className="absolute inset-0 z-[450] cursor-pointer bg-transparent"
-              onClick={onPreviewClick}
-              type="button"
-            />
+            {onPreviewClick && (
+              <button
+                aria-label="Buka halaman planner jalur"
+                className="absolute inset-0 z-[450] cursor-pointer bg-transparent"
+                onClick={onPreviewClick}
+                type="button"
+              />
+            )}
             {/* Tombol Pusat KIMA - preview */}
             <button
               className="absolute bottom-3 right-3 z-[460] w-9 h-9 rounded-xl border border-gold-accent/30 bg-slate-900/80 backdrop-blur-md text-gold-accent hover:bg-gold-accent hover:text-[#0f141e] transition shadow-lg flex items-center justify-center"

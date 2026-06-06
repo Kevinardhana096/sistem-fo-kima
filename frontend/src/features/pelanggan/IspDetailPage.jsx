@@ -2295,7 +2295,7 @@ function IspDetailPage({
                                                         <span className="px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-[8px] font-black text-white/50 uppercase tracking-widest shadow-inner-glass">
                                                             {(detail?.entryPoints || []).length} Titik
                                                         </span>
-                                                        {!isTeknisi && (
+                                                        {!isTeknisi && !isIsp && (
                                                             <button 
                                                                 type="button" 
                                                                 className="flex items-center justify-center w-6 h-6 rounded-md bg-gold-accent/10 border border-gold-accent/20 text-gold-accent hover:bg-gold-accent hover:text-[#0f141e] transition-all shadow-sm" 
@@ -2313,7 +2313,7 @@ function IspDetailPage({
                                             <div className="p-2 border-b border-white/5 bg-black/20">
                                                 <IspEntryPointMap
                                                     entryPoints={detail?.entryPoints || []}
-                                                    readOnly={isTeknisi}
+                                                    readOnly={isTeknisi || isIsp}
                                                     onAddPoint={(lat, lng) => setEntryPointEditor({ mode: "add", data: { label: "", latitude: lat, longitude: lng, status: "aktif", fiberType: "", coreCapacity: "", description: "", isDefault: false } })}
                                                     onMovePoint={handleMoveEntryPoint}
                                                     onEditPoint={(point) => setEntryPointEditor({ mode: "edit", data: { id: point.id, label: point.label, latitude: String(point.latitude), longitude: String(point.longitude), status: point.status, fiberType: point.fiberType || "", coreCapacity: point.coreCapacity != null ? String(point.coreCapacity) : "", description: point.description || "", isDefault: point.isDefault } })}

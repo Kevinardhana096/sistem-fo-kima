@@ -1,5 +1,26 @@
 import { useMemo, useState } from "react";
-import { signUpAdmin } from "@/lib/supabase";
+import { signUpInternalUser } from "@/lib/supabase";
+
+const REGISTER_ROLES = {
+    admin: {
+        key: "admin",
+        label: "Admin",
+        defaultDisplayName: "Administrator",
+        emailLabel: "Email Admin",
+        emailPlaceholder: "admin@kima.co.id",
+    },
+    teknisi: {
+        key: "teknisi",
+        label: "Teknisi",
+        defaultDisplayName: "Teknisi",
+        emailLabel: "Email Teknisi",
+        emailPlaceholder: "teknisi@kima.co.id",
+    },
+};
+
+function getRegisterRole(role) {
+    return REGISTER_ROLES[role] ?? REGISTER_ROLES.admin;
+}
 
 function normalizeEmail(email) {
     return String(email ?? "").trim().toLowerCase();
@@ -7,6 +28,7 @@ function normalizeEmail(email) {
 
 export default function AdminRegisterPage({ onBackToLogin }) {
     const [form, setForm] = useState({
+        role: REGISTER_ROLES.admin.key,
         displayName: "Administrator",
         email: "",
         password: "",
@@ -22,8 +44,24 @@ export default function AdminRegisterPage({ onBackToLogin }) {
         return "Password siap digunakan.";
     }, [form.confirmPassword, form.password]);
 
+    const selectedRole = getRegisterRole(form.role);
+
     const updateField = (key, value) => {
-        setForm((previous) => ({ ...previous, [key]: value }));
+        setForm((previous) => {
+            if (key === "role") {
+                const nextRole = getRegisterRole(value);
+                const previousRole = getRegisterRole(previous.role);
+                const shouldUseRoleDefaultName = previous.displayName.trim() === previousRole.defaultDisplayName;
+
+                return {
+                    ...previous,
+                    role: nextRole.key,
+                    displayName: shouldUseRoleDefaultName ? nextRole.defaultDisplayName : previous.displayName,
+                };
+            }
+
+            return { ...previous, [key]: value };
+        });
         setStatus({ type: "", message: "" });
     };
 
@@ -31,10 +69,11 @@ export default function AdminRegisterPage({ onBackToLogin }) {
         event.preventDefault();
 
         const email = normalizeEmail(form.email);
-        const displayName = form.displayName.trim() || "Administrator";
+        const role = getRegisterRole(form.role);
+        const displayName = form.displayName.trim() || role.defaultDisplayName;
 
         if (!email) {
-            setStatus({ type: "error", message: "Email admin wajib diisi." });
+            setStatus({ type: "error", message: `${role.emailLabel} wajib diisi.` });
             return;
         }
 
@@ -50,12 +89,13 @@ export default function AdminRegisterPage({ onBackToLogin }) {
 
         setIsSubmitting(true);
         try {
-            await signUpAdmin({ email, password: form.password, displayName });
+            await signUpInternalUser({ email, password: form.password, displayName, role: role.key });
             setStatus({
                 type: "success",
-                message: "Akun admin berhasil dibuat. Jika email confirmation aktif di Supabase, verifikasi email dulu sebelum login.",
+                message: `Akun ${role.label.toLowerCase()} berhasil dibuat dan sudah dapat digunakan.`,
             });
             setForm({
+                role: role.key,
                 displayName,
                 email: "",
                 password: "",
@@ -64,7 +104,7 @@ export default function AdminRegisterPage({ onBackToLogin }) {
         } catch (error) {
             setStatus({
                 type: "error",
-                message: error instanceof Error ? error.message : "Gagal membuat akun admin.",
+                message: error instanceof Error ? error.message : `Gagal membuat akun ${role.label.toLowerCase()}.`,
             });
         } finally {
             setIsSubmitting(false);
@@ -82,13 +122,13 @@ export default function AdminRegisterPage({ onBackToLogin }) {
                     <div className="mb-6 flex items-start justify-between gap-4">
                         <div>
                             <p className="mb-2 text-[10px] font-black uppercase tracking-[0.28em] text-gold-accent">
-                                Admin Access
+                                Internal Access
                             </p>
                             <h1 className="text-2xl font-black tracking-tight text-white">
-                                Register Admin
+                                Register Pengguna
                             </h1>
                             <p className="mt-2 text-xs font-semibold leading-relaxed text-white/65">
-                                Buat akun Supabase Auth dengan role admin untuk Sistem FO KIMA.
+                                Buat akun Supabase Auth dengan role admin atau teknisi untuk Sistem FO KIMA.
                             </p>
                         </div>
                         <img alt="Logo PT KIMA" className="h-10 w-auto brightness-0 invert" src="/logo-kima.png" />
@@ -109,6 +149,23 @@ export default function AdminRegisterPage({ onBackToLogin }) {
                     <form className="space-y-4" onSubmit={handleSubmit}>
                         <label className="block">
                             <span className="mb-2 block text-[10px] font-black uppercase tracking-[0.18em] text-white/75">
+                                Role
+                            </span>
+                            <select
+                                className="w-full rounded-lg border border-white/15 bg-white/[0.07] px-3 py-2 text-sm font-semibold text-white outline-none transition-[background-color,border-color,box-shadow] duration-200 focus:border-gold-accent/60 focus:bg-white/10 focus:ring-2 focus:ring-gold-accent/10"
+                                onChange={(event) => updateField("role", event.target.value)}
+                                value={form.role}
+                            >
+                                {Object.values(REGISTER_ROLES).map((roleOption) => (
+                                    <option className="bg-[#151923] text-white" key={roleOption.key} value={roleOption.key}>
+                                        {roleOption.label}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
+
+                        <label className="block">
+                            <span className="mb-2 block text-[10px] font-black uppercase tracking-[0.18em] text-white/75">
                                 Nama Tampilan
                             </span>
                             <input
@@ -122,13 +179,13 @@ export default function AdminRegisterPage({ onBackToLogin }) {
 
                         <label className="block">
                             <span className="mb-2 block text-[10px] font-black uppercase tracking-[0.18em] text-white/75">
-                                Email Admin
+                                {selectedRole.emailLabel}
                             </span>
                             <input
                                 autoComplete="email"
                                 className="w-full rounded-lg border border-white/15 bg-white/[0.07] px-3 py-2 text-sm font-semibold text-white outline-none transition-[background-color,border-color,box-shadow] duration-200 placeholder:text-white/30 focus:border-gold-accent/60 focus:bg-white/10 focus:ring-2 focus:ring-gold-accent/10"
                                 onChange={(event) => updateField("email", event.target.value)}
-                                placeholder="admin@kima.co.id"
+                                placeholder={selectedRole.emailPlaceholder}
                                 type="email"
                                 value={form.email}
                             />
@@ -168,7 +225,7 @@ export default function AdminRegisterPage({ onBackToLogin }) {
                             disabled={isSubmitting}
                             type="submit"
                         >
-                            {isSubmitting ? "Membuat akun..." : "Buat Admin"}
+                            {isSubmitting ? "Membuat akun..." : `Buat ${selectedRole.label}`}
                         </button>
                     </form>
 
