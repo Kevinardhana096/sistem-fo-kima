@@ -1329,7 +1329,7 @@ function IspDetailPage({
 
             {/* Entry Point Editor Modal */}
             {entryPointEditor && createPortal(
-                <div className="fixed inset-0 z-[200] flex items-center justify-center px-4 backdrop-blur-md bg-black/60">
+                <div className="fixed inset-0 z-[1500] flex items-center justify-center px-4 backdrop-blur-md bg-black/60">
                     <div className="w-full max-w-sm rounded-2xl glass-card backdrop-blur-xl p-5 border border-white/20 shadow-[0_0_100px_rgba(0,0,0,0.8)] relative overflow-hidden">
                         <div className="mb-4 flex items-center justify-between">
                             <h3 className="text-sm font-black text-white tracking-widest uppercase">
