@@ -16,6 +16,9 @@ import "./FoRoutePlanner.css";
 const KIMA_CENTER = [-5.0929568, 119.5018379];
 const DEFAULT_CENTER = KIMA_CENTER;
 const DEFAULT_ZOOM = 14;
+const MAP_MIN_ZOOM = 12;
+const MAP_MAX_ZOOM = 22;
+const DEFAULT_TILE_MAX_NATIVE_ZOOM = 19;
 const VALHALLA_LOCAL_HOST =
   typeof import.meta.env.VITE_VALHALLA_HOST === "string" &&
     import.meta.env.VITE_VALHALLA_HOST.trim()
@@ -27,18 +30,21 @@ const BASEMAP_OPTIONS = [
     key: "dark",
     label: "Dark",
     url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+    maxNativeZoom: 20,
     attribution: '&copy; <a href="https://carto.com/">CartoDB</a>',
   },
   {
     key: "light",
     label: "Light",
     url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+    maxNativeZoom: 20,
     attribution: '&copy; <a href="https://carto.com/">CartoDB</a>',
   },
   {
     key: "osm",
     label: "OSM",
     url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    maxNativeZoom: 19,
     attribution:
       '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
   },
@@ -46,6 +52,7 @@ const BASEMAP_OPTIONS = [
     key: "satellite",
     label: "Satellite",
     url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    maxNativeZoom: 19,
     attribution: "Tiles &copy; Esri",
   },
 ];
@@ -1547,11 +1554,15 @@ export default function FoRoutePlanner({
                 attributionControl={false}
                 center={DEFAULT_CENTER}
                 className="h-full w-full bg-slate-100"
+                maxZoom={MAP_MAX_ZOOM}
+                minZoom={MAP_MIN_ZOOM}
                 scrollWheelZoom
                 zoom={DEFAULT_ZOOM}
               >
                 <TileLayer
                   attribution={selectedBasemap.attribution}
+                  maxNativeZoom={selectedBasemap.maxNativeZoom ?? DEFAULT_TILE_MAX_NATIVE_ZOOM}
+                  maxZoom={MAP_MAX_ZOOM}
                   url={selectedBasemap.url}
                 />
                 {/* Adjust viewport based on preview or actual route */}
@@ -1721,12 +1732,16 @@ export default function FoRoutePlanner({
           attributionControl={false}
           center={DEFAULT_CENTER}
           className="h-full w-full bg-slate-100"
+          maxZoom={MAP_MAX_ZOOM}
+          minZoom={MAP_MIN_ZOOM}
           scrollWheelZoom
           zoom={DEFAULT_ZOOM}
           zoomControl={false}
         >
           <TileLayer
             attribution={selectedBasemap.attribution}
+            maxNativeZoom={selectedBasemap.maxNativeZoom ?? DEFAULT_TILE_MAX_NATIVE_ZOOM}
+            maxZoom={MAP_MAX_ZOOM}
             url={selectedBasemap.url}
           />
           <AttributionControl position="bottomleft" />
