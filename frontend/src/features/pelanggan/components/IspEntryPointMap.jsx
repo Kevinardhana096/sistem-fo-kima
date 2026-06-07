@@ -63,22 +63,29 @@ function MapCapture({ onReady }) {
 
     const animationFrames = [];
     const refreshTimers = [];
-    const invalidateMapSize = () => map.invalidateSize({ pan: false });
+    const refreshMapTiles = () => {
+      map.invalidateSize({ pan: false });
+      map.eachLayer((layer) => {
+        if (layer instanceof L.TileLayer) {
+          layer.redraw();
+        }
+      });
+    };
     const clearPendingRefreshes = () => {
       animationFrames.splice(0).forEach((frame) => cancelAnimationFrame(frame));
       refreshTimers.splice(0).forEach((timer) => window.clearTimeout(timer));
     };
     const scheduleMapRefresh = () => {
       clearPendingRefreshes();
-      invalidateMapSize();
-      animationFrames.push(requestAnimationFrame(invalidateMapSize));
+      refreshMapTiles();
+      animationFrames.push(requestAnimationFrame(refreshMapTiles));
       MAP_REFRESH_DELAYS.forEach((delay) => {
-        refreshTimers.push(window.setTimeout(invalidateMapSize, delay));
+        refreshTimers.push(window.setTimeout(refreshMapTiles, delay));
       });
     };
 
     const container = map.getContainer();
-    // Fix tiles not loading when map is below the fold or after zoom animations.
+    // Fix tiles not loading when map is below the fold, resized, or after zoom animations.
     const io = new IntersectionObserver(
       (entries) => { if (entries[0]?.isIntersecting) scheduleMapRefresh(); },
       { threshold: 0.1 },
@@ -86,7 +93,7 @@ function MapCapture({ onReady }) {
     io.observe(container);
     const ro = new ResizeObserver(scheduleMapRefresh);
     ro.observe(container);
-    map.on("zoomstart zoomend moveend", scheduleMapRefresh);
+    map.on("zoomend moveend", scheduleMapRefresh);
     window.addEventListener("resize", scheduleMapRefresh);
     scheduleMapRefresh();
 
@@ -94,7 +101,7 @@ function MapCapture({ onReady }) {
       clearPendingRefreshes();
       io.disconnect();
       ro.disconnect();
-      map.off("zoomstart zoomend moveend", scheduleMapRefresh);
+      map.off("zoomend moveend", scheduleMapRefresh);
       window.removeEventListener("resize", scheduleMapRefresh);
     };
   }, [map, onReady]);
