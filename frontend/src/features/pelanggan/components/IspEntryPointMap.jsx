@@ -5,10 +5,12 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
 const KIMA_CENTER = [-5.0929568, 119.5018379];
-const DEFAULT_ZOOM = 15;
-const MAP_MIN_ZOOM = 12;
-const MAP_MAX_ZOOM = 22;
+const DEFAULT_ZOOM = 14;
+const MAP_MIN_ZOOM = 11;
+const MAP_MAX_ZOOM = 19;
+const FIT_BOUNDS_MAX_ZOOM = 16;
 const TILE_MAX_NATIVE_ZOOM = 19;
+const MAP_REFRESH_DELAYS = [120, 300, 700];
 const KIMA_ICON = L.icon({
   iconUrl: "/logo-kima.png",
   iconSize: [40, 40],
@@ -45,7 +47,10 @@ function FitBounds({ bounds }) {
   const map = useMap();
   useEffect(() => {
     if (bounds && bounds.isValid()) {
-      map.fitBounds(bounds, { padding: [24, 24] });
+      map.fitBounds(bounds, {
+        maxZoom: FIT_BOUNDS_MAX_ZOOM,
+        padding: [40, 40],
+      });
     }
   }, [bounds, map]);
   return null;
@@ -55,17 +60,43 @@ function MapCapture({ onReady }) {
   const map = useMap();
   useEffect(() => {
     if (onReady) onReady(map);
-    map.invalidateSize();
+
+    const animationFrames = [];
+    const refreshTimers = [];
+    const invalidateMapSize = () => map.invalidateSize({ pan: false });
+    const clearPendingRefreshes = () => {
+      animationFrames.splice(0).forEach((frame) => cancelAnimationFrame(frame));
+      refreshTimers.splice(0).forEach((timer) => window.clearTimeout(timer));
+    };
+    const scheduleMapRefresh = () => {
+      clearPendingRefreshes();
+      invalidateMapSize();
+      animationFrames.push(requestAnimationFrame(invalidateMapSize));
+      MAP_REFRESH_DELAYS.forEach((delay) => {
+        refreshTimers.push(window.setTimeout(invalidateMapSize, delay));
+      });
+    };
+
     const container = map.getContainer();
-    // Fix tiles not loading when map is below the fold
+    // Fix tiles not loading when map is below the fold or after zoom animations.
     const io = new IntersectionObserver(
-      (entries) => { if (entries[0]?.isIntersecting) map.invalidateSize(); },
+      (entries) => { if (entries[0]?.isIntersecting) scheduleMapRefresh(); },
       { threshold: 0.1 },
     );
     io.observe(container);
-    const ro = new ResizeObserver(() => map.invalidateSize());
+    const ro = new ResizeObserver(scheduleMapRefresh);
     ro.observe(container);
-    return () => { io.disconnect(); ro.disconnect(); };
+    map.on("zoomstart zoomend moveend", scheduleMapRefresh);
+    window.addEventListener("resize", scheduleMapRefresh);
+    scheduleMapRefresh();
+
+    return () => {
+      clearPendingRefreshes();
+      io.disconnect();
+      ro.disconnect();
+      map.off("zoomstart zoomend moveend", scheduleMapRefresh);
+      window.removeEventListener("resize", scheduleMapRefresh);
+    };
   }, [map, onReady]);
   return null;
 }
@@ -180,12 +211,15 @@ function EntryPointMapSurface({
         maxZoom={MAP_MAX_ZOOM}
         minZoom={MAP_MIN_ZOOM}
         scrollWheelZoom
+        wheelPxPerZoomLevel={90}
         zoom={DEFAULT_ZOOM}
       >
         <ZoomControl position="topright" />
         <TileLayer
+          keepBuffer={4}
           maxNativeZoom={TILE_MAX_NATIVE_ZOOM}
           maxZoom={MAP_MAX_ZOOM}
+          updateWhenIdle={false}
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <MapCapture onReady={(map) => { mapRef.current = map; }} />
