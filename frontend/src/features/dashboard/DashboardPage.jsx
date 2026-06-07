@@ -890,7 +890,7 @@ function CustomDropdown({ value, options, onChange, align = "right", triggerClas
     );
 }
 
-function ChartFilterSelector({ filter, setFilter, availableYears, modeOptions, showCurrentMonthOption = false }) {
+function ChartFilterSelector({ filter, setFilter, availableYears, modeOptions, showCurrentMonthOption = false, compact = false }) {
     const handleChange = (key, value) => {
         setFilter(prev => ({ ...prev, [key]: value }));
     };
@@ -906,6 +906,24 @@ function ChartFilterSelector({ filter, setFilter, availableYears, modeOptions, s
         { value: "specific_year", label: "Tahun Spesifik" },
         { value: "custom", label: "Kustom Range" }
     ];
+    const containerClass = compact
+        ? "flex max-w-full shrink-0 flex-nowrap items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-2 py-1.5 backdrop-blur-md"
+        : "flex max-w-full flex-wrap items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-2.5 py-1.5 backdrop-blur-md sm:gap-3 sm:px-3";
+    const dividerClass = compact
+        ? "flex items-center border-r border-white/10 pr-1.5"
+        : "flex items-center border-r border-white/10 pr-2 sm:pr-3";
+    const rangeClass = compact
+        ? "flex items-center gap-1.5 border-r border-white/10 pr-1.5"
+        : "flex items-center gap-2 border-r border-white/10 pr-2 sm:pr-3";
+    const inputClass = compact
+        ? "bg-transparent border-b border-white/20 text-[10px] font-black text-gold-accent focus:ring-0 outline-none w-6 text-center py-0.5 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [appearance:textfield]"
+        : "bg-transparent border-b border-white/20 text-[11px] font-black text-gold-accent focus:ring-0 outline-none w-8 text-center py-0.5 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [appearance:textfield]";
+    const helperTextClass = compact
+        ? "text-[8px] font-black text-white/50 uppercase tracking-widest mt-0.5 whitespace-nowrap"
+        : "text-[9px] font-black text-white/50 uppercase tracking-widest mt-0.5";
+    const triggerClass = compact
+        ? "text-on-surface text-[8px] uppercase tracking-widest"
+        : "text-on-surface text-[10px] uppercase tracking-widest";
 
     return (
         <div className="flex max-w-full flex-wrap items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-2.5 py-1.5 backdrop-blur-md sm:gap-3 sm:px-3">
@@ -916,6 +934,7 @@ function ChartFilterSelector({ filter, setFilter, availableYears, modeOptions, s
                         onChange={(val) => handleChange('currentMonthOnly', val === "current_month")}
                         options={currentMonthOptions}
                         align="left"
+                        triggerClass={triggerClass}
                     />
                 </div>
             )}
@@ -927,6 +946,7 @@ function ChartFilterSelector({ filter, setFilter, availableYears, modeOptions, s
                         onChange={(val) => handleChange('year', val)}
                         options={yearOptions}
                         align="left"
+                        triggerClass={triggerClass}
                     />
                 </div>
             )}
@@ -938,9 +958,9 @@ function ChartFilterSelector({ filter, setFilter, availableYears, modeOptions, s
                         min="1" max="50"
                         value={filter.range}
                         onChange={(e) => handleChange('range', e.target.value)}
-                        className="bg-transparent border-b border-white/20 text-[11px] font-black text-gold-accent focus:ring-0 outline-none w-8 text-center py-0.5 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [appearance:textfield]"
+                        className={inputClass}
                     />
-                    <span className="text-[9px] font-black text-white/50 uppercase tracking-widest mt-0.5">Tahun Terakhir</span>
+                    <span className={helperTextClass}>Tahun Terakhir</span>
                 </div>
             )}
 
@@ -951,6 +971,7 @@ function ChartFilterSelector({ filter, setFilter, availableYears, modeOptions, s
                         onChange={(val) => handleChange('start', val)}
                         options={yearOptions}
                         align="left"
+                        triggerClass={triggerClass}
                     />
                     <span className="text-white/30 text-[10px] font-black">-</span>
                     <CustomDropdown
@@ -958,6 +979,7 @@ function ChartFilterSelector({ filter, setFilter, availableYears, modeOptions, s
                         onChange={(val) => handleChange('end', val)}
                         options={yearOptions}
                         align="left"
+                        triggerClass={triggerClass}
                     />
                 </div>
             )}
@@ -967,7 +989,7 @@ function ChartFilterSelector({ filter, setFilter, availableYears, modeOptions, s
                 onChange={(val) => handleChange('mode', val)}
                 options={resolvedModeOptions}
                 align="right"
-                triggerClass="text-on-surface text-[10px] uppercase tracking-widest"
+                triggerClass={triggerClass}
             />
         </div>
     );
