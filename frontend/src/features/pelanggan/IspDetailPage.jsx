@@ -1026,22 +1026,24 @@ function IspDetailPage({
         }
     };
 
+    const createEmptyContractDraft = () => ({
+        contractReference: "",
+        contractStartDate: "",
+        contractPeriodStart: "",
+        contractPeriodEnd: "",
+        contractFileUrl: "",
+        contractFileName: "",
+        bakFileUrl: "",
+        bakFileName: "",
+        contractUploadedFile: null,
+        contractUploadedFileName: "",
+        bakUploadedFile: null,
+        bakUploadedFileName: "",
+    });
+
     const openContractDraft = () => {
         setError("");
-        setContractDraft({
-            contractReference: detail?.contractReference ?? isp.contractReference ?? "",
-            contractStartDate: detail?.contractStartDate ?? isp.contractStartDate ?? "",
-            contractPeriodStart: detail?.contractPeriodStart ?? isp.contractPeriodStart ?? "",
-            contractPeriodEnd: detail?.contractPeriodEnd ?? isp.contractPeriodEnd ?? "",
-            contractFileUrl: detail?.contractFileUrl ?? isp.contractFileUrl ?? "",
-            contractFileName: detail?.contractFileName ?? isp.contractFileName ?? "",
-            bakFileUrl: detail?.bakFileUrl ?? isp.bakFileUrl ?? "",
-            bakFileName: detail?.bakFileName ?? isp.bakFileName ?? "",
-            contractUploadedFile: null,
-            contractUploadedFileName: "",
-            bakUploadedFile: null,
-            bakUploadedFileName: "",
-        });
+        setContractDraft(createEmptyContractDraft());
     };
 
     const handleSaveContractDraft = async () => {
@@ -1069,10 +1071,11 @@ function IspDetailPage({
                 : String(contractDraft.bakFileUrl ?? "").trim() || null;
 
             const payload = {
+                ispId: isp.id,
                 contractReference,
                 contractStartDate: contractStartDate || null,
-                contractPeriodStart,
-                contractPeriodEnd,
+                periodStart: contractPeriodStart,
+                periodEnd: contractPeriodEnd,
                 contractFileUrl,
                 contractFileName: contractDraft.contractUploadedFile instanceof File
                     ? contractDraft.contractUploadedFile.name
@@ -1081,11 +1084,14 @@ function IspDetailPage({
                 bakFileName: contractDraft.bakUploadedFile instanceof File
                     ? contractDraft.bakUploadedFile.name
                     : String(contractDraft.bakFileName ?? "").trim() || null,
+                status: "aktif",
+                renewalStatus: "active",
             };
 
-            await api.isps.update(isp.id, payload);
+            await api.ispContractRows.create(payload);
             setContractDraft(null);
             await loadDetail();
+            if (onRefreshAll) onRefreshAll();
         } catch (requestError) {
             setError(requestError instanceof Error ? requestError.message : "Gagal menyimpan data kontrak.");
         } finally {
@@ -2148,131 +2154,6 @@ function IspDetailPage({
                                     </table>
                                 </div>
 
-                                {contractDraft && createPortal(
-                                    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0a0f18]/85 backdrop-blur-sm px-4">
-                                        <div className="w-full max-w-2xl rounded-xl border border-white/10 bg-black/90 shadow-2xl p-5 md:p-6">
-                                            <div className="mb-4 flex items-start justify-between gap-4 border-b border-white/10 pb-3">
-                                                <div>
-                                                    <p className="text-[9px] font-black uppercase tracking-widest text-gold-accent">Tambah Data</p>
-                                                    <h3 className="text-lg font-black uppercase text-white tracking-tight">Tambah Kontrak ISP</h3>
-                                                </div>
-                                                <button
-                                                    className="h-8 w-8 rounded-lg border border-white/10 bg-white/5 text-white/40 hover:text-white hover:bg-white/10 transition-all"
-                                                    onClick={() => setContractDraft(null)}
-                                                    type="button"
-                                                >
-                                                    <span className="material-symbols-outlined text-[14px]">close</span>
-                                                </button>
-                                            </div>
-
-                                            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                                                <div className="space-y-1.5">
-                                                    <label className="ml-1 text-[8px] font-black uppercase tracking-widest text-white/20">Nomor Kontrak</label>
-                                                    <input
-                                                        className="h-10 w-full rounded-xl border border-white/10 bg-white/[0.02] px-3 text-[10px] font-black uppercase tracking-widest text-white outline-none focus:border-gold-accent/40"
-                                                        value={contractDraft.contractReference}
-                                                        onChange={(e) => setContractDraft((prev) => prev ? { ...prev, contractReference: e.target.value } : prev)}
-                                                        placeholder="Nomor kontrak"
-                                                    />
-                                                </div>
-                                                <div className="space-y-1.5">
-                                                    <label className="ml-1 text-[8px] font-black uppercase tracking-widest text-white/20">Tanggal Kontrak</label>
-                                                    <DateInput
-                                                        value={contractDraft.contractStartDate}
-                                                        onChange={(val) => setContractDraft((prev) => prev ? { ...prev, contractStartDate: val } : prev)}
-                                                        className="h-10 w-full rounded-xl border border-white/10 bg-white/[0.02]"
-                                                        inputClass="w-full h-full bg-transparent px-3 text-[10px] font-black uppercase tracking-widest text-white outline-none"
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
-                                                <div className="space-y-1.5">
-                                                    <label className="ml-1 text-[8px] font-black uppercase tracking-widest text-white/20">Periode Awal</label>
-                                                    <DateInput
-                                                        value={contractDraft.contractPeriodStart}
-                                                        onChange={(val) => setContractDraft((prev) => prev ? { ...prev, contractPeriodStart: val } : prev)}
-                                                        className="h-10 w-full rounded-xl border border-white/10 bg-white/[0.02]"
-                                                        inputClass="w-full h-full bg-transparent px-3 text-[10px] font-black uppercase tracking-widest text-white outline-none"
-                                                    />
-                                                </div>
-                                                <div className="space-y-1.5">
-                                                    <label className="ml-1 text-[8px] font-black uppercase tracking-widest text-white/20">Periode Akhir</label>
-                                                    <DateInput
-                                                        value={contractDraft.contractPeriodEnd}
-                                                        onChange={(val) => setContractDraft((prev) => prev ? { ...prev, contractPeriodEnd: val } : prev)}
-                                                        className="h-10 w-full rounded-xl border border-white/10 bg-white/[0.02]"
-                                                        inputClass="w-full h-full bg-transparent px-3 text-[10px] font-black uppercase tracking-widest text-white outline-none"
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
-                                                <label className="rounded-xl border border-white/10 bg-white/[0.02] px-4 py-4 text-[9px] font-black uppercase tracking-widest text-white/40 cursor-pointer hover:bg-white/[0.04] transition-all">
-                                                    <span className="flex items-center gap-2 text-white/70 mb-2">
-                                                        <span className="material-symbols-outlined text-[14px]">description</span>
-                                                        Berkas Kontrak
-                                                    </span>
-                                                    <span className="block text-white/30 normal-case font-bold text-[10px]">
-                                                        {contractDraft.contractUploadedFileName || contractDraft.contractFileName || "Upload berkas kontrak"}
-                                                    </span>
-                                                    <input
-                                                        className="hidden"
-                                                        type="file"
-                                                        onChange={(e) => {
-                                                            const file = e.target.files?.[0] ?? null;
-                                                            setContractDraft((prev) => prev ? {
-                                                                ...prev,
-                                                                contractUploadedFile: file,
-                                                                contractUploadedFileName: file?.name ?? "",
-                                                            } : prev);
-                                                        }}
-                                                    />
-                                                </label>
-                                                <label className="rounded-xl border border-white/10 bg-white/[0.02] px-4 py-4 text-[9px] font-black uppercase tracking-widest text-white/40 cursor-pointer hover:bg-white/[0.04] transition-all">
-                                                    <span className="flex items-center gap-2 text-white/70 mb-2">
-                                                        <span className="material-symbols-outlined text-[14px]">folder</span>
-                                                        BAK
-                                                    </span>
-                                                    <span className="block text-white/30 normal-case font-bold text-[10px]">
-                                                        {contractDraft.bakUploadedFileName || contractDraft.bakFileName || "Upload berkas BAK"}
-                                                    </span>
-                                                    <input
-                                                        className="hidden"
-                                                        type="file"
-                                                        onChange={(e) => {
-                                                            const file = e.target.files?.[0] ?? null;
-                                                            setContractDraft((prev) => prev ? {
-                                                                ...prev,
-                                                                bakUploadedFile: file,
-                                                                bakUploadedFileName: file?.name ?? "",
-                                                            } : prev);
-                                                        }}
-                                                    />
-                                                </label>
-                                            </div>
-
-                                            <div className="mt-3 flex justify-end gap-3 border-t border-white/10 pt-4">
-                                                <button
-                                                    className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-[9px] font-black uppercase tracking-widest text-white/60 hover:bg-white/10 hover:text-white transition-all"
-                                                    onClick={() => setContractDraft(null)}
-                                                    type="button"
-                                                >
-                                                    Batal
-                                                </button>
-                                                <button
-                                                    className="rounded-lg bg-gold-accent px-4 py-2 text-[9px] font-black uppercase tracking-widest text-slate-900 shadow-gold-glow transition-all active:scale-95 disabled:opacity-50"
-                                                    disabled={contractDraftSaving}
-                                                    onClick={() => void handleSaveContractDraft()}
-                                                    type="button"
-                                                >
-                                                    {contractDraftSaving ? "Menyimpan..." : "Simpan"}
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>,
-                                    document.body,
-                                )}
                             </section>
                             </div>
                         )}
@@ -2897,6 +2778,129 @@ function IspDetailPage({
                     </div>
                 )}
             </div>
+            {contractDraft && createPortal(
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0a0f18]/85 backdrop-blur-sm px-4">
+                    <div className="w-full max-w-2xl rounded-xl border border-white/10 bg-black/90 shadow-2xl p-5 md:p-6">
+                        <div className="mb-4 flex items-start justify-between gap-4 border-b border-white/10 pb-3">
+                            <div>
+                                <p className="text-[9px] font-black uppercase tracking-widest text-gold-accent">Tambah Data</p>
+                                <h3 className="text-lg font-black uppercase text-white tracking-tight">Tambah Kontrak ISP</h3>
+                            </div>
+                            <button
+                                className="h-8 w-8 rounded-lg border border-white/10 bg-white/5 text-white/40 hover:text-white hover:bg-white/10 transition-all"
+                                onClick={() => setContractDraft(null)}
+                                type="button"
+                            >
+                                <span className="material-symbols-outlined text-[14px]">close</span>
+                            </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                            <div className="space-y-1.5">
+                                <label className="ml-1 text-[8px] font-black uppercase tracking-widest text-white/20">Nomor Kontrak</label>
+                                <input
+                                    className="h-10 w-full rounded-xl border border-white/10 bg-white/[0.02] px-3 text-[10px] font-black uppercase tracking-widest text-white outline-none focus:border-gold-accent/40"
+                                    value={contractDraft.contractReference}
+                                    onChange={(e) => setContractDraft((prev) => prev ? { ...prev, contractReference: e.target.value } : prev)}
+                                    placeholder="Nomor kontrak"
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="ml-1 text-[8px] font-black uppercase tracking-widest text-white/20">Tanggal Kontrak</label>
+                                <DateInput
+                                    value={contractDraft.contractStartDate}
+                                    onChange={(val) => setContractDraft((prev) => prev ? { ...prev, contractStartDate: val } : prev)}
+                                    className="h-10 w-full rounded-xl border border-white/10 bg-white/[0.02]"
+                                    inputClass="w-full h-full bg-transparent px-3 text-[10px] font-black uppercase tracking-widest text-white outline-none"
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="ml-1 text-[8px] font-black uppercase tracking-widest text-white/20">Periode Awal</label>
+                                <DateInput
+                                    value={contractDraft.contractPeriodStart}
+                                    onChange={(val) => setContractDraft((prev) => prev ? { ...prev, contractPeriodStart: val } : prev)}
+                                    className="h-10 w-full rounded-xl border border-white/10 bg-white/[0.02]"
+                                    inputClass="w-full h-full bg-transparent px-3 text-[10px] font-black uppercase tracking-widest text-white outline-none"
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="ml-1 text-[8px] font-black uppercase tracking-widest text-white/20">Periode Akhir</label>
+                                <DateInput
+                                    value={contractDraft.contractPeriodEnd}
+                                    onChange={(val) => setContractDraft((prev) => prev ? { ...prev, contractPeriodEnd: val } : prev)}
+                                    className="h-10 w-full rounded-xl border border-white/10 bg-white/[0.02]"
+                                    inputClass="w-full h-full bg-transparent px-3 text-[10px] font-black uppercase tracking-widest text-white outline-none"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+                            <label className="rounded-xl border border-white/10 bg-white/[0.02] px-4 py-4 text-[9px] font-black uppercase tracking-widest text-white/40 cursor-pointer hover:bg-white/[0.04] transition-all">
+                                <span className="flex items-center gap-2 text-white/70 mb-2">
+                                    <span className="material-symbols-outlined text-[14px]">description</span>
+                                    Berkas Kontrak
+                                </span>
+                                <span className="block text-white/30 normal-case font-bold text-[10px]">
+                                    {contractDraft.contractUploadedFileName || contractDraft.contractFileName || "Upload berkas kontrak"}
+                                </span>
+                                <input
+                                    className="hidden"
+                                    type="file"
+                                    onChange={(e) => {
+                                        const file = e.target.files?.[0] ?? null;
+                                        setContractDraft((prev) => prev ? {
+                                            ...prev,
+                                            contractUploadedFile: file,
+                                            contractUploadedFileName: file?.name ?? "",
+                                        } : prev);
+                                    }}
+                                />
+                            </label>
+                            <label className="rounded-xl border border-white/10 bg-white/[0.02] px-4 py-4 text-[9px] font-black uppercase tracking-widest text-white/40 cursor-pointer hover:bg-white/[0.04] transition-all">
+                                <span className="flex items-center gap-2 text-white/70 mb-2">
+                                    <span className="material-symbols-outlined text-[14px]">folder</span>
+                                    BAK
+                                </span>
+                                <span className="block text-white/30 normal-case font-bold text-[10px]">
+                                    {contractDraft.bakUploadedFileName || contractDraft.bakFileName || "Upload berkas BAK"}
+                                </span>
+                                <input
+                                    className="hidden"
+                                    type="file"
+                                    onChange={(e) => {
+                                        const file = e.target.files?.[0] ?? null;
+                                        setContractDraft((prev) => prev ? {
+                                            ...prev,
+                                            bakUploadedFile: file,
+                                            bakUploadedFileName: file?.name ?? "",
+                                        } : prev);
+                                    }}
+                                />
+                            </label>
+                        </div>
+
+                        <div className="mt-3 flex justify-end gap-3 border-t border-white/10 pt-4">
+                            <button
+                                className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-[9px] font-black uppercase tracking-widest text-white/60 hover:bg-white/10 hover:text-white transition-all"
+                                onClick={() => setContractDraft(null)}
+                                type="button"
+                            >
+                                Batal
+                            </button>
+                            <button
+                                className="rounded-lg bg-gold-accent px-4 py-2 text-[9px] font-black uppercase tracking-widest text-slate-900 shadow-gold-glow transition-all active:scale-95 disabled:opacity-50"
+                                disabled={contractDraftSaving}
+                                onClick={() => void handleSaveContractDraft()}
+                                type="button"
+                            >
+                                {contractDraftSaving ? "Menyimpan..." : "Simpan"}
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body,
+            )}
+
         </AppShell>
     );
 }
