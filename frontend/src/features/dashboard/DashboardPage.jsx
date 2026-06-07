@@ -64,30 +64,28 @@ export default function DashboardPage({
     const [growthType, setGrowthType] = useState("tenant");
     const [coreChartType, setCoreChartType] = useState("sharing");
     const [coreTrendFilter, setCoreTrendFilter] = useState({
-        mode: "this_year",
+        mode: "range_years",
         year: String(new Date().getUTCFullYear()),
         range: "5",
         start: String(new Date().getUTCFullYear() - 2),
-        end: String(new Date().getUTCFullYear()),
-        currentMonthOnly: false
+        end: String(new Date().getUTCFullYear())
     });
     const [coreTrendExportFilter, setCoreTrendExportFilter] = useState({
-        mode: "this_year",
+        mode: "range_years",
         year: String(new Date().getUTCFullYear()),
         range: "5",
         start: String(new Date().getUTCFullYear() - 2),
-        end: String(new Date().getUTCFullYear()),
-        currentMonthOnly: false
+        end: String(new Date().getUTCFullYear())
     });
     const [isExportingCoreTrend, setIsExportingCoreTrend] = useState(false);
     const [isExportingCoreTrendXlsx, setIsExportingCoreTrendXlsx] = useState(false);
     const coreTrendChartRef = useRef(null);
 
     const currentYear = String(new Date().getUTCFullYear());
-    const currentMonthCount = new Date().getUTCMonth() + 1;
     const coreTrendModeOptions = [
-        { value: "this_year", label: "Tahun Ini" },
-        { value: "specific_year", label: "Tahun Spesifik" }
+        { value: "range_years", label: "Rentang" },
+        { value: "specific_year", label: "Tahun Spesifik" },
+        { value: "custom", label: "Kustom Range" }
     ];
     const growthModeOptions = [
         { value: "range_years", label: "Rentang" },
@@ -96,7 +94,29 @@ export default function DashboardPage({
     ];
     const getCoreTrendYear = useCallback(() => {
         if (coreTrendFilter.mode === "specific_year") return coreTrendFilter.year;
+        if (coreTrendFilter.mode === "custom") return coreTrendFilter.end;
         return currentYear;
+    }, [coreTrendFilter, currentYear]);
+
+    const getCoreTrendRange = useCallback((filter = coreTrendFilter) => {
+        if (filter.mode === "specific_year") {
+            const year = Number(filter.year);
+            return { startYear: year, endYear: year };
+        }
+        if (filter.mode === "custom") {
+            const start = Number(filter.start);
+            const end = Number(filter.end);
+            return {
+                startYear: Math.min(start, end),
+                endYear: Math.max(start, end),
+            };
+        }
+        const range = Math.max(Number(filter.range) || 1, 1);
+        const endYear = Number(currentYear);
+        return {
+            startYear: endYear - range + 1,
+            endYear,
+        };
     }, [coreTrendFilter, currentYear]);
 
     const getGrowthYear = useCallback(() => {
@@ -105,13 +125,15 @@ export default function DashboardPage({
         return currentYear;
     }, [growthFilter, currentYear]);
 
-    const loadOperationalData = useCallback(async (year, growthRange = null) => {
+    const loadOperationalData = useCallback(async (year, growthRange = null, coreTrendRange = null) => {
         setIsLoadingOperational(true);
         try {
             const metricsResult = await api.monitoring.getDashboardMetrics({
                 year: Number(year),
                 growthStartYear: growthRange?.startYear,
                 growthEndYear: growthRange?.endYear,
+                coreTrendStartYear: coreTrendRange?.startYear,
+                coreTrendEndYear: coreTrendRange?.endYear,
             });
             setDashboardMetrics(metricsResult ?? null);
         } catch (error) {
@@ -134,7 +156,7 @@ export default function DashboardPage({
         }
     }, []);
 
-    useEffect(() => { loadOperationalData(getCoreTrendYear()); }, [getCoreTrendYear, loadOperationalData, refreshToken]);
+    useEffect(() => { loadOperationalData(getCoreTrendYear(), null, getCoreTrendRange()); }, [getCoreTrendRange, getCoreTrendYear, loadOperationalData, refreshToken]);
     useEffect(() => {
         const growthYear = getGrowthYear();
         const coreYear = getCoreTrendYear();
@@ -195,11 +217,8 @@ export default function DashboardPage({
         { ratio: '1:32', count: dashboardMetrics?.sharingCounts?.['1/32'] ?? 0, color: 'text-[#f43f5e]', bg: 'bg-[#f43f5e]/10', border: 'bg-[#f43f5e]' },
     ]), [dashboardMetrics]);
 
-    const sharingTrendData = dashboardMetrics?.sharingTrend?.length ? dashboardMetrics.sharingTrend : [];
-    const coreTrendData = dashboardMetrics?.coreTrend?.length ? dashboardMetrics.coreTrend : [];
-    const shouldLimitCoreTrendToCurrentMonth = coreTrendFilter.mode === "this_year" && coreTrendFilter.currentMonthOnly;
-    const visibleSharingTrendData = shouldLimitCoreTrendToCurrentMonth ? sharingTrendData.slice(0, currentMonthCount) : sharingTrendData;
-    const visibleCoreTrendData = shouldLimitCoreTrendToCurrentMonth ? coreTrendData.slice(0, currentMonthCount) : coreTrendData;
+    const visibleSharingTrendData = dashboardMetrics?.yearlySharingTrend?.length ? dashboardMetrics.yearlySharingTrend : [];
+    const visibleCoreTrendData = dashboardMetrics?.yearlyCoreTrend?.length ? dashboardMetrics.yearlyCoreTrend : [];
     const growthSource = growthMetrics?.growth ?? dashboardMetrics?.growth;
     const growthData = useMemo(() => {
         const baseData = growthSource ?? { tenant: [], isp: [] };
@@ -250,50 +269,34 @@ export default function DashboardPage({
     const routePercent = (count) => Math.round((Number(count || 0) / routeTotal) * 100);
 
     const getExportYears = () => {
-        if (coreTrendExportFilter.mode === "specific_year") return [Number(coreTrendExportFilter.year)];
-        if (coreTrendExportFilter.mode === "range_years") {
-            const range = Math.max(Number(coreTrendExportFilter.range) || 1, 1);
-            const endYear = Number(currentYear);
-            return Array.from({ length: range }, (_, index) => endYear - range + index + 1);
-        }
-        if (coreTrendExportFilter.mode === "custom") {
-            const start = Number(coreTrendExportFilter.start);
-            const end = Number(coreTrendExportFilter.end);
-            const minYear = Math.min(start, end);
-            const maxYear = Math.max(start, end);
-            return Array.from({ length: maxYear - minYear + 1 }, (_, index) => minYear + index);
-        }
-        return [Number(currentYear)];
+        const { startYear, endYear } = getCoreTrendRange(coreTrendExportFilter);
+        return Array.from({ length: Math.max(endYear - startYear + 1, 1) }, (_, index) => startYear + index);
     };
 
     const buildCoreTrendExportRows = async () => {
         const years = getExportYears();
-        const metricsByYear = await Promise.all(
-            years.map(async (year) => ({
+        const startYear = years[0];
+        const endYear = years[years.length - 1];
+        const metrics = await api.monitoring.getDashboardMetrics({
+            year: endYear,
+            coreTrendStartYear: startYear,
+            coreTrendEndYear: endYear,
+        });
+        const sharingRows = metrics?.yearlySharingTrend ?? [];
+        const coreRows = metrics?.yearlyCoreTrend ?? [];
+        const rows = [["Tahun", "Sharing 1:2", "Sharing 1:4", "Sharing 1:8", "Sharing 1:16", "Sharing 1:32", "Core"]];
+        years.forEach((year) => {
+            const sharing = sharingRows.find((row) => Number(row.year) === year) ?? {};
+            const core = coreRows.find((row) => Number(row.year) === year) ?? {};
+            rows.push([
                 year,
-                metrics: await api.monitoring.getDashboardMetrics({ year })
-            }))
-        );
-        const rows = [["Tahun", "Bulan", "Sharing 1:2", "Sharing 1:4", "Sharing 1:8", "Sharing 1:16", "Sharing 1:32", "Core"]];
-        metricsByYear.forEach(({ year, metrics }) => {
-            const sharingRows = metrics?.sharingTrend ?? [];
-            const coreRows = metrics?.coreTrend ?? [];
-            const shouldLimitExportToCurrentMonth = coreTrendExportFilter.mode === "this_year" && coreTrendExportFilter.currentMonthOnly && String(year) === currentYear;
-            const monthCount = shouldLimitExportToCurrentMonth ? currentMonthCount : Math.max(sharingRows.length, coreRows.length);
-            Array.from({ length: monthCount }, (_, index) => {
-                const sharing = sharingRows[index] ?? {};
-                const core = coreRows[index] ?? {};
-                rows.push([
-                    year,
-                    sharing.name || core.name || "",
-                    sharing["1:2"] ?? 0,
-                    sharing["1:4"] ?? 0,
-                    sharing["1:8"] ?? 0,
-                    sharing["1:16"] ?? 0,
-                    sharing["1:32"] ?? 0,
-                    core.count ?? 0,
-                ]);
-            });
+                sharing["1:2"] ?? 0,
+                sharing["1:4"] ?? 0,
+                sharing["1:8"] ?? 0,
+                sharing["1:16"] ?? 0,
+                sharing["1:32"] ?? 0,
+                core.count ?? 0,
+            ]);
         });
         return { years, rows };
     };
@@ -379,7 +382,6 @@ export default function DashboardPage({
             worksheet.addRows(rows);
             worksheet.columns = [
                 { width: 12 },
-                { width: 12 },
                 { width: 14 },
                 { width: 14 },
                 { width: 14 },
@@ -443,10 +445,10 @@ export default function DashboardPage({
                         <div className="flex flex-col md:flex-row md:items-center justify-between mb-3 gap-2 relative z-50">
                             <div className="flex items-center gap-2">
                                 <span className="h-4 w-1 bg-gold-accent rounded-full"></span>
-                                <h2 className="text-base font-black text-on-surface tracking-tight">Tren Penggunaan Core</h2>
+                                <h2 className="text-base font-black text-on-surface tracking-tight">Tren Penggunaan Core Tahunan</h2>
                             </div>
                             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                                <ChartFilterSelector filter={coreTrendFilter} setFilter={setCoreTrendFilter} availableYears={availableYears} modeOptions={coreTrendModeOptions} showCurrentMonthOption />
+                                <ChartFilterSelector filter={coreTrendFilter} setFilter={setCoreTrendFilter} availableYears={availableYears} modeOptions={coreTrendModeOptions} />
                                 <div className="inline-flex rounded-xl bg-white/10 p-1 border border-white/15 backdrop-blur-md">
                                     {["sharing", "core"].map(type => (
                                         <button
@@ -498,7 +500,7 @@ export default function DashboardPage({
 
                         <div className="relative z-50 mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                                <ChartFilterSelector filter={coreTrendExportFilter} setFilter={setCoreTrendExportFilter} availableYears={availableYears} showCurrentMonthOption />
+                                <ChartFilterSelector filter={coreTrendExportFilter} setFilter={setCoreTrendExportFilter} availableYears={availableYears} modeOptions={coreTrendModeOptions} />
                             </div>
                             <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center">
                                 <button

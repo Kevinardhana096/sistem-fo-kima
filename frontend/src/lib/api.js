@@ -3566,7 +3566,7 @@ export const monitoringApi = {
     };
   },
 
-  async getDashboardMetrics({ year, growthStartYear, growthEndYear } = {}) {
+  async getDashboardMetrics({ year, growthStartYear, growthEndYear, coreTrendStartYear, coreTrendEndYear } = {}) {
     const selectedYear = Number(year);
     const today = new Date().toISOString().slice(0, 10);
     const fallbackGrowthEndYear = Number.isFinite(selectedYear) ? selectedYear : new Date().getUTCFullYear();
@@ -3574,6 +3574,12 @@ export const monitoringApi = {
     const resolvedGrowthStartYear = Number.isFinite(Number(growthStartYear))
       ? Number(growthStartYear)
       : resolvedGrowthEndYear - 4;
+    const resolvedCoreTrendEndYear = Number.isFinite(Number(coreTrendEndYear))
+      ? Number(coreTrendEndYear)
+      : fallbackGrowthEndYear;
+    const resolvedCoreTrendStartYear = Number.isFinite(Number(coreTrendStartYear))
+      ? Number(coreTrendStartYear)
+      : resolvedCoreTrendEndYear - 4;
 
     const [customersResult, ispsResult] = await Promise.all([
       supabase
@@ -3672,6 +3678,22 @@ export const monitoringApi = {
       name: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'][index],
       count: 0,
     }));
+    const coreTrendYearCount = Math.max(resolvedCoreTrendEndYear - resolvedCoreTrendStartYear + 1, 1);
+    const coreTrendYears = Array.from({ length: coreTrendYearCount }, (_, index) => resolvedCoreTrendStartYear + index);
+    const yearlySharingTrend = coreTrendYears.map(yearValue => ({
+      year: String(yearValue),
+      name: String(yearValue),
+      '1:2': 0,
+      '1:4': 0,
+      '1:8': 0,
+      '1:16': 0,
+      '1:32': 0,
+    }));
+    const yearlyCoreTrend = coreTrendYears.map(yearValue => ({
+      year: String(yearValue),
+      name: String(yearValue),
+      count: 0,
+    }));
     const routeStatus = { aktif: 0, gangguan: 0, perbaikan: 0, nonaktif: 0, total: 0 };
     let totalCoreUsed = 0;
     let coreLocationCount = 0;
@@ -3716,6 +3738,26 @@ export const monitoringApi = {
                 if (Object.prototype.hasOwnProperty.call(monthData, chartKey)) monthData[chartKey] += 1;
               } else if (effectiveCoreType === 'core') {
                 coreTrend[index].count += effectiveCoreTotal;
+              }
+            });
+        });
+
+        coreTrendYears.forEach((yearValue, index) => {
+          const yearStart = `${yearValue}-01-01`;
+          const yearEnd = `${yearValue}-12-31`;
+          (customer.contracts || [])
+            .filter(contract => !contract.deleted_at && isContractInPeriod(contract, yearStart, yearEnd))
+            .forEach(contract => {
+              const effectiveVersion = getEffectiveVersion(contract, yearStart, yearEnd);
+              const effectiveCoreType = effectiveVersion?.core_type || contract.core_type || null;
+              const effectiveCoreTotal = Number(effectiveVersion?.core_total ?? contract.core_total ?? 0);
+              const effectiveSharingRatio = normalizeSharingRatio(effectiveVersion?.shared_core_ratio || contract.sharing_ratio);
+
+              if (effectiveCoreType === 'sharing_core' && effectiveSharingRatio) {
+                const chartKey = effectiveSharingRatio.replace('/', ':');
+                if (Object.prototype.hasOwnProperty.call(yearlySharingTrend[index], chartKey)) yearlySharingTrend[index][chartKey] += 1;
+              } else if (effectiveCoreType === 'core') {
+                yearlyCoreTrend[index].count += effectiveCoreTotal;
               }
             });
         });
@@ -3768,6 +3810,8 @@ export const monitoringApi = {
       sharingCounts,
       sharingTrend,
       coreTrend,
+      yearlySharingTrend,
+      yearlyCoreTrend,
       routeStatus,
       growth: {
         tenant: tenantGrowth,
