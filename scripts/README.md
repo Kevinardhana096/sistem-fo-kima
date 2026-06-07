@@ -40,6 +40,7 @@ Urutan setup environment baru (ringkas): **auth users → RLS → kolom/feature 
 | [maintenance/add-isp-entry-points.sql](maintenance/add-isp-entry-points.sql) | Menambahkan titik entry FO ISP dan pilihan redundansi customer opsional (aman rerun). |
 | [maintenance/add-customer-status-belum-beroperasi.sql](maintenance/add-customer-status-belum-beroperasi.sql) | Menambahkan enum `belum_beroperasi` pada `customer_status` untuk lokasi dengan periode mulai di masa depan. |
 | [maintenance/add-route-point-coordinates.sql](maintenance/add-route-point-coordinates.sql) | Menambahkan kolom koordinat terstruktur (`latitude`/`longitude`) pada titik jalur dan geometri/metadata rute pada versi jalur + backfill dari `note` (Fase 1 migrasi FO planner). |
+| [maintenance/allow-teknisi-route-management.sql](maintenance/allow-teknisi-route-management.sql) | Membuka policy tulis RLS untuk role teknisi pada tabel versi jalur, titik jalur, dan riwayat jalur FO agar hasil planner bisa disimpan. |
 | [maintenance/add-customer-logo-url.sql](maintenance/add-customer-logo-url.sql) | Menambahkan kolom `logo_url` (opsional) pada `customers`. |
 | [maintenance/add-contract-version-contract-number.sql](maintenance/add-contract-version-contract-number.sql) | Menambahkan kolom `contract_number` pada `contract_versions`. |
 

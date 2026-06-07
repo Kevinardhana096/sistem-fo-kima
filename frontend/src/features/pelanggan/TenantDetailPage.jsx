@@ -3114,7 +3114,7 @@ function TenantDetailPage({
       return true;
     }
 
-    setRouteError("Role ISP hanya dapat melihat titik dan jalur tanpa mengubah peta.");
+    setRouteError("Role ini hanya dapat melihat titik dan jalur tanpa mengubah peta.");
     setRouteFeedback("");
     return false;
   };
@@ -5149,7 +5149,7 @@ function TenantDetailPage({
 
                 {!canManageRoute && (
                   <div className="mt-3 rounded-lg border border-sky-500/20 bg-sky-500/5 p-3 text-[9px] font-black uppercase tracking-widest text-sky-200 shadow-inner">
-                    Mode lihat saja: role ISP tidak dapat mengubah titik maupun jalur peta.
+                    Mode lihat saja: role ini tidak dapat mengubah titik maupun jalur peta.
                   </div>
                 )}
                 {canManageRoute && isRouteDrafting && (
