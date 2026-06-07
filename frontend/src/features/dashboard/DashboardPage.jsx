@@ -63,6 +63,7 @@ export default function DashboardPage({
     const [, setIsLoadingOperational] = useState(false);
     const [growthType, setGrowthType] = useState("tenant");
     const [coreChartType, setCoreChartType] = useState("sharing");
+    const [coreTrendTimeMode, setCoreTrendTimeMode] = useState("yearly");
     const [coreTrendFilter, setCoreTrendFilter] = useState({
         mode: "range_years",
         year: String(new Date().getUTCFullYear()),
@@ -217,8 +218,36 @@ export default function DashboardPage({
         { ratio: '1:32', count: dashboardMetrics?.sharingCounts?.['1/32'] ?? 0, color: 'text-[#f43f5e]', bg: 'bg-[#f43f5e]/10', border: 'bg-[#f43f5e]' },
     ]), [dashboardMetrics]);
 
-    const visibleSharingTrendData = dashboardMetrics?.yearlySharingTrend?.length ? dashboardMetrics.yearlySharingTrend : [];
-    const visibleCoreTrendData = dashboardMetrics?.yearlyCoreTrend?.length ? dashboardMetrics.yearlyCoreTrend : [];
+    const visibleSharingTrendData = coreTrendTimeMode === "monthly"
+        ? (dashboardMetrics?.sharingTrend?.length ? dashboardMetrics.sharingTrend : [])
+        : (dashboardMetrics?.yearlySharingTrend?.length ? dashboardMetrics.yearlySharingTrend : []);
+    const visibleCoreTrendData = coreTrendTimeMode === "monthly"
+        ? (dashboardMetrics?.coreTrend?.length ? dashboardMetrics.coreTrend : [])
+        : (dashboardMetrics?.yearlyCoreTrend?.length ? dashboardMetrics.yearlyCoreTrend : []);
+    const coreTrendDisplayYear = String(getCoreTrendYear());
+    const coreTrendTitle = coreTrendTimeMode === "monthly"
+        ? `Tren Penggunaan Core Bulanan ${coreTrendDisplayYear}`
+        : "Tren Penggunaan Core Tahunan";
+    const coreTrendYearOptions = availableYears.map(yearValue => ({ value: yearValue, label: String(yearValue) }));
+    const updateCoreTrendMonthlyYear = (yearValue) => {
+        setCoreTrendFilter(previous => ({
+            ...previous,
+            mode: "specific_year",
+            year: yearValue,
+            start: yearValue,
+            end: yearValue,
+        }));
+    };
+    const switchCoreTrendTimeMode = (mode) => {
+        setCoreTrendTimeMode(mode);
+        if (mode === "monthly") {
+            setCoreTrendFilter(previous => ({
+                ...previous,
+                mode: "specific_year",
+                year: previous.year || currentYear,
+            }));
+        }
+    };
     const growthSource = growthMetrics?.growth ?? dashboardMetrics?.growth;
     const growthData = useMemo(() => {
         const baseData = growthSource ?? { tenant: [], isp: [] };
@@ -274,6 +303,33 @@ export default function DashboardPage({
     };
 
     const buildCoreTrendExportRows = async () => {
+        if (coreTrendTimeMode === "monthly") {
+            const year = Number(getCoreTrendYear());
+            const metrics = await api.monitoring.getDashboardMetrics({
+                year,
+                coreTrendStartYear: year,
+                coreTrendEndYear: year,
+            });
+            const sharingRows = metrics?.sharingTrend ?? [];
+            const coreRows = metrics?.coreTrend ?? [];
+            const rows = [["Bulan", "Sharing 1:2", "Sharing 1:4", "Sharing 1:8", "Sharing 1:16", "Sharing 1:32", "Core"]];
+
+            sharingRows.forEach((sharing, index) => {
+                const core = coreRows[index] ?? {};
+                rows.push([
+                    sharing.name ?? sharing.month ?? index + 1,
+                    sharing["1:2"] ?? 0,
+                    sharing["1:4"] ?? 0,
+                    sharing["1:8"] ?? 0,
+                    sharing["1:16"] ?? 0,
+                    sharing["1:32"] ?? 0,
+                    core.count ?? 0,
+                ]);
+            });
+
+            return { years: [year], rows, mode: "monthly" };
+        }
+
         const years = getExportYears();
         const startYear = years[0];
         const endYear = years[years.length - 1];
@@ -298,7 +354,7 @@ export default function DashboardPage({
                 core.count ?? 0,
             ]);
         });
-        return { years, rows };
+        return { years, rows, mode: "yearly" };
     };
 
     const downloadBlob = (blob, filename) => {
@@ -312,9 +368,10 @@ export default function DashboardPage({
         URL.revokeObjectURL(url);
     };
 
-    const getExportFilename = (years, extension) => {
+    const getExportFilename = (years, extension, mode = coreTrendTimeMode) => {
         const yearLabel = years.length === 1 ? String(years[0]) : `${years[0]}-${years[years.length - 1]}`;
-        return `tren_penggunaan_core_${yearLabel}.${extension}`;
+        const periodLabel = mode === "monthly" ? `bulanan_${yearLabel}` : `tahunan_${yearLabel}`;
+        return `tren_penggunaan_core_${periodLabel}.${extension}`;
     };
 
     const getCoreTrendChartPng = async () => {
@@ -354,12 +411,12 @@ export default function DashboardPage({
     const handleExportCoreTrend = async () => {
         setIsExportingCoreTrend(true);
         try {
-            const { years, rows } = await buildCoreTrendExportRows();
+            const { years, rows, mode } = await buildCoreTrendExportRows();
             const csvContent = rows
                 .map(row => row.map(value => `"${String(value ?? "").replace(/"/g, '""')}"`).join(","))
                 .join("\n");
             const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-            downloadBlob(blob, getExportFilename(years, "csv"));
+            downloadBlob(blob, getExportFilename(years, "csv", mode));
         } catch (error) {
             console.error("Core trend export error:", error);
         } finally {
@@ -370,7 +427,7 @@ export default function DashboardPage({
     const handleExportCoreTrendXlsx = async () => {
         setIsExportingCoreTrendXlsx(true);
         try {
-            const [{ default: ExcelJS }, { years, rows }, chartPng] = await Promise.all([
+            const [{ default: ExcelJS }, { years, rows, mode }, chartPng] = await Promise.all([
                 import("exceljs"),
                 buildCoreTrendExportRows(),
                 getCoreTrendChartPng()
@@ -402,7 +459,7 @@ export default function DashboardPage({
 
             const buffer = await workbook.xlsx.writeBuffer();
             const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-            downloadBlob(blob, getExportFilename(years, "xlsx"));
+            downloadBlob(blob, getExportFilename(years, "xlsx", mode));
         } catch (error) {
             console.error("Core trend XLSX export error:", error);
         } finally {
@@ -445,10 +502,41 @@ export default function DashboardPage({
                         <div className="flex flex-col md:flex-row md:items-center justify-between mb-3 gap-2 relative z-50">
                             <div className="flex items-center gap-2">
                                 <span className="h-4 w-1 bg-gold-accent rounded-full"></span>
-                                <h2 className="text-base font-black text-on-surface tracking-tight">Tren Penggunaan Core Tahunan</h2>
+                                <h2 className="text-base font-black text-on-surface tracking-tight">{coreTrendTitle}</h2>
                             </div>
                             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                                <ChartFilterSelector filter={coreTrendFilter} setFilter={setCoreTrendFilter} availableYears={availableYears} modeOptions={coreTrendModeOptions} />
+                                <div className="inline-flex rounded-xl bg-white/10 p-1 border border-white/15 backdrop-blur-md">
+                                    {[
+                                        { value: "yearly", label: "Tahunan" },
+                                        { value: "monthly", label: "Bulanan" },
+                                    ].map(option => (
+                                        <button
+                                            key={option.value}
+                                            type="button"
+                                            onClick={() => switchCoreTrendTimeMode(option.value)}
+                                            className={`rounded-lg px-4 py-1.5 text-[9px] font-black uppercase tracking-widest anim-surface ${coreTrendTimeMode === option.value
+                                                ? "bg-gold-accent text-white shadow-gold-glow"
+                                                : "text-white/70 hover:text-white"
+                                                }`}
+                                        >
+                                            {option.label}
+                                        </button>
+                                    ))}
+                                </div>
+                                {coreTrendTimeMode === "monthly" ? (
+                                    <div className="flex items-center gap-3 bg-white/5 px-3 py-1.5 rounded-2xl border border-white/10 backdrop-blur-md">
+                                        <span className="text-[9px] font-black text-white/50 uppercase tracking-widest">Tahun</span>
+                                        <CustomDropdown
+                                            value={coreTrendDisplayYear}
+                                            onChange={updateCoreTrendMonthlyYear}
+                                            options={coreTrendYearOptions}
+                                            align="right"
+                                            triggerClass="text-on-surface text-[10px] uppercase tracking-widest"
+                                        />
+                                    </div>
+                                ) : (
+                                    <ChartFilterSelector filter={coreTrendFilter} setFilter={setCoreTrendFilter} availableYears={availableYears} modeOptions={coreTrendModeOptions} />
+                                )}
                                 <div className="inline-flex rounded-xl bg-white/10 p-1 border border-white/15 backdrop-blur-md">
                                     {["sharing", "core"].map(type => (
                                         <button
@@ -500,7 +588,13 @@ export default function DashboardPage({
 
                         <div className="relative z-50 mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                                <ChartFilterSelector filter={coreTrendExportFilter} setFilter={setCoreTrendExportFilter} availableYears={availableYears} modeOptions={coreTrendModeOptions} />
+                                {coreTrendTimeMode === "yearly" ? (
+                                    <ChartFilterSelector filter={coreTrendExportFilter} setFilter={setCoreTrendExportFilter} availableYears={availableYears} modeOptions={coreTrendModeOptions} />
+                                ) : (
+                                    <span className="rounded-2xl border border-white/10 bg-white/5 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-white/60 backdrop-blur-md">
+                                        Export Bulanan {coreTrendDisplayYear}
+                                    </span>
+                                )}
                             </div>
                             <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center">
                                 <button
