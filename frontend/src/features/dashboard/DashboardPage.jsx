@@ -906,15 +906,6 @@ function ChartFilterSelector({ filter, setFilter, availableYears, modeOptions, s
         { value: "specific_year", label: "Tahun Spesifik" },
         { value: "custom", label: "Kustom Range" }
     ];
-    const containerClass = compact
-        ? "flex max-w-full shrink-0 flex-nowrap items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-2 py-1.5 backdrop-blur-md"
-        : "flex max-w-full flex-wrap items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-2.5 py-1.5 backdrop-blur-md sm:gap-3 sm:px-3";
-    const dividerClass = compact
-        ? "flex items-center border-r border-white/10 pr-1.5"
-        : "flex items-center border-r border-white/10 pr-2 sm:pr-3";
-    const rangeClass = compact
-        ? "flex items-center gap-1.5 border-r border-white/10 pr-1.5"
-        : "flex items-center gap-2 border-r border-white/10 pr-2 sm:pr-3";
     const inputClass = compact
         ? "bg-transparent border-b border-white/20 text-[10px] font-black text-gold-accent focus:ring-0 outline-none w-6 text-center py-0.5 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [appearance:textfield]"
         : "bg-transparent border-b border-white/20 text-[11px] font-black text-gold-accent focus:ring-0 outline-none w-8 text-center py-0.5 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [appearance:textfield]";
