@@ -652,9 +652,9 @@ function CustomerWorkspacePage({
                                                 onClick={() => setCollapsedMap((prev) => ({ ...prev, [group.id]: !(prev[group.id] ?? true) }))}
                                                 type="button"
                                             >
-                                                <div className="w-11 h-11 shrink-0 rounded-xl bg-white shadow-xl flex items-center justify-center text-gold-accent border border-white/10 overflow-hidden relative group-hover/title-btn:scale-105 transition-all duration-500">
+                                                <div className="w-11 h-11 shrink-0 rounded-xl bg-[#fff] shadow-xl flex items-center justify-center text-gold-accent border border-white/10 overflow-hidden relative group-hover/title-btn:scale-105 transition-all duration-500">
                                                     {group.logoUrl ? (
-                                                        <img src={group.logoUrl} alt={group.name} className="w-full h-full object-cover" />
+                                                        <img src={group.logoUrl} alt={group.name} className="box-border h-full w-full object-contain p-1.5" />
                                                     ) : (
                                                         <span className="material-symbols-outlined text-2xl">router</span>
                                                     )}
