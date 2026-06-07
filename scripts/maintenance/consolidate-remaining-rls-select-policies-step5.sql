@@ -171,12 +171,16 @@ USING ((select public.get_user_role()) = 'admin');
 
 -- CUSTOMER_ROUTE_HISTORY
 DROP POLICY IF EXISTS "Admin full access on customer_route_history" ON public.customer_route_history;
+DROP POLICY IF EXISTS "Admin teknisi full access on customer_route_history" ON public.customer_route_history;
 DROP POLICY IF EXISTS "Teknisi read all customer route history" ON public.customer_route_history;
 DROP POLICY IF EXISTS "ISP read own customer route history" ON public.customer_route_history;
 DROP POLICY IF EXISTS "Read customer_route_history as admin teknisi or owner isp" ON public.customer_route_history;
 DROP POLICY IF EXISTS "Admin insert customer_route_history" ON public.customer_route_history;
+DROP POLICY IF EXISTS "Admin teknisi insert customer_route_history" ON public.customer_route_history;
 DROP POLICY IF EXISTS "Admin update customer_route_history" ON public.customer_route_history;
+DROP POLICY IF EXISTS "Admin teknisi update customer_route_history" ON public.customer_route_history;
 DROP POLICY IF EXISTS "Admin delete customer_route_history" ON public.customer_route_history;
+DROP POLICY IF EXISTS "Admin teknisi delete customer_route_history" ON public.customer_route_history;
 
 CREATE POLICY "Read customer_route_history as admin teknisi or owner isp"
 ON public.customer_route_history
@@ -189,21 +193,21 @@ USING (
   )
 );
 
-CREATE POLICY "Admin insert customer_route_history"
+CREATE POLICY "Admin teknisi insert customer_route_history"
 ON public.customer_route_history
 FOR INSERT
-WITH CHECK ((select public.get_user_role()) = 'admin');
+WITH CHECK ((select public.get_user_role()) IN ('admin', 'teknisi'));
 
-CREATE POLICY "Admin update customer_route_history"
+CREATE POLICY "Admin teknisi update customer_route_history"
 ON public.customer_route_history
 FOR UPDATE
-USING ((select public.get_user_role()) = 'admin')
-WITH CHECK ((select public.get_user_role()) = 'admin');
+USING ((select public.get_user_role()) IN ('admin', 'teknisi'))
+WITH CHECK ((select public.get_user_role()) IN ('admin', 'teknisi'));
 
-CREATE POLICY "Admin delete customer_route_history"
+CREATE POLICY "Admin teknisi delete customer_route_history"
 ON public.customer_route_history
 FOR DELETE
-USING ((select public.get_user_role()) = 'admin');
+USING ((select public.get_user_role()) IN ('admin', 'teknisi'));
 
 -- ============================================================================
 -- ENTRY POINT TABLES

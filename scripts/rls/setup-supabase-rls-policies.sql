@@ -301,20 +301,22 @@ USING (
 ALTER TABLE public.customer_route_versions ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Admin full access on customer_route_versions" ON public.customer_route_versions;
+DROP POLICY IF EXISTS "Admin teknisi full access on customer_route_versions" ON public.customer_route_versions;
 DROP POLICY IF EXISTS "Teknisi read all routes" ON public.customer_route_versions;
 DROP POLICY IF EXISTS "ISP read all routes" ON public.customer_route_versions;
 DROP POLICY IF EXISTS "ISP read own routes" ON public.customer_route_versions;
+DROP POLICY IF EXISTS "Admin insert customer_route_versions" ON public.customer_route_versions;
+DROP POLICY IF EXISTS "Admin teknisi insert customer_route_versions" ON public.customer_route_versions;
+DROP POLICY IF EXISTS "Admin update customer_route_versions" ON public.customer_route_versions;
+DROP POLICY IF EXISTS "Admin teknisi update customer_route_versions" ON public.customer_route_versions;
+DROP POLICY IF EXISTS "Admin delete customer_route_versions" ON public.customer_route_versions;
+DROP POLICY IF EXISTS "Admin teknisi delete customer_route_versions" ON public.customer_route_versions;
 
-CREATE POLICY "Admin full access on customer_route_versions"
+CREATE POLICY "Admin teknisi full access on customer_route_versions"
 ON public.customer_route_versions
 FOR ALL
-USING (public.get_user_role() = 'admin')
-WITH CHECK (public.get_user_role() = 'admin');
-
-CREATE POLICY "Teknisi read all routes"
-ON public.customer_route_versions
-FOR SELECT
-USING (public.get_user_role() = 'teknisi');
+USING (public.get_user_role() IN ('admin', 'teknisi'))
+WITH CHECK (public.get_user_role() IN ('admin', 'teknisi'));
 
 CREATE POLICY "ISP read own routes"
 ON public.customer_route_versions
@@ -331,20 +333,22 @@ USING (
 ALTER TABLE public.customer_route_points ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Admin full access on customer_route_points" ON public.customer_route_points;
+DROP POLICY IF EXISTS "Admin teknisi full access on customer_route_points" ON public.customer_route_points;
 DROP POLICY IF EXISTS "Teknisi read all route points" ON public.customer_route_points;
 DROP POLICY IF EXISTS "ISP read all route points" ON public.customer_route_points;
 DROP POLICY IF EXISTS "ISP read own route points" ON public.customer_route_points;
+DROP POLICY IF EXISTS "Admin insert customer_route_points" ON public.customer_route_points;
+DROP POLICY IF EXISTS "Admin teknisi insert customer_route_points" ON public.customer_route_points;
+DROP POLICY IF EXISTS "Admin update customer_route_points" ON public.customer_route_points;
+DROP POLICY IF EXISTS "Admin teknisi update customer_route_points" ON public.customer_route_points;
+DROP POLICY IF EXISTS "Admin delete customer_route_points" ON public.customer_route_points;
+DROP POLICY IF EXISTS "Admin teknisi delete customer_route_points" ON public.customer_route_points;
 
-CREATE POLICY "Admin full access on customer_route_points"
+CREATE POLICY "Admin teknisi full access on customer_route_points"
 ON public.customer_route_points
 FOR ALL
-USING (public.get_user_role() = 'admin')
-WITH CHECK (public.get_user_role() = 'admin');
-
-CREATE POLICY "Teknisi read all route points"
-ON public.customer_route_points
-FOR SELECT
-USING (public.get_user_role() = 'teknisi');
+USING (public.get_user_role() IN ('admin', 'teknisi'))
+WITH CHECK (public.get_user_role() IN ('admin', 'teknisi'));
 
 CREATE POLICY "ISP read own route points"
 ON public.customer_route_points
@@ -522,19 +526,21 @@ USING (
 ALTER TABLE public.customer_route_history ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Admin full access on customer_route_history" ON public.customer_route_history;
+DROP POLICY IF EXISTS "Admin teknisi full access on customer_route_history" ON public.customer_route_history;
 DROP POLICY IF EXISTS "Teknisi read all customer route history" ON public.customer_route_history;
 DROP POLICY IF EXISTS "ISP read own customer route history" ON public.customer_route_history;
+DROP POLICY IF EXISTS "Admin insert customer_route_history" ON public.customer_route_history;
+DROP POLICY IF EXISTS "Admin teknisi insert customer_route_history" ON public.customer_route_history;
+DROP POLICY IF EXISTS "Admin update customer_route_history" ON public.customer_route_history;
+DROP POLICY IF EXISTS "Admin teknisi update customer_route_history" ON public.customer_route_history;
+DROP POLICY IF EXISTS "Admin delete customer_route_history" ON public.customer_route_history;
+DROP POLICY IF EXISTS "Admin teknisi delete customer_route_history" ON public.customer_route_history;
 
-CREATE POLICY "Admin full access on customer_route_history"
+CREATE POLICY "Admin teknisi full access on customer_route_history"
 ON public.customer_route_history
 FOR ALL
-USING (public.get_user_role() = 'admin')
-WITH CHECK (public.get_user_role() = 'admin');
-
-CREATE POLICY "Teknisi read all customer route history"
-ON public.customer_route_history
-FOR SELECT
-USING (public.get_user_role() = 'teknisi');
+USING (public.get_user_role() IN ('admin', 'teknisi'))
+WITH CHECK (public.get_user_role() IN ('admin', 'teknisi'));
 
 CREATE POLICY "ISP read own customer route history"
 ON public.customer_route_history
