@@ -1,4 +1,4 @@
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import {
   AttributionControl,
   GeoJSON,
@@ -14,6 +14,9 @@ import "./FoRoutePlanner.css";
 
 const KIMA_CENTER = [-5.0929568, 119.5018379];
 const DEFAULT_ZOOM = 14;
+const MAP_MIN_ZOOM = 12;
+const MAP_MAX_ZOOM = 22;
+const TILE_MAX_NATIVE_ZOOM = 19;
 const KIMA_ICON = L.icon({
   iconUrl: "/logo-kima.png",
   iconSize: [40, 40],
@@ -102,7 +105,7 @@ function createCustomerIcon(color, label, logoUrl, title = "") {
 
 function FitBounds({ bounds }) {
   const map = useMap();
-  useMemo(() => {
+  useEffect(() => {
     if (bounds && bounds.isValid()) {
       map.fitBounds(bounds, { padding: [40, 40] });
     }
@@ -112,7 +115,9 @@ function FitBounds({ bounds }) {
 
 function MapInstanceCapture({ onReady }) {
   const map = useMap();
-  useMemo(() => { if (onReady) onReady(map); }, [map, onReady]);
+  useEffect(() => {
+    if (onReady) onReady(map);
+  }, [map, onReady]);
   return null;
 }
 
@@ -197,12 +202,16 @@ export default function FoRouteMultiPreview({ tenants = [], ispLogoUrl = "", isp
           zoomControl={false}
           center={KIMA_CENTER}
           className="h-full w-full"
+          maxZoom={MAP_MAX_ZOOM}
+          minZoom={MAP_MIN_ZOOM}
           scrollWheelZoom
           zoom={DEFAULT_ZOOM}
         >
           <ZoomControl position="topright" />
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            maxNativeZoom={TILE_MAX_NATIVE_ZOOM}
+            maxZoom={MAP_MAX_ZOOM}
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
           <AttributionControl position="bottomleft" />

@@ -6,6 +6,9 @@ import "leaflet/dist/leaflet.css";
 
 const KIMA_CENTER = [-5.0929568, 119.5018379];
 const DEFAULT_ZOOM = 15;
+const MAP_MIN_ZOOM = 12;
+const MAP_MAX_ZOOM = 22;
+const TILE_MAX_NATIVE_ZOOM = 19;
 const KIMA_ICON = L.icon({
   iconUrl: "/logo-kima.png",
   iconSize: [40, 40],
@@ -40,8 +43,10 @@ function ClickHandler({ onMapClick }) {
 
 function FitBounds({ bounds }) {
   const map = useMap();
-  useMemo(() => {
-    if (bounds && bounds.isValid()) map.fitBounds(bounds);
+  useEffect(() => {
+    if (bounds && bounds.isValid()) {
+      map.fitBounds(bounds, { padding: [24, 24] });
+    }
   }, [bounds, map]);
   return null;
 }
@@ -172,11 +177,17 @@ function EntryPointMapSurface({
         zoomControl={false}
         center={KIMA_CENTER}
         className="h-full w-full"
+        maxZoom={MAP_MAX_ZOOM}
+        minZoom={MAP_MIN_ZOOM}
         scrollWheelZoom
         zoom={DEFAULT_ZOOM}
       >
         <ZoomControl position="topright" />
-        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        <TileLayer
+          maxNativeZoom={TILE_MAX_NATIVE_ZOOM}
+          maxZoom={MAP_MAX_ZOOM}
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
         <MapCapture onReady={(map) => { mapRef.current = map; }} />
         {bounds && <FitBounds bounds={bounds} />}
         {!readOnly && <ClickHandler onMapClick={onMapClick} />}
