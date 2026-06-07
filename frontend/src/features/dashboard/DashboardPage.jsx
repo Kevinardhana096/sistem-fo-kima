@@ -498,14 +498,14 @@ export default function DashboardPage({
                 {/* Row 2: Core Trend & Sharing Details */}
                 <section className="relative z-30 grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-[300px]">
                     {/* Core Chart with Toggle */}
-                    <div className={`${glassCardClass} z-[60] flex min-w-0 flex-col overflow-visible lg:col-span-2 h-full`}>
-                        <div className="relative z-50 mb-3 flex min-w-0 flex-col gap-3">
-                            <div className="flex min-w-0 items-center gap-2">
-                                <span className="h-4 w-1 shrink-0 bg-gold-accent rounded-full"></span>
-                                <h2 className="min-w-0 text-base font-black text-on-surface tracking-tight">{coreTrendTitle}</h2>
+                    <div className={`${glassCardClass} z-[60] flex flex-col overflow-visible lg:col-span-2 h-full`}>
+                        <div className="flex flex-col md:flex-row md:items-center justify-between mb-3 gap-2 relative z-50">
+                            <div className="flex items-center gap-2">
+                                <span className="h-4 w-1 bg-gold-accent rounded-full"></span>
+                                <h2 className="text-base font-black text-on-surface tracking-tight">{coreTrendTitle}</h2>
                             </div>
-                            <div className="flex max-w-full flex-wrap items-center gap-2">
-                                <div className="inline-flex max-w-full shrink-0 rounded-xl bg-white/10 p-1 border border-white/15 backdrop-blur-md">
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                                <div className="inline-flex rounded-xl bg-white/10 p-1 border border-white/15 backdrop-blur-md">
                                     {[
                                         { value: "yearly", label: "Tahunan" },
                                         { value: "monthly", label: "Bulanan" },
@@ -514,7 +514,7 @@ export default function DashboardPage({
                                             key={option.value}
                                             type="button"
                                             onClick={() => switchCoreTrendTimeMode(option.value)}
-                                            className={`rounded-lg px-3 py-1.5 text-[9px] font-black uppercase tracking-widest anim-surface sm:px-4 ${coreTrendTimeMode === option.value
+                                            className={`rounded-lg px-4 py-1.5 text-[9px] font-black uppercase tracking-widest anim-surface ${coreTrendTimeMode === option.value
                                                 ? "bg-gold-accent text-white shadow-gold-glow"
                                                 : "text-white/70 hover:text-white"
                                                 }`}
@@ -524,7 +524,7 @@ export default function DashboardPage({
                                     ))}
                                 </div>
                                 {coreTrendTimeMode === "monthly" ? (
-                                    <div className="flex shrink-0 items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-2.5 py-1.5 backdrop-blur-md sm:gap-3 sm:px-3">
+                                    <div className="flex items-center gap-3 bg-white/5 px-3 py-1.5 rounded-2xl border border-white/10 backdrop-blur-md">
                                         <span className="text-[9px] font-black text-white/50 uppercase tracking-widest">Tahun</span>
                                         <CustomDropdown
                                             value={coreTrendDisplayYear}
@@ -537,7 +537,7 @@ export default function DashboardPage({
                                 ) : (
                                     <ChartFilterSelector filter={coreTrendFilter} setFilter={setCoreTrendFilter} availableYears={availableYears} modeOptions={coreTrendModeOptions} />
                                 )}
-                                <div className="inline-flex max-w-full shrink-0 rounded-xl bg-white/10 p-1 border border-white/15 backdrop-blur-md">
+                                <div className="inline-flex rounded-xl bg-white/10 p-1 border border-white/15 backdrop-blur-md">
                                     {["sharing", "core"].map(type => (
                                         <button
                                             key={type}
@@ -586,8 +586,8 @@ export default function DashboardPage({
                             </ResponsiveContainer>
                         </div>
 
-                        <div className="relative z-50 mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-                            <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+                        <div className="relative z-50 mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                                 {coreTrendTimeMode === "yearly" ? (
                                     <ChartFilterSelector filter={coreTrendExportFilter} setFilter={setCoreTrendExportFilter} availableYears={availableYears} modeOptions={coreTrendModeOptions} />
                                 ) : (
