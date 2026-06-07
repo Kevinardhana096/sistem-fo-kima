@@ -225,6 +225,9 @@ export default function DashboardPage({
         ? (dashboardMetrics?.coreTrend?.length ? dashboardMetrics.coreTrend : [])
         : (dashboardMetrics?.yearlyCoreTrend?.length ? dashboardMetrics.yearlyCoreTrend : []);
     const coreTrendDisplayYear = String(getCoreTrendYear());
+    const coreTrendTitle = coreTrendTimeMode === "monthly"
+        ? `Tren Penggunaan Core Bulanan ${coreTrendDisplayYear}`
+        : "Tren Penggunaan Core Tahunan";
     const coreTrendYearOptions = availableYears.map(yearValue => ({ value: yearValue, label: String(yearValue) }));
     const updateCoreTrendMonthlyYear = (yearValue) => {
         setCoreTrendFilter(previous => ({
@@ -495,14 +498,14 @@ export default function DashboardPage({
                 {/* Row 2: Core Trend & Sharing Details */}
                 <section className="relative z-30 grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-[300px]">
                     {/* Core Chart with Toggle */}
-                    <div className={`${glassCardClass} z-[60] flex min-w-0 flex-col overflow-visible lg:col-span-2 h-full`}>
-                        <div className="relative z-50 mb-3 flex min-w-0 flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
-                            <div className="flex min-w-0 shrink-0 items-center gap-2">
-                                <span className="h-4 w-1 shrink-0 bg-gold-accent rounded-full"></span>
-                                <h2 className="min-w-0 whitespace-nowrap text-sm font-black text-on-surface tracking-tight xl:text-base">Tren Penggunaan Core</h2>
+                    <div className={`${glassCardClass} z-[60] flex flex-col overflow-visible lg:col-span-2 h-full`}>
+                        <div className="flex flex-col md:flex-row md:items-center justify-between mb-3 gap-2 relative z-50">
+                            <div className="flex items-center gap-2">
+                                <span className="h-4 w-1 bg-gold-accent rounded-full"></span>
+                                <h2 className="text-base font-black text-on-surface tracking-tight">{coreTrendTitle}</h2>
                             </div>
-                            <div className="flex max-w-full flex-wrap items-center gap-1.5 xl:flex-nowrap xl:justify-end">
-                                <div className="inline-flex max-w-full shrink-0 rounded-xl bg-white/10 p-0.5 border border-white/15 backdrop-blur-md">
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                                <div className="inline-flex rounded-xl bg-white/10 p-1 border border-white/15 backdrop-blur-md">
                                     {[
                                         { value: "yearly", label: "Tahunan" },
                                         { value: "monthly", label: "Bulanan" },
@@ -511,7 +514,7 @@ export default function DashboardPage({
                                             key={option.value}
                                             type="button"
                                             onClick={() => switchCoreTrendTimeMode(option.value)}
-                                            className={`rounded-lg px-2.5 py-1.5 text-[8px] font-black uppercase tracking-widest anim-surface xl:px-3 ${coreTrendTimeMode === option.value
+                                            className={`rounded-lg px-4 py-1.5 text-[9px] font-black uppercase tracking-widest anim-surface ${coreTrendTimeMode === option.value
                                                 ? "bg-gold-accent text-white shadow-gold-glow"
                                                 : "text-white/70 hover:text-white"
                                                 }`}
@@ -521,25 +524,25 @@ export default function DashboardPage({
                                     ))}
                                 </div>
                                 {coreTrendTimeMode === "monthly" ? (
-                                    <div className="flex shrink-0 items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-2 py-1.5 backdrop-blur-md">
-                                        <span className="text-[8px] font-black text-white/50 uppercase tracking-widest">Tahun</span>
+                                    <div className="flex items-center gap-3 bg-white/5 px-3 py-1.5 rounded-2xl border border-white/10 backdrop-blur-md">
+                                        <span className="text-[9px] font-black text-white/50 uppercase tracking-widest">Tahun</span>
                                         <CustomDropdown
                                             value={coreTrendDisplayYear}
                                             onChange={updateCoreTrendMonthlyYear}
                                             options={coreTrendYearOptions}
                                             align="right"
-                                            triggerClass="text-on-surface text-[8px] uppercase tracking-widest"
+                                            triggerClass="text-on-surface text-[10px] uppercase tracking-widest"
                                         />
                                     </div>
                                 ) : (
-                                    <ChartFilterSelector filter={coreTrendFilter} setFilter={setCoreTrendFilter} availableYears={availableYears} modeOptions={coreTrendModeOptions} compact />
+                                    <ChartFilterSelector filter={coreTrendFilter} setFilter={setCoreTrendFilter} availableYears={availableYears} modeOptions={coreTrendModeOptions} />
                                 )}
-                                <div className="inline-flex max-w-full shrink-0 rounded-xl bg-white/10 p-0.5 border border-white/15 backdrop-blur-md">
+                                <div className="inline-flex rounded-xl bg-white/10 p-1 border border-white/15 backdrop-blur-md">
                                     {["sharing", "core"].map(type => (
                                         <button
                                             key={type}
                                             onClick={() => setCoreChartType(type)}
-                                            className={`rounded-lg px-2.5 py-1.5 text-[8px] font-black uppercase tracking-widest anim-surface xl:px-3 ${coreChartType === type
+                                            className={`rounded-lg px-3 py-1.5 text-[9px] font-black uppercase tracking-widest anim-surface sm:px-4 ${coreChartType === type
                                                 ? "bg-gold-accent text-white shadow-gold-glow"
                                                 : "text-white/70 hover:text-white"
                                                 }`}
@@ -583,8 +586,8 @@ export default function DashboardPage({
                             </ResponsiveContainer>
                         </div>
 
-                        <div className="relative z-50 mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-                            <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+                        <div className="relative z-50 mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                                 {coreTrendTimeMode === "yearly" ? (
                                     <ChartFilterSelector filter={coreTrendExportFilter} setFilter={setCoreTrendExportFilter} availableYears={availableYears} modeOptions={coreTrendModeOptions} />
                                 ) : (
@@ -923,9 +926,9 @@ function ChartFilterSelector({ filter, setFilter, availableYears, modeOptions, s
         : "text-on-surface text-[10px] uppercase tracking-widest";
 
     return (
-        <div className={containerClass}>
+        <div className="flex max-w-full flex-wrap items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-2.5 py-1.5 backdrop-blur-md sm:gap-3 sm:px-3">
             {showCurrentMonthOption && filter.mode === "this_year" && (
-                <div className={dividerClass}>
+                <div className="flex items-center border-r border-white/10 pr-2 sm:pr-3">
                     <CustomDropdown
                         value={filter.currentMonthOnly ? "current_month" : "full_year"}
                         onChange={(val) => handleChange('currentMonthOnly', val === "current_month")}
@@ -937,7 +940,7 @@ function ChartFilterSelector({ filter, setFilter, availableYears, modeOptions, s
             )}
 
             {filter.mode === "specific_year" && (
-                <div className={dividerClass}>
+                <div className="flex items-center border-r border-white/10 pr-2 sm:pr-3">
                     <CustomDropdown
                         value={filter.year}
                         onChange={(val) => handleChange('year', val)}
@@ -949,7 +952,7 @@ function ChartFilterSelector({ filter, setFilter, availableYears, modeOptions, s
             )}
 
             {filter.mode === "range_years" && (
-                <div className={rangeClass}>
+                <div className="flex items-center gap-2 border-r border-white/10 pr-2 sm:pr-3">
                     <input
                         type="number"
                         min="1" max="50"
@@ -962,7 +965,7 @@ function ChartFilterSelector({ filter, setFilter, availableYears, modeOptions, s
             )}
 
             {filter.mode === "custom" && (
-                <div className={rangeClass}>
+                <div className="flex items-center gap-2 border-r border-white/10 pr-2 sm:pr-3">
                     <CustomDropdown
                         value={filter.start}
                         onChange={(val) => handleChange('start', val)}
