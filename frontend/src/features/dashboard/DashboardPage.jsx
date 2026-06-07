@@ -542,7 +542,7 @@ export default function DashboardPage({
                                         <button
                                             key={type}
                                             onClick={() => setCoreChartType(type)}
-                                            className={`rounded-lg px-4 py-1.5 text-[9px] font-black uppercase tracking-widest anim-surface ${coreChartType === type
+                                            className={`rounded-lg px-3 py-1.5 text-[9px] font-black uppercase tracking-widest anim-surface sm:px-4 ${coreChartType === type
                                                 ? "bg-gold-accent text-white shadow-gold-glow"
                                                 : "text-white/70 hover:text-white"
                                                 }`}
@@ -908,9 +908,9 @@ function ChartFilterSelector({ filter, setFilter, availableYears, modeOptions, s
     ];
 
     return (
-        <div className="flex items-center gap-3 bg-white/5 px-3 py-1.5 rounded-2xl border border-white/10 backdrop-blur-md">
+        <div className="flex max-w-full flex-wrap items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-2.5 py-1.5 backdrop-blur-md sm:gap-3 sm:px-3">
             {showCurrentMonthOption && filter.mode === "this_year" && (
-                <div className="flex items-center border-r border-white/10 pr-3">
+                <div className="flex items-center border-r border-white/10 pr-2 sm:pr-3">
                     <CustomDropdown
                         value={filter.currentMonthOnly ? "current_month" : "full_year"}
                         onChange={(val) => handleChange('currentMonthOnly', val === "current_month")}
@@ -921,7 +921,7 @@ function ChartFilterSelector({ filter, setFilter, availableYears, modeOptions, s
             )}
 
             {filter.mode === "specific_year" && (
-                <div className="flex items-center border-r border-white/10 pr-3">
+                <div className="flex items-center border-r border-white/10 pr-2 sm:pr-3">
                     <CustomDropdown
                         value={filter.year}
                         onChange={(val) => handleChange('year', val)}
@@ -932,7 +932,7 @@ function ChartFilterSelector({ filter, setFilter, availableYears, modeOptions, s
             )}
 
             {filter.mode === "range_years" && (
-                <div className="flex items-center gap-2 pr-3 border-r border-white/10">
+                <div className="flex items-center gap-2 border-r border-white/10 pr-2 sm:pr-3">
                     <input
                         type="number"
                         min="1" max="50"
@@ -945,7 +945,7 @@ function ChartFilterSelector({ filter, setFilter, availableYears, modeOptions, s
             )}
 
             {filter.mode === "custom" && (
-                <div className="flex items-center gap-2 pr-3 border-r border-white/10">
+                <div className="flex items-center gap-2 border-r border-white/10 pr-2 sm:pr-3">
                     <CustomDropdown
                         value={filter.start}
                         onChange={(val) => handleChange('start', val)}
