@@ -454,11 +454,78 @@ function MapViewportController({ flyTarget, fitRouteKey, fitCoordinates }) {
   return null;
 }
 
-function MapInstanceCapture({ onReady }) {
+function MapRenderStabilizer({ onReady, refreshKey }) {
   const map = useMap();
+
   useEffect(() => {
     if (onReady) onReady(map);
   }, [map, onReady]);
+
+  useEffect(() => {
+    const container = map.getContainer();
+    const refreshTiles = () => {
+      map.eachLayer((layer) => {
+        if (layer instanceof L.TileLayer) {
+          layer.redraw();
+        }
+      });
+    };
+    const invalidate = (redrawTiles = false) => {
+      map.invalidateSize({ debounceMoveend: true, pan: false });
+      if (redrawTiles) {
+        refreshTiles();
+      }
+    };
+
+    const animationFrame = requestAnimationFrame(() => invalidate(true));
+    const timers = [120, 320, 700].map((delay) =>
+      window.setTimeout(() => invalidate(delay >= 700), delay),
+    );
+
+    const resizeObserver = new ResizeObserver(() => invalidate());
+    resizeObserver.observe(container);
+
+    const intersectionObserver = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          invalidate(true);
+        }
+      },
+      { threshold: 0.1 },
+    );
+    intersectionObserver.observe(container);
+
+    const handleWindowResize = () => invalidate(true);
+    const handleTransitionEnd = () => invalidate(true);
+    let zoomSettleTimer = null;
+    const handleZoomSettled = () => {
+      invalidate();
+      if (zoomSettleTimer) {
+        window.clearTimeout(zoomSettleTimer);
+      }
+      zoomSettleTimer = window.setTimeout(() => invalidate(true), 180);
+    };
+
+    window.addEventListener("resize", handleWindowResize);
+    window.visualViewport?.addEventListener("resize", handleWindowResize);
+    container.addEventListener("transitionend", handleTransitionEnd);
+    map.on("zoomend viewreset", handleZoomSettled);
+
+    return () => {
+      cancelAnimationFrame(animationFrame);
+      timers.forEach((timer) => window.clearTimeout(timer));
+      if (zoomSettleTimer) {
+        window.clearTimeout(zoomSettleTimer);
+      }
+      resizeObserver.disconnect();
+      intersectionObserver.disconnect();
+      window.removeEventListener("resize", handleWindowResize);
+      window.visualViewport?.removeEventListener("resize", handleWindowResize);
+      container.removeEventListener("transitionend", handleTransitionEnd);
+      map.off("zoomend viewreset", handleZoomSettled);
+    };
+  }, [map, refreshKey]);
+
   return null;
 }
 
@@ -1561,8 +1628,11 @@ export default function FoRoutePlanner({
               >
                 <TileLayer
                   attribution={selectedBasemap.attribution}
+                  keepBuffer={4}
                   maxNativeZoom={selectedBasemap.maxNativeZoom ?? DEFAULT_TILE_MAX_NATIVE_ZOOM}
                   maxZoom={MAP_MAX_ZOOM}
+                  updateInterval={100}
+                  updateWhenIdle={false}
                   url={selectedBasemap.url}
                 />
                 {/* Adjust viewport based on preview or actual route */}
@@ -1571,6 +1641,7 @@ export default function FoRoutePlanner({
                   fitRouteKey={isPreviewMode ? `preview-${previewControlPoints.length}-${previewGeometryCoordinates.length}-${previewRoadSegments.length}` : `route-${routeData?.geometryCoordinates?.length || 0}`}
                   flyTarget={flyTarget}
                 />
+                <MapRenderStabilizer refreshKey={`preview-${basemap}`} />
                 <Marker icon={KIMA_ICON} position={KIMA_CENTER} zIndexOffset={1000}>
                   <Popup>Kawasan Industri Makassar (KIMA)</Popup>
                 </Marker>
@@ -1740,8 +1811,11 @@ export default function FoRoutePlanner({
         >
           <TileLayer
             attribution={selectedBasemap.attribution}
+            keepBuffer={4}
             maxNativeZoom={selectedBasemap.maxNativeZoom ?? DEFAULT_TILE_MAX_NATIVE_ZOOM}
             maxZoom={MAP_MAX_ZOOM}
+            updateInterval={100}
+            updateWhenIdle={false}
             url={selectedBasemap.url}
           />
           <AttributionControl position="bottomleft" />
@@ -1751,7 +1825,10 @@ export default function FoRoutePlanner({
             fitRouteKey={`${routeData?.source ?? "none"}-${routeData?.distance ?? 0}-${routeData?.mode ?? "idle"}`}
             flyTarget={flyTarget}
           />
-          <MapInstanceCapture onReady={setMapInstance} />
+          <MapRenderStabilizer
+            onReady={setMapInstance}
+            refreshKey={`${basemap}-${isSidebarOpen ? "sidebar-open" : "sidebar-closed"}`}
+          />
 
           {visibleProviderEntryPoints.map((entryPoint) => (
             <Marker
