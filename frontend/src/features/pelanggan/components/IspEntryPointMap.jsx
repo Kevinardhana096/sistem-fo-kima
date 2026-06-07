@@ -5,9 +5,10 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
 const KIMA_CENTER = [-5.0929568, 119.5018379];
-const DEFAULT_ZOOM = 15;
-const MAP_MIN_ZOOM = 12;
-const MAP_MAX_ZOOM = 22;
+const DEFAULT_ZOOM = 14;
+const MAP_MIN_ZOOM = 11;
+const MAP_MAX_ZOOM = 19;
+const FIT_BOUNDS_MAX_ZOOM = 16;
 const TILE_MAX_NATIVE_ZOOM = 19;
 const KIMA_ICON = L.icon({
   iconUrl: "/logo-kima.png",
@@ -45,7 +46,10 @@ function FitBounds({ bounds }) {
   const map = useMap();
   useEffect(() => {
     if (bounds && bounds.isValid()) {
-      map.fitBounds(bounds, { padding: [24, 24] });
+      map.fitBounds(bounds, {
+        maxZoom: FIT_BOUNDS_MAX_ZOOM,
+        padding: [40, 40],
+      });
     }
   }, [bounds, map]);
   return null;
@@ -56,6 +60,8 @@ function MapCapture({ onReady }) {
   useEffect(() => {
     if (onReady) onReady(map);
     map.invalidateSize();
+    const animationFrame = requestAnimationFrame(() => map.invalidateSize());
+    const resizeTimer = window.setTimeout(() => map.invalidateSize(), 250);
     const container = map.getContainer();
     // Fix tiles not loading when map is below the fold
     const io = new IntersectionObserver(
@@ -65,7 +71,12 @@ function MapCapture({ onReady }) {
     io.observe(container);
     const ro = new ResizeObserver(() => map.invalidateSize());
     ro.observe(container);
-    return () => { io.disconnect(); ro.disconnect(); };
+    return () => {
+      cancelAnimationFrame(animationFrame);
+      window.clearTimeout(resizeTimer);
+      io.disconnect();
+      ro.disconnect();
+    };
   }, [map, onReady]);
   return null;
 }
@@ -180,7 +191,9 @@ function EntryPointMapSurface({
         maxZoom={MAP_MAX_ZOOM}
         minZoom={MAP_MIN_ZOOM}
         scrollWheelZoom
+        wheelPxPerZoomLevel={90}
         zoom={DEFAULT_ZOOM}
+        zoomSnap={0.5}
       >
         <ZoomControl position="topright" />
         <TileLayer
