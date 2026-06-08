@@ -836,6 +836,7 @@ function App() {
                     currentRole={currentRole}
                     onNavigate={handleNavigate}
                     onLogout={handleLogout}
+                    onOpenIsp={handleOpenIspDetail}
                     onOpenCustomerById={handleOpenCustomerById}
                     onOpenTableOnly={() => navigateTo(appPaths.monitoringFullscreen)}
                 />
@@ -851,6 +852,7 @@ function App() {
                     currentRole={currentRole}
                     layout="plain"
                     onLogout={handleLogout}
+                    onOpenIsp={handleOpenIspDetail}
                     onOpenCustomerById={handleOpenCustomerById}
                     tableOnly
                     onCloseTableOnly={() => navigateTo(appPaths.monitoring)}

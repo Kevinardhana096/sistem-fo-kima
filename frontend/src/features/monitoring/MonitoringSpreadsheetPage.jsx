@@ -162,6 +162,7 @@ function MonitoringSpreadsheetPage({
     onLogout,
     ispOptions,
     currentRole = "admin",
+    onOpenIsp,
     onOpenCustomerById,
     layout = "shell",
     showEnterTableButton = false,
@@ -171,6 +172,18 @@ function MonitoringSpreadsheetPage({
 }) {
     const isTeknisi = currentRole === "teknisi";
     const currentYear = String(new Date().getUTCFullYear());
+    const handleOpenIspDetail = useCallback((ispId) => {
+        if (typeof onOpenIsp !== "function") {
+            return;
+        }
+
+        const normalizedIspId = Number(ispId);
+        if (!Number.isFinite(normalizedIspId) || normalizedIspId <= 0) {
+            return;
+        }
+
+        onOpenIsp({ id: normalizedIspId });
+    }, [onOpenIsp]);
 
     const [headerRow1Height, setHeaderRow1Height] = useState(0);
     const headerRow1Ref = useCallback((node) => {
@@ -952,17 +965,23 @@ function MonitoringSpreadsheetPage({
                                     {String(actualRowNumber).padStart(2, "0")}
                                 </td>
                                 <td className="relative sticky left-[64px] z-20 -ml-px w-[180px] pl-0 pr-0 py-3 font-black text-white bg-[#0f172a]/65 backdrop-blur-sm group-hover:!bg-[#0f1117] group-hover:!backdrop-blur-none transition-colors shadow-[2px_0_10px_rgba(0,0,0,0.3)]">
-                                    <div className="w-[170px] truncate pl-2">{row.ispName}</div>
-                                </td>
-                                <td className="relative sticky left-[244px] z-20 -ml-px w-[280px] pl-0 pr-2 py-3 bg-[#0f172a]/65 backdrop-blur-sm group-hover:!bg-[#0f1117] group-hover:!backdrop-blur-none transition-colors shadow-[4px_0_15px_rgba(0,0,0,0.4)]">
-                                    <p className="font-black text-on-surface truncate max-w-[270px] tracking-tight group-hover:text-gold-accent transition-colors">{row.customerName}</p>
                                     <button
-                                        className="mt-1 inline-flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-gold-accent hover:text-white transition-colors"
-                                        onClick={() => onOpenCustomerById(row.customerId, "overview")}
+                                        className="w-[170px] truncate pl-2 text-left font-black text-white transition-colors hover:text-gold-accent"
+                                        onClick={() => handleOpenIspDetail(row.ispId)}
+                                        title={row.ispName}
                                         type="button"
                                     >
-                                        <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>open_in_new</span>
-                                        Detail Unit
+                                        {row.ispName}
+                                    </button>
+                                </td>
+                                <td className="relative sticky left-[244px] z-20 -ml-px w-[280px] pl-0 pr-2 py-3 bg-[#0f172a]/65 backdrop-blur-sm group-hover:!bg-[#0f1117] group-hover:!backdrop-blur-none transition-colors shadow-[4px_0_15px_rgba(0,0,0,0.4)]">
+                                    <button
+                                        className="max-w-[270px] truncate text-left font-black tracking-tight text-on-surface transition-colors hover:text-gold-accent"
+                                        onClick={() => onOpenCustomerById(row.customerId, "overview")}
+                                        title={row.customerName}
+                                        type="button"
+                                    >
+                                        {row.customerName}
                                     </button>
                                     <span className="absolute right-0 top-0 h-full w-px bg-white/10 backdrop-blur-md" />
                                 </td>
@@ -1273,14 +1292,13 @@ function MonitoringSpreadsheetPage({
                                     {row.ispName}
                                 </td>
                                 <td className="border-r border-white/5 px-5 py-3">
-                                    <p className="truncate font-black text-on-surface group-hover:text-gold-accent">{row.customerName}</p>
                                     <button
-                                        className="mt-1.5 inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-gold-accent hover:text-white transition-colors"
+                                        className="truncate text-left font-black text-on-surface transition-colors hover:text-gold-accent"
                                         onClick={() => onOpenCustomerById(row.customerId, "overview")}
+                                        title={row.customerName}
                                         type="button"
                                     >
-                                        <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>open_in_new</span>
-                                        Detail Unit
+                                        {row.customerName}
                                     </button>
                                 </td>
                                 <td className="border-r border-white/5 px-5 py-3 text-center text-xs font-bold text-on-surface-variant">

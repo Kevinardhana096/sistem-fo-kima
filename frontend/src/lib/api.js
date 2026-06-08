@@ -3076,6 +3076,7 @@ export const monitoringApi = {
     const rows = customers.map(customer => {
       const customerIsps = customer.ispMemberships?.map(m => m.isp).filter(Boolean) || [];
       const ispNames = customerIsps.map(isp => isp.name).filter(Boolean);
+      const primaryIspId = customerIsps[0]?.id ?? null;
       const customerContracts = contractsByCustomerId.get(customer.id) || [];
       const invoiceLookup = invoiceLookupByCustomerId.get(customer.id) || new Map();
       const latestRouteVersion = getLatestRouteVersion(routeVersionsByCustomerId.get(customer.id) || []);
@@ -3133,6 +3134,7 @@ export const monitoringApi = {
       return {
         customerId: customer.id,
         customerCode: customer.customer_code,
+        ispId: Number.isFinite(Number(primaryIspId)) ? Number(primaryIspId) : null,
         ispName: ispNames.length > 0 ? ispNames.join(', ') : customer.isp_name || '-',
         ispNames,
         ispContractStart: customer.contract_start_date || null,
@@ -3333,6 +3335,7 @@ export const monitoringApi = {
     const rows = (customers || []).flatMap(customer => {
       const customerIsps = (membershipsByCustomerId.get(customer.id) || []).map((membership) => membership.isp).filter(Boolean);
       const ispNames = customerIsps.map(item => item.name).filter(Boolean);
+      const primaryIspId = customerIsps[0]?.id ?? null;
       const ispName = ispNames.length > 0 ? ispNames.join(', ') : customer.isp_name || '-';
       const latestRouteVersion = getLatestRouteVersion(routeVersionsByCustomerId.get(customer.id) || []);
       const customerContracts = contractsByCustomerId.get(customer.id) || [];
@@ -3343,6 +3346,7 @@ export const monitoringApi = {
         customerName: customer.name,
         customerStatus: customer.status,
         routeStatus: latestRouteVersion?.flow_status || null,
+        ispId: Number.isFinite(Number(primaryIspId)) ? Number(primaryIspId) : null,
         ispName,
         ispNames,
         ispContractStart: customer.contract_start_date || null,
