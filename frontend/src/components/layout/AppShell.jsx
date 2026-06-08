@@ -13,6 +13,10 @@ export default function AppShell({
     full = false,
     currentRole = "admin",
 }) {
+    const authTransitionKey = "sistem-fo-kima:auth-transition";
+    const pageTransitionKey = "sistem-fo-kima:page-transition";
+    const pageTransitionTitleKey = "sistem-fo-kima:page-transition-title";
+    const pageTransitionDescriptionKey = "sistem-fo-kima:page-transition-description";
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [authUser, setAuthUser] = useState(null);
@@ -24,6 +28,25 @@ export default function AppShell({
     });
     const [profileStatus, setProfileStatus] = useState({ type: "", message: "" });
     const [isSavingProfile, setIsSavingProfile] = useState(false);
+    const [isLogoutTransitioning, setIsLogoutTransitioning] = useState(() => (
+        typeof window !== "undefined"
+        && window.sessionStorage.getItem(authTransitionKey) === "1"
+    ));
+    const [isPageTransitioning, setIsPageTransitioning] = useState(() => (
+        typeof window !== "undefined"
+        && window.sessionStorage.getItem(pageTransitionKey) === "1"
+    ));
+    const [pageTransitionTitle, setPageTransitionTitle] = useState(() => (
+        typeof window !== "undefined"
+            ? window.sessionStorage.getItem(pageTransitionTitleKey) || "Memuat Halaman"
+            : "Memuat Halaman"
+    ));
+    const [pageTransitionDescription, setPageTransitionDescription] = useState(() => (
+        typeof window !== "undefined"
+            ? window.sessionStorage.getItem(pageTransitionDescriptionKey) || "Menyiapkan tampilan tujuan..."
+            : "Menyiapkan tampilan tujuan..."
+    ));
+    const isTransitioningAuth = isLogoutTransitioning || isPageTransitioning;
 
     // Initialize state from localStorage to ensure persistence
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
@@ -46,6 +69,21 @@ export default function AppShell({
     useEffect(() => {
         localStorage.setItem("sidebar_collapsed", String(isSidebarCollapsed));
     }, [isSidebarCollapsed]);
+
+    useEffect(() => {
+        const syncAuthTransition = () => {
+            if (typeof window === "undefined") return;
+
+            setIsLogoutTransitioning(window.sessionStorage.getItem(authTransitionKey) === "1");
+            setIsPageTransitioning(window.sessionStorage.getItem(pageTransitionKey) === "1");
+            setPageTransitionTitle(window.sessionStorage.getItem(pageTransitionTitleKey) || "Memuat Halaman");
+            setPageTransitionDescription(window.sessionStorage.getItem(pageTransitionDescriptionKey) || "Menyiapkan tampilan tujuan...");
+        };
+
+        syncAuthTransition();
+        window.addEventListener("sistem-fo-kima:auth-transition", syncAuthTransition);
+        return () => window.removeEventListener("sistem-fo-kima:auth-transition", syncAuthTransition);
+    }, []);
 
     useEffect(() => {
         let isActive = true;
@@ -162,6 +200,7 @@ export default function AppShell({
                 profileDisplayName={profileDisplayName}
                 profileAvatarName={profileAvatarName}
                 onEditProfile={openEditProfile}
+                isTransitioningAuth={isTransitioningAuth}
             />
 
             {isMobileMenuOpen && !hideSidebar && (
@@ -192,6 +231,24 @@ export default function AppShell({
                     {children}
                 </div>
             </main>
+
+            {isTransitioningAuth && (
+                <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/55 px-6 backdrop-blur-md">
+                    <div className="flex w-full max-w-sm flex-col items-center gap-4 rounded-3xl border border-white/10 bg-slate-950/85 px-6 py-8 text-center shadow-2xl">
+                        <div className="h-12 w-12 animate-spin rounded-full border-4 border-gold-accent border-t-transparent" />
+                        <div>
+                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gold-accent/80">
+                                {isLogoutTransitioning ? "Mengakhiri Sesi" : pageTransitionTitle}
+                            </p>
+                            <p className="mt-2 text-sm font-bold text-on-surface-variant">
+                                {isLogoutTransitioning
+                                    ? "Menyiapkan keluar dan memuat ulang halaman login..."
+                                    : pageTransitionDescription}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {isEditModalOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -306,6 +363,7 @@ function TopNav({
     profileDisplayName,
     profileAvatarName,
     onEditProfile,
+    isTransitioningAuth = false,
 }) {
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -533,11 +591,12 @@ function TopNav({
                                 </div>
 
                                 <button
-                                    className="flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-[11px] font-bold text-rose-400 hover:bg-rose-500/10 anim-surface"
+                                    className="flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-[11px] font-bold text-rose-400 hover:bg-rose-500/10 anim-surface disabled:cursor-not-allowed disabled:opacity-50"
                                     onClick={() => {
                                         setIsProfileOpen(false);
                                         onLogout?.();
                                     }}
+                                    disabled={isTransitioningAuth}
                                     type="button"
                                 >
                                     <span className="material-symbols-outlined text-base opacity-80">logout</span>

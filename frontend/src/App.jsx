@@ -62,6 +62,152 @@ import "./App.css";
 
 const CUSTOMER_PAGE_SIZE = 500;
 const PUBLIC_ROUTE_TYPES = new Set(["login", "admin-register"]);
+const AUTH_TRANSITION_EVENT = "sistem-fo-kima:auth-transition";
+const PAGE_TRANSITION_STORAGE_KEY = "sistem-fo-kima:page-transition";
+const PAGE_TRANSITION_TITLE_STORAGE_KEY = "sistem-fo-kima:page-transition-title";
+const PAGE_TRANSITION_DESCRIPTION_STORAGE_KEY = "sistem-fo-kima:page-transition-description";
+
+const SECTION_TRANSITION_COPY = {
+    dashboard: {
+        title: "Membuka Dashboard",
+        description: "Menyiapkan ringkasan operasional...",
+    },
+    customers: {
+        title: "Membuka Daftar Tenant",
+        description: "Menyiapkan data tenant dan ISP...",
+    },
+    monitoring: {
+        title: "Membuka Monitoring",
+        description: "Menyiapkan tampilan monitoring operasional...",
+    },
+    trash: {
+        title: "Membuka Tempat Sampah",
+        description: "Menyiapkan data yang dihapus sementara...",
+    },
+    activity: {
+        title: "Membuka Log Aktivitas",
+        description: "Menyiapkan catatan aktivitas terbaru...",
+    },
+    todos: {
+        title: "Membuka Tindak Lanjut",
+        description: "Menyiapkan daftar tindak lanjut...",
+    },
+};
+
+function getPageTransitionCopy(targetPath, currentRole) {
+    if (typeof window === "undefined") {
+        return {
+            title: "Memuat Halaman",
+            description: "Menyiapkan tampilan tujuan...",
+        };
+    }
+
+    try {
+        const nextUrl = new URL(targetPath, window.location.origin);
+        const route = parseAppRoute(nextUrl.pathname, nextUrl.search, currentRole);
+
+        if (route.type === "section") {
+            return SECTION_TRANSITION_COPY[route.sectionKey] ?? {
+                title: "Membuka Halaman",
+                description: "Menyiapkan tampilan tujuan...",
+            };
+        }
+
+        if (route.type === "monitoring-fullscreen") {
+            return {
+                title: "Membuka Monitoring",
+                description: "Menyiapkan tampilan monitoring penuh...",
+            };
+        }
+
+        if (route.type === "customer-detail") {
+            return {
+                title: "Membuka Detail Tenant",
+                description: "Menyiapkan data tenant...",
+            };
+        }
+
+        if (route.type === "isp-detail") {
+            return {
+                title: "Membuka Detail ISP",
+                description: "Menyiapkan data ISP...",
+            };
+        }
+
+        if (route.type === "customer-create") {
+            return {
+                title: "Membuka Form Tenant",
+                description: "Menyiapkan formulir tenant baru...",
+            };
+        }
+
+        if (route.type === "isp-create") {
+            return {
+                title: "Membuka Form ISP",
+                description: "Menyiapkan formulir ISP baru...",
+            };
+        }
+
+        if (route.type === "customer-edit") {
+            return {
+                title: "Membuka Edit Tenant",
+                description: "Menyiapkan formulir edit tenant...",
+            };
+        }
+
+        if (route.type === "isp-edit") {
+            return {
+                title: "Membuka Edit ISP",
+                description: "Menyiapkan formulir edit ISP...",
+            };
+        }
+
+        if (route.type === "customer-jalur") {
+            return {
+                title: "Membuka Jalur Tenant",
+                description: "Menyiapkan pengaturan jalur tenant...",
+            };
+        }
+
+        if (route.type === "customer-jalur-planner") {
+            return {
+                title: "Membuka Route Planner",
+                description: "Menyiapkan perencana jalur tenant...",
+            };
+        }
+
+        if (route.type === "customer-jalur-fullscreen") {
+            return {
+                title: "Membuka Jalur Tenant",
+                description: "Menyiapkan tampilan jalur penuh...",
+            };
+        }
+
+        if (route.type === "login") {
+            return {
+                title: "Membuka Login",
+                description: "Menyiapkan halaman masuk...",
+            };
+        }
+
+        if (route.type === "admin-register") {
+            return {
+                title: "Membuka Pendaftaran Admin",
+                description: "Menyiapkan halaman pendaftaran...",
+            };
+        }
+    } catch (_error) {
+        return {
+            title: "Memuat Halaman",
+            description: "Menyiapkan tampilan tujuan...",
+        };
+    }
+
+    return {
+        title: "Memuat Halaman",
+        description: "Menyiapkan tampilan tujuan...",
+    };
+}
 
 function getAuthUserIspId(user) {
     const rawIspId = user?.user_metadata?.isp_id;
@@ -167,7 +313,7 @@ function App() {
             isActive = false;
             authListener?.subscription?.unsubscribe();
         };
-    }, []);
+    }, [currentRole]);
 
     const loadCustomers = useCallback(async ({ append = false, offset = 0 } = {}) => {
         setHasRequestedCustomers(true);
@@ -344,10 +490,30 @@ function App() {
         }, {});
     }, [notifications]);
 
-    const navigateTo = useCallback((targetPath, { replace = false } = {}) => {
+    const navigateTo = useCallback((targetPath, { replace = false, transitionTitle = "", transitionDescription = "" } = {}) => {
         if (typeof window === "undefined") {
             return;
         }
+
+        const fallbackTransition = getPageTransitionCopy(targetPath, currentRole);
+        const isAuthTransitionActive = window.sessionStorage.getItem("sistem-fo-kima:auth-transition") === "1";
+
+        if (isAuthTransitionActive) {
+            window.sessionStorage.removeItem(PAGE_TRANSITION_STORAGE_KEY);
+            window.sessionStorage.removeItem(PAGE_TRANSITION_TITLE_STORAGE_KEY);
+            window.sessionStorage.removeItem(PAGE_TRANSITION_DESCRIPTION_STORAGE_KEY);
+        } else {
+            window.sessionStorage.setItem(PAGE_TRANSITION_STORAGE_KEY, "1");
+            window.sessionStorage.setItem(
+                PAGE_TRANSITION_TITLE_STORAGE_KEY,
+                transitionTitle || fallbackTransition.title,
+            );
+            window.sessionStorage.setItem(
+                PAGE_TRANSITION_DESCRIPTION_STORAGE_KEY,
+                transitionDescription || fallbackTransition.description,
+            );
+        }
+        window.dispatchEvent(new Event(AUTH_TRANSITION_EVENT));
 
         const nextUrl = new URL(targetPath, window.location.origin);
         const nextState = {
@@ -392,6 +558,27 @@ function App() {
             navigateTo(route.to, { replace: true });
         }
     }, [navigateTo, route]);
+
+    useEffect(() => {
+        if (typeof window === "undefined") {
+            return undefined;
+        }
+
+        if (window.sessionStorage.getItem(PAGE_TRANSITION_STORAGE_KEY) !== "1") {
+            return undefined;
+        }
+
+        const timer = window.setTimeout(() => {
+            window.sessionStorage.removeItem(PAGE_TRANSITION_STORAGE_KEY);
+            window.sessionStorage.removeItem(PAGE_TRANSITION_TITLE_STORAGE_KEY);
+            window.sessionStorage.removeItem(PAGE_TRANSITION_DESCRIPTION_STORAGE_KEY);
+            window.dispatchEvent(new Event(AUTH_TRANSITION_EVENT));
+        }, 220);
+
+        return () => {
+            window.clearTimeout(timer);
+        };
+    }, [locationState.pathname, locationState.search]);
 
     useEffect(() => {
         if (!hasCheckedAuth || route.type === "redirect") {
@@ -626,7 +813,12 @@ function App() {
         navigateTo(appPaths.customerDetail(resolvedCustomerId, {
             tab: initialTab,
             ispId: contextIsp?.id ?? null,
-        }));
+        }), {
+            transitionTitle: customer?.name ? `Membuka Detail ${customer.name}` : "Membuka Detail Tenant",
+            transitionDescription: customer?.name
+                ? `Menyiapkan data ${customer.name}...`
+                : "Menyiapkan data tenant...",
+        });
     }, [appPaths, navigateTo]);
 
     const handleOpenIspDetail = useCallback((isp) => {
@@ -636,11 +828,19 @@ function App() {
             return;
         }
 
-        navigateTo(appPaths.ispDetail(resolvedIspId));
+        navigateTo(appPaths.ispDetail(resolvedIspId), {
+            transitionTitle: isp?.name ? `Membuka Detail ${isp.name}` : "Membuka Detail ISP",
+            transitionDescription: isp?.name
+                ? `Menyiapkan data ${isp.name}...`
+                : "Menyiapkan data ISP...",
+        });
     }, [appPaths, navigateTo]);
 
     const handleOpenCreateTenant = useCallback(() => {
-        navigateTo(appPaths.customerCreate);
+        navigateTo(appPaths.customerCreate, {
+            transitionTitle: "Membuka Form Tenant",
+            transitionDescription: "Menyiapkan formulir tenant baru...",
+        });
     }, [appPaths, navigateTo]);
 
     const handleOpenCreateTenantFromIsp = useCallback((isp) => {
@@ -649,30 +849,54 @@ function App() {
             ? `${appPaths.customerCreate}?isp=${resolvedIspId}`
             : appPaths.customerCreate;
 
-        navigateTo(nextPath);
+        navigateTo(nextPath, {
+            transitionTitle: "Membuka Form Tenant",
+            transitionDescription: isp?.name
+                ? `Menyiapkan formulir tenant untuk ${isp.name}...`
+                : "Menyiapkan formulir tenant baru...",
+        });
     }, [appPaths, navigateTo]);
 
     const handleOpenCreateIsp = useCallback(() => {
-        navigateTo(appPaths.ispCreate);
+        navigateTo(appPaths.ispCreate, {
+            transitionTitle: "Membuka Form ISP",
+            transitionDescription: "Menyiapkan formulir ISP baru...",
+        });
     }, [appPaths, navigateTo]);
 
     const handleCancelCreate = useCallback(() => {
         if (route.type === "customer-edit" && resolvedCustomerDetail) {
-            navigateTo(appPaths.customerDetail(resolvedCustomerDetail.id), { replace: true });
+            navigateTo(appPaths.customerDetail(resolvedCustomerDetail.id), {
+                replace: true,
+                transitionTitle: "Kembali ke Detail Tenant",
+                transitionDescription: "Menampilkan detail tenant sebelumnya...",
+            });
             return;
         }
 
         if (route.type === "isp-edit" && resolvedIspDetail) {
-            navigateTo(appPaths.ispDetail(resolvedIspDetail.id), { replace: true });
+            navigateTo(appPaths.ispDetail(resolvedIspDetail.id), {
+                replace: true,
+                transitionTitle: "Kembali ke Detail ISP",
+                transitionDescription: "Menampilkan detail ISP sebelumnya...",
+            });
             return;
         }
 
         if (currentRole === APP_ROLES.isp && resolvedCurrentIspId) {
-            navigateTo(appPaths.ispDetail(resolvedCurrentIspId), { replace: true });
+            navigateTo(appPaths.ispDetail(resolvedCurrentIspId), {
+                replace: true,
+                transitionTitle: "Kembali ke Detail ISP",
+                transitionDescription: "Menampilkan detail ISP sebelumnya...",
+            });
             return;
         }
 
-        navigateTo(appPaths.customers, { replace: true });
+        navigateTo(appPaths.customers, {
+            replace: true,
+            transitionTitle: "Kembali ke Daftar Tenant",
+            transitionDescription: "Menampilkan daftar tenant...",
+        });
     }, [appPaths, currentRole, navigateTo, resolvedCurrentIspId, resolvedCustomerDetail, resolvedIspDetail, route.type]);
 
     const handleOpenEditIsp = useCallback((isp) => {
@@ -682,7 +906,12 @@ function App() {
             return;
         }
 
-        navigateTo(appPaths.ispEdit(resolvedIspId));
+        navigateTo(appPaths.ispEdit(resolvedIspId), {
+            transitionTitle: isp?.name ? `Edit ${isp.name}` : "Membuka Edit ISP",
+            transitionDescription: isp?.name
+                ? `Menyiapkan formulir edit ${isp.name}...`
+                : "Menyiapkan formulir edit ISP...",
+        });
     }, [appPaths, navigateTo]);
 
     const handleOpenEditTenant = useCallback((customer) => {
@@ -692,7 +921,12 @@ function App() {
             return;
         }
 
-        navigateTo(appPaths.customerEdit(resolvedCustomerId));
+        navigateTo(appPaths.customerEdit(resolvedCustomerId), {
+            transitionTitle: customer?.name ? `Edit ${customer.name}` : "Membuka Edit Tenant",
+            transitionDescription: customer?.name
+                ? `Menyiapkan formulir edit ${customer.name}...`
+                : "Menyiapkan formulir edit tenant...",
+        });
     }, [appPaths, navigateTo]);
 
     const handleEntitySaved = useCallback(async (savedEntity, type) => {
@@ -701,7 +935,11 @@ function App() {
         if (type === "isp") {
             const savedIspId = Number(savedEntity?.id);
             if (Number.isFinite(savedIspId) && savedIspId > 0) {
-                navigateTo(appPaths.ispDetail(savedIspId), { replace: true });
+                navigateTo(appPaths.ispDetail(savedIspId), {
+                    replace: true,
+                    transitionTitle: "Membuka Detail ISP",
+                    transitionDescription: "Menyiapkan data ISP yang disimpan...",
+                });
                 return;
             }
         } else {
@@ -709,15 +947,30 @@ function App() {
             if (Number.isFinite(savedCustomerId) && savedCustomerId > 0) {
                 navigateTo(appPaths.customerDetail(savedCustomerId, {
                     ispId: currentRole === APP_ROLES.isp ? resolvedCurrentIspId : null,
-                }), { replace: true });
+                }), {
+                    replace: true,
+                    transitionTitle: "Membuka Detail Tenant",
+                    transitionDescription: "Menyiapkan data tenant yang disimpan...",
+                });
                 return;
             }
         }
 
-        navigateTo(appPaths.customers, { replace: true });
+        navigateTo(appPaths.customers, {
+            replace: true,
+            transitionTitle: "Kembali ke Daftar Tenant",
+            transitionDescription: "Menampilkan daftar tenant...",
+        });
     }, [appPaths, currentRole, navigateTo, refreshAppData, resolvedCurrentIspId]);
 
     const handleLogout = useCallback(async () => {
+        if (typeof window !== "undefined") {
+            window.sessionStorage.setItem("sistem-fo-kima:auth-transition", "1");
+            window.dispatchEvent(new Event(AUTH_TRANSITION_EVENT));
+            window.sessionStorage.removeItem(PAGE_TRANSITION_TITLE_STORAGE_KEY);
+            window.sessionStorage.removeItem(PAGE_TRANSITION_DESCRIPTION_STORAGE_KEY);
+        }
+
         try {
             await signOut();
         } catch (error) {
@@ -728,6 +981,10 @@ function App() {
             setCurrentRole(APP_ROLES.guest);
             persistRole(APP_ROLES.guest);
             navigateTo(appPaths.login, { replace: true });
+            if (typeof window !== "undefined") {
+                window.sessionStorage.removeItem("sistem-fo-kima:auth-transition");
+                window.dispatchEvent(new Event(AUTH_TRANSITION_EVENT));
+            }
         }
     }, [appPaths.login, navigateTo]);
 
