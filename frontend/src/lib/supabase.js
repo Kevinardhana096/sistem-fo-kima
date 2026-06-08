@@ -95,7 +95,7 @@ export const updateCurrentUserProfile = async ({ displayName, password, currentP
 
 // Helper function to sign out
 export const signOut = async () => {
-  const { error } = await supabase.auth.signOut();
+  const { error } = await supabase.auth.signOut({ scope: 'local' });
   if (error) throw error;
 };
 

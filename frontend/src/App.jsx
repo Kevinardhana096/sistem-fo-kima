@@ -5,19 +5,50 @@ import { mapCustomerToRow } from "./app/utils";
 import { signOut, supabase } from "./lib/supabase";
 import api from "./lib/api";
 
+const CHUNK_RELOAD_STORAGE_KEY = "sistem-fo-kima:chunk-reload";
+
+function isDynamicImportLoadError(error) {
+    const message = String(error?.message || error || "");
+    return /Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module|ChunkLoadError/i.test(message);
+}
+
+function lazyRoute(importer) {
+    return lazy(() =>
+        importer()
+            .then((module) => {
+                if (typeof window !== "undefined") {
+                    window.sessionStorage.removeItem(CHUNK_RELOAD_STORAGE_KEY);
+                }
+                return module;
+            })
+            .catch((error) => {
+                if (typeof window !== "undefined" && isDynamicImportLoadError(error)) {
+                    const hasReloaded = window.sessionStorage.getItem(CHUNK_RELOAD_STORAGE_KEY) === "1";
+                    if (!hasReloaded) {
+                        window.sessionStorage.setItem(CHUNK_RELOAD_STORAGE_KEY, "1");
+                        window.location.reload();
+                        return new Promise(() => {});
+                    }
+                }
+
+                throw error;
+            })
+    );
+}
+
 // Lazy load heavy components
-const DashboardPage = lazy(() => import("./features/dashboard/DashboardPage"));
-const MonitoringSpreadsheetPage = lazy(() => import("./features/monitoring/MonitoringSpreadsheetPage"));
-const CustomerWorkspacePage = lazy(() => import("./features/pelanggan/CustomerWorkspacePage"));
-const IspDetailPage = lazy(() => import("./features/pelanggan/IspDetailPage"));
-const TenantDetailPage = lazy(() => import("./features/pelanggan/TenantDetailPage"));
-const TenantAdminFormPage = lazy(() => import("./features/pelanggan/TenantAdminFormPage"));
-const IspAdminFormPage = lazy(() => import("./features/pelanggan/IspAdminFormPage"));
-const LoginPage = lazy(() => import("./features/login/LoginPage"));
-const AdminRegisterPage = lazy(() => import("./features/login/AdminRegisterPage"));
-const TrashPage = lazy(() => import("./features/trash/TrashPage"));
-const ActivityLogPage = lazy(() => import("./features/activity/ActivityLogPage"));
-const TodoListPage = lazy(() => import("./features/todos/TodoListPage"));
+const DashboardPage = lazyRoute(() => import("./features/dashboard/DashboardPage"));
+const MonitoringSpreadsheetPage = lazyRoute(() => import("./features/monitoring/MonitoringSpreadsheetPage"));
+const CustomerWorkspacePage = lazyRoute(() => import("./features/pelanggan/CustomerWorkspacePage"));
+const IspDetailPage = lazyRoute(() => import("./features/pelanggan/IspDetailPage"));
+const TenantDetailPage = lazyRoute(() => import("./features/pelanggan/TenantDetailPage"));
+const TenantAdminFormPage = lazyRoute(() => import("./features/pelanggan/TenantAdminFormPage"));
+const IspAdminFormPage = lazyRoute(() => import("./features/pelanggan/IspAdminFormPage"));
+const LoginPage = lazyRoute(() => import("./features/login/LoginPage"));
+const AdminRegisterPage = lazyRoute(() => import("./features/login/AdminRegisterPage"));
+const TrashPage = lazyRoute(() => import("./features/trash/TrashPage"));
+const ActivityLogPage = lazyRoute(() => import("./features/activity/ActivityLogPage"));
+const TodoListPage = lazyRoute(() => import("./features/todos/TodoListPage"));
 import {
     getAppPaths,
     normalizePathname,

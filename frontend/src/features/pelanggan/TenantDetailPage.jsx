@@ -1091,7 +1091,7 @@ function TenantDetailPage({
 
     const activeInvoiceMap = new Map();
     invoices
-      .filter((invoice) => !shouldArchiveInvoice(invoice))
+      .filter((invoice) => !shouldArchiveInvoice(invoice) || (isInvoiceInActiveBillingPeriod(invoice) && isInvoicePaid(invoice)))
       .forEach((invoice) => {
         const key = getInvoicePeriodKey(invoice);
         if (key) {
@@ -1128,7 +1128,7 @@ function TenantDetailPage({
         paymentOrder: index + 1,
       };
     });
-  }, [activeBillingPeriod, contract?.billingEvery, contract?.billingUnit, customer.id, getInvoicePeriodKey, invoices, shouldArchiveInvoice]);
+  }, [activeBillingPeriod, contract?.billingEvery, contract?.billingUnit, customer.id, getInvoicePeriodKey, invoices, isInvoiceInActiveBillingPeriod, shouldArchiveInvoice]);
 
   const historyInvoices = useMemo(() => {
     return invoices.filter((invoice) => shouldArchiveInvoice(invoice) && !isInvoiceInActiveBillingPeriod(invoice));

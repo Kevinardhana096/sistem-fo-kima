@@ -1537,6 +1537,17 @@ const getCustomerDetailStaleActiveInvoiceIds = (detail) => {
         return false;
       }
 
+      const invoiceStatus = String(invoice?.status ?? "").toLowerCase();
+      const hasPaidMarker = typeof invoice?.paidAt === "string"
+        ? invoice.paidAt.trim().length > 0
+        : typeof invoice?.paid_at === "string" && invoice.paid_at.trim().length > 0;
+      const hasPaymentProof = typeof invoice?.paymentProofFileUrl === "string"
+        ? invoice.paymentProofFileUrl.trim().length > 0
+        : typeof invoice?.payment_proof_file_url === "string" && invoice.payment_proof_file_url.trim().length > 0;
+      if (invoiceStatus === "lunas" || hasPaidMarker || hasPaymentProof) {
+        return false;
+      }
+
       const versionKey = Number(invoice?.contractVersionId ?? invoice?.contract_version_id);
       if (Number.isFinite(versionKey)) {
         const version = versionById.get(versionKey);
