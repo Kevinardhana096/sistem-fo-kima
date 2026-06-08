@@ -1389,6 +1389,7 @@ const mapIspContractRowPayload = (rowData = {}) => {
   const payload = {};
   assignIfPresent(payload, rowData, ['isp_id', 'ispId'], 'isp_id');
   assignIfPresent(payload, rowData, ['contract_reference', 'contractReference'], 'contract_reference');
+  assignIfPresent(payload, rowData, ['contract_start_date', 'contractStartDate'], 'contract_start_date');
   assignIfPresent(payload, rowData, ['period_start', 'periodStart', 'start_date', 'startDate'], 'period_start');
   assignIfPresent(payload, rowData, ['period_end', 'periodEnd', 'end_date', 'endDate'], 'period_end');
   assignIfPresent(payload, rowData, ['renewal_status', 'renewalStatus'], 'renewal_status');
@@ -2415,6 +2416,7 @@ const ISP_DETAIL_SELECT = `
     id,
     isp_id,
     contract_reference,
+    contract_start_date,
     period_start,
     period_end,
     status,

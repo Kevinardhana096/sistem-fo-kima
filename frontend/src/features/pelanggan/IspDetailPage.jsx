@@ -286,6 +286,7 @@ function IspDetailPage({
 }) {
     const isTeknisi = currentRole === "teknisi";
     const isIsp = currentRole === "isp";
+    const canManageIspContracts = currentRole === "admin";
     const canManageEntryPoints = currentRole === "admin" || currentRole === "teknisi";
     const canOpenTenantDetail = typeof onOpenTenant === "function";
     const todayIso = new Date().toISOString().slice(0, 10);
@@ -2280,14 +2281,16 @@ function IspDetailPage({
                                             </div>
                                             <p className="text-[9px] font-bold text-white/20 tracking-wider">Manajemen berkas legal dan amandemen layanan.</p>
                                         </div>
-                                        <button
-                                            className="rounded-lg bg-gold-accent px-4 py-2 text-[9px] font-black uppercase tracking-widest text-slate-900 shadow-gold-glow transition-all active:scale-95 hover:opacity-90 inline-flex items-center gap-1.5"
-                                            onClick={openContractDraft}
-                                            type="button"
-                                        >
-                                            <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>add</span>
-                                            Tambah Kontrak
-                                        </button>
+                                        {canManageIspContracts && (
+                                            <button
+                                                className="rounded-lg bg-gold-accent px-4 py-2 text-[9px] font-black uppercase tracking-widest text-slate-900 shadow-gold-glow transition-all active:scale-95 hover:opacity-90 inline-flex items-center gap-1.5"
+                                                onClick={openContractDraft}
+                                                type="button"
+                                            >
+                                                <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>add</span>
+                                                Tambah Kontrak
+                                            </button>
+                                        )}
                                     </div>
                                 </section>
 
@@ -2484,14 +2487,16 @@ function IspDetailPage({
                                                             </div>
                                                             <h4 className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em]">BELUM ADA RINCIAN KONTRAK</h4>
                                                             <p className="text-[8px] font-bold text-white/20 uppercase tracking-widest mt-1">Rincian kontrak atau adendum belum tersedia</p>
-                                                            <button
-                                                                className="mt-4 rounded-lg bg-gold-accent px-4 py-2 text-[9px] font-black uppercase tracking-widest text-slate-900 shadow-gold-glow active:scale-95 transition-all inline-flex items-center gap-1.5"
-                                                                onClick={openContractDraft}
-                                                                type="button"
-                                                            >
-                                                                <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>add</span>
-                                                                Tambah Kontrak
-                                                            </button>
+                                                            {canManageIspContracts && (
+                                                                <button
+                                                                    className="mt-4 rounded-lg bg-gold-accent px-4 py-2 text-[9px] font-black uppercase tracking-widest text-slate-900 shadow-gold-glow active:scale-95 transition-all inline-flex items-center gap-1.5"
+                                                                    onClick={openContractDraft}
+                                                                    type="button"
+                                                                >
+                                                                    <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>add</span>
+                                                                    Tambah Kontrak
+                                                                </button>
+                                                            )}
                                                         </div>
                                                     </td>
                                                 </tr>
