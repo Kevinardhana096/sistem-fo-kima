@@ -5,7 +5,34 @@ import { mapCustomerToRow } from "./app/utils";
 import { signOut, supabase } from "./lib/supabase";
 import api from "./lib/api";
 
-const CHUNK_RELOAD_STORAGE_KEY = "sistem-fo-kima:chunk-reload";
+const CHUNK_RELOAD_STATE_KEY = "__sistemFoKimaChunkReloaded";
+const AUTH_TRANSITION_EVENT = "sistem-fo-kima:auth-transition";
+const TRANSITION_STATE_KEY = "__sistemFoKimaTransitionState";
+
+const DEFAULT_TRANSITION_STATE = {
+    logout: false,
+    page: false,
+    title: "Memuat Halaman",
+    description: "Menyiapkan tampilan tujuan...",
+};
+
+function getRuntimeTransitionState() {
+    if (typeof window === "undefined") return DEFAULT_TRANSITION_STATE;
+    return window[TRANSITION_STATE_KEY] ?? DEFAULT_TRANSITION_STATE;
+}
+
+function setRuntimeTransitionState(nextState) {
+    if (typeof window === "undefined") return;
+
+    window[TRANSITION_STATE_KEY] = {
+        ...DEFAULT_TRANSITION_STATE,
+        ...getRuntimeTransitionState(),
+        ...nextState,
+    };
+    window.dispatchEvent(new CustomEvent(AUTH_TRANSITION_EVENT, {
+        detail: window[TRANSITION_STATE_KEY],
+    }));
+}
 
 function isDynamicImportLoadError(error) {
     const message = String(error?.message || error || "");
@@ -17,15 +44,22 @@ function lazyRoute(importer) {
         importer()
             .then((module) => {
                 if (typeof window !== "undefined") {
-                    window.sessionStorage.removeItem(CHUNK_RELOAD_STORAGE_KEY);
+                    const historyState = { ...(window.history.state ?? {}) };
+                    if (historyState[CHUNK_RELOAD_STATE_KEY]) {
+                        delete historyState[CHUNK_RELOAD_STATE_KEY];
+                        window.history.replaceState(historyState, "", window.location.href);
+                    }
                 }
                 return module;
             })
             .catch((error) => {
                 if (typeof window !== "undefined" && isDynamicImportLoadError(error)) {
-                    const hasReloaded = window.sessionStorage.getItem(CHUNK_RELOAD_STORAGE_KEY) === "1";
+                    const hasReloaded = window.history.state?.[CHUNK_RELOAD_STATE_KEY] === true;
                     if (!hasReloaded) {
-                        window.sessionStorage.setItem(CHUNK_RELOAD_STORAGE_KEY, "1");
+                        window.history.replaceState({
+                            ...(window.history.state ?? {}),
+                            [CHUNK_RELOAD_STATE_KEY]: true,
+                        }, "", window.location.href);
                         window.location.reload();
                         return new Promise(() => {});
                     }
@@ -62,10 +96,6 @@ import "./App.css";
 
 const CUSTOMER_PAGE_SIZE = 500;
 const PUBLIC_ROUTE_TYPES = new Set(["login", "admin-register"]);
-const AUTH_TRANSITION_EVENT = "sistem-fo-kima:auth-transition";
-const PAGE_TRANSITION_STORAGE_KEY = "sistem-fo-kima:page-transition";
-const PAGE_TRANSITION_TITLE_STORAGE_KEY = "sistem-fo-kima:page-transition-title";
-const PAGE_TRANSITION_DESCRIPTION_STORAGE_KEY = "sistem-fo-kima:page-transition-description";
 
 const SECTION_TRANSITION_COPY = {
     dashboard: {
@@ -196,7 +226,7 @@ function getPageTransitionCopy(targetPath, currentRole) {
                 description: "Menyiapkan halaman pendaftaran...",
             };
         }
-    } catch (_error) {
+    } catch {
         return {
             title: "Memuat Halaman",
             description: "Menyiapkan tampilan tujuan...",
@@ -313,7 +343,7 @@ function App() {
             isActive = false;
             authListener?.subscription?.unsubscribe();
         };
-    }, [currentRole]);
+    }, []);
 
     const loadCustomers = useCallback(async ({ append = false, offset = 0 } = {}) => {
         setHasRequestedCustomers(true);
@@ -496,24 +526,21 @@ function App() {
         }
 
         const fallbackTransition = getPageTransitionCopy(targetPath, currentRole);
-        const isAuthTransitionActive = window.sessionStorage.getItem("sistem-fo-kima:auth-transition") === "1";
+        const isAuthTransitionActive = getRuntimeTransitionState().logout;
 
         if (isAuthTransitionActive) {
-            window.sessionStorage.removeItem(PAGE_TRANSITION_STORAGE_KEY);
-            window.sessionStorage.removeItem(PAGE_TRANSITION_TITLE_STORAGE_KEY);
-            window.sessionStorage.removeItem(PAGE_TRANSITION_DESCRIPTION_STORAGE_KEY);
+            setRuntimeTransitionState({
+                page: false,
+                title: DEFAULT_TRANSITION_STATE.title,
+                description: DEFAULT_TRANSITION_STATE.description,
+            });
         } else {
-            window.sessionStorage.setItem(PAGE_TRANSITION_STORAGE_KEY, "1");
-            window.sessionStorage.setItem(
-                PAGE_TRANSITION_TITLE_STORAGE_KEY,
-                transitionTitle || fallbackTransition.title,
-            );
-            window.sessionStorage.setItem(
-                PAGE_TRANSITION_DESCRIPTION_STORAGE_KEY,
-                transitionDescription || fallbackTransition.description,
-            );
+            setRuntimeTransitionState({
+                page: true,
+                title: transitionTitle || fallbackTransition.title,
+                description: transitionDescription || fallbackTransition.description,
+            });
         }
-        window.dispatchEvent(new Event(AUTH_TRANSITION_EVENT));
 
         const nextUrl = new URL(targetPath, window.location.origin);
         const nextState = {
@@ -528,7 +555,7 @@ function App() {
         }
 
         setLocationState(nextState);
-    }, []);
+    }, [currentRole]);
 
     useEffect(() => {
         if (typeof window === "undefined") {
@@ -564,15 +591,16 @@ function App() {
             return undefined;
         }
 
-        if (window.sessionStorage.getItem(PAGE_TRANSITION_STORAGE_KEY) !== "1") {
+        if (!getRuntimeTransitionState().page) {
             return undefined;
         }
 
         const timer = window.setTimeout(() => {
-            window.sessionStorage.removeItem(PAGE_TRANSITION_STORAGE_KEY);
-            window.sessionStorage.removeItem(PAGE_TRANSITION_TITLE_STORAGE_KEY);
-            window.sessionStorage.removeItem(PAGE_TRANSITION_DESCRIPTION_STORAGE_KEY);
-            window.dispatchEvent(new Event(AUTH_TRANSITION_EVENT));
+            setRuntimeTransitionState({
+                page: false,
+                title: DEFAULT_TRANSITION_STATE.title,
+                description: DEFAULT_TRANSITION_STATE.description,
+            });
         }, 220);
 
         return () => {
@@ -965,10 +993,12 @@ function App() {
 
     const handleLogout = useCallback(async () => {
         if (typeof window !== "undefined") {
-            window.sessionStorage.setItem("sistem-fo-kima:auth-transition", "1");
-            window.dispatchEvent(new Event(AUTH_TRANSITION_EVENT));
-            window.sessionStorage.removeItem(PAGE_TRANSITION_TITLE_STORAGE_KEY);
-            window.sessionStorage.removeItem(PAGE_TRANSITION_DESCRIPTION_STORAGE_KEY);
+            setRuntimeTransitionState({
+                logout: true,
+                page: false,
+                title: DEFAULT_TRANSITION_STATE.title,
+                description: DEFAULT_TRANSITION_STATE.description,
+            });
         }
 
         try {
@@ -982,8 +1012,12 @@ function App() {
             persistRole(APP_ROLES.guest);
             navigateTo(appPaths.login, { replace: true });
             if (typeof window !== "undefined") {
-                window.sessionStorage.removeItem("sistem-fo-kima:auth-transition");
-                window.dispatchEvent(new Event(AUTH_TRANSITION_EVENT));
+                setRuntimeTransitionState({
+                    logout: false,
+                    page: false,
+                    title: DEFAULT_TRANSITION_STATE.title,
+                    description: DEFAULT_TRANSITION_STATE.description,
+                });
             }
         }
     }, [appPaths.login, navigateTo]);

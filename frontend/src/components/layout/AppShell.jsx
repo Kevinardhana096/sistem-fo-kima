@@ -4,6 +4,20 @@ import { getRoleConfig } from "../../roles";
 import api from "../../lib/api";
 import { supabase, updateCurrentUserProfile } from "../../lib/supabase";
 
+const AUTH_TRANSITION_EVENT = "sistem-fo-kima:auth-transition";
+const TRANSITION_STATE_KEY = "__sistemFoKimaTransitionState";
+const DEFAULT_TRANSITION_STATE = {
+    logout: false,
+    page: false,
+    title: "Memuat Halaman",
+    description: "Menyiapkan tampilan tujuan...",
+};
+
+function getRuntimeTransitionState() {
+    if (typeof window === "undefined") return DEFAULT_TRANSITION_STATE;
+    return window[TRANSITION_STATE_KEY] ?? DEFAULT_TRANSITION_STATE;
+}
+
 export default function AppShell({
     activeSection,
     onNavigate,
@@ -13,10 +27,6 @@ export default function AppShell({
     full = false,
     currentRole = "admin",
 }) {
-    const authTransitionKey = "sistem-fo-kima:auth-transition";
-    const pageTransitionKey = "sistem-fo-kima:page-transition";
-    const pageTransitionTitleKey = "sistem-fo-kima:page-transition-title";
-    const pageTransitionDescriptionKey = "sistem-fo-kima:page-transition-description";
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [authUser, setAuthUser] = useState(null);
@@ -28,24 +38,10 @@ export default function AppShell({
     });
     const [profileStatus, setProfileStatus] = useState({ type: "", message: "" });
     const [isSavingProfile, setIsSavingProfile] = useState(false);
-    const [isLogoutTransitioning, setIsLogoutTransitioning] = useState(() => (
-        typeof window !== "undefined"
-        && window.sessionStorage.getItem(authTransitionKey) === "1"
-    ));
-    const [isPageTransitioning, setIsPageTransitioning] = useState(() => (
-        typeof window !== "undefined"
-        && window.sessionStorage.getItem(pageTransitionKey) === "1"
-    ));
-    const [pageTransitionTitle, setPageTransitionTitle] = useState(() => (
-        typeof window !== "undefined"
-            ? window.sessionStorage.getItem(pageTransitionTitleKey) || "Memuat Halaman"
-            : "Memuat Halaman"
-    ));
-    const [pageTransitionDescription, setPageTransitionDescription] = useState(() => (
-        typeof window !== "undefined"
-            ? window.sessionStorage.getItem(pageTransitionDescriptionKey) || "Menyiapkan tampilan tujuan..."
-            : "Menyiapkan tampilan tujuan..."
-    ));
+    const [isLogoutTransitioning, setIsLogoutTransitioning] = useState(() => getRuntimeTransitionState().logout);
+    const [isPageTransitioning, setIsPageTransitioning] = useState(() => getRuntimeTransitionState().page);
+    const [pageTransitionTitle, setPageTransitionTitle] = useState(() => getRuntimeTransitionState().title);
+    const [pageTransitionDescription, setPageTransitionDescription] = useState(() => getRuntimeTransitionState().description);
     const isTransitioningAuth = isLogoutTransitioning || isPageTransitioning;
 
     // Initialize state from localStorage to ensure persistence
@@ -71,18 +67,18 @@ export default function AppShell({
     }, [isSidebarCollapsed]);
 
     useEffect(() => {
-        const syncAuthTransition = () => {
-            if (typeof window === "undefined") return;
+        const syncAuthTransition = (event) => {
+            const transitionState = event?.detail ?? getRuntimeTransitionState();
 
-            setIsLogoutTransitioning(window.sessionStorage.getItem(authTransitionKey) === "1");
-            setIsPageTransitioning(window.sessionStorage.getItem(pageTransitionKey) === "1");
-            setPageTransitionTitle(window.sessionStorage.getItem(pageTransitionTitleKey) || "Memuat Halaman");
-            setPageTransitionDescription(window.sessionStorage.getItem(pageTransitionDescriptionKey) || "Menyiapkan tampilan tujuan...");
+            setIsLogoutTransitioning(Boolean(transitionState.logout));
+            setIsPageTransitioning(Boolean(transitionState.page));
+            setPageTransitionTitle(transitionState.title || DEFAULT_TRANSITION_STATE.title);
+            setPageTransitionDescription(transitionState.description || DEFAULT_TRANSITION_STATE.description);
         };
 
         syncAuthTransition();
-        window.addEventListener("sistem-fo-kima:auth-transition", syncAuthTransition);
-        return () => window.removeEventListener("sistem-fo-kima:auth-transition", syncAuthTransition);
+        window.addEventListener(AUTH_TRANSITION_EVENT, syncAuthTransition);
+        return () => window.removeEventListener(AUTH_TRANSITION_EVENT, syncAuthTransition);
     }, []);
 
     useEffect(() => {
