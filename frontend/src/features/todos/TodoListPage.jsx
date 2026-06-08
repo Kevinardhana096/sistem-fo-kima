@@ -4,8 +4,8 @@ import { formatDateTime as formatDate } from "../../app/utils";
 import api from "../../lib/api";
 
 const TYPE_LABELS = {
-    contract_expiring: "Kontrak",
-    contract_admin: "Kontrak",
+    contract_expiring: "Kontrak Lokasi",
+    contract_admin: "Kontrak Lokasi",
     invoice_attention: "Invoice",
     invoice_setup: "Invoice",
     invoice_reminder: "Invoice",
@@ -44,7 +44,7 @@ const TYPE_ICON = {
     isp_document: "upload_file",
 };
 
-const getStatusKey = (n) => n.resolvedAt ? "resolved" : n.readAt ? "read" : "unread";
+const getStatusKey = (n) => n.resolvedAt ? "resolved" : "active";
 const getTypeLabel = (n) => TYPE_LABELS[n.type] || TYPE_LABELS[n.code] || n.type || "Umum";
 
 function CustomDropdown({ value, options, onChange, align = "left", position = "bottom", triggerClass = "", hideArrow = false, menuWidth = "min-w-[160px]" }) {
@@ -67,14 +67,14 @@ function CustomDropdown({ value, options, onChange, align = "left", position = "
             {isOpen && (
                 <>
                     <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)}></div>
-                    <div className={`absolute ${position === "top" ? "bottom-full mb-3" : "top-full mt-3"} ${align === "right" ? "right-0" : "left-0"} z-50 w-full ${menuWidth} rounded-2xl bg-black/60 border border-white/10 backdrop-blur-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200`}>
-                        <div className="max-h-[250px] overflow-y-auto py-1.5 [&::-webkit-scrollbar]:w-[2px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gold-accent/30 [&::-webkit-scrollbar-thumb]:rounded-full">
+                    <div className={`absolute ${position === "top" ? "bottom-full mb-2" : "top-full mt-2"} ${align === "right" ? "right-0" : "left-0"} z-50 min-w-full ${menuWidth} rounded-xl bg-black/80 border border-white/10 backdrop-blur-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200`}>
+                        <div className="max-h-[200px] overflow-y-auto p-1 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/30">
                         {options.map((opt) => (
                             <button
                                 key={opt.value}
                                 type="button"
                                 onClick={() => { onChange(opt.value); setIsOpen(false); }}
-                                className={`w-[calc(100%-12px)] mx-1.5 mt-1 mb-1 last:mb-1.5 first:mt-1.5 flex items-center justify-center px-3 py-2 text-[10px] font-bold uppercase tracking-widest transition-colors rounded-xl text-center ${String(value) === String(opt.value) ? "bg-white/10 text-gold-accent" : "text-white/70 hover:bg-white/10 hover:text-white"}`}
+                                className={`w-full flex items-center justify-start px-3 py-1.5 mb-0.5 last:mb-0 text-[8px] font-black uppercase tracking-widest transition-colors rounded-lg text-left ${String(value) === String(opt.value) ? "bg-gold-accent/10 text-gold-accent" : "text-white/60 hover:bg-white/10 hover:text-white"}`}
                             >
                                 <span className="truncate">{opt.label}</span>
                             </button>
@@ -119,9 +119,17 @@ export default function TodoListPage({ activeSection, onNavigate, onLogout, curr
     const counts = useMemo(() => notifications.reduce((acc, n) => {
         const key = getStatusKey(n);
         acc.total += 1; acc[key] += 1;
-        if (!n.resolvedAt) acc.active += 1;
+        if (!n.resolvedAt) {
+            acc.active += 1;
+            const isISP = n.type?.startsWith("isp_") || n.code?.startsWith("isp_") || getTypeLabel(n).includes("ISP");
+            if (isISP) {
+                acc.isp_active += 1;
+            } else {
+                acc.lokasi_active += 1;
+            }
+        }
         return acc;
-    }, { total: 0, active: 0, unread: 0, read: 0, resolved: 0 }), [notifications]);
+    }, { total: 0, active: 0, resolved: 0, isp_active: 0, lokasi_active: 0 }), [notifications]);
 
     const typeOptions = useMemo(() => {
         const labels = new Set();
@@ -183,19 +191,16 @@ export default function TodoListPage({ activeSection, onNavigate, onLogout, curr
     }, [totalPages]);
 
     const openNotification = async (n) => {
-        if (!n.readAt) { await api.notifications.markRead(n.id); await loadNotifications(); }
         if (n.targetPath) { window.history.pushState({}, "", n.targetPath); window.dispatchEvent(new PopStateEvent("popstate")); }
     };
-    const markRead = async (n) => { await api.notifications.markRead(n.id); await loadNotifications(); };
     const stopActionClick = (event) => {
         event.stopPropagation();
     };
 
     const STAT_CARDS = [
-        { label: "Aktif", value: counts.active, icon: "task_alt", color: "text-gold-accent", bg: "bg-gold-accent/10", border: "border-gold-accent/20" },
-        { label: "Belum Dibaca", value: counts.unread, icon: "mark_email_unread", color: "text-[#ff2400]", bg: "bg-[#ff2400]/10", border: "border-[#ff2400]/20" },
-        { label: "Dibaca", value: counts.read, icon: "drafts", color: "text-blue-400", bg: "bg-blue-400/10", border: "border-blue-400/20" },
-        { label: "Selesai", value: counts.resolved, icon: "check_circle", color: "text-emerald-400", bg: "bg-emerald-400/10", border: "border-emerald-400/20" },
+        { label: "Total ISP Perlu Tindakan", value: counts.isp_active, icon: "dns", color: "text-blue-400", bg: "bg-blue-400/10", border: "border-blue-400/20" },
+        { label: "Total Lokasi Perlu Tindakan", value: counts.lokasi_active, icon: "location_on", color: "text-amber-400", bg: "bg-amber-400/10", border: "border-amber-400/20" },
+        { label: "Total Semua Perlu Tindakan", value: counts.active, icon: "warning", color: "text-[#ff2400]", bg: "bg-[#ff2400]/10", border: "border-[#ff2400]/20" },
     ];
 
     return (
@@ -213,7 +218,7 @@ export default function TodoListPage({ activeSection, onNavigate, onLogout, curr
                             Tindak <span className="text-gold-accent italic">Lanjut</span>
                         </h1>
                         <p className="mt-1 max-w-xl text-[11px] font-bold text-white/40">
-                            Kelola semua notifikasi operasional yang perlu dibaca atau ditindaklanjuti.
+                            Kelola semua notifikasi operasional yang perlu ditindaklanjuti.
                         </p>
                     </div>
                     <button
@@ -225,7 +230,7 @@ export default function TodoListPage({ activeSection, onNavigate, onLogout, curr
                 </header>
 
                 {/* Stat Cards */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-2.5">
                     {STAT_CARDS.map(({ label, value, icon, color, bg, border }) => (
                         <div key={label} className={`relative overflow-hidden glass-card rounded-2xl p-4 group border ${border}`}>
                             <div className="flex items-center justify-between mb-3">
@@ -246,21 +251,20 @@ export default function TodoListPage({ activeSection, onNavigate, onLogout, curr
                         <input
                             type="text"
                             placeholder="Cari pelanggan, pesan, atau kode..."
-                            className="w-full h-9 rounded-lg border border-white/10 bg-white/5 pl-9 pr-3 text-[9px] font-black uppercase tracking-widest text-white placeholder:text-white/20 outline-none transition-all focus:bg-black/40 focus:border-gold-accent/40 shadow-inner-glass backdrop-blur-md"
+                            className="w-full h-9 rounded-lg border border-white/10 bg-white/5 pl-9 pr-3 text-[8px] font-black uppercase tracking-widest text-white placeholder:text-white/20 outline-none transition-all focus:bg-black/40 focus:border-gold-accent/40 shadow-inner-glass backdrop-blur-md"
                             value={search} onChange={(e) => setSearch(e.target.value)}
                         />
                     </div>
 
                     <div className="flex w-full sm:w-auto items-center gap-2">
-                        <div className="grid grid-cols-2 gap-2 flex-1 sm:flex sm:items-center sm:gap-2">
+                        <div className="grid grid-cols-1 gap-2 flex-1 sm:flex sm:items-center sm:gap-2">
                             {[
                                 { z: "z-[60]", icon: "category", val: type, setter: setType, opts: [{ value: "all", label: "Semua Tipe" }, ...typeOptions.map((label) => ({ value: label, label: label }))] },
-                                { z: "z-50",   icon: "flag",     val: status, setter: setStatus, opts: [{ value: "active", label: "Aktif" }, { value: "unread", label: "Belum Dibaca" }, { value: "read", label: "Dibaca" }, { value: "resolved", label: "Selesai" }, { value: "all", label: "Semua Status" }], align: "right" },
                             ].map(({ z, icon, val, setter, opts, align = "left" }) => (
                                 <div key={icon} className={`relative ${z} w-full sm:w-36`}>
                                     <div className="relative group h-9 rounded-lg bg-white/5 border border-white/10 focus-within:border-gold-accent/40 focus-within:bg-black/40 transition-all backdrop-blur-md">
                                         <span className={`material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold-accent transition-colors z-10 pointer-events-none`} style={{ fontSize: "18px" }}>{icon}</span>
-                                        <CustomDropdown value={val} onChange={setter} options={opts} triggerClass="pl-9 pr-3 text-[9px] uppercase tracking-widest text-white/40 group-focus-within:text-gold-accent" align={align} />
+                                        <CustomDropdown value={val} onChange={setter} options={opts} triggerClass="pl-9 pr-3 text-[8px] font-black uppercase tracking-widest text-white/40 group-focus-within:text-gold-accent" align={align} />
                                     </div>
                                 </div>
                             ))}
@@ -332,12 +336,11 @@ export default function TodoListPage({ activeSection, onNavigate, onLogout, curr
                                             <div>
                                                 <div className="mb-1 flex flex-wrap items-center gap-2">
                                                     <h3 className="text-xs font-black text-white tracking-tight">{n.title}</h3>
-                                                    {!n.readAt && <span className="h-1.5 w-1.5 rounded-full bg-gold-accent shadow-gold-glow shrink-0"></span>}
                                                     <span className={`rounded-md px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.1em] border ${cfg.border} ${cfg.bg} ${cfg.text}`}>
                                                         {SEVERITY_LABELS[n.severity] || n.severity}
                                                     </span>
                                                     <span className="rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.1em] text-white/40">
-                                                        {sk === "resolved" ? "Selesai" : sk === "read" ? "Dibaca" : "Belum Dibaca"}
+                                                        {sk === "resolved" ? "Selesai" : "Aktif"}
                                                     </span>
                                                 </div>
                                                 <p className="text-[11px] font-bold text-white/70 mb-1 max-w-xl leading-relaxed">{n.message}</p>
@@ -345,7 +348,6 @@ export default function TodoListPage({ activeSection, onNavigate, onLogout, curr
                                                     <span className="text-gold-accent/70">{getTypeLabel(n)}</span>
                                                     {n.customerName && <span>{n.customerName}</span>}
                                                     <span>Dibuat: {formatDate(n.createdAt)}</span>
-                                                    {n.readAt && <span>Dibaca: {formatDate(n.readAt)}</span>}
                                                     {n.resolvedAt && <span>Selesai: {formatDate(n.resolvedAt)}</span>}
                                                 </div>
                                             </div>
@@ -358,12 +360,6 @@ export default function TodoListPage({ activeSection, onNavigate, onLogout, curr
                                                 <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>open_in_new</span>
                                                 {n.actionLabel || "Buka"}
                                             </button>
-                                            {!n.readAt && (
-                                                <button
-                                                    className="flex h-8 items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-3 text-[8px] font-black uppercase tracking-widest text-white/50 transition-all hover:bg-white/10 hover:text-white active:scale-95 backdrop-blur-md"
-                                                    onClick={(event) => { stopActionClick(event); void markRead(n); }} type="button"
-                                                >Dibaca</button>
-                                            )}
                                         </div>
                                     </div>
                                 );
@@ -379,7 +375,7 @@ export default function TodoListPage({ activeSection, onNavigate, onLogout, curr
                                                     value={itemsPerPage}
                                                     onChange={(val) => setItemsPerPage(Number(val))}
                                                     options={[10, 20, 50, 100].map(n => ({ value: n, label: String(n) }))}
-                                                    triggerClass="text-[10px] font-black uppercase tracking-widest text-white/50 group-hover:text-white"
+                                                    triggerClass="text-[8px] font-black uppercase tracking-widest text-white/50 group-hover:text-white"
                                                     position="top"
                                                     hideArrow={true}
                                                     menuWidth="min-w-[60px]"
@@ -401,10 +397,9 @@ export default function TodoListPage({ activeSection, onNavigate, onLogout, curr
                                         <div 
                                             ref={paginationRef}
                                             onScroll={handlePaginationScroll}
-                                            className="flex items-center gap-1.5 w-[164px] justify-start overflow-x-auto overflow-y-hidden snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden" 
+                                            className="flex items-center gap-1.5 w-[96px] justify-start overflow-x-auto overflow-y-hidden snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden" 
                                             style={{ scrollbarWidth: 'none' }}
                                         >
-                                            <div className="shrink-0 w-7 h-7 snap-center pointer-events-none opacity-0"></div>
                                             <div className="shrink-0 w-7 h-7 snap-center pointer-events-none opacity-0"></div>
 
                                             {pageNumbers.map((page) => {
@@ -438,7 +433,6 @@ export default function TodoListPage({ activeSection, onNavigate, onLogout, curr
                                                 );
                                             })}
 
-                                            <div className="shrink-0 w-7 h-7 snap-center pointer-events-none opacity-0"></div>
                                             <div className="shrink-0 w-7 h-7 snap-center pointer-events-none opacity-0"></div>
                                         </div>
 

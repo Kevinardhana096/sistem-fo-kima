@@ -1951,10 +1951,9 @@ function PaginationControls({ currentPage, totalPages, onPageChange, itemsPerPag
                 <div 
                     ref={paginationRef}
                     onScroll={handlePaginationScroll}
-                    className="flex items-center gap-1.5 w-[164px] justify-start overflow-x-auto overflow-y-hidden snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden" 
+                    className="flex items-center gap-1.5 w-[96px] justify-start overflow-x-auto overflow-y-hidden snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden" 
                     style={{ scrollbarWidth: 'none' }}
                 >
-                    <div className="shrink-0 w-7 h-7 snap-center pointer-events-none opacity-0"></div>
                     <div className="shrink-0 w-7 h-7 snap-center pointer-events-none opacity-0"></div>
 
                     {pageNumbers.map((page) => {
@@ -1988,7 +1987,6 @@ function PaginationControls({ currentPage, totalPages, onPageChange, itemsPerPag
                         );
                     })}
 
-                    <div className="shrink-0 w-7 h-7 snap-center pointer-events-none opacity-0"></div>
                     <div className="shrink-0 w-7 h-7 snap-center pointer-events-none opacity-0"></div>
                 </div>
 

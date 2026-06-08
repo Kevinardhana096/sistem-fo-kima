@@ -75,9 +75,11 @@ export default function TrashPage({ activeSection, onNavigate, onLogout: _onLogo
     });
     const [sortOrder, setSortOrder] = useState("newest");
     const [isLoading, setIsLoading] = useState(false);
+    const [selectedItems, setSelectedItems] = useState(new Set());
 
     const loadTrashData = useCallback(async () => {
         setIsLoading(true);
+        setSelectedItems(new Set());
         try {
             const trashOptions = isTeknisi ? { tables: [TABLE_MAP.Jalur] } : undefined;
             const [data, stats] = await Promise.all([
@@ -174,49 +176,64 @@ export default function TrashPage({ activeSection, onNavigate, onLogout: _onLogo
             return sortOrder === "newest" ? dateB - dateA : dateA - dateB;
         });
 
-    const handleRestore = async (item) => {
-        if (!window.confirm(`Pulihkan "${item.name}"?`)) return;
-        
-        try {
-            await api.trash.restore(item.table, item.id);
-            alert('Data berhasil dipulihkan');
-            loadTrashData();
-        } catch (error) {
-            console.error(error);
-            alert('Gagal memulihkan data');
+
+
+
+
+    const toggleSelection = (itemKey) => {
+        const newSet = new Set(selectedItems);
+        if (newSet.has(itemKey)) newSet.delete(itemKey);
+        else newSet.add(itemKey);
+        setSelectedItems(newSet);
+    };
+
+    const toggleAll = () => {
+        if (selectedItems.size === filteredItems.length && filteredItems.length > 0) {
+            setSelectedItems(new Set());
+        } else {
+            setSelectedItems(new Set(filteredItems.map(item => `${item.table}-${item.id}`)));
         }
     };
 
-    const handleDeletePermanently = async (item) => {
-        if (!window.confirm(`Hapus "${item.name}" secara permanen? Tindakan ini tidak dapat dibatalkan!`)) return;
-
+    const handleBatchDelete = async () => {
+        if (isTeknisi) {
+            alert('Role teknisi tidak diizinkan menghapus permanen data.');
+            return;
+        }
+        if (!window.confirm(`Hapus permanen ${selectedItems.size} item terpilih? Tindakan ini tidak dapat dibatalkan!`)) return;
+        setIsLoading(true);
         try {
-            if (isTeknisi) {
-                alert('Role teknisi tidak diizinkan menghapus permanen data.');
-                return;
+            for (const key of selectedItems) {
+                const [table, id] = key.split('-');
+                await api.trash.deletePermanently(table, id);
             }
-
-            await api.trash.deletePermanently(item.table, item.id);
-            alert('Data berhasil dihapus permanen');
+            setSelectedItems(new Set());
             loadTrashData();
         } catch (error) {
-            console.error(error);
-            alert('Gagal menghapus data');
+            console.error("Failed to batch delete:", error);
+            alert("Gagal menghapus beberapa item.");
+            setIsLoading(false);
         }
     };
 
-    const handleEmptyTrash = async () => {
-        if (!window.confirm('Hapus SEMUA sampah secara permanen? Tindakan ini tidak dapat dibatalkan!')) return;
-
+    const handleBatchRestore = async () => {
+        if (!window.confirm(`Pulihkan ${selectedItems.size} item terpilih?`)) return;
+        setIsLoading(true);
         try {
-            await api.trash.emptyTrash();
-            alert('Tempat sampah berhasil dikosongkan');
+            for (const key of selectedItems) {
+                const [table, id] = key.split('-');
+                await api.trash.restore(table, id);
+            }
+            setSelectedItems(new Set());
             loadTrashData();
         } catch (error) {
-            console.error(error);
-            alert('Gagal mengosongkan tempat sampah');
+            console.error("Failed to batch restore:", error);
+            alert("Gagal memulihkan beberapa item.");
+            setIsLoading(false);
         }
     };
+
+    const selectedCount = selectedItems.size;
 
     return (
         <AppShell activeSection={activeSection} onNavigate={onNavigate} onLogout={_onLogout} currentRole={currentRole}>
@@ -234,17 +251,6 @@ export default function TrashPage({ activeSection, onNavigate, onLogout: _onLogo
                     </div>
 
                     <div className="flex items-center gap-2 w-full lg:w-auto justify-end">
-                        {!isTeknisi && (
-                            <button
-                                className="inline-flex h-10 items-center gap-2 rounded-xl bg-[#ff2400]/10 border border-[#ff2400]/20 px-4 md:px-6 text-[#ff2400] transition-all hover:bg-[#ff2400] hover:text-white active:scale-95 group shadow-sm text-[9px] font-black uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed backdrop-blur-md"
-                                onClick={handleEmptyTrash}
-                                disabled={isLoading || trashItems.length === 0}
-                            >
-                                <span className="material-symbols-outlined text-base">delete_sweep</span>
-                                Hapus Permanen
-                            </button>
-                        )}
-
                         <button
                             className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white/40 hover:bg-white/10 hover:text-white transition-all active:scale-95 group disabled:opacity-50 backdrop-blur-md"
                             onClick={loadTrashData}
@@ -274,7 +280,7 @@ export default function TrashPage({ activeSection, onNavigate, onLogout: _onLogo
                         </div>
 
                         <div className="grid grid-cols-3 lg:grid-cols-6 gap-2 flex-1 max-w-2xl">
-                            {Object.entries(deletionStats.breakdown).map(([type, count]) => {
+                            {Object.entries(deletionStats.breakdown).filter(([type]) => type !== 'Versi Kontrak').map(([type, count]) => {
                                 const config = TYPE_CONFIG[type] || { color: 'text-white/30', bg: 'bg-white/5' };
                                 const hoverBorderClass = {
                                     ISP: "hover:border-blue-500/40",
@@ -315,21 +321,16 @@ export default function TrashPage({ activeSection, onNavigate, onLogout: _onLogo
                         />
                     </div>
 
-                    <div className="w-full sm:w-40 relative z-50">
-                        <div className="relative group h-9 rounded-lg bg-white/5 border border-white/10 focus-within:border-gold-accent/40 focus-within:bg-black/40 transition-all backdrop-blur-md">
-                            <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold-accent transition-colors z-10 pointer-events-none" style={{ fontSize: "18px" }}>filter_list</span>
-                            <CustomDropdown 
-                                value={sortOrder}
-                                onChange={setSortOrder}
-                                options={[
-                                    { value: "newest", label: "Terbaru" },
-                                    { value: "oldest", label: "Terlama" }
-                                ]}
-                                triggerClass="pl-9 pr-3 text-[9px] uppercase tracking-widest text-white/40 group-focus-within:text-gold-accent"
-                                align="right"
-                            />
-                        </div>
-                    </div>
+                    <button
+                        onClick={() => setSortOrder(prev => prev === "newest" ? "oldest" : "newest")}
+                        className="h-9 w-full sm:w-32 shrink-0 flex items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/5 text-[9px] font-bold text-white/60 uppercase tracking-widest hover:text-white hover:bg-white/10 transition-all shadow-inner-glass backdrop-blur-md"
+                        title={sortOrder === "newest" ? "Urutkan Terlama" : "Urutkan Terbaru"}
+                    >
+                        <span className="material-symbols-outlined" style={{ fontSize: "16px" }}>
+                            {sortOrder === "newest" ? "arrow_downward" : "arrow_upward"}
+                        </span>
+                        {sortOrder === "newest" ? "Terbaru" : "Terlama"}
+                    </button>
                 </div>
 
                 {/* List Section */}
@@ -339,9 +340,43 @@ export default function TrashPage({ activeSection, onNavigate, onLogout: _onLogo
                             <span className="h-4 w-1 bg-gold-accent rounded-full shadow-gold-glow"></span>
                             <h2 className="text-sm font-black text-white uppercase tracking-widest">Daftar Item Terhapus</h2>
                         </div>
-                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 backdrop-blur-md">
-                            <span className="text-[8px] font-black text-white/30 uppercase tracking-[0.2em]">Total Sampah:</span>
-                            <span className="text-sm font-black text-gold-accent">{trashItems.length}</span>
+                        <div className="flex items-center gap-3">
+                            {!isTeknisi && selectedCount > 0 && (
+                                <button
+                                    onClick={handleBatchDelete}
+                                    className="h-8 w-8 flex items-center justify-center rounded-lg bg-[#ff2400]/10 border border-[#ff2400]/20 text-[#ff2400] transition-all hover:bg-[#ff2400] hover:text-white active:scale-95 backdrop-blur-md animate-in fade-in"
+                                    title="Hapus Permanen Terpilih"
+                                >
+                                    <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>delete_forever</span>
+                                </button>
+                            )}
+                            {selectedCount > 0 && (
+                                <button
+                                    onClick={handleBatchRestore}
+                                    className="h-8 w-8 flex items-center justify-center rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 transition-all hover:bg-emerald-500 hover:text-white active:scale-95 backdrop-blur-md animate-in fade-in"
+                                    title="Pulihkan Terpilih"
+                                >
+                                    <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>restore_from_trash</span>
+                                </button>
+                            )}
+                            <button
+                                onClick={toggleAll}
+                                className={`flex h-8 items-center gap-1.5 rounded-lg border px-3 text-[8px] font-black uppercase tracking-widest transition-all backdrop-blur-md ${
+                                    selectedCount > 0
+                                        ? "border-gold-accent/40 bg-gold-accent/20 text-gold-accent hover:bg-gold-accent hover:text-black"
+                                        : "border-white/10 bg-white/5 text-white/50 hover:bg-white/10 hover:text-white"
+                                }`}
+                            >
+                                <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>
+                                    {selectedCount > 0 && selectedCount === filteredItems.length ? "deselect" : "select_all"}
+                                </span>
+                                {selectedCount > 0 ? `${selectedCount} Terpilih` : "Pilih"}
+                            </button>
+                            <div className="h-6 w-px bg-white/10 mx-1 hidden sm:block"></div>
+                            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 backdrop-blur-md">
+                                <span className="text-[8px] font-black text-white/30 uppercase tracking-[0.2em]">Total Sampah:</span>
+                                <span className="text-sm font-black text-gold-accent">{trashItems.length}</span>
+                            </div>
                         </div>
                     </div>
 
@@ -368,9 +403,19 @@ export default function TrashPage({ activeSection, onNavigate, onLogout: _onLogo
                                     return (
                                         <div
                                             key={`${item.table}-${item.id}`}
-                                            className={`group relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl bg-white/5 p-4 transition-all hover:bg-white/10 ${hoverBorderClass} hover:scale-[1.01] backdrop-blur-md overflow-hidden border border-white/10`}
+                                            className={`group relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl bg-white/5 p-4 transition-all hover:bg-white/10 ${hoverBorderClass} hover:scale-[1.01] backdrop-blur-md overflow-hidden border border-white/10 cursor-pointer ${selectedItems.has(`${item.table}-${item.id}`) ? 'border-gold-accent/40 bg-gold-accent/5' : ''}`}
+                                            onClick={() => toggleSelection(`${item.table}-${item.id}`)}
                                         >
                                             <div className="flex items-center gap-4">
+                                                <div className={`flex h-4 w-4 items-center justify-center rounded border transition-colors shrink-0 ${
+                                                    selectedItems.has(`${item.table}-${item.id}`) 
+                                                        ? "bg-gold-accent border-gold-accent text-black" 
+                                                        : "border-white/20 bg-black/20"
+                                                }`}>
+                                                    {selectedItems.has(`${item.table}-${item.id}`) && (
+                                                        <span className="material-symbols-outlined" style={{ fontSize: "12px" }}>check</span>
+                                                    )}
+                                                </div>
                                                 <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${TYPE_CONFIG[item.type]?.bg || 'bg-white/5'} border border-white/5 transition-all group-hover:scale-110`}>
                                                     <span className={`material-symbols-outlined text-xl ${TYPE_CONFIG[item.type]?.color || 'text-white'}`}>
                                                         {TYPE_CONFIG[item.type]?.icon || 'article'}
@@ -405,26 +450,7 @@ export default function TrashPage({ activeSection, onNavigate, onLogout: _onLogo
                                                 </div>
                                             </div>
 
-                                            <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
-                                                <button
-                                                    onClick={() => handleRestore(item)}
-                                                    className="flex h-8 items-center gap-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-3 text-[8px] font-black uppercase tracking-widest text-emerald-400 transition-all hover:bg-emerald-500 hover:text-white active:scale-95 backdrop-blur-md"
-                                                    disabled={isLoading}
-                                                >
-                                                    <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>restore_from_trash</span>
-                                                    Pulihkan
-                                                </button>
-                                                {!isTeknisi && (
-                                                    <button
-                                                        onClick={() => handleDeletePermanently(item)}
-                                                        className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#ff2400]/10 border border-[#ff2400]/20 text-[#ff2400] transition-all hover:bg-[#ff2400] hover:text-white active:scale-95 backdrop-blur-md"
-                                                        title="Hapus Permanen"
-                                                        disabled={isLoading}
-                                                    >
-                                                        <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>delete_forever</span>
-                                                    </button>
-                                                )}
-                                            </div>
+
                                         </div>
                                     );
                                 })}

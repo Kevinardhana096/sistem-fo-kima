@@ -509,7 +509,7 @@ export default function DashboardPage({
                                 <h2 className="text-base font-black text-on-surface tracking-tight">{coreTrendTitle}</h2>
                             </div>
                             <div className="flex flex-col items-start gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2.5">
-                                <div className="inline-flex rounded-lg bg-white/10 p-0.5 border border-white/15 backdrop-blur-md">
+                                <div className="inline-flex h-[24px] items-center rounded-lg bg-white/10 p-0.5 border border-white/15 backdrop-blur-md">
                                     {[
                                         { value: "yearly", label: "Tahunan" },
                                         { value: "monthly", label: "Bulanan" },
@@ -518,7 +518,7 @@ export default function DashboardPage({
                                             key={option.value}
                                             type="button"
                                             onClick={() => switchCoreTrendTimeMode(option.value)}
-                                            className={`rounded-md px-2.5 py-1 text-[8px] font-black uppercase tracking-widest anim-surface ${coreTrendTimeMode === option.value
+                                            className={`rounded-md px-2.5 h-full flex items-center text-[8px] font-black uppercase tracking-widest anim-surface ${coreTrendTimeMode === option.value
                                                 ? "bg-gold-accent text-white shadow-gold-glow"
                                                 : "text-white/70 hover:text-white"
                                                 }`}
@@ -528,8 +528,8 @@ export default function DashboardPage({
                                     ))}
                                 </div>
                                 {coreTrendTimeMode === "monthly" ? (
-                                    <div className="flex items-center gap-2 bg-white/5 px-2.5 py-1 rounded-xl border border-white/10 backdrop-blur-md">
-                                        <span className="text-[8px] font-black text-white/50 uppercase tracking-widest">Tahun</span>
+                                    <div className="flex h-[24px] max-w-full flex-wrap items-center gap-2 rounded-lg border border-white/15 bg-white/10 px-2 backdrop-blur-md sm:gap-2 sm:px-2.5">
+                                        <span className="text-[8px] font-black text-white/50 uppercase tracking-widest whitespace-nowrap">Tahun</span>
                                         <CustomDropdown
                                             value={coreTrendDisplayYear}
                                             onChange={updateCoreTrendMonthlyYear}
@@ -541,12 +541,12 @@ export default function DashboardPage({
                                 ) : (
                                     <ChartFilterSelector filter={coreTrendFilter} setFilter={setCoreTrendFilter} availableYears={availableYears} modeOptions={coreTrendModeOptions} compact />
                                 )}
-                                <div className="inline-flex rounded-lg bg-white/10 p-0.5 border border-white/15 backdrop-blur-md">
+                                <div className="inline-flex h-[24px] items-center rounded-lg bg-white/10 p-0.5 border border-white/15 backdrop-blur-md">
                                     {["sharing", "core"].map(type => (
                                         <button
                                             key={type}
                                             onClick={() => setCoreChartType(type)}
-                                            className={`rounded-md px-2.5 py-1 text-[8px] font-black uppercase tracking-widest anim-surface ${coreChartType === type
+                                            className={`rounded-md px-2.5 h-full flex items-center text-[8px] font-black uppercase tracking-widest anim-surface ${coreChartType === type
                                                 ? "bg-gold-accent text-white shadow-gold-glow"
                                                 : "text-white/70 hover:text-white"
                                                 }`}
@@ -572,7 +572,7 @@ export default function DashboardPage({
                                 <LineChart data={coreChartType === "sharing" ? visibleSharingTrendData : visibleCoreTrendData} margin={compactChartMargin}>
                                     <CartesianGrid strokeDasharray="0" vertical={false} stroke="rgba(255,255,255,0.08)" />
                                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 8, fontWeight: 900, fill: 'rgba(255,255,255,0.6)' }} dy={10} />
-                                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 8, fontWeight: 900, fill: 'rgba(255,255,255,0.6)' }} />
+                                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 8, fontWeight: 900, fill: 'rgba(255,255,255,0.6)' }} allowDecimals={false} />
                                     <Tooltip contentStyle={chartTooltipContentStyle} itemStyle={chartTooltipItemStyle} labelStyle={chartTooltipLabelStyle} />
 
                                     {coreChartType === "sharing" ? (
@@ -593,11 +593,13 @@ export default function DashboardPage({
                         <div className="relative z-50 mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                                 {coreTrendTimeMode === "yearly" ? (
-                                    <ChartFilterSelector filter={coreTrendExportFilter} setFilter={setCoreTrendExportFilter} availableYears={availableYears} modeOptions={coreTrendModeOptions} />
+                                    <ChartFilterSelector filter={coreTrendExportFilter} setFilter={setCoreTrendExportFilter} availableYears={availableYears} modeOptions={coreTrendModeOptions} compact />
                                 ) : (
-                                    <span className="rounded-2xl border border-white/10 bg-white/5 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-white/60 backdrop-blur-md">
-                                        Export Bulanan {coreTrendDisplayYear}
-                                    </span>
+                                    <div className="flex h-[24px] max-w-full flex-wrap items-center gap-2 rounded-lg border border-white/15 bg-white/10 px-2 backdrop-blur-md sm:gap-2 sm:px-2.5">
+                                        <span className="text-[8px] font-black uppercase tracking-widest text-white/60">
+                                            Export Bulanan {coreTrendDisplayYear}
+                                        </span>
+                                    </div>
                                 )}
                             </div>
                             <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center">
@@ -605,18 +607,18 @@ export default function DashboardPage({
                                     type="button"
                                     onClick={handleExportCoreTrend}
                                     disabled={isExportingCoreTrend}
-                                    className={`flex items-center justify-center gap-1 rounded-lg px-2 py-0.5 text-[7px] font-black uppercase tracking-widest anim-surface ${isExportingCoreTrend ? "bg-white/10 text-gold-accent" : "btn-premium"}`}
+                                    className={`flex h-[24px] items-center justify-center gap-1 rounded-lg px-2.5 text-[8px] font-black uppercase tracking-widest anim-surface ${isExportingCoreTrend ? "bg-white/10 text-gold-accent" : "btn-premium"}`}
                                 >
-                                    <span className={`material-symbols-outlined text-[10px] ${isExportingCoreTrend ? "animate-spin" : ""}`}>{isExportingCoreTrend ? "sync" : "download"}</span>
+                                    <span className={`material-symbols-outlined text-[12px] ${isExportingCoreTrend ? "animate-spin" : ""}`}>{isExportingCoreTrend ? "sync" : "download"}</span>
                                     {isExportingCoreTrend ? "Menyiapkan" : "CSV"}
                                 </button>
                                 <button
                                     type="button"
                                     onClick={handleExportCoreTrendXlsx}
                                     disabled={isExportingCoreTrendXlsx}
-                                    className={`flex items-center justify-center gap-1 rounded-lg px-2 py-0.5 text-[7px] font-black uppercase tracking-widest anim-surface ${isExportingCoreTrendXlsx ? "bg-white/10 text-gold-accent" : "btn-premium"}`}
+                                    className={`flex h-[24px] items-center justify-center gap-1 rounded-lg px-2.5 text-[8px] font-black uppercase tracking-widest anim-surface ${isExportingCoreTrendXlsx ? "bg-white/10 text-gold-accent" : "btn-premium"}`}
                                 >
-                                    <span className={`material-symbols-outlined text-[10px] ${isExportingCoreTrendXlsx ? "animate-spin" : ""}`}>{isExportingCoreTrendXlsx ? "sync" : "insert_chart"}</span>
+                                    <span className={`material-symbols-outlined text-[12px] ${isExportingCoreTrendXlsx ? "animate-spin" : ""}`}>{isExportingCoreTrendXlsx ? "sync" : "insert_chart"}</span>
                                     {isExportingCoreTrendXlsx ? "Menyiapkan" : "XLSX Grafik"}
                                 </button>
                             </div>
@@ -675,14 +677,14 @@ export default function DashboardPage({
                                 <span className="h-4 w-1 bg-gold-accent rounded-full"></span>
                                 <h2 className="text-base font-black text-on-surface tracking-tight">Grafik Pertumbuhan</h2>
                             </div>
-                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                                <ChartFilterSelector filter={growthFilter} setFilter={setGrowthFilter} availableYears={availableYears} modeOptions={growthModeOptions} />
-                                <div className="inline-flex rounded-xl bg-white/10 p-1 border border-white/15 backdrop-blur-md">
+                            <div className="flex flex-col items-start gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2.5">
+                                <ChartFilterSelector filter={growthFilter} setFilter={setGrowthFilter} availableYears={availableYears} modeOptions={growthModeOptions} compact />
+                                <div className="inline-flex h-[24px] items-center rounded-lg bg-white/10 p-0.5 border border-white/15 backdrop-blur-md">
                                     {["tenant", "isp"].map(type => (
                                         <button
                                             key={type}
                                             onClick={() => setGrowthType(type)}
-                                            className={`rounded-lg px-4 py-1.5 text-[9px] font-black uppercase tracking-widest anim-surface ${growthType === type
+                                            className={`rounded-md px-2.5 h-full flex items-center text-[8px] font-black uppercase tracking-widest anim-surface ${growthType === type
                                                 ? "bg-gold-accent text-white shadow-gold-glow"
                                                 : "text-white/70 hover:text-white"
                                                 }`}
@@ -698,7 +700,7 @@ export default function DashboardPage({
                                 <LineChart data={growthData[growthType]} margin={compactChartMargin}>
                                     <CartesianGrid strokeDasharray="0" vertical={false} stroke="rgba(255,255,255,0.08)" />
                                     <XAxis dataKey="year" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 900, fill: 'rgba(255,255,255,0.6)' }} dy={15} />
-                                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 900, fill: 'rgba(255,255,255,0.6)' }} />
+                                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 900, fill: 'rgba(255,255,255,0.6)' }} allowDecimals={false} />
                                     <Tooltip contentStyle={chartTooltipContentStyle} itemStyle={chartTooltipItemStyle} labelStyle={chartTooltipLabelStyle} />
                                     <Line type="monotone" dataKey="count" name={growthType === "tenant" ? "Lokasi" : "ISP"} stroke={growthType === "tenant" ? "#d4a937" : "#00687b"} strokeWidth={5} dot={{ r: 6, fill: '#fff', strokeWidth: 4, stroke: growthType === "tenant" ? "#d4a937" : "#00687b" }} activeDot={{ r: 8, fill: growthType === "tenant" ? "#d4a937" : "#00687b", stroke: '#fff', strokeWidth: 3 }} />
                                 </LineChart>
@@ -711,7 +713,7 @@ export default function DashboardPage({
                         <div className="mb-3 flex items-center justify-between">
                             <div className="flex items-center gap-2">
                                 <span className="h-4 w-1 bg-gold-accent rounded-full"></span>
-                                <h2 className="text-base font-black text-on-surface tracking-tight">Tindakan Kritis</h2>
+                                <h2 className="text-base font-black text-on-surface tracking-tight">Perlu Tindakan</h2>
                             </div>
                             <span className="px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-600 text-[8px] font-black uppercase">{alerts.length} MASALAH</span>
                         </div>
@@ -776,7 +778,7 @@ export default function DashboardPage({
                                 <ContractStatusRow label="Beroperasi" count={stats.contract.beroperasi} color="text-emerald-500" bg="bg-emerald-500/10 border-emerald-500/20" icon="check_circle" />
                                 <ContractStatusRow label="Belum Beroperasi" count={stats.contract.belum_beroperasi} color="text-sky-500" bg="bg-sky-500/10 border-sky-500/20" icon="schedule" />
                                 <ContractStatusRow label="Belum Diperpanjang" count={stats.contract.expired} color="text-amber-500" bg="bg-amber-500/10 border-amber-500/20" icon="warning" />
-                                <ContractStatusRow label="Berhenti" count={stats.contract.berhenti} color="text-rose-500" bg="bg-rose-500/10 border-rose-500/20" icon="cancel" />
+
                             </div>
                             <div className="mt-3 p-3 rounded-lg bg-white/5 border border-white/10 flex items-center justify-between shrink-0 backdrop-blur-md">
                                 <div>
@@ -873,7 +875,7 @@ function CustomDropdown({ value, options, onChange, align = "right", triggerClas
             {isOpen && (
                 <>
                     <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)}></div>
-                    <div className={`absolute top-full mt-3 ${align === "right" ? "right-0" : "left-0"} z-50 min-w-[140px] max-h-[250px] overflow-y-auto custom-scrollbar rounded-2xl bg-[#0f141e]/95 border border-white/10 backdrop-blur-xl shadow-2xl py-1.5 animate-in fade-in zoom-in-95 duration-200`}>
+                    <div className={`absolute top-full mt-2 ${align === "right" ? "right-0" : "left-0"} z-50 min-w-[120px] max-h-[220px] overflow-y-auto custom-scrollbar rounded-xl bg-[#0f141e]/95 border border-white/10 backdrop-blur-xl shadow-2xl py-1 animate-in fade-in zoom-in-95 duration-200`}>
                         {options.map((opt) => (
                             <button
                                 key={opt.value}
@@ -882,7 +884,7 @@ function CustomDropdown({ value, options, onChange, align = "right", triggerClas
                                     onChange(opt.value);
                                     setIsOpen(false);
                                 }}
-                                className={`w-[calc(100%-12px)] mx-1.5 mt-1 mb-1 last:mb-1.5 first:mt-1.5 flex items-center justify-center px-3 py-2 text-[10px] font-bold uppercase tracking-widest transition-colors rounded-xl text-center ${String(value) === String(opt.value) ? "bg-white/10 text-gold-accent" : "text-white/70 hover:bg-white/10 hover:text-white"}`}
+                                className={`w-[calc(100%-8px)] mx-1 my-0.5 first:mt-1 last:mb-1 flex items-center justify-center px-2 py-1 text-[8px] font-bold uppercase tracking-widest transition-colors rounded-lg text-center ${String(value) === String(opt.value) ? "bg-white/10 text-gold-accent" : "text-white/70 hover:bg-white/10 hover:text-white"}`}
                             >
                                 <span>{opt.label}</span>
                             </button>
@@ -914,14 +916,18 @@ function ChartFilterSelector({ filter, setFilter, availableYears, modeOptions, s
         ? "bg-transparent border-b border-white/20 text-[10px] font-black text-gold-accent focus:ring-0 outline-none w-6 text-center py-0.5 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [appearance:textfield]"
         : "bg-transparent border-b border-white/20 text-[11px] font-black text-gold-accent focus:ring-0 outline-none w-8 text-center py-0.5 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [appearance:textfield]";
     const helperTextClass = compact
-        ? "text-[8px] font-black text-white/50 uppercase tracking-widest mt-0.5 whitespace-nowrap"
+        ? "text-[8px] font-black text-white/50 uppercase tracking-widest whitespace-nowrap"
         : "text-[9px] font-black text-white/50 uppercase tracking-widest mt-0.5";
     const triggerClass = compact
         ? "text-on-surface text-[8px] uppercase tracking-widest"
         : "text-on-surface text-[10px] uppercase tracking-widest";
 
+    const containerClass = compact
+        ? "flex h-[24px] max-w-full flex-wrap items-center gap-2 rounded-lg border border-white/15 bg-white/10 px-2 backdrop-blur-md sm:gap-2 sm:px-2.5"
+        : "flex max-w-full flex-wrap items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-2.5 py-1.5 backdrop-blur-md sm:gap-3 sm:px-3";
+
     return (
-        <div className="flex max-w-full flex-wrap items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-2.5 py-1.5 backdrop-blur-md sm:gap-3 sm:px-3">
+        <div className={containerClass}>
             {showCurrentMonthOption && filter.mode === "this_year" && (
                 <div className="flex items-center border-r border-white/10 pr-2 sm:pr-3">
                     <CustomDropdown

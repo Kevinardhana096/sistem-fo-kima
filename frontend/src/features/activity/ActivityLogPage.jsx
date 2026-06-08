@@ -105,17 +105,14 @@ function CustomDropdown({ value, options, onChange, align = "left", position = "
             {isOpen && (
                 <>
                     <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)}></div>
-                    <div className={`absolute ${position === "top" ? "bottom-full mb-3" : "top-full mt-3"} ${align === "right" ? "right-0" : "left-0"} z-50 w-full ${menuWidth} rounded-2xl bg-black/60 border border-white/10 backdrop-blur-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200`}>
-                        <div className="max-h-[250px] overflow-y-auto py-1.5 [&::-webkit-scrollbar]:w-[2px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gold-accent/30 [&::-webkit-scrollbar-thumb]:rounded-full">
+                    <div className={`absolute ${position === "top" ? "bottom-full mb-2" : "top-full mt-2"} ${align === "right" ? "right-0" : "left-0"} z-50 min-w-full ${menuWidth} rounded-xl bg-black/80 border border-white/10 backdrop-blur-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200`}>
+                        <div className="max-h-[200px] overflow-y-auto p-1 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/30">
                         {options.map((opt) => (
                             <button
                                 key={opt.value}
                                 type="button"
-                                onClick={() => {
-                                    onChange(opt.value);
-                                    setIsOpen(false);
-                                }}
-                                className={`w-[calc(100%-12px)] mx-1.5 mt-1 mb-1 last:mb-1.5 first:mt-1.5 flex items-center justify-center px-3 py-2 text-[10px] font-bold uppercase tracking-widest transition-colors rounded-xl text-center ${String(value) === String(opt.value) ? "bg-white/10 text-gold-accent" : "text-white/70 hover:bg-white/10 hover:text-white"}`}
+                                onClick={() => { onChange(opt.value); setIsOpen(false); }}
+                                className={`w-full flex items-center justify-start px-3 py-1.5 mb-0.5 last:mb-0 text-[8px] font-black uppercase tracking-widest transition-colors rounded-lg text-left ${String(value) === String(opt.value) ? "bg-gold-accent/10 text-gold-accent" : "text-white/60 hover:bg-white/10 hover:text-white"}`}
                             >
                                 <span className="truncate">{opt.label}</span>
                             </button>
@@ -358,33 +355,30 @@ export default function ActivityLogPage({ activeSection, onNavigate, onLogout, c
                             Pantau perubahan data pelanggan, ISP, dan pemulihan data dari Trash.
                         </p>
                     </div>
-                    <button
-                        className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white/40 hover:bg-white/10 hover:text-white transition-all active:scale-95 group disabled:opacity-50 backdrop-blur-md"
-                        onClick={loadLogs}
-                        disabled={isLoading}
-                        type="button"
-                        title="Refresh Data"
-                    >
-                        <span className={`material-symbols-outlined text-base group-hover:rotate-180 transition-transform duration-500 ${isLoading ? "animate-spin" : ""}`}>sync</span>
-                    </button>
+                    <div className="flex items-center gap-2 w-full lg:w-auto justify-end">
+                        <button
+                            className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white/40 hover:bg-white/10 hover:text-white transition-all active:scale-95 group disabled:opacity-50 backdrop-blur-md"
+                            onClick={loadLogs}
+                            disabled={isLoading}
+                            type="button"
+                            title="Refresh Data"
+                        >
+                            <span className={`material-symbols-outlined text-base group-hover:rotate-180 transition-transform duration-500 ${isLoading ? "animate-spin" : ""}`}>sync</span>
+                        </button>
+                    </div>
                 </header>
 
                 <div className="glass-card rounded-xl p-2 sm:p-2.5 flex flex-col sm:flex-row gap-2 items-center z-50 relative">
-                    <div className={`flex flex-col sm:flex-row gap-2 w-full ${dateMode === "range" || dateMode === "till_today" ? "lg:flex-row" : ""}`}>
-                        <div className={`grid gap-2 w-full ${dateMode === "range" || dateMode === "till_today"
-                                ? "lg:grid-cols-[1.5fr_1fr_1.2fr_0.8fr_0.8fr]"
-                                : dateMode === "year"
-                                    ? "lg:grid-cols-[1.5fr_1fr_1.2fr_0.8fr]"
-                                    : "lg:grid-cols-[2fr_1fr_1.2fr]"
-                            }`}>
-                        <div className="relative w-full group">
+                    <div className="flex flex-col sm:flex-row gap-2 w-full flex-1">
+                        <div className="flex flex-col sm:flex-row gap-2 w-full">
+                        <div className="relative w-full flex-1 group">
                             <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-gold-accent transition-colors z-10 pointer-events-none" style={{ fontSize: "18px" }}>
                                 search
                             </span>
                             <input
                                 type="text"
                                 placeholder="Cari user, aktivitas, atau nama data..."
-                                className="w-full h-9 rounded-lg border border-white/10 bg-white/5 pl-9 pr-3 text-[9px] font-black uppercase tracking-widest text-white placeholder:text-white/20 outline-none transition-all focus:bg-black/40 focus:border-gold-accent/40 shadow-inner-glass backdrop-blur-md"
+                                className="w-full h-9 rounded-lg border border-white/10 bg-white/5 pl-9 pr-3 text-[8px] font-black uppercase tracking-widest text-white placeholder:text-white/20 outline-none transition-all focus:bg-black/40 focus:border-gold-accent/40 shadow-inner-glass backdrop-blur-md"
                                 value={searchQuery}
                                 onChange={(event) => setSearchQuery(event.target.value)}
                             />
@@ -400,7 +394,7 @@ export default function ActivityLogPage({ activeSection, onNavigate, onLogout, c
                                         { value: "", label: "Semua Modul" },
                                         ...Object.entries(ENTITY_LABELS).map(([val, lbl]) => ({ value: val, label: lbl }))
                                     ]}
-                                    triggerClass="pl-9 pr-3 text-[9px] uppercase tracking-widest text-white/40 group-focus-within:text-gold-accent"
+                                    triggerClass="pl-9 pr-3 text-[8px] font-black uppercase tracking-widest text-white/40 group-focus-within:text-gold-accent"
                                     align="left"
                                 />
                             </div>
@@ -408,91 +402,7 @@ export default function ActivityLogPage({ activeSection, onNavigate, onLogout, c
 
 
 
-                        <div className="relative z-40">
-                            <div className="relative group h-9 rounded-lg bg-white/5 border border-white/10 focus-within:border-gold-accent/40 focus-within:bg-black/40 transition-all backdrop-blur-md">
-                                <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold-accent transition-colors z-10 pointer-events-none" style={{ fontSize: "18px" }}>date_range</span>
-                                <CustomDropdown
-                                    value={dateMode}
-                                    onChange={handleDateModeChange}
-                                    options={[
-                                        { value: "all", label: "Semua Waktu" },
-                                        { value: "range", label: "Rentang Kustom" },
-                                        { value: "till_today", label: "Sampai Hari Ini" },
-                                        { value: "year", label: "Tahun Spesifik" }
-                                    ]}
-                                    triggerClass="pl-9 pr-3 text-[9px] uppercase tracking-widest text-white/40 group-focus-within:text-gold-accent"
-                                    align="left"
-                                />
-                            </div>
-                        </div>
 
-                        {dateMode === "range" && (
-                            <>
-                                <div className="relative group">
-                                    <span className="absolute left-4 top-2 text-[7px] font-black uppercase tracking-widest text-gold-accent/70 pointer-events-none z-10">Dari Tanggal</span>
-                                    <DateInput
-                                        value={dateFrom}
-                                        onChange={setDateFrom}
-                                        className="w-full h-12 rounded-xl border border-white/10 bg-white/5 shadow-inner-glass backdrop-blur-md transition-all focus-within:bg-black/40 focus-within:border-gold-accent/40"
-                                        inputClass="w-full h-full bg-transparent pl-4 pr-10 pt-4 pb-1 text-[10px] font-black uppercase tracking-widest text-white outline-none"
-                                    />
-                                </div>
-                                <div className="relative group">
-                                    <span className="absolute left-4 top-2 text-[7px] font-black uppercase tracking-widest text-gold-accent/70 pointer-events-none z-10">Sampai Tanggal</span>
-                                    <DateInput
-                                        value={dateTo}
-                                        onChange={setDateTo}
-                                        className="w-full h-12 rounded-xl border border-white/10 bg-white/5 shadow-inner-glass backdrop-blur-md transition-all focus-within:bg-black/40 focus-within:border-gold-accent/40"
-                                        inputClass="w-full h-full bg-transparent pl-4 pr-10 pt-4 pb-1 text-[10px] font-black uppercase tracking-widest text-white outline-none"
-                                    />
-                                </div>
-                            </>
-                        )}
-
-                        {dateMode === "till_today" && (
-                            <>
-                                <div className="relative group">
-                                    <span className="absolute left-4 top-2 text-[7px] font-black uppercase tracking-widest text-gold-accent/70 pointer-events-none z-10">Pilih Dari Kapan</span>
-                                    <DateInput
-                                        value={dateFrom}
-                                        onChange={setDateFrom}
-                                        className="w-full h-12 rounded-xl border border-white/10 bg-white/5 shadow-inner-glass backdrop-blur-md transition-all focus-within:bg-black/40 focus-within:border-gold-accent/40"
-                                        inputClass="w-full h-full bg-transparent pl-4 pr-10 pt-4 pb-1 text-[10px] font-black uppercase tracking-widest text-white outline-none"
-                                    />
-                                </div>
-                                <div className="relative group opacity-60">
-                                    <span className="absolute left-4 top-2 text-[7px] font-black uppercase tracking-widest text-white/40 pointer-events-none z-10">Sampai Hari Ini</span>
-                                    <DateInput
-                                        value={dateTo}
-                                        onChange={() => {}}
-                                        disabled
-                                        className="w-full h-12 rounded-xl border border-white/10 bg-white/5 shadow-inner-glass backdrop-blur-md"
-                                        inputClass="w-full h-full bg-transparent pl-4 pr-10 pt-4 pb-1 text-[10px] font-black uppercase tracking-widest text-white/50 outline-none cursor-not-allowed"
-                                    />
-                                </div>
-                            </>
-                        )}
-
-                        {dateMode === "year" && (
-                            <div className="relative z-40">
-                                <div className="relative group h-9 rounded-lg bg-white/5 border border-white/10 focus-within:border-gold-accent/40 focus-within:bg-black/40 transition-all backdrop-blur-md">
-                                    <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold-accent transition-colors z-10 pointer-events-none" style={{ fontSize: "18px" }}>calendar_today</span>
-                                    <CustomDropdown
-                                        value={selectedYear}
-                                        onChange={handleYearChange}
-                                        options={[
-                                            String(new Date().getFullYear() - 3),
-                                            String(new Date().getFullYear() - 2),
-                                            String(new Date().getFullYear() - 1),
-                                            String(new Date().getFullYear()),
-                                            String(new Date().getFullYear() + 1),
-                                        ].map(y => ({ value: y, label: `Tahun ${y}` }))}
-                                        triggerClass="pl-9 pr-3 text-[9px] uppercase tracking-widest text-white/40 group-focus-within:text-gold-accent"
-                                        align="left"
-                                    />
-                                </div>
-                            </div>
-                        )}
                     </div>
                     </div>
                     <button
@@ -518,47 +428,38 @@ export default function ActivityLogPage({ activeSection, onNavigate, onLogout, c
                                 <span className="h-4 w-1 bg-gold-accent rounded-full shadow-gold-glow"></span>
                                 <h2 className="text-sm font-black uppercase tracking-widest text-white">Riwayat Aktivitas</h2>
                             </div>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                            {selectedCount > 0 && (
+                                <button
+                                    onClick={handleDeleteSelectedLogs}
+                                    disabled={isLoading || isDeletingLogs}
+                                    className="h-8 w-8 flex items-center justify-center rounded-lg bg-[#ff2400]/10 border border-[#ff2400]/20 text-[#ff2400] transition-all hover:bg-[#ff2400] hover:text-white active:scale-95 backdrop-blur-md animate-in fade-in group shadow-sm"
+                                    title={`Hapus Permanen ${selectedCount} terpilih`}
+                                    type="button"
+                                >
+                                    <span className={`material-symbols-outlined ${isDeletingLogs ? "animate-spin" : ""}`} style={{ fontSize: "14px" }}>
+                                        {isDeletingLogs ? "sync" : "delete_forever"}
+                                    </span>
+                                </button>
+                            )}
                             {logs.length > 0 && (
                                 <button
-                                    className={`flex h-8 items-center gap-2 rounded-lg border px-3 text-[8px] font-black uppercase tracking-widest transition-all backdrop-blur-md ${
-                                        areVisibleLogsSelected
-                                            ? "border-gold-accent/40 bg-gold-accent/15 text-gold-accent"
-                                            : "border-white/10 bg-white/5 text-white/45 hover:bg-white/10 hover:text-white"
-                                    }`}
-                                    disabled={isLoading || isDeletingLogs || visibleSelectableIds.length === 0}
                                     onClick={toggleVisibleSelection}
+                                    disabled={isLoading || isDeletingLogs || visibleSelectableIds.length === 0}
+                                    className={`flex h-8 items-center gap-1.5 rounded-lg border px-3 text-[8px] font-black uppercase tracking-widest transition-all backdrop-blur-md ${
+                                        selectedCount > 0
+                                            ? "border-gold-accent/40 bg-gold-accent/20 text-gold-accent hover:bg-gold-accent hover:text-black"
+                                            : "border-white/10 bg-white/5 text-white/50 hover:bg-white/10 hover:text-white"
+                                    }`}
                                     type="button"
                                 >
                                     <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>
-                                        {areVisibleLogsSelected ? "check_box" : "check_box_outline_blank"}
+                                        {areVisibleLogsSelected ? "deselect" : "select_all"}
                                     </span>
-                                    Pilih Halaman
+                                    {selectedCount > 0 ? `${selectedCount} Terpilih` : "Pilih"}
                                 </button>
                             )}
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2">
-                            <button
-                                className="flex h-8 items-center gap-1.5 rounded-lg border border-[#ff2400]/20 bg-[#ff2400]/10 px-3 text-[8px] font-black uppercase tracking-widest text-[#ff2400] transition-all hover:bg-[#ff2400] hover:text-white disabled:cursor-not-allowed disabled:opacity-40 backdrop-blur-md"
-                                disabled={isLoading || isDeletingLogs || selectedCount === 0}
-                                onClick={handleDeleteSelectedLogs}
-                                type="button"
-                            >
-                                <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>
-                                    {isDeletingLogs && selectedCount > 0 ? "sync" : "delete"}
-                                </span>
-                                Hapus Terpilih{selectedCount > 0 ? ` (${selectedCount})` : ""}
-                            </button>
-                            <button
-                                className="flex h-8 items-center gap-1.5 rounded-lg border border-[#ff2400]/30 bg-[#ff2400]/15 px-3 text-[8px] font-black uppercase tracking-widest text-[#ff2400] transition-all hover:bg-[#ff2400] hover:text-white disabled:cursor-not-allowed disabled:opacity-40 backdrop-blur-md"
-                                disabled={isLoading || isDeletingLogs || logs.length === 0}
-                                onClick={handleDeleteAllLogs}
-                                type="button"
-                            >
-                                <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>
-                                    {isDeletingLogs ? "sync" : "delete_sweep"}
-                                </span>
-                                Hapus Semua
-                            </button>
                             <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 backdrop-blur-md">
                                 <span className="text-[8px] font-black text-white/30 uppercase tracking-[0.2em]">Total Log:</span>
                                 <span className="text-sm font-black text-gold-accent">{logs.length}</span>
@@ -648,7 +549,7 @@ export default function ActivityLogPage({ activeSection, onNavigate, onLogout, c
                                                     value={itemsPerPage}
                                                     onChange={(val) => setItemsPerPage(Number(val))}
                                                     options={[10, 20, 50, 100].map(n => ({ value: n, label: String(n) }))}
-                                                    triggerClass="text-[10px] font-black uppercase tracking-widest text-white/50 group-hover:text-white"
+                                                    triggerClass="text-[8px] font-black uppercase tracking-widest text-white/50 group-hover:text-white"
                                                     position="top"
                                                     hideArrow={true}
                                                     menuWidth="min-w-[60px]"
@@ -671,10 +572,9 @@ export default function ActivityLogPage({ activeSection, onNavigate, onLogout, c
                                         <div 
                                             ref={paginationRef}
                                             onScroll={handlePaginationScroll}
-                                            className="flex items-center gap-1.5 w-[164px] justify-start overflow-x-auto overflow-y-hidden snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden" 
+                                            className="flex items-center gap-1.5 w-[96px] justify-start overflow-x-auto overflow-y-hidden snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden" 
                                             style={{ scrollbarWidth: 'none' }}
                                         >
-                                            <div className="shrink-0 w-7 h-7 snap-center pointer-events-none opacity-0"></div>
                                             <div className="shrink-0 w-7 h-7 snap-center pointer-events-none opacity-0"></div>
 
                                             {pageNumbers.map((page) => {
@@ -708,7 +608,6 @@ export default function ActivityLogPage({ activeSection, onNavigate, onLogout, c
                                                 );
                                             })}
 
-                                            <div className="shrink-0 w-7 h-7 snap-center pointer-events-none opacity-0"></div>
                                             <div className="shrink-0 w-7 h-7 snap-center pointer-events-none opacity-0"></div>
                                         </div>
 
