@@ -2047,6 +2047,7 @@ function IspDetailPage({
                                                 <th rowSpan="2" className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-gold-accent border-r border-white/10">Lokasi</th>
                                                 <th rowSpan="2" className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Status Kontrak</th>
                                                 <th rowSpan="2" className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Status Jalur</th>
+                                                <th rowSpan="2" className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Sisa Sewa</th>
                                                 <th rowSpan="2" className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Periode Awal</th>
                                                 <th colSpan="2" className="px-3 py-1.5 text-center text-[8px] font-black tracking-[0.4em] text-white/30 uppercase border-b border-white/10 border-r border-white/10">Kontrak Berjalan</th>
                                                 <th rowSpan="2" className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Paket</th>
@@ -2067,8 +2068,7 @@ function IspDetailPage({
                                                         <p className="text-[11px] font-bold text-white group-hover/row:text-gold-accent transition-colors">{tenant.name}</p>
                                                     </td>
                                                     <td className="px-3 py-2.5 text-center border-r border-white/10">
-                                                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[8px] font-bold border transition-all ${normalizeOperationalStatus(tenant.status) === 'aktif' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : normalizeOperationalStatus(tenant.status) === 'expired' ? 'bg-[#ff2400]/10 text-[#ff2400] border-[#ff2400]/20' : isPendingOperationalStatus(tenant.status) ? 'bg-sky-500/10 text-sky-400 border-sky-500/20' : 'bg-white/5 text-white/30 border-white/10'}`}>
-                                                            <span className={`w-1.5 h-1.5 rounded-full ${normalizeOperationalStatus(tenant.status) === 'aktif' ? 'bg-emerald-400 shadow-emerald-glow' : normalizeOperationalStatus(tenant.status) === 'expired' ? 'bg-[#ff2400] shadow-red-glow' : isPendingOperationalStatus(tenant.status) ? 'bg-sky-400 shadow-[0_0_12px_rgba(56,189,248,0.45)]' : 'bg-white/20'}`} />
+                                                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-[8px] font-bold border transition-all ${normalizeOperationalStatus(tenant.status) === 'aktif' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : normalizeOperationalStatus(tenant.status) === 'expired' ? 'bg-[#ff2400]/10 text-[#ff2400] border-[#ff2400]/20' : isPendingOperationalStatus(tenant.status) ? 'bg-sky-500/10 text-sky-400 border-sky-500/20' : 'bg-white/5 text-white/30 border-white/10'}`}>
                                                             {getOperationalLabel(tenant.status)}
                                                         </span>
                                                     </td>
@@ -2086,6 +2086,21 @@ function IspDetailPage({
                                                                     {routeStatus === 'aktif' ? "Aktif" : routeStatus === 'gangguan' ? "Gangguan" : "Nonaktif"}
                                                                 </span>
                                                             );
+                                                        })()}
+                                                    </td>
+                                                    <td className="px-3 py-2.5 text-center border-r border-white/10">
+                                                        {(() => {
+                                                            const endDateStr = tenant.contractPeriodInfo?.contractPeriodEnd ?? tenant.contractPeriodEnd;
+                                                            if (!endDateStr) return <span className="text-[10px] font-bold text-white/20">-</span>;
+                                                            const endDate = new Date(endDateStr);
+                                                            const today = new Date(todayIso);
+                                                            const diffTime = endDate.getTime() - today.getTime();
+                                                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                                                            if (diffDays < 0) return <span className="text-[10px] font-bold text-[#ff2400]">Lewat {Math.abs(diffDays)} Hari</span>;
+                                                            if (diffDays === 0) return <span className="text-[10px] font-bold text-amber-400">Hari Ini</span>;
+                                                            if (diffDays < 30) return <span className="text-[10px] font-bold text-amber-400">{diffDays} Hari</span>;
+                                                            const diffMonths = Math.floor(diffDays / 30);
+                                                            return <span className="text-[10px] font-bold text-emerald-400">{diffMonths} Bulan</span>;
                                                         })()}
                                                     </td>
                                                     <td className="px-3 py-2.5 text-center border-r border-white/10">
@@ -2136,7 +2151,7 @@ function IspDetailPage({
                                             ))}
                                             {filteredTenants.length === 0 && (
                                                 <tr>
-                                                    <td colSpan="11" className="py-10 text-center">
+                                                    <td colSpan="12" className="py-10 text-center">
                                                         <div className="flex flex-col items-center justify-center">
                                                             <div className="h-12 w-12 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 shadow-inner-glass mb-3 animate-pulse">
                                                                 <span className="material-symbols-outlined text-2xl text-gold-accent/40">location_off</span>
@@ -2309,19 +2324,31 @@ function IspDetailPage({
                                             />
                                         </div>
 
-                                        {/* Sort Dropdown */}
-                                        <div className="w-48 md:w-[150px]">
-                                            <GlassCustomSelect
-                                                value={contractSortMethod}
-                                                onChange={setContractSortMethod}
-                                                icon="sort"
-                                                heightClass="h-8"
-                                                options={[
-                                                    { value: "newest", label: "Terbaru" },
-                                                    { value: "oldest", label: "Terlama" }
-                                                ]}
-                                            />
-                                        </div>
+                                        {/* Sort Toggle */}
+                                        <button
+                                            className="group relative flex h-8 w-[96px] shrink-0 items-center justify-center gap-1.5 overflow-hidden rounded-lg border border-white/10 bg-black/20 transition-all hover:border-white/20 hover:bg-black/40"
+                                            onClick={() => setContractSortMethod((prev) => (prev === "newest" ? "oldest" : "newest"))}
+                                            title={contractSortMethod === "newest" ? "Urutkan Terlama" : "Urutkan Terbaru"}
+                                            type="button"
+                                        >
+                                            <div className="relative flex h-full items-center justify-center">
+                                                <span
+                                                    className={`material-symbols-outlined text-white/50 transition-all duration-300 ${contractSortMethod === "newest" ? "rotate-0 opacity-100" : "-rotate-180 opacity-0 absolute"}`}
+                                                    style={{ fontSize: "14px" }}
+                                                >
+                                                    arrow_downward
+                                                </span>
+                                                <span
+                                                    className={`material-symbols-outlined text-white/50 transition-all duration-300 ${contractSortMethod === "oldest" ? "rotate-0 opacity-100" : "rotate-180 opacity-0 absolute"}`}
+                                                    style={{ fontSize: "14px" }}
+                                                >
+                                                    arrow_upward
+                                                </span>
+                                            </div>
+                                            <span className="text-[9px] font-black uppercase tracking-widest text-white/70 transition-colors group-hover:text-white">
+                                                {contractSortMethod === "newest" ? "Terbaru" : "Terlama"}
+                                            </span>
+                                        </button>
                                     </div>
 
                                     <div className="overflow-x-auto rounded-lg border border-white/10 bg-black/55 backdrop-blur-3xl shadow-2xl custom-scrollbar">
@@ -2417,7 +2444,8 @@ function IspDetailPage({
                                                                             }
                                                                         }}
                                                                         className="rounded-md bg-white/10 border border-white/20 w-28 h-7"
-                                                                        inputClass="w-full h-full bg-transparent px-2 text-[11px] text-white outline-none uppercase pr-8"
+                                                                        hideIcon={true}
+                                                                        inputClass="w-full h-full bg-transparent px-2 text-center text-[11px] text-white outline-none uppercase"
                                                                     />
                                                                 );
                                                             })()
@@ -2437,7 +2465,8 @@ function IspDetailPage({
                                                                 }
                                                             }}
                                                             className="rounded-md bg-white/10 border border-white/20 w-28 h-7"
-                                                            inputClass="w-full h-full bg-transparent px-2 text-[11px] text-white outline-none uppercase pr-8"
+                                                            hideIcon={true}
+                                                            inputClass="w-full h-full bg-transparent px-2 text-center text-[11px] text-white outline-none uppercase"
                                                         />
                                                     </td>
                                                     <td className="px-3 py-2.5 text-center border-r border-white/10">
@@ -2452,7 +2481,8 @@ function IspDetailPage({
                                                                 }
                                                             }}
                                                             className="rounded-md bg-white/10 border border-white/20 w-28 h-7"
-                                                            inputClass="w-full h-full bg-transparent px-2 text-[11px] text-white outline-none uppercase pr-8"
+                                                            hideIcon={true}
+                                                            inputClass="w-full h-full bg-transparent px-2 text-center text-[11px] text-white outline-none uppercase"
                                                         />
                                                     </td>
                                                     <td className="px-3 py-2.5 text-center border-r border-white/10">
@@ -2538,19 +2568,31 @@ function IspDetailPage({
                                             />
                                         </div>
 
-                                        {/* Sort Dropdown */}
-                                        <div className="w-48 md:w-[150px]">
-                                            <GlassCustomSelect
-                                                value={docSortMethod}
-                                                onChange={setDocSortMethod}
-                                                icon="sort"
-                                                heightClass="h-8"
-                                                options={[
-                                                    { value: "newest", label: "Terbaru" },
-                                                    { value: "oldest", label: "Terlama" }
-                                                ]}
-                                            />
-                                        </div>
+                                        {/* Sort Toggle */}
+                                        <button
+                                            className="group relative flex h-8 w-[96px] shrink-0 items-center justify-center gap-1.5 overflow-hidden rounded-lg border border-white/10 bg-black/20 transition-all hover:border-white/20 hover:bg-black/40"
+                                            onClick={() => setDocSortMethod((prev) => (prev === "newest" ? "oldest" : "newest"))}
+                                            title={docSortMethod === "newest" ? "Urutkan Terlama" : "Urutkan Terbaru"}
+                                            type="button"
+                                        >
+                                            <div className="relative flex h-full items-center justify-center">
+                                                <span
+                                                    className={`material-symbols-outlined text-white/50 transition-all duration-300 ${docSortMethod === "newest" ? "rotate-0 opacity-100" : "-rotate-180 opacity-0 absolute"}`}
+                                                    style={{ fontSize: "14px" }}
+                                                >
+                                                    arrow_downward
+                                                </span>
+                                                <span
+                                                    className={`material-symbols-outlined text-white/50 transition-all duration-300 ${docSortMethod === "oldest" ? "rotate-0 opacity-100" : "rotate-180 opacity-0 absolute"}`}
+                                                    style={{ fontSize: "14px" }}
+                                                >
+                                                    arrow_upward
+                                                </span>
+                                            </div>
+                                            <span className="text-[9px] font-black uppercase tracking-widest text-white/70 transition-colors group-hover:text-white">
+                                                {docSortMethod === "newest" ? "Terbaru" : "Terlama"}
+                                            </span>
+                                        </button>
 
                                         <button
                                             className="rounded-lg bg-gold-accent px-4 h-8 flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-slate-900 shadow-gold-glow active:scale-95 transition-all shrink-0"
@@ -2784,8 +2826,8 @@ function IspDetailPage({
                 )}
             </div>
             {contractDraft && createPortal(
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0a0f18]/85 backdrop-blur-sm px-4">
-                    <div className="w-full max-w-2xl rounded-xl border border-white/10 bg-black/90 shadow-2xl p-5 md:p-6">
+                <div className="fixed inset-0 z-[200] flex items-center justify-center px-4 backdrop-blur-md bg-black/60 animate-fade-in duration-300">
+                    <div className="w-full max-w-2xl rounded-2xl glass-card backdrop-blur-xl p-5 md:p-6 border border-white/20 shadow-[0_0_100px_rgba(0,0,0,0.8)] animate-in zoom-in-95 duration-300 relative overflow-hidden">
                         <div className="mb-4 flex items-start justify-between gap-4 border-b border-white/10 pb-3">
                             <div>
                                 <p className="text-[9px] font-black uppercase tracking-widest text-gold-accent">Tambah Data</p>

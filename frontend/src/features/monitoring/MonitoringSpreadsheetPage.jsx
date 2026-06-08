@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import AppShell from "../../components/layout/AppShell";
 import { IssueCountRow } from "../../components/shared/AppShared";
 import { invoiceStatusLabelMap, monitoringMonths } from "../../app/constants";
@@ -41,15 +42,15 @@ const CustomSelect = ({ value, onChange, options, icon, label, variant = "defaul
                 <div
                     onClick={() => setIsOpen(!isOpen)}
                     className={`w-full rounded-xl flex items-center justify-center text-[9px] font-bold cursor-pointer transition-all border relative z-20 ${isCompact
-                            ? `h-9 px-2 ${hideArrow ? "" : "pr-8"} bg-white/5 border-white/10 text-white hover:bg-white/10`
-                            : `h-9 pl-9 pr-8 uppercase font-black tracking-widest shadow-inner-glass ${isOpen || isSelected
-                                ? "bg-gold-accent/10 border-gold-accent/60 text-gold-accent shadow-gold-glow"
-                                : "bg-black/20 border-white/10 text-white/70 hover:border-white/30"
-                            }`
+                        ? `h-9 px-2 ${hideArrow ? "" : "pr-8"} bg-white/5 border-white/10 text-white hover:bg-white/10`
+                        : `h-9 pl-9 pr-8 uppercase font-black tracking-widest shadow-inner-glass ${isOpen || isSelected
+                            ? "bg-gold-accent/10 border-gold-accent/60 text-gold-accent shadow-gold-glow"
+                            : "bg-black/20 border-white/10 text-white/70 hover:border-white/30"
+                        }`
                         }`}
                 >
                     {!isCompact && icon && (
-                        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 transition-all duration-300 " style={{ fontSize: "20px",  color: isOpen || isSelected ? "#d4a937" : "rgba(255,255,255,0.2)" }}>
+                        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 transition-all duration-300 " style={{ fontSize: "20px", color: isOpen || isSelected ? "#d4a937" : "rgba(255,255,255,0.2)" }}>
                             {icon}
                         </span>
                     )}
@@ -76,8 +77,8 @@ const CustomSelect = ({ value, onChange, options, icon, label, variant = "defaul
                                         setIsOpen(false);
                                     }}
                                     className={`px-2 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest cursor-pointer transition-all mb-1 last:mb-0 flex items-center justify-center group/item ${value === opt.value
-                                            ? "text-black relative overflow-hidden"
-                                            : "text-white/50 hover:bg-white/8 hover:text-white"
+                                        ? "text-black relative overflow-hidden"
+                                        : "text-white/50 hover:bg-white/8 hover:text-white"
                                         }`}
                                 >
                                     {value === opt.value && (
@@ -225,7 +226,6 @@ function MonitoringSpreadsheetPage({
     const [billingRows, setBillingRows] = useState([]);
     const [historyRows, setHistoryRows] = useState([]);
     const [alerts, setAlerts] = useState([]);
-    const [recentActivities, setRecentActivities] = useState([]);
     const [selectedInvoiceCell, setSelectedInvoiceCell] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
     const [isLoadingSupplementary, setIsLoadingSupplementary] = useState(false);
@@ -233,9 +233,10 @@ function MonitoringSpreadsheetPage({
     const [isExporting, setIsExporting] = useState(false);
     const [error, setError] = useState("");
 
-    const invoiceDetailModal = selectedInvoiceCell && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4 animate-in fade-in duration-300">
-            <div className="relative w-full max-w-lg rounded-2xl bg-slate-900/80 backdrop-blur-2xl p-5 shadow-2xl animate-in fade-in zoom-in duration-300 border border-white/10 overflow-hidden group">
+    const invoiceDetailModal = selectedInvoiceCell && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-[200] flex items-center justify-center px-4">
+            <div className="fixed inset-0 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setSelectedInvoiceCell(null)}></div>
+            <div className="relative w-full max-w-lg rounded-2xl bg-[#0a0d16] backdrop-blur-3xl p-6 shadow-2xl animate-in fade-in zoom-in duration-300 border border-white/10 overflow-hidden group">
                 <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-gold-accent/5 blur-3xl transition-all duration-700 group-hover:bg-gold-accent/10 backdrop-blur-md" />
 
                 <div className="relative mb-5 flex items-start justify-between gap-6">
@@ -244,19 +245,19 @@ function MonitoringSpreadsheetPage({
                             <span className="h-1.5 w-1.5 rounded-full bg-gold-accent animate-pulse" />
                             <p className="text-[9px] font-black uppercase tracking-[0.2em] text-gold-accent/80">Invoice Detail (Read Only)</p>
                         </div>
-                        <h3 className="text-lg font-black text-white tracking-tight leading-tight">
+                        <h3 className="text-lg font-black text-on-surface tracking-tight leading-tight">
                             {selectedInvoiceCell.customerName}
                         </h3>
-                        <p className="mt-0.5 text-[10px] font-bold text-white/40 uppercase tracking-widest">
+                        <p className="mt-0.5 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
                             {selectedInvoiceCell.ispName} <span className="mx-2 text-white/10">|</span> {selectedInvoiceCell.customerCode}
                         </p>
                     </div>
                     <button
-                        className="rounded-xl bg-white/5 p-3 text-white/40 transition-all hover:bg-white/10 hover:text-white border border-white/5 backdrop-blur-md"
+                        className="h-8 w-8 flex shrink-0 items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white/40 transition-all hover:bg-rose-500/20 hover:text-rose-500 hover:border-rose-500/30 backdrop-blur-md"
                         onClick={() => setSelectedInvoiceCell(null)}
                         type="button"
                     >
-                        <span className="material-symbols-outlined" style={{ fontSize: "16px" }}>close</span>
+                        <span className="material-symbols-outlined" style={{ fontSize: "18px" }}>close</span>
                     </button>
                 </div>
 
@@ -329,9 +330,9 @@ function MonitoringSpreadsheetPage({
                     </p>
                 </div>
 
-                <div className="flex flex-wrap justify-end gap-2">
+                <div className="flex flex-wrap justify-end gap-2 mt-2">
                     <button
-                        className="rounded-xl px-4 py-2.5 text-[9px] font-black uppercase tracking-widest text-white/40 transition-all hover:text-white hover:bg-white/5 backdrop-blur-md"
+                        className="rounded-xl px-5 py-2.5 text-[9px] font-black uppercase tracking-widest text-on-surface-variant transition-all hover:text-on-surface hover:bg-white/5 backdrop-blur-md"
                         onClick={() => setSelectedInvoiceCell(null)}
                         type="button"
                     >
@@ -350,7 +351,8 @@ function MonitoringSpreadsheetPage({
                     </button>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 
     useEffect(() => {
@@ -418,72 +420,6 @@ function MonitoringSpreadsheetPage({
             const nextAlerts = Array.isArray(alertsResult) ? alertsResult : [];
 
             setAlerts(nextAlerts);
-
-            const candidateCustomerIds = [
-                ...new Set([
-                    ...billingRows.map((row) => row.customerId).filter((id) => Number.isFinite(id)),
-                    ...nextAlerts.map((alert) => alert.customerId).filter((id) => Number.isFinite(id)),
-                ]),
-            ].slice(0, 8);
-
-            if (candidateCustomerIds.length === 0) {
-                setRecentActivities([]);
-                return;
-            }
-
-            const nameMap = new Map();
-            billingRows.forEach((row) => {
-                nameMap.set(row.customerId, row.customerName);
-            });
-            nextAlerts.forEach((alert) => {
-                if (!nameMap.has(alert.customerId) && alert.customerName) {
-                    nameMap.set(alert.customerId, alert.customerName);
-                }
-            });
-
-            const timelineResults = await Promise.all(
-                candidateCustomerIds.map(async (customerId) => {
-                    try {
-                        // TODO: Implement timeline API in Supabase
-                        // const timeline = await api.customers.getTimeline(customerId);
-
-                        return {
-                            customerId,
-                            customerName: nameMap.get(customerId) ?? `Pelanggan #${customerId}`,
-                            events: [], // Temporarily disabled
-                        };
-                    } catch {
-                        return {
-                            customerId,
-                            customerName: nameMap.get(customerId) ?? `Pelanggan #${customerId}`,
-                            events: [],
-                        };
-                    }
-                }),
-            );
-
-            const flattenedActivities = timelineResults
-                .flatMap((entry) => entry.events.map((event) => ({
-                    id: `${entry.customerId}-${event.id ?? event.date ?? event.title}`,
-                    customerId: entry.customerId,
-                    customerName: entry.customerName,
-                    title: event.title ?? "Aktivitas",
-                    description: event.description ?? "-",
-                    date: event.date ?? null,
-                })))
-                .filter((activity) => {
-                    const technicalKeywords = ["jalur", "peta", "route", "core", "gangguan", "aktivasi", "survey", "titik", "pop"];
-                    const haystack = (activity.title + " " + activity.description).toLowerCase();
-                    return technicalKeywords.some((keyword) => haystack.includes(keyword));
-                })
-                .sort((left, right) => {
-                    const leftDate = parseDateValue(left.date)?.getTime() ?? 0;
-                    const rightDate = parseDateValue(right.date)?.getTime() ?? 0;
-                    return rightDate - leftDate;
-                })
-                .slice(0, 10);
-
-            setRecentActivities(flattenedActivities);
         } catch {
             // Supplementary data should not block core table render.
         } finally {
@@ -658,20 +594,7 @@ function MonitoringSpreadsheetPage({
         setCurrentPage(1);
     };
 
-    const routeSummary = useMemo(() => {
-        const summary = { aktif: 0, gangguan: 0, perbaikan: 0 };
-        billingRows.forEach((row) => {
-            const routeStatus = resolveRouteStatus(row.customerStatus, row.routeStatus);
-            if (routeStatus === "gangguan") {
-                summary.gangguan++;
-            } else if (routeStatus === "perbaikan" || routeStatus === "maintenance") {
-                summary.perbaikan++;
-            } else {
-                summary.aktif++;
-            }
-        });
-        return summary;
-    }, [billingRows]);
+
 
     const yearOptions = [
         String(Number(currentYear) - 2),
@@ -684,7 +607,7 @@ function MonitoringSpreadsheetPage({
         const pkts = billingRows
             .map(t => t.paket || t.coreType)
             .filter(Boolean);
-        return [...new Set(["dedicated_core", "sharing_core", ...pkts])].sort();
+        return [...new Set(["core", "sharing_core", ...pkts])].sort();
     }, [billingRows]);
 
     const exportToExcel = async () => {
@@ -711,10 +634,10 @@ function MonitoringSpreadsheetPage({
             const csvRows = [];
             const chunkSize = 150;
             for (let index = 0; index < filteredRows.length; index += chunkSize) {
-                    const rowChunk = filteredRows.slice(index, index + chunkSize);
-                    rowChunk.forEach((row, chunkIndex) => {
-                        const absoluteIndex = index + chunkIndex;
-                        const monthsData = isTeknisi ? [] : monitoringMonths.map((_, i) => {
+                const rowChunk = filteredRows.slice(index, index + chunkSize);
+                rowChunk.forEach((row, chunkIndex) => {
+                    const absoluteIndex = index + chunkIndex;
+                    const monthsData = isTeknisi ? [] : monitoringMonths.map((_, i) => {
                         const monthEntry = Array.isArray(row.months) ? row.months[i] : null;
                         const status = typeof monthEntry === "object" && monthEntry !== null
                             ? monthEntry.status
@@ -775,9 +698,7 @@ function MonitoringSpreadsheetPage({
         }
     }, [activeDataTab, loadCoreData, loadSupplementaryData, loadHistoryData]);
 
-    const uniqueAlertCustomers = useMemo(() => {
-        return new Set(alerts.map(a => a.customerId)).size;
-    }, [alerts]);
+
 
     const handleEnterTable = useCallback(() => {
         const el = document.getElementById("monitoring-table");
@@ -960,178 +881,179 @@ function MonitoringSpreadsheetPage({
                         {!isLoading && visibleRows.map((row, rowIndex) => {
                             const actualRowNumber = tableOnly ? rowIndex + 1 : startIndex + rowIndex + 1;
                             return (
-                            <tr key={`${row.customerId}-${rowIndex}`} className="bg-[#0f172a]/40 transition-all group hover:bg-[#1e293b]/60">
-                                <td className="relative sticky left-0 z-20 w-[64px] pl-2 pr-0 py-3 font-black text-white/30 text-center bg-[#0f172a]/65 backdrop-blur-sm group-hover:!bg-[#0f1117] group-hover:!backdrop-blur-none group-hover:text-gold-accent transition-colors shadow-[2px_0_10px_rgba(0,0,0,0.3)] group-hover:border-l-4 group-hover:border-l-gold-accent">
-                                    {String(actualRowNumber).padStart(2, "0")}
-                                </td>
-                                <td className="relative sticky left-[64px] z-20 -ml-px w-[180px] pl-0 pr-0 py-3 font-black text-white bg-[#0f172a]/65 backdrop-blur-sm group-hover:!bg-[#0f1117] group-hover:!backdrop-blur-none transition-colors shadow-[2px_0_10px_rgba(0,0,0,0.3)]">
-                                    <button
-                                        className="w-[170px] truncate pl-2 text-left font-black text-white transition-colors hover:text-gold-accent"
-                                        onClick={() => handleOpenIspDetail(row.ispId)}
-                                        title={row.ispName}
-                                        type="button"
-                                    >
-                                        {row.ispName}
-                                    </button>
-                                </td>
-                                <td className="relative sticky left-[244px] z-20 -ml-px w-[280px] pl-0 pr-2 py-3 bg-[#0f172a]/65 backdrop-blur-sm group-hover:!bg-[#0f1117] group-hover:!backdrop-blur-none transition-colors shadow-[4px_0_15px_rgba(0,0,0,0.4)]">
-                                    <button
-                                        className="max-w-[270px] truncate text-left font-black tracking-tight text-on-surface transition-colors hover:text-gold-accent"
-                                        onClick={() => onOpenCustomerById(row.customerId, "overview")}
-                                        title={row.customerName}
-                                        type="button"
-                                    >
-                                        {row.customerName}
-                                    </button>
-                                    <span className="absolute right-0 top-0 h-full w-px bg-white/10 backdrop-blur-md" />
-                                </td>
-                                <td className="px-3 py-3 text-on-surface-variant font-bold text-center group-hover:bg-white/5 transition-colors border-r border-white/5 backdrop-blur-md">
-                                    {formatDate(row.ispContractStart)}
-                                </td>
-                                <td className="px-4 py-3 text-on-surface-variant font-bold text-center group-hover:bg-white/5 transition-colors border-r border-white/5 backdrop-blur-md">
-                                    {formatDate(row.contractStart)}
-                                </td>
-                                <td className="px-4 py-3 text-on-surface-variant font-bold text-center group-hover:bg-white/5 transition-colors border-r border-white/5 backdrop-blur-md">
-                                    {formatDate(row.contractEnd)}
-                                </td>
-                                <td className="px-4 py-3 text-on-surface-variant font-black tracking-tight transition-colors group-hover:bg-white/5 border-r border-white/5 text-center backdrop-blur-md">
-                                    {toTitleCase(row.coreType)}
-                                </td>
-                                <td className="px-4 py-3 text-on-surface-variant font-black text-center transition-colors group-hover:bg-white/5 border-r border-white/5 backdrop-blur-md">
-                                    {formatMonitoringCoreAmount(row)}
-                                </td>
-                                {!isTeknisi && (
-                                    <>
-                                        <td className="px-4 py-3 text-on-surface-variant font-mono text-[10px] font-bold transition-colors group-hover:bg-white/5 border-r border-white/5 backdrop-blur-md">
-                                            {row.contractNumber ?? "-"}
-                                        </td>
-                                        <td className="px-4 py-3 text-on-surface-variant font-mono text-[10px] font-bold transition-colors group-hover:bg-white/5 border-r border-white/5 backdrop-blur-md">
-                                            {row.currentInvoiceNumber ?? "-"}
-                                        </td>
-                                    </>
-                                )}
-                                <td className="px-6 py-3 whitespace-nowrap transition-colors group-hover:bg-white/5 border-r border-white/5 text-center backdrop-blur-md">
-                                    {(() => {
-                                        const badgeMeta = getRemainingRentalBadgeMeta(getRemainingRentalDays(row.contractEnd));
-                                        return (
-                                            <span className={`inline-flex min-w-[96px] items-center justify-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[9px] font-black uppercase tracking-widest ${badgeMeta.className}`}>
-                                                <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>{badgeMeta.icon}</span>
-                                                {badgeMeta.label}
-                                            </span>
-                                        );
-                                    })()}
-                                </td>
-                                <td className="px-6 py-3 text-center transition-colors group-hover:bg-white/5 border-r border-white/5 backdrop-blur-md">
-                                    {(() => {
-                                        const remainingDays = getRemainingRentalDays(row.contractEnd);
-                                        let label = "BEROPERASI";
-                                        let style = "bg-emerald-500/10 text-emerald-500 border-emerald-500/20 shadow-emerald-glow/5";
-
-                                        const today = new Date().toISOString().slice(0, 10);
-                                        if (isStoppedStatus(row.customerStatus)) {
-                                            label = "BERHENTI";
-                                            style = "bg-white/5 text-white/40 border-white/10";
-                                        } else if ((row.contractStart && row.contractStart > today) || isPendingOperationalStatus(row.customerStatus)) {
-                                            label = "BELUM BEROPERASI";
-                                            style = "bg-sky-500/10 text-sky-500 border-sky-500/20 shadow-sky-glow/5";
-                                        } else if (remainingDays !== null && remainingDays < 0) {
-                                            label = "BELUM DIPERPANJANG";
-                                            style = "bg-rose-500/10 text-rose-500 border-rose-500/20 shadow-rose-glow/5";
-                                        }
-
-                                        return (
-                                            <span className={`inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-[9px] font-black tracking-widest border transition-all ${style} whitespace-nowrap`}>
-                                                {label}
-                                            </span>
-                                        );
-                                    })()}
-                                </td>
-                                <td className="px-6 py-3 text-center transition-colors group-hover:bg-white/5 border-r border-white/5 backdrop-blur-md">
-                                    {(() => {
-                                        const statusValue = resolveRouteStatus(row.customerStatus, row.routeStatus);
-                                        const label = statusValue === "perbaikan" || statusValue === "sedang perbaikan" ? "PERBAIKAN" : statusValue.toUpperCase();
-                                        const style = {
-                                            aktif: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20 shadow-emerald-glow/5",
-                                            nonaktif: "bg-white/5 text-white/40 border-white/10",
-                                            gangguan: "bg-rose-500/10 text-rose-500 border-rose-500/20 shadow-rose-glow/10 animate-pulse",
-                                            perbaikan: "bg-amber-500/10 text-amber-500 border-amber-500/20 shadow-amber-glow/5",
-                                            "sedang perbaikan": "bg-amber-500/10 text-amber-500 border-amber-500/20 shadow-amber-glow/5",
-                                        }[statusValue] ?? "bg-white/5 text-white/40 border-white/10";
-
-                                        return (
-                                            <span className={`inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-[9px] font-black tracking-widest border transition-all ${style} whitespace-nowrap`}>
-                                                {label}
-                                            </span>
-                                        );
-                                    })()}
-                                </td>
-                                {!isTeknisi && (
-                                    <>
-                                        <td className="px-6 py-3 transition-colors group-hover:bg-white/5 border-r border-white/5 text-center backdrop-blur-md">
-                                            {row.activationFeePaidAt ? (
-                                                <div className="flex flex-col items-center gap-1.5">
-                                                    <span className="inline-flex rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 text-[9px] font-black text-emerald-500 tracking-widest uppercase backdrop-blur-md">
-                                                        LUNAS
-                                                    </span>
-                                                    <p className="text-[10px] font-black text-white/20 uppercase tracking-tighter text-center">{formatDate(row.activationFeePaidAt)}</p>
-                                                </div>
-                                            ) : (
-                                                <span className="text-[11px] font-black text-rose-400 tracking-tighter whitespace-nowrap block text-center">
-                                                    {formatCurrency(row.activationFeeAmount)}
+                                <tr key={`${row.customerId}-${rowIndex}`} className="bg-[#0f172a]/40 transition-all group hover:bg-[#1e293b]/60">
+                                    <td className="relative sticky left-0 z-20 w-[64px] pl-2 pr-0 py-3 font-black text-white/30 text-center bg-[#0f172a]/65 backdrop-blur-sm group-hover:!bg-[#0f1117] group-hover:!backdrop-blur-none group-hover:text-gold-accent transition-colors shadow-[2px_0_10px_rgba(0,0,0,0.3)] group-hover:border-l-4 group-hover:border-l-gold-accent">
+                                        {String(actualRowNumber).padStart(2, "0")}
+                                    </td>
+                                    <td className="relative sticky left-[64px] z-20 -ml-px w-[180px] pl-0 pr-0 py-3 font-black text-white bg-[#0f172a]/65 backdrop-blur-sm group-hover:!bg-[#0f1117] group-hover:!backdrop-blur-none transition-colors shadow-[2px_0_10px_rgba(0,0,0,0.3)]">
+                                        <button
+                                            className="w-[170px] truncate pl-2 text-left font-black text-white transition-colors hover:text-gold-accent"
+                                            onClick={() => handleOpenIspDetail(row.ispId)}
+                                            title={row.ispName}
+                                            type="button"
+                                        >
+                                            {row.ispName}
+                                        </button>
+                                    </td>
+                                    <td className="relative sticky left-[244px] z-20 -ml-px w-[280px] pl-0 pr-2 py-3 bg-[#0f172a]/65 backdrop-blur-sm group-hover:!bg-[#0f1117] group-hover:!backdrop-blur-none transition-colors shadow-[4px_0_15px_rgba(0,0,0,0.4)]">
+                                        <button
+                                            className="max-w-[270px] truncate text-left font-black tracking-tight text-on-surface transition-colors hover:text-gold-accent"
+                                            onClick={() => onOpenCustomerById(row.customerId, "overview")}
+                                            title={row.customerName}
+                                            type="button"
+                                        >
+                                            {row.customerName}
+                                        </button>
+                                        <span className="absolute right-0 top-0 h-full w-px bg-white/10 backdrop-blur-md" />
+                                    </td>
+                                    <td className="px-3 py-3 text-on-surface-variant font-bold text-center group-hover:bg-white/5 transition-colors border-r border-white/5 backdrop-blur-md">
+                                        {formatDate(row.ispContractStart)}
+                                    </td>
+                                    <td className="px-4 py-3 text-on-surface-variant font-bold text-center group-hover:bg-white/5 transition-colors border-r border-white/5 backdrop-blur-md">
+                                        {formatDate(row.contractStart)}
+                                    </td>
+                                    <td className="px-4 py-3 text-on-surface-variant font-bold text-center group-hover:bg-white/5 transition-colors border-r border-white/5 backdrop-blur-md">
+                                        {formatDate(row.contractEnd)}
+                                    </td>
+                                    <td className="px-4 py-3 text-on-surface-variant font-black tracking-tight transition-colors group-hover:bg-white/5 border-r border-white/5 text-center backdrop-blur-md">
+                                        {toTitleCase(row.coreType)}
+                                    </td>
+                                    <td className="px-4 py-3 text-on-surface-variant font-black text-center transition-colors group-hover:bg-white/5 border-r border-white/5 backdrop-blur-md">
+                                        {formatMonitoringCoreAmount(row)}
+                                    </td>
+                                    {!isTeknisi && (
+                                        <>
+                                            <td className="px-4 py-3 text-on-surface-variant font-mono text-[10px] font-bold transition-colors group-hover:bg-white/5 border-r border-white/5 backdrop-blur-md">
+                                                {row.contractNumber ?? "-"}
+                                            </td>
+                                            <td className="px-4 py-3 text-on-surface-variant font-mono text-[10px] font-bold transition-colors group-hover:bg-white/5 border-r border-white/5 backdrop-blur-md">
+                                                {row.currentInvoiceNumber ?? "-"}
+                                            </td>
+                                        </>
+                                    )}
+                                    <td className="px-6 py-3 whitespace-nowrap transition-colors group-hover:bg-white/5 border-r border-white/5 text-center backdrop-blur-md">
+                                        {(() => {
+                                            const badgeMeta = getRemainingRentalBadgeMeta(getRemainingRentalDays(row.contractEnd));
+                                            return (
+                                                <span className={`inline-flex min-w-[96px] items-center justify-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[9px] font-black uppercase tracking-widest ${badgeMeta.className}`}>
+                                                    <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>{badgeMeta.icon}</span>
+                                                    {badgeMeta.label}
                                                 </span>
-                                            )}
-                                        </td>
+                                            );
+                                        })()}
+                                    </td>
+                                    <td className="px-6 py-3 text-center transition-colors group-hover:bg-white/5 border-r border-white/5 backdrop-blur-md">
+                                        {(() => {
+                                            const remainingDays = getRemainingRentalDays(row.contractEnd);
+                                            let label = "BEROPERASI";
+                                            let style = "bg-emerald-500/10 text-emerald-500 border-emerald-500/20 shadow-emerald-glow/5";
 
-                                        {monitoringMonths.map((month, monthIndex) => {
-                                            const monthEntry = Array.isArray(row.months)
-                                                ? row.months[monthIndex]
-                                                : null;
-                                            const status = typeof monthEntry === "object" && monthEntry !== null
-                                                ? monthEntry.status
-                                                : (monthEntry || "belum_ditagih");
-                                            const dueDate = typeof monthEntry === "object" && monthEntry !== null
-                                                ? monthEntry.invoice?.due_date || null
-                                                : null;
+                                            const today = new Date().toISOString().slice(0, 10);
+                                            if (isStoppedStatus(row.customerStatus)) {
+                                                label = "BERHENTI";
+                                                style = "bg-white/5 text-white/40 border-white/10";
+                                            } else if ((row.contractStart && row.contractStart > today) || isPendingOperationalStatus(row.customerStatus)) {
+                                                label = "BELUM BEROPERASI";
+                                                style = "bg-sky-500/10 text-sky-500 border-sky-500/20 shadow-sky-glow/5";
+                                            } else if (remainingDays !== null && remainingDays < 0) {
+                                                label = "BELUM DIPERPANJANG";
+                                                style = "bg-rose-500/10 text-rose-500 border-rose-500/20 shadow-rose-glow/5";
+                                            }
 
                                             return (
-                                                <td
-                                                    key={`${row.customerId}-${month}-cell`}
-                                                    className="p-0 transition-colors group-hover:bg-white/5 border-r border-white/5 backdrop-blur-md"
-                                                >
-                                                    <button
-                                                        className={`h-10 w-full transition-all hover:z-10 relative hover:shadow-lg ${getMonthStatusClass(status)}`}
-                                                        onClick={() =>
-                                                            setSelectedInvoiceCell({
-                                                                customerId: row.customerId,
-                                                                customerName: row.customerName,
-                                                                customerCode: row.customerCode,
-                                                                ispName: row.ispName,
-                                                                month,
-                                                                monthIndex,
-                                                                status,
-                                                                dueDate,
-                                                                year: appliedFilters.year,
-                                                                contractStart: row.contractStart,
-                                                                contractEnd: row.contractEnd,
-                                                                coreType: row.coreType,
-                                                                coreTotal: row.coreTotal,
-                                                                sharingRatio: row.sharingRatio,
-                                                            })
-                                                        }
-                                                        title={invoiceStatusLabelMap[status] ?? status}
-                                                        type="button"
-                                                    >
-                                                        <span className="sr-only">
-                                                            {row.customerName} {month} {appliedFilters.year} {invoiceStatusLabelMap[status] ?? status}
-                                                        </span>
-                                                    </button>
-                                                </td>
+                                                <span className={`inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-[9px] font-black tracking-widest border transition-all ${style} whitespace-nowrap`}>
+                                                    {label}
+                                                </span>
                                             );
-                                        })}
-                                    </>
-                                )}
-                            </tr>
-                        )})}
+                                        })()}
+                                    </td>
+                                    <td className="px-6 py-3 text-center transition-colors group-hover:bg-white/5 border-r border-white/5 backdrop-blur-md">
+                                        {(() => {
+                                            const statusValue = resolveRouteStatus(row.customerStatus, row.routeStatus);
+                                            const label = statusValue === "perbaikan" || statusValue === "sedang perbaikan" ? "PERBAIKAN" : statusValue.toUpperCase();
+                                            const style = {
+                                                aktif: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20 shadow-emerald-glow/5",
+                                                nonaktif: "bg-white/5 text-white/40 border-white/10",
+                                                gangguan: "bg-rose-500/10 text-rose-500 border-rose-500/20 shadow-rose-glow/10 animate-pulse",
+                                                perbaikan: "bg-amber-500/10 text-amber-500 border-amber-500/20 shadow-amber-glow/5",
+                                                "sedang perbaikan": "bg-amber-500/10 text-amber-500 border-amber-500/20 shadow-amber-glow/5",
+                                            }[statusValue] ?? "bg-white/5 text-white/40 border-white/10";
+
+                                            return (
+                                                <span className={`inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-[9px] font-black tracking-widest border transition-all ${style} whitespace-nowrap`}>
+                                                    {label}
+                                                </span>
+                                            );
+                                        })()}
+                                    </td>
+                                    {!isTeknisi && (
+                                        <>
+                                            <td className="px-6 py-3 transition-colors group-hover:bg-white/5 border-r border-white/5 text-center backdrop-blur-md">
+                                                {row.activationFeePaidAt ? (
+                                                    <div className="flex flex-col items-center gap-1.5">
+                                                        <span className="inline-flex rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 text-[9px] font-black text-emerald-500 tracking-widest uppercase backdrop-blur-md">
+                                                            LUNAS
+                                                        </span>
+                                                        <p className="text-[10px] font-black text-white/20 uppercase tracking-tighter text-center">{formatDate(row.activationFeePaidAt)}</p>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-[11px] font-black text-rose-400 tracking-tighter whitespace-nowrap block text-center">
+                                                        {formatCurrency(row.activationFeeAmount)}
+                                                    </span>
+                                                )}
+                                            </td>
+
+                                            {monitoringMonths.map((month, monthIndex) => {
+                                                const monthEntry = Array.isArray(row.months)
+                                                    ? row.months[monthIndex]
+                                                    : null;
+                                                const status = typeof monthEntry === "object" && monthEntry !== null
+                                                    ? monthEntry.status
+                                                    : (monthEntry || "belum_ditagih");
+                                                const dueDate = typeof monthEntry === "object" && monthEntry !== null
+                                                    ? monthEntry.invoice?.due_date || null
+                                                    : null;
+
+                                                return (
+                                                    <td
+                                                        key={`${row.customerId}-${month}-cell`}
+                                                        className="p-0 transition-colors group-hover:bg-white/5 border-r border-white/5 backdrop-blur-md"
+                                                    >
+                                                        <button
+                                                            className={`h-10 w-full transition-all hover:z-10 relative hover:shadow-lg ${getMonthStatusClass(status)}`}
+                                                            onClick={() =>
+                                                                setSelectedInvoiceCell({
+                                                                    customerId: row.customerId,
+                                                                    customerName: row.customerName,
+                                                                    customerCode: row.customerCode,
+                                                                    ispName: row.ispName,
+                                                                    month,
+                                                                    monthIndex,
+                                                                    status,
+                                                                    dueDate,
+                                                                    year: appliedFilters.year,
+                                                                    contractStart: row.contractStart,
+                                                                    contractEnd: row.contractEnd,
+                                                                    coreType: row.coreType,
+                                                                    coreTotal: row.coreTotal,
+                                                                    sharingRatio: row.sharingRatio,
+                                                                })
+                                                            }
+                                                            title={invoiceStatusLabelMap[status] ?? status}
+                                                            type="button"
+                                                        >
+                                                            <span className="sr-only">
+                                                                {row.customerName} {month} {appliedFilters.year} {invoiceStatusLabelMap[status] ?? status}
+                                                            </span>
+                                                        </button>
+                                                    </td>
+                                                );
+                                            })}
+                                        </>
+                                    )}
+                                </tr>
+                            )
+                        })}
 
                         {!isLoading && tableOnly && paginatedRows.length > 0 && paginatedRows.length < itemsPerPage && (
                             Array.from({ length: itemsPerPage - paginatedRows.length }).map((_, i) => (
@@ -1411,17 +1333,19 @@ function MonitoringSpreadsheetPage({
                                     onChange={(val) => setFilters(p => ({ ...p, package: val }))}
                                     options={[
                                         { label: "Semua Paket", value: "all" },
-                                        ...availablePackages.map(pkg => ({ label: pkg === "dedicated_core" || pkg === "core" ? "Core" : pkg === "sharing_core" ? "Sharing Core" : String(pkg).replace('_', ' '), value: pkg }))
+                                        ...availablePackages.map(pkg => ({ label: toTitleCase(String(pkg).replace(/_/g, ' ')), value: pkg }))
                                     ]}
                                 />
                             </div>
 
-                            <div className="w-28">
-                                <CustomSelect
-                                    variant="compact"
+                            <div className="relative w-28 shrink-0 group">
+                                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 transition-colors duration-300 pointer-events-none" style={{ fontSize: "18px", color: filters.year ? "#d4a937" : "rgba(255,255,255,0.3)" }}>calendar_month</span>
+                                <input
+                                    className={`w-full h-9 rounded-xl border pl-9 pr-3 text-[11px] font-bold outline-none transition-all backdrop-blur-md focus:ring-4 focus:ring-gold-accent/5 focus:border-gold-accent/40 ${filters.year ? "bg-gold-accent/10 border-gold-accent/40 text-gold-accent" : "bg-white/5 border-white/10 text-white placeholder:text-white/20 focus:bg-white/10"}`}
+                                    onChange={(e) => setFilters(p => ({ ...p, year: e.target.value }))}
+                                    placeholder="Tahun..."
+                                    type="number"
                                     value={filters.year}
-                                    onChange={(val) => setFilters(p => ({ ...p, year: val }))}
-                                    options={yearOptions.map(y => ({ label: y, value: y }))}
                                 />
                             </div>
 
@@ -1655,18 +1579,24 @@ function MonitoringSpreadsheetPage({
                             onChange={(val) => setFilters(p => ({ ...p, package: val }))}
                             options={[
                                 { label: "Semua Paket", value: "all" },
-                                ...availablePackages.map(pkg => ({ label: pkg === "dedicated_core" || pkg === "core" ? "Core" : pkg === "sharing_core" ? "Sharing Core" : String(pkg).replace('_', ' '), value: pkg }))
+                                ...availablePackages.map(pkg => ({ label: toTitleCase(String(pkg).replace(/_/g, ' ')), value: pkg }))
                             ]}
                             value={filters.package}
                         />
 
-                        <CustomSelect
-                            icon="calendar_month"
-                            label="Periode Tahun"
-                            onChange={(val) => setFilters(p => ({ ...p, year: val }))}
-                            options={yearOptions.map(y => ({ label: y, value: y }))}
-                            value={filters.year}
-                        />
+                        <div className="space-y-1.5">
+                            <p className="text-[10px] font-black uppercase tracking-[0.3em] pl-1 text-gold-accent/40">Periode Tahun</p>
+                            <div className="relative group">
+                                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 transition-all duration-300" style={{ fontSize: "20px", color: filters.year ? "#d4a937" : "rgba(255,255,255,0.2)" }}>calendar_month</span>
+                                <input
+                                    className={`w-full h-9 rounded-xl pl-9 pr-3 text-[9px] uppercase tracking-widest font-black transition-all outline-none border shadow-inner-glass ${filters.year ? "bg-gold-accent/10 border-gold-accent/60 text-gold-accent shadow-gold-glow" : "bg-black/20 border-white/10 text-white/70 hover:border-white/30"}`}
+                                    onChange={(e) => setFilters(p => ({ ...p, year: e.target.value }))}
+                                    placeholder="Tahun"
+                                    type="number"
+                                    value={filters.year}
+                                />
+                            </div>
+                        </div>
                     </div>
 
                     {/* Result Indicators - Matched with Pelanggan */}
@@ -1676,6 +1606,9 @@ function MonitoringSpreadsheetPage({
                         </div>
                         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-widest text-white/60 shadow-sm backdrop-blur-md">
                             <span><span className="text-white font-black">{new Set(filteredRows.map(r => r.ispName)).size}</span> ISP Terkait</span>
+                        </div>
+                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-widest text-white/60 shadow-sm backdrop-blur-md">
+                            <span><span className="text-white font-black">{filteredHistoryRows.length}</span> Riwayat</span>
                         </div>
                     </div>
                 </section>
@@ -1725,7 +1658,9 @@ function MonitoringSpreadsheetPage({
                             <span className="text-[9px] font-bold uppercase tracking-widest text-white/40 px-2">Sync notifikasi...</span>
                         )}
                     </section>
-                    
+
+
+
                     <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
                         {typeof onOpenTableOnly === "function" && (
                             <button
@@ -1756,116 +1691,13 @@ function MonitoringSpreadsheetPage({
 
                 {activeDataTab === "table" ? tableSection : historyTableSection}
 
-                {/* KPI Section moved to bottom */}
-                <section className="grid grid-cols-1 gap-6 sm:grid-cols-3">
-                    <StatCard
-                        label="Jaringan Mitra"
-                        value={ispOptions.length}
-                        icon="hub"
-                        accent="gold"
-                        sub="Mitra ISP Terintegrasi"
-                    />
-                    <StatCard
-                        label="Total Lokasi"
-                        value={billingRows.length}
-                        icon="groups"
-                        accent="gold"
-                        sub="Unit Lokasi Terdata"
-                    />
-                    <StatCard
-                        label={isTeknisi ? "Anomali Jalur" : "Perlu Tindakan"}
-                        value={isTeknisi
-                            ? billingRows.filter(r => r.routeStatus === "gangguan" || (!r.routeStatus && r.customerStatus === "aktif")).length
-                            : uniqueAlertCustomers
-                        }
-                        icon="warning"
-                        accent={uniqueAlertCustomers > 0 ? "rose" : "gold"}
-                        sub="Prioritas Penanganan"
-                    />
-                </section>
+                <div className="rounded-xl bg-amber-500/5 border border-amber-500/10 p-3 mt-4 mb-2">
+                    <p className="text-[10px] leading-relaxed text-amber-200/60 font-medium italic">
+                        <span className="font-black not-italic text-amber-500 mr-1 uppercase">Catatan:</span>
+                        Monitoring ini bersifat informatif. Gunakan Detail Lokasi untuk meninjau data kontrak, invoice, dan dokumen secara terpusat.
+                    </p>
+                </div>
 
-                {/* Consolidated Detailed Overview moved to bottom */}
-                <section className="grid grid-cols-1">
-                    <div className="glass-card monitoring-card backdrop-blur-xl rounded-2xl p-5 border-white/40 shadow-glass-depth">
-                        <div className="flex flex-col lg:flex-row gap-10">
-                            {/* Left: Billing Overview */}
-                            <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-6">
-                                    <span className="h-4 w-1 bg-emerald-500 rounded-full shadow-emerald-glow"></span>
-                                    <h2 className="text-sm font-black text-on-surface tracking-tight uppercase tracking-widest">Ringkasan Status Jalur</h2>
-                                </div>
-
-                                <div className="space-y-4">
-                                    <div>
-                                        <div className="flex items-center justify-between mb-1.5">
-                                            <span className="text-[9px] font-black text-on-surface-variant uppercase tracking-[0.2em]">Indeks Keamanan Jalur</span>
-                                            <span className="text-[10px] font-black text-emerald-500">{Math.round((routeSummary.aktif / (billingRows.length || 1)) * 100)}%</span>
-                                        </div>
-                                        <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden border border-white/10 p-[1px] backdrop-blur-md">
-                                            <div
-                                                className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 rounded-full shadow-emerald-glow"
-                                                style={{ width: `${(routeSummary.aktif / (billingRows.length || 1)) * 100}%` }}
-                                            ></div>
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-3 gap-3">
-                                        <div className="p-3 rounded-xl bg-white/5 border border-white/10 group/substat hover:border-emerald-500/30 transition-colors backdrop-blur-md">
-                                            <p className="text-[8px] font-black text-on-surface-variant uppercase tracking-widest mb-0.5 opacity-60">Aktif / Aman</p>
-                                            <p className="text-lg font-black text-emerald-500">{routeSummary.aktif}</p>
-                                        </div>
-                                        <div className="p-3 rounded-xl bg-white/5 border border-white/10 group/substat hover:border-rose-500/30 transition-colors backdrop-blur-md">
-                                            <p className="text-[8px] font-black text-on-surface-variant uppercase tracking-widest mb-0.5 opacity-60">Gangguan</p>
-                                            <p className="text-lg font-black text-rose-500">{routeSummary.gangguan}</p>
-                                        </div>
-                                        <div className="p-3 rounded-xl bg-white/5 border border-white/10 group/substat hover:border-amber-500/30 transition-colors backdrop-blur-md">
-                                            <p className="text-[8px] font-black text-on-surface-variant uppercase tracking-widest mb-0.5 opacity-60">Perbaikan</p>
-                                            <p className="text-lg font-black text-amber-500">{routeSummary.perbaikan}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                        </div>
-                    </div>
-                </section>
-
-                <section className="glass-card monitoring-card backdrop-blur-xl rounded-2xl p-5 border-white/40 mt-6">
-                    <div className="mb-5 flex items-center justify-between shrink-0">
-                        <div className="flex items-center gap-2">
-                            <span className="h-4 w-1 bg-gold-accent rounded-full shadow-gold-glow"></span>
-                            <h2 className="text-sm font-black text-on-surface tracking-tight uppercase tracking-widest">Aktivitas Lintas Unit</h2>
-                        </div>
-                        <span className="px-3 py-1 rounded-full bg-white/5 text-on-surface-variant text-[9px] font-black uppercase tracking-widest border border-white/10 backdrop-blur-md">REAL-TIME FEED</span>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                        {recentActivities.length === 0 && (
-                            <p className="col-span-full py-10 text-center text-sm font-medium text-on-surface-variant italic opacity-50">
-                                Aktivitas terbaru belum tersedia.
-                            </p>
-                        )}
-
-                        {recentActivities.map((activity) => (
-                            <div
-                                key={activity.id}
-                                className="p-5 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/12 transition-all group/activity cursor-default backdrop-blur-md"
-                            >
-                                <div className="mb-3 flex items-center justify-between gap-4">
-                                    <div className="flex items-center gap-2 overflow-hidden">
-                                        <div className="h-2 w-2 rounded-full bg-gold-accent shadow-gold-glow shrink-0"></div>
-                                        <p className="text-xs font-black text-on-surface truncate uppercase tracking-wider">{activity.customerName}</p>
-                                    </div>
-                                    <p className="text-[10px] font-black text-on-surface-variant/40 shrink-0 uppercase tracking-[0.2em]">
-                                        {formatDateTime(activity.date)}
-                                    </p>
-                                </div>
-                                <p className="text-sm font-black text-on-surface group-hover/activity:text-gold-accent transition-colors leading-snug">{activity.title}</p>
-                                <p className="mt-2 text-xs font-medium text-on-surface-variant leading-relaxed line-clamp-2 opacity-70">{activity.description}</p>
-                            </div>
-                        ))}
-                    </div>
-                </section>
                 {invoiceDetailModal}
             </div>
         </div>
@@ -1939,7 +1771,7 @@ function PaginationControls({ currentPage, totalPages, onPageChange, itemsPerPag
                     {totalItems === 0 ? 0 : startIndex + 1}–{Math.min(endIndex, totalItems)} dari {totalItems}
                 </p>
             </div>
-            
+
             <div className="flex items-center gap-1.5 w-full sm:w-auto justify-between sm:justify-end">
                 <button
                     className="flex h-8 items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-3 text-[8px] font-black uppercase tracking-widest text-white/50 transition-all hover:bg-white/10 hover:text-white disabled:opacity-30 backdrop-blur-md"
@@ -1947,11 +1779,11 @@ function PaginationControls({ currentPage, totalPages, onPageChange, itemsPerPag
                 >
                     <span className="material-symbols-outlined" style={{ fontSize: "16px" }}>chevron_left</span> Prev
                 </button>
-                
-                <div 
+
+                <div
                     ref={paginationRef}
                     onScroll={handlePaginationScroll}
-                    className="flex items-center gap-1.5 w-[96px] justify-start overflow-x-auto overflow-y-hidden snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden" 
+                    className="flex items-center gap-1.5 w-[96px] justify-start overflow-x-auto overflow-y-hidden snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden"
                     style={{ scrollbarWidth: 'none' }}
                 >
                     <div className="shrink-0 w-7 h-7 snap-center pointer-events-none opacity-0"></div>
@@ -1959,10 +1791,10 @@ function PaginationControls({ currentPage, totalPages, onPageChange, itemsPerPag
                     {pageNumbers.map((page) => {
                         const distance = Math.abs(currentPage - page);
                         const isActive = distance === 0;
-                        
+
                         let scaleClass = "scale-100 opacity-100 z-10";
                         let bgClass = "bg-white/5 border border-white/5 text-white/50 hover:bg-white/10 hover:text-white";
-                        
+
                         if (distance === 1) {
                             scaleClass = "scale-90 opacity-80 z-0";
                             bgClass = "bg-white/5 border border-white/5 text-white/40 hover:bg-white/10 hover:text-white";
@@ -2001,28 +1833,6 @@ function PaginationControls({ currentPage, totalPages, onPageChange, itemsPerPag
     );
 }
 
-/** 
- * Premium Stat Card for Monitoring 
- */
-function StatCard({ label, value, icon, accent, sub }) {
-    const accents = {
-        gold: "text-gold-accent bg-gold-accent/10 border-gold-accent/20 shadow-gold-glow/5",
-        rose: "text-rose-500 bg-rose-500/10 border-rose-500/20 shadow-rose-glow/5",
-        emerald: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20 shadow-emerald-glow/5",
-        white: "text-on-surface-variant bg-white/10 border-white/20"
-    };
-    return (
-        <div className="glass-card monitoring-card backdrop-blur-xl rounded-2xl p-4 border-white/40 group hover:border-gold-accent/30 transition-all">
-            <div className="flex justify-between items-start mb-4">
-                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-on-surface-variant group-hover:text-gold-accent transition-colors">{label}</p>
-                <div className={`h-9 w-9 flex items-center justify-center rounded-xl border transition-all group-hover:shadow-lg ${accents[accent]}`}>
-                    <span className="material-symbols-outlined" style={{ fontSize: "20px" }}>{icon}</span>
-                </div>
-            </div>
-            <h3 className="text-2xl font-black text-on-surface tracking-tighter mb-1">{value}</h3>
-            <p className="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest opacity-60">{sub}</p>
-        </div>
-    );
-}
+
 
 export default MonitoringSpreadsheetPage;

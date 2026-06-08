@@ -531,36 +531,42 @@ function MapRenderStabilizer({ onReady, refreshKey }) {
 
 function ToastStack({ toasts, onDismiss }) {
   return (
-    <div className="absolute right-4 top-4 z-[500] flex w-[min(360px,calc(100%-2rem))] flex-col gap-2.5 md:right-8 md:top-8">
-      {toasts.map((toast) => {
+    <div 
+      className="absolute right-4 top-[200px] bottom-[80px] z-[500] flex w-[min(260px,calc(100%-2rem))] flex-col gap-1.5 md:right-6 sm:top-[240px] pointer-events-none overflow-hidden"
+      style={{
+        maskImage: 'linear-gradient(to bottom, black 80%, transparent 100%)',
+        WebkitMaskImage: 'linear-gradient(to bottom, black 80%, transparent 100%)'
+      }}
+    >
+      {[...toasts].reverse().map((toast) => {
         const bgClasses =
           {
-            info: "bg-blue-600",
-            success: "bg-emerald-600",
-            warning: "bg-amber-500",
-            error: "bg-rose-600",
-          }[toast.tone] || "bg-slate-800";
+            info: "bg-blue-500/90 border-blue-400/30 shadow-blue-900/20",
+            success: "bg-emerald-500/90 border-emerald-400/30 shadow-emerald-900/20",
+            warning: "bg-amber-500/90 border-amber-400/30 shadow-amber-900/20",
+            error: "bg-rose-500/90 border-rose-400/30 shadow-rose-900/20",
+          }[toast.tone] || "bg-slate-800/90 border-slate-700/30 shadow-slate-900/20";
 
         return (
           <div
             key={toast.id}
-            className={`flex items-start justify-between gap-3 rounded-xl p-4 text-white shadow-lg ${bgClasses}`}
+            className={`shrink-0 pointer-events-auto flex items-start justify-between gap-2 rounded-xl px-3 py-2.5 text-white shadow-[0_15px_40px_-10px_rgba(0,0,0,0.5)] backdrop-blur-xl border ${bgClasses}`}
             role="status"
           >
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-white/90">
+            <div className="space-y-0.5">
+              <p className="text-[10px] font-black uppercase tracking-widest text-white/95">
                 {toast.title}
               </p>
-              <p className="mt-1 text-sm text-white/90 leading-snug">
+              <p className="text-[9px] font-medium text-white/80 leading-snug">
                 {toast.message}
               </p>
             </div>
             <button
-              className="text-white/70 transition hover:text-white"
+              className="shrink-0 text-white/60 transition-colors hover:text-white active:scale-95 flex items-center justify-center p-0.5 hover:bg-white/10 rounded-md"
               onClick={() => onDismiss(toast.id)}
               type="button"
             >
-              <span className="material-symbols-outlined text-sm">close</span>
+              <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>close</span>
             </button>
           </div>
         );
@@ -1711,21 +1717,21 @@ export default function FoRoutePlanner({
             {/* Empty state CTA */}
             {previewControlPoints.length === 0 && !previewRouteGeoJson && onPreviewClick && (
               <div className="absolute inset-0 z-[400] flex items-center justify-center pointer-events-none">
-                <div className="pointer-events-auto flex flex-col items-center gap-4 rounded-2xl bg-slate-900/90 backdrop-blur-xl border border-white/10 shadow-2xl px-8 py-7 text-center max-w-xs">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gold-accent/10 border border-gold-accent/20">
-                    <span className="material-symbols-outlined text-3xl text-gold-accent">route</span>
+                <div className="pointer-events-auto flex flex-col items-center gap-2 rounded-2xl bg-[#0f141e]/90 backdrop-blur-xl border border-white/10 shadow-2xl py-4 px-5 text-center w-[240px]">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gold-accent/10 border border-gold-accent/20">
+                    <span className="material-symbols-outlined text-[18px] text-gold-accent">conversion_path</span>
                   </div>
-                  <div>
-                    <p className="text-sm font-black text-white tracking-tight">Belum ada jalur FO</p>
-                    <p className="mt-1.5 text-xs text-white/40 leading-relaxed">Mulai mapping lintasan kabel fiber optik untuk tenant ini.</p>
+                  <div className="space-y-0.5">
+                    <h4 className="text-[13px] font-black text-white tracking-tight">Belum Ada Jalur FO</h4>
+                    <p className="text-[9px] font-bold text-white/40 leading-snug">Mulai petakan lintasan kabel untuk lokasi ini.</p>
                   </div>
                   <button
-                    className="inline-flex items-center gap-2 rounded-xl bg-gold-accent px-5 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#0f141e] shadow-lg hover:brightness-110 transition-all active:scale-95"
+                    className="mt-1 flex h-7 items-center justify-center gap-1.5 rounded-lg bg-gold-accent px-4 text-[9px] font-black uppercase tracking-widest text-[#0f141e] shadow-gold-glow hover:scale-105 transition-transform active:scale-95"
                     onClick={onPreviewClick}
                     type="button"
                   >
-                    <span className="material-symbols-outlined text-sm">open_in_new</span>
-                    Buka Planner Jalur
+                    <span className="material-symbols-outlined text-[12px]">map</span>
+                    Buka Planner
                   </button>
                 </div>
               </div>
@@ -2007,16 +2013,17 @@ export default function FoRoutePlanner({
 
       {/* Floating Sidebar - Responsive Card Style */}
       <aside
-        className={`absolute inset-x-0 bottom-0 sm:inset-auto sm:left-4 sm:top-4 sm:bottom-auto z-[1000] w-full sm:w-[300px] lg:w-[330px] xl:w-[360px] max-h-[82vh] sm:max-h-[var(--fo-route-sidebar-max-height)] sm:overflow-y-auto sm:overflow-x-visible flex flex-col pointer-events-none transition-transform duration-500 ease-in-out custom-scrollbar ${isSidebarOpen ? "translate-y-0 sm:translate-x-0" : "translate-y-[calc(100%+2rem)] sm:translate-y-0 sm:-translate-x-[calc(100%+2rem)]"
+        className={`absolute inset-x-0 bottom-0 sm:inset-auto sm:left-4 sm:top-4 sm:bottom-auto z-[1000] w-full sm:w-[300px] lg:w-[330px] xl:w-[360px] max-h-[82vh] sm:max-h-[var(--fo-route-sidebar-max-height)] flex flex-col pointer-events-none transition-transform duration-500 ease-in-out ${isSidebarOpen ? "translate-y-0 sm:translate-x-0" : "translate-y-[calc(100%+2rem)] sm:translate-y-0 sm:-translate-x-[calc(100%+2rem)]"
           }`}
         style={{ "--fo-route-sidebar-max-height": sidebarMaxHeight }}
       >
-        <div className="flex flex-col pointer-events-auto bg-slate-900/95 sm:bg-transparent backdrop-blur-xl sm:backdrop-blur-none sm:space-y-2.5 p-4 sm:p-0 overflow-y-auto sm:overflow-visible rounded-t-3xl sm:rounded-none shadow-[0_-10px_40px_rgba(0,0,0,0.3)] sm:shadow-none border-t border-white/10 sm:border-t-0 custom-scrollbar">
+        <div className="flex flex-col min-h-0 pointer-events-auto bg-slate-900/95 sm:bg-slate-900/80 backdrop-blur-xl sm:backdrop-blur-md rounded-t-3xl sm:rounded-2xl shadow-[0_-10px_40px_rgba(0,0,0,0.3)] sm:shadow-2xl border-t sm:border border-white/10 overflow-hidden relative">
+          <div className="flex flex-col overflow-y-auto custom-scrollbar p-4 scroll-smooth">
           {/* Mobile Handle (Visual only) */}
           <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-white/20 sm:hidden backdrop-blur-md" />
 
           {/* Header Panel */}
-          <header className="rounded-2xl sm:border border-white/10 sm:bg-slate-900/80 sm:p-4 sm:backdrop-blur-md sm:shadow-2xl relative shrink-0">
+          <header className="relative shrink-0">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Points Console</p>
@@ -2046,7 +2053,7 @@ export default function FoRoutePlanner({
             {/* Mode Switcher */}
             <div className="mt-4 flex rounded-xl bg-slate-950/50 p-1 border border-white/5 shadow-inner">
               <button
-                className={`flex-1 rounded-lg py-1.5 text-[10px] font-black uppercase tracking-widest transition-all ${!customRouteMode ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'text-white/40 hover:text-white/80 hover:bg-white/5'}`}
+                className={`w-1/2 rounded-lg py-1.5 text-[10px] font-black uppercase tracking-widest transition-all ${!customRouteMode ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'text-white/40 hover:text-white/80 hover:bg-white/5'}`}
                 disabled={disabled}
                 onClick={() => setCustomRouteMode(false)}
                 type="button"
@@ -2054,7 +2061,7 @@ export default function FoRoutePlanner({
                 Otomatis
               </button>
               <button
-                className={`flex-1 rounded-lg py-1.5 text-[10px] font-black uppercase tracking-widest transition-all ${customRouteMode ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20' : 'text-white/40 hover:text-white/80 hover:bg-white/5'}`}
+                className={`w-1/2 rounded-lg py-1.5 text-[10px] font-black uppercase tracking-widest transition-all ${customRouteMode ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20' : 'text-white/40 hover:text-white/80 hover:bg-white/5'}`}
                 disabled={disabled}
                 onClick={() => setCustomRouteMode(true)}
                 type="button"
@@ -2180,7 +2187,8 @@ export default function FoRoutePlanner({
           </header>
 
           {/* Configuration Steps */}
-          <section className="relative mt-2.5 flex min-h-0 flex-1 flex-col rounded-2xl border-white/10 sm:border sm:bg-slate-900/80 sm:p-3 sm:shadow-xl sm:backdrop-blur-md overflow-y-auto custom-scrollbar space-y-3">
+          <div className="mt-4 pt-4 border-t border-white/10 flex flex-col relative">
+            <section className="flex flex-col space-y-3">
             
             {/* Step 1: Titik Awal */}
             <div className="rounded-xl border border-white/10 bg-white/5 p-3">
@@ -2418,7 +2426,9 @@ export default function FoRoutePlanner({
                 </button>
               </div>
             )}
-          </section>
+            </section>
+          </div>
+          </div>
         </div>
       </aside>
 

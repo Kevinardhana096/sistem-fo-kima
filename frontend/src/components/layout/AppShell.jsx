@@ -456,9 +456,7 @@ function TopNav({
                                 <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
                                     <div>
                                         <p className="text-sm font-black text-on-surface">Notifikasi</p>
-                                        <p className="mt-0.5 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
-                                            {unreadCount} belum dibaca • {notifications.length} aktif
-                                        </p>
+                                        <p className="mt-0.5 text-[10px] font-bold text-on-surface-variant/70 tracking-wide">Notifikasi akan hilang jika telah dibuka.</p>
                                     </div>
                                     <button
                                         className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/5 text-on-surface-variant anim-surface hover:bg-white/10 backdrop-blur-md"
@@ -483,10 +481,7 @@ function TopNav({
                                                     key={notification.id}
                                                     className={`rounded-xl px-3 py-2.5 anim-surface hover:bg-white/10 backdrop-blur-md ${notification.readAt ? "opacity-70" : "bg-gold-accent/10"}`}
                                                 >
-                                                    <div className="flex w-full items-start gap-3 text-left">
-                                                        <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${severityClass}`}>
-                                                            <span className="material-symbols-outlined text-base">priority_high</span>
-                                                        </div>
+                                                    <div className="flex w-full items-center gap-3 text-left">
                                                         <div className="min-w-0 flex-1">
                                                             <button 
                                                                 onClick={() => handleOpenNotification(notification)}
@@ -500,28 +495,17 @@ function TopNav({
                                                                         {notification.severity}
                                                                     </span>
                                                                 </div>
-                                                                <p className="line-clamp-2 text-[10px] font-bold leading-relaxed text-on-surface-variant group-hover:text-white/80 transition-colors">{notification.message}</p>
+                                                                <p className="line-clamp-2 text-[10px] font-bold leading-tight text-on-surface-variant group-hover:text-white/80 transition-colors">{notification.message}</p>
                                                             </button>
                                                             
-                                                            <div className="mt-1.5 flex items-center justify-between">
+                                                            <div className="-mt-1 flex items-center justify-end">
                                                                 <button
                                                                     onClick={() => handleOpenNotification(notification)}
-                                                                    className="text-[8px] font-black uppercase tracking-widest text-gold-accent hover:underline focus:outline-none"
+                                                                    className="rounded-md bg-gold-accent/10 px-2 py-1 text-[8px] font-black uppercase tracking-widest text-gold-accent border border-gold-accent/20 hover:bg-gold-accent hover:text-black transition-all shadow-sm focus:outline-none"
                                                                     type="button"
                                                                 >
                                                                     {notification.actionLabel}
                                                                 </button>
-                                                                <div className="flex items-center gap-1.5">
-                                                                    {!notification.readAt && (
-                                                                        <button
-                                                                            className="rounded-md bg-white/5 px-2 py-1 text-[8px] font-black uppercase tracking-widest text-on-surface-variant anim-surface hover:bg-white/10 hover:text-white backdrop-blur-md"
-                                                                            onClick={(event) => handleMarkRead(event, notification)}
-                                                                            type="button"
-                                                                        >
-                                                                            Dibaca
-                                                                        </button>
-                                                                    )}
-                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>

@@ -2041,6 +2041,7 @@ export const customersApi = {
     if (error) throw error;
 
     const rollbackCustomerCreate = async () => {
+      await supabase.from('documents').delete().eq('customer_id', data.id);
       await supabase.from('invoices').delete().eq('customer_id', data.id);
       await supabase.from('contract_versions').delete().eq('customer_id', data.id);
       await supabase.from('contracts').delete().eq('customer_id', data.id);
@@ -2160,6 +2161,30 @@ export const customersApi = {
             .insert(invoicePayload);
 
           if (invoiceError) throw invoiceError;
+        }
+
+        if (customerData.bakFileUrl) {
+          const { error: bakError } = await supabase.from('documents').insert({
+            customer_id: data.id,
+            contract_id: contractData.id,
+            jenis_dokumen: 'bak',
+            nomor_dokumen: contractData.contract_number,
+            file_url: customerData.bakFileUrl,
+            updated_at: now,
+          });
+          if (bakError) throw bakError;
+        }
+
+        if (customerData.contractFileUrl) {
+          const { error: contractFileError } = await supabase.from('documents').insert({
+            customer_id: data.id,
+            contract_id: contractData.id,
+            jenis_dokumen: 'kontrak',
+            nomor_dokumen: contractData.contract_number,
+            file_url: customerData.contractFileUrl,
+            updated_at: now,
+          });
+          if (contractFileError) throw contractFileError;
         }
       }
     } catch (relatedError) {

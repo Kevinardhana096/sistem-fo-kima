@@ -391,20 +391,20 @@ function resolveInvoiceStatusMeta(invoice) {
   };
 }
 
-function GlassSelect({ label, value, onChange, options, placeholder = "Pilih opsi" }) {
+function GlassSelect({ label, value, onChange, options, placeholder = "Pilih opsi", className = "", textClass = "text-[10px] font-black uppercase tracking-widest", optionTextClass = "text-[9px] font-black uppercase tracking-widest" }) {
   const [isOpen, setIsOpen] = useState(false);
   const selectedOption = options.find((opt) => opt.value === value);
 
   return (
     <div className="relative space-y-1.5">
       {label && (
-        <label className="ml-1 text-[8px] md:text-[9px] font-black uppercase tracking-widest text-white/20">
+        <label className="ml-1 block text-[8px] font-black uppercase tracking-widest text-white/20">
           {label}
         </label>
       )}
       <div className="relative">
         <button
-          className="group flex h-10 w-full items-center justify-between rounded-xl border border-white/5 bg-white/[0.01] backdrop-blur-3xl px-3 text-[10px] font-black uppercase tracking-widest text-white outline-none transition-all focus:border-gold-accent/40 focus:bg-white/[0.04]"
+          className={`group flex ${className || "h-10"} w-full items-center justify-between rounded-xl border border-white/5 bg-white/[0.01] backdrop-blur-3xl px-3 ${textClass} text-white outline-none transition-all focus:border-gold-accent/40 focus:bg-white/[0.04]`}
           onClick={() => setIsOpen(!isOpen)}
           type="button"
         >
@@ -425,24 +425,27 @@ function GlassSelect({ label, value, onChange, options, placeholder = "Pilih ops
               className="fixed inset-0 z-[60]"
               onClick={() => setIsOpen(false)}
             />
-            <div className="absolute left-0 right-0 top-full z-[70] mt-1.5 animate-in fade-in zoom-in-95 overflow-hidden rounded-xl border border-white/10 bg-[#0a0f18]/95 backdrop-blur-2xl shadow-2xl duration-200">
-              <div className="no-scrollbar max-h-48 overflow-y-auto p-1.5 space-y-0.5">
-                {options.map((opt) => (
-                  <button
-                    className={`w-full px-3 py-2.5 text-left text-[9px] font-black uppercase tracking-widest transition-all rounded-lg ${value === opt.value
-                        ? "bg-gold-accent text-[#0f141e] shadow-gold-glow"
+            <div className="absolute left-0 right-0 top-[calc(100%+4px)] z-[70] animate-in fade-in zoom-in-95 rounded-lg border border-white/10 bg-[#0a0f18]/95 p-1 shadow-2xl backdrop-blur-2xl duration-200">
+              <div className="no-scrollbar max-h-48 overflow-y-auto space-y-0.5">
+                {options.map((opt) => {
+                  const isSelected = value === opt.value;
+                  return (
+                    <button
+                      className={`flex w-full items-center justify-between px-2 py-1.5 text-left ${optionTextClass} transition-all rounded-md ${isSelected
+                        ? "bg-gold-accent/10 text-gold-accent"
                         : "text-white/60 hover:bg-white/10 hover:text-white"
-                      }`}
-                    key={opt.value}
-                    onClick={() => {
-                      onChange(opt.value);
-                      setIsOpen(false);
-                    }}
-                    type="button"
-                  >
-                    {opt.label}
-                  </button>
-                ))}
+                        }`}
+                      key={opt.value}
+                      onClick={() => {
+                        onChange(opt.value);
+                        setIsOpen(false);
+                      }}
+                      type="button"
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </>
@@ -617,14 +620,13 @@ function TenantDetailPage({
   const [ispPopupOpen, setIspPopupOpen] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const [isDeletingTenant, setIsDeletingTenant] = useState(false);
-  const [invoiceSetDateMode, setInvoiceSetDateMode] = useState("manual");
-  const [invoiceFixedDueDay, setInvoiceFixedDueDay] = useState("1");
-  const [invoiceSetAmountMode, setInvoiceSetAmountMode] = useState("manual");
-  const [invoiceFixedAmount, setInvoiceFixedAmount] = useState("");
+  const [selectedInvoiceIds, setSelectedInvoiceIds] = useState(new Set());
+  const [invoiceBulkForm, setInvoiceBulkForm] = useState({ dueDate: "", amount: "", status: "" });
   const [invoicePaymentOrderSort, setInvoicePaymentOrderSort] = useState("asc");
   const [invoiceDrafts, setInvoiceDrafts] = useState({});
   const [invoiceFeedback, setInvoiceFeedback] = useState("");
   const [isSavingInvoice, setIsSavingInvoice] = useState(false);
+  const [openInvoiceStatusId, setOpenInvoiceStatusId] = useState(null);
   const savingInvoiceIdsRef = useRef(new Set());
   const [billingEditor, setBillingEditor] = useState(null);
   const [billingError, setBillingError] = useState("");
@@ -3062,42 +3064,42 @@ function TenantDetailPage({
 
     // Map dengan changeNumber: index 0 (terlama) = V1, index terakhir (terbaru) = Vterbesar
     const mapped = sorted.map((item, index) => {
-        const beforePoints = Array.isArray(item?.snapshotBefore?.points)
-          ? item.snapshotBefore.points
-          : [];
-        const afterPoints = Array.isArray(item?.snapshotAfter?.points)
-          ? item.snapshotAfter.points
-          : [];
+      const beforePoints = Array.isArray(item?.snapshotBefore?.points)
+        ? item.snapshotBefore.points
+        : [];
+      const afterPoints = Array.isArray(item?.snapshotAfter?.points)
+        ? item.snapshotAfter.points
+        : [];
 
-        const summarizePoints = (points) => {
-          if (!points.length) {
-            return "-";
-          }
+      const summarizePoints = (points) => {
+        if (!points.length) {
+          return "-";
+        }
 
-          return points
-            .map((point) => `${point.orderNumber}. ${point.pathName}`)
-            .join(" -> ");
-        };
+        return points
+          .map((point) => `${point.orderNumber}. ${point.pathName}`)
+          .join(" -> ");
+      };
 
-        return {
-          ...item,
-          changeNumber: index + 1, // V1 = terlama, Vn = terbaru
-          operationLabel:
-            ROUTE_OPERATION_LABEL_MAP[item?.operation] ??
-            toTitleCase(item?.operation ?? "perubahan"),
-          changeReason: item?.changeNote || item?.note || (item?.operation ? (ROUTE_OPERATION_LABEL_MAP[item.operation] ?? item.operation) : "Pemutakhiran Jalur"),
-          changeDescription: item?.changeNote || item?.note,
-          points: afterPoints.length > 0 ? afterPoints : beforePoints,
-          beforeSummary: summarizePoints(beforePoints),
-          afterSummary: summarizePoints(afterPoints),
-          beforePoints,
-          afterPoints,
-          beforeCount: beforePoints.length,
-          afterCount: afterPoints.length,
-          beforeStatus: item?.snapshotBefore?.flowStatus ?? "-",
-          afterStatus: item?.snapshotAfter?.flowStatus ?? "-",
-        };
-      });
+      return {
+        ...item,
+        changeNumber: index + 1, // V1 = terlama, Vn = terbaru
+        operationLabel:
+          ROUTE_OPERATION_LABEL_MAP[item?.operation] ??
+          toTitleCase(item?.operation ?? "perubahan"),
+        changeReason: item?.changeNote || item?.note || (item?.operation ? (ROUTE_OPERATION_LABEL_MAP[item.operation] ?? item.operation) : "Pemutakhiran Jalur"),
+        changeDescription: item?.changeNote || item?.note,
+        points: afterPoints.length > 0 ? afterPoints : beforePoints,
+        beforeSummary: summarizePoints(beforePoints),
+        afterSummary: summarizePoints(afterPoints),
+        beforePoints,
+        afterPoints,
+        beforeCount: beforePoints.length,
+        afterCount: afterPoints.length,
+        beforeStatus: item?.snapshotBefore?.flowStatus ?? "-",
+        afterStatus: item?.snapshotAfter?.flowStatus ?? "-",
+      };
+    });
 
     // Tampilkan terbaru di atas (descending) — changeNumber tetap benar
     return mapped.reverse();
@@ -3895,135 +3897,96 @@ function TenantDetailPage({
     }
   };
 
-  const handleApplyGlobalSetDate = async () => {
-    const requestedDay = Number(invoiceFixedDueDay);
-    if (
-      !Number.isFinite(requestedDay) ||
-      requestedDay < 1 ||
-      requestedDay > 31
-    ) {
-      setError("Tanggal rutin harus diisi 1 sampai 31.");
-      return;
-    }
-
-    if (invoiceRows.length === 0) {
-      setError("Belum ada invoice untuk diterapkan set date.");
-      return;
-    }
-
-    setIsSavingInvoice(true);
-    setError("");
-    setInvoiceFeedback("");
-    try {
-      const dueDateByInvoiceId = {};
-
-      await Promise.all(
-        invoiceRows.map((invoice) => {
-          const year = Number(invoice.periodYear);
-          const month = Number(invoice.periodMonth);
-          const maxDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
-          const normalizedDay = Math.min(
-            Math.max(Math.round(requestedDay), 1),
-            maxDay,
-          );
-          const periodStartDate = String(invoice.periodStartDate ?? invoice.period_start_date ?? "").slice(0, 10);
-          const dueDate = periodStartDate
-            ? getNextMonthIsoDate(periodStartDate, normalizedDay)
-            : `${year}-${String(month).padStart(2, "0")}-${String(normalizedDay).padStart(2, "0")}`;
-
-          dueDateByInvoiceId[invoice.id] = dueDate;
-
-          if (String(invoice.id).startsWith("schedule-")) {
-            return Promise.resolve();
-          }
-          return api.invoices.update(invoice.id, { due_date: dueDate });
-        }),
-      );
-
-      setInvoiceDrafts((previousDrafts) => {
-        const nextDrafts = { ...previousDrafts };
-
-        invoiceRows.forEach((invoice) => {
-          const previousDraft = previousDrafts[invoice.id] ?? {};
-          const baseAmount =
-            previousDraft.amount ??
-            (Number.isFinite(Number(invoice.amount))
-              ? formatRupiahInput(Math.max(0, Math.round(Number(invoice.amount))))
-              : "");
-
-          nextDrafts[invoice.id] = {
-            invoiceNumber: String(previousDraft.invoiceNumber ?? ""),
-            dueDate: dueDateByInvoiceId[invoice.id] ?? "",
-            amount: String(baseAmount),
-          };
-        });
-
-        return nextDrafts;
-      });
-
-      setInvoiceFeedback(
-        "Set date global berhasil diterapkan ke semua invoice.",
-      );
-      await Promise.all([loadDetail(), onRefreshAll?.()]);
-    } catch (requestError) {
-      setError(
-        requestError instanceof Error
-          ? requestError.message
-          : "Gagal menerapkan set date global.",
-      );
-    } finally {
-      setIsSavingInvoice(false);
+  const handleToggleSelectAllInvoices = () => {
+    if (selectedInvoiceIds.size === displayInvoiceRows.length) {
+      setSelectedInvoiceIds(new Set());
+    } else {
+      setSelectedInvoiceIds(new Set(displayInvoiceRows.map((row) => row.id)));
     }
   };
 
-  const handleApplyGlobalSetAmount = async () => {
-    const requestedAmount = parseRupiahInput(invoiceFixedAmount);
-    if (!Number.isFinite(requestedAmount) || requestedAmount < 0) {
+  const handleToggleSelectInvoice = (id) => {
+    setSelectedInvoiceIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleApplyBulkInvoiceUpdates = async () => {
+    const isSelectedMode = selectedInvoiceIds.size > 0;
+    const targetInvoices = isSelectedMode
+      ? invoiceRows.filter((row) => selectedInvoiceIds.has(row.id))
+      : invoiceRows;
+
+    if (targetInvoices.length === 0) {
+      setError(`Belum ada data ${isSelectedMode ? "terpilih" : "invoice"} untuk diperbarui.`);
+      return;
+    }
+
+    const { dueDate, amount, status } = invoiceBulkForm;
+    const hasDueDate = Boolean(dueDate);
+    const hasAmount = Boolean(amount);
+    const hasStatus = Boolean(status);
+
+    if (!hasDueDate && !hasAmount && !hasStatus) {
+      setError("Isi setidaknya satu field untuk diperbarui secara massal.");
+      return;
+    }
+
+    const requestedAmount = hasAmount ? parseRupiahInput(amount) : null;
+    if (hasAmount && (!Number.isFinite(requestedAmount) || requestedAmount < 0)) {
       setError("Nominal harus diisi dengan angka valid.");
       return;
     }
 
-    if (invoiceRows.length === 0) {
-      setError("Belum ada invoice untuk diterapkan nominal massal.");
-      return;
-    }
-
     setIsSavingInvoice(true);
     setError("");
     setInvoiceFeedback("");
+
     try {
       await Promise.all(
-        invoiceRows.map((invoice) => {
+        targetInvoices.map((invoice) => {
           if (String(invoice.id).startsWith("schedule-")) {
             return Promise.resolve();
           }
-          return api.invoices.update(invoice.id, { amount: requestedAmount });
+
+          const updatePayload = {};
+          if (hasDueDate) updatePayload.due_date = dueDate;
+          if (hasAmount) updatePayload.amount = requestedAmount;
+          if (hasStatus) updatePayload.status = status;
+
+          return api.invoices.update(invoice.id, updatePayload);
         }),
       );
 
       setInvoiceDrafts((previousDrafts) => {
         const nextDrafts = { ...previousDrafts };
 
-        invoiceRows.forEach((invoice) => {
+        targetInvoices.forEach((invoice) => {
           const previousDraft = previousDrafts[invoice.id] ?? {};
-          nextDrafts[invoice.id] = {
-            ...previousDraft,
-            amount: formatRupiahInput(requestedAmount),
-          };
+          nextDrafts[invoice.id] = { ...previousDraft };
+
+          if (hasDueDate) nextDrafts[invoice.id].dueDate = dueDate;
+          if (hasAmount) nextDrafts[invoice.id].amount = formatRupiahInput(requestedAmount);
+          if (hasStatus) nextDrafts[invoice.id].status = status;
         });
 
         return nextDrafts;
       });
 
-      setInvoiceFeedback(
-        `Nominal massal berhasil diterapkan ke ${invoiceRows.length} siklus aktif.`,
-      );
+      setInvoiceFeedback(`Berhasil memperbarui ${targetInvoices.length} data invoice.`);
+      setInvoiceBulkForm({ dueDate: "", amount: "", status: "" });
+      if (isSelectedMode) {
+        setSelectedInvoiceIds(new Set());
+      }
       await Promise.all([loadDetail(), onRefreshAll?.()]);
     } catch (requestError) {
       setError(
         requestError instanceof Error
           ? requestError.message
-          : "Gagal menerapkan nominal massal.",
+          : "Gagal menerapkan pembaruan massal.",
       );
     } finally {
       setIsSavingInvoice(false);
@@ -4365,11 +4328,11 @@ function TenantDetailPage({
               providerIconUrl={isps[0]?.logoUrl || ""}
               customerIconUrl={detail?.logo_url || ""}
               customHeaderInfo={
-                <header className="pointer-events-auto hidden sm:flex flex-col items-end gap-0.5 rounded-xl bg-slate-900/80 px-4 py-1.5 shadow-2xl backdrop-blur-md border border-white/10 max-w-[240px] md:max-w-[300px] text-right shrink-0">
+                <header className="pointer-events-auto hidden sm:flex flex-col items-center gap-0.5 rounded-xl bg-slate-900/80 px-4 py-1.5 shadow-2xl backdrop-blur-md border border-white/10 max-w-[240px] md:max-w-[300px] text-center shrink-0">
                   <h1 className="text-[10px] md:text-xs font-black text-white uppercase tracking-[0.1em] truncate w-full">
                     {tenantName}
                   </h1>
-                  <div className="flex items-center justify-end gap-1.5 md:gap-2 text-[8px] md:text-[9px] font-bold text-white/60 w-full">
+                  <div className="flex items-center justify-center gap-1.5 md:gap-2 text-[8px] md:text-[9px] font-bold text-white/60 w-full">
                     <span className="rounded bg-primary/20 px-1 py-0.5 text-primary border border-primary/30 uppercase tracking-tighter shrink-0">
                       {(detail?.paket || customer?.paket || "CORE")}
                     </span>
@@ -4758,7 +4721,8 @@ function TenantDetailPage({
         })()}
 
         {error && (
-          <div className="rounded-2xl border border-[#ff2400]/20 bg-[#ff2400]/5 px-6 py-4 text-[10px] font-black uppercase tracking-widest text-[#ff2400] animate-in fade-in slide-in-from-top-4">
+          <div className="rounded-2xl border border-[#ff2400]/20 bg-[#ff2400]/5 px-6 py-4 text-[11px] font-bold tracking-wide text-[#ff2400] animate-in fade-in slide-in-from-top-4 flex items-center gap-3">
+            <span className="material-symbols-outlined text-lg">error</span>
             {error}
           </div>
         )}
@@ -4848,7 +4812,7 @@ function TenantDetailPage({
                     ) : (
                       <p className="text-[11px] font-black text-[#ff2400]/70">{formatCurrency(detail?.activationFeeAmount ?? customer?.activationFeeAmount)}</p>
                     )}
-                    
+
                     {canEditTenant && (
                       <div className="mt-1.5">
                         <button
@@ -4898,7 +4862,7 @@ function TenantDetailPage({
                   {(displayPriorityTodos.length > 0 || displayNeedActionTodos.length > 0) ? (
                     <>
                       {displayPriorityTodos.length > 0 && (
-                        <div className="flex flex-col gap-2.5">
+                        <div className="flex flex-col gap-1.5">
                           <div className="flex items-center gap-2">
                             <div className="h-px flex-1 bg-gradient-to-r from-red-500/40 to-transparent" />
                             <span className="text-[8px] font-black text-red-400 uppercase tracking-widest">Prioritas Tinggi</span>
@@ -4906,7 +4870,7 @@ function TenantDetailPage({
                           {displayPriorityTodos.map((item) => (
                             <div
                               key={item.id}
-                              className="p-3.5 rounded-xl bg-red-500/5 border border-red-500/10 group/item hover:bg-red-500/10 transition-all backdrop-blur-md cursor-pointer focus:outline-none focus:ring-2 focus:ring-red-400/40"
+                              className="p-2.5 rounded-xl bg-red-500/5 border border-red-500/10 group/item hover:bg-red-500/10 transition-all backdrop-blur-md cursor-pointer focus:outline-none focus:ring-2 focus:ring-red-400/40"
                               onClick={() => handleOverviewTodoNavigation(item)}
                               onKeyDown={(event) => handleOverviewTodoKeyDown(event, item)}
                               role="button"
@@ -4915,12 +4879,9 @@ function TenantDetailPage({
                             >
                               <div className="flex gap-3">
                                 <span className="material-symbols-outlined text-[16px] text-red-400 mt-0.5">error</span>
-                                <div className="flex-1">
-                                  <div className="flex items-start justify-between gap-3">
-                                    <p className="text-xs font-black text-white group-hover/item:text-red-400 transition-colors">{item.title}</p>
-                                    <span className="material-symbols-outlined text-[14px] text-red-400/40 group-hover/item:text-red-400 transition-colors">arrow_forward</span>
-                                  </div>
-                                  <p className="mt-0.5 text-[10px] font-bold text-white/40 leading-relaxed">{item.message}</p>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-[11px] font-black text-white group-hover/item:text-red-400 transition-colors truncate">{item.title}</p>
+                                  <p className="text-[9px] font-bold text-white/40 leading-snug mt-0.5">{item.message}</p>
                                   {item.dueDate && (
                                     <div className="mt-2 flex items-center gap-1.5 text-[8px] font-black uppercase text-red-400/60">
                                       <span className="material-symbols-outlined text-[12px]">event_busy</span>
@@ -4935,7 +4896,7 @@ function TenantDetailPage({
                       )}
 
                       {displayNeedActionTodos.length > 0 && (
-                        <div className="flex flex-col gap-2.5 mt-2">
+                        <div className="flex flex-col gap-1.5 mt-2">
                           <div className="flex items-center gap-2">
                             <div className="h-px flex-1 bg-gradient-to-r from-amber-500/40 to-transparent" />
                             <span className="text-[8px] font-black text-amber-400 uppercase tracking-widest">Perlu Tindakan</span>
@@ -4943,7 +4904,7 @@ function TenantDetailPage({
                           {displayNeedActionTodos.map((item) => (
                             <div
                               key={item.id}
-                              className="p-3.5 rounded-xl bg-amber-500/5 border border-amber-500/10 group/item hover:bg-amber-500/10 transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-amber-400/40"
+                              className="p-2.5 rounded-xl bg-amber-500/5 border border-amber-500/10 group/item hover:bg-amber-500/10 transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-amber-400/40"
                               onClick={() => handleOverviewTodoNavigation(item)}
                               onKeyDown={(event) => handleOverviewTodoKeyDown(event, item)}
                               role="button"
@@ -4952,12 +4913,9 @@ function TenantDetailPage({
                             >
                               <div className="flex gap-3">
                                 <span className="material-symbols-outlined text-[16px] text-amber-400 mt-0.5">warning</span>
-                                <div className="flex-1">
-                                  <div className="flex items-start justify-between gap-3">
-                                    <p className="text-xs font-black text-white group-hover/item:text-amber-400 transition-colors">{item.title}</p>
-                                    <span className="material-symbols-outlined text-[14px] text-amber-400/40 group-hover/item:text-amber-400 transition-colors">arrow_forward</span>
-                                  </div>
-                                  <p className="mt-0.5 text-[10px] font-bold text-white/40 leading-relaxed">{item.message}</p>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-[11px] font-black text-white group-hover/item:text-amber-400 transition-colors truncate">{item.title}</p>
+                                  <p className="text-[9px] font-bold text-white/40 leading-snug mt-0.5">{item.message}</p>
                                   {item.code === "contract_number_missing_local" && (
                                     <div
                                       className="mt-3 flex flex-wrap items-center gap-2"
@@ -5012,15 +4970,15 @@ function TenantDetailPage({
                 {/* Nominal Bulanan & Tahunan */}
                 <div className="glass-card backdrop-blur-xl rounded-xl p-4 border-white/10 shadow-glass-depth">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="h-10 w-10 rounded-xl bg-gold-accent/10 border border-gold-accent/20 flex items-center justify-center text-gold-accent shrink-0 backdrop-blur-md">
-                      <span className="material-symbols-outlined text-[20px]">payments</span>
+                    <div className="h-8 w-8 rounded-xl bg-gold-accent/10 border border-gold-accent/20 flex items-center justify-center text-gold-accent shrink-0 backdrop-blur-md">
+                      <span className="material-symbols-outlined text-[16px]">payments</span>
                     </div>
                     <div>
-                      <h2 className="text-[14px] font-black text-white tracking-tight uppercase">Nominal Layanan</h2>
-                      <p className="text-[9px] font-bold text-white/40 tracking-wide mt-0.5">Hitungan & Estimasi Tagihan</p>
+                      <h2 className="text-[13px] font-black text-white tracking-tight uppercase">Nominal Layanan</h2>
+                      <p className="text-[8px] font-bold text-white/40 tracking-wide mt-0.5">Hitungan & Estimasi Tagihan</p>
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-3">
                     <div className="p-3.5 rounded-xl border border-white/5 bg-white/[0.02] flex flex-col gap-1">
                       <p className="text-[9px] font-black uppercase tracking-widest text-white/40">Bulanan</p>
@@ -5100,11 +5058,11 @@ function TenantDetailPage({
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2.5">
-                    <div className="flex items-center gap-1.5 mr-2">
-                      <span className="text-[8px] font-black text-white/30 bg-white/5 px-2 py-0.5 rounded uppercase tracking-widest border border-white/5">
+                    <div className="flex items-center gap-2 mr-2">
+                      <span className="text-[8px] font-black text-white/40 bg-white/5 px-3 py-1 rounded-md uppercase tracking-widest border border-white/10">
                         {(isRouteDrafting ? draftRoutePoints : routePoints).filter((point) => point.pointType !== "transit").length} Titik
                       </span>
-                      <span className="text-[8px] font-black text-blue-400/50 bg-blue-500/10 px-2 py-0.5 rounded uppercase tracking-widest border border-blue-500/10">
+                      <span className="text-[8px] font-black text-blue-400/70 bg-blue-500/10 px-3 py-1 rounded-md uppercase tracking-widest border border-blue-500/20">
                         {displayNamedRoads.length} Ruas Aktif
                       </span>
                     </div>
@@ -5112,11 +5070,11 @@ function TenantDetailPage({
                       <>
                         {!isPlannerJalurView && canManageRoute && (
                           <button
-                            className="h-8 px-4 flex items-center gap-2 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white transition-all shadow-sm text-[9px] font-black uppercase tracking-widest group"
+                            className="h-7 px-3.5 flex items-center gap-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white transition-all shadow-sm text-[8px] font-black uppercase tracking-widest group"
                             onClick={() => onOpenRoutePlanner?.(detail ?? customer)}
                             type="button"
                           >
-                            <span className="material-symbols-outlined text-[15px] group-hover:rotate-12 transition-transform">route</span>
+                            <span className="material-symbols-outlined text-[10px] group-hover:rotate-12 transition-transform">conversion_path</span>
                             Atur Jalur
                           </button>
                         )}
@@ -5196,9 +5154,11 @@ function TenantDetailPage({
 
                     if (combinedItems.length === 0) {
                       return (
-                        <div className="flex flex-col items-center justify-center min-h-[160px] text-center px-4">
-                          <span className="material-symbols-outlined text-3xl text-white/10 mb-2">linear_scale</span>
-                          <p className="text-[9px] font-black text-white/20 uppercase tracking-widest">Belum ada topologi jalur</p>
+                        <div className="flex flex-col items-center justify-center min-h-[220px] gap-3 text-center px-4">
+                          <div className="h-12 w-12 rounded-full bg-white/5 border border-white/5 flex items-center justify-center mb-1">
+                            <span className="material-symbols-outlined text-[20px] text-white/20">conversion_path</span>
+                          </div>
+                          <p className="text-[10px] font-bold text-white/30 tracking-widest">Belum ada jalur FO terdaftar.</p>
                         </div>
                       );
                     }
@@ -5223,13 +5183,13 @@ function TenantDetailPage({
                                   <td className="pl-5 py-3 align-middle">
                                     <div className="flex items-center gap-2">
                                       <div className={`w-7 h-7 shrink-0 rounded border flex items-center justify-center shadow-sm ${point.pointType === 'awal' ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' :
-                                          point.pointType === 'tujuan' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-white/5 border-white/10 text-white/40'
+                                        point.pointType === 'tujuan' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-white/5 border-white/10 text-white/40'
                                         }`}>
                                         <span className="material-symbols-outlined text-[14px]">{routePointTypeMeta[point.pointType]?.icon}</span>
                                       </div>
                                       <span className={`text-[10px] font-black uppercase tracking-widest ${point.pointType === "awal" ? "text-blue-400" :
-                                          point.pointType === "tujuan" ? "text-emerald-400" :
-                                            "text-white/50"
+                                        point.pointType === "tujuan" ? "text-emerald-400" :
+                                          "text-white/50"
                                         }`}>
                                         {routePointTypeLabelMap[point.pointType]}
                                       </span>
@@ -5367,9 +5327,11 @@ function TenantDetailPage({
               <div className="max-h-[500px] overflow-y-auto custom-scrollbar relative z-10 p-4 bg-black/40">
                 <div className="absolute inset-0 bg-gradient-to-b from-white/[0.02] to-transparent pointer-events-none" />
                 {routeHistoryRows.length === 0 ? (
-                  <div className="py-12 flex flex-col items-center justify-center text-center border border-dashed border-white/10 rounded-2xl bg-white/[0.01]">
-                    <span className="material-symbols-outlined text-3xl text-white/10 mb-2">history_toggle_off</span>
-                    <p className="text-[9px] font-black text-white/20 uppercase tracking-widest">Arsip riwayat masih kosong</p>
+                  <div className="flex flex-col items-center justify-center min-h-[160px] gap-3 text-center px-4">
+                    <div className="h-12 w-12 rounded-full bg-white/5 border border-white/5 flex items-center justify-center mb-1">
+                      <span className="material-symbols-outlined text-[20px] text-white/20">history_toggle_off</span>
+                    </div>
+                    <p className="text-[10px] font-bold text-white/30 tracking-widest">Arsip riwayat masih kosong.</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -5453,13 +5415,13 @@ function TenantDetailPage({
         {activeTab === "contracts" && (
           <div className="space-y-4">
             <section className="glass-card backdrop-blur-xl rounded-xl border border-white/10 shadow-glass-depth overflow-hidden bg-white/[0.02]">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 md:p-5 border-b border-white/[0.05]">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 border-b border-white/[0.05]">
                 <div className="space-y-1">
                   <h2 className="text-[14px] md:text-base font-black text-white tracking-tight uppercase">Manajemen Kontrak Tenant</h2>
                   <p className="text-[10px] font-bold text-white/50 leading-relaxed mt-0.5">Arsip legal dan perpanjangan layanan.</p>
                 </div>
                 <button
-                  className="h-8 md:h-9 px-4 flex items-center gap-2 rounded-lg bg-gold-accent text-[#0f141e] hover:scale-105 active:scale-95 transition-all shadow-gold-glow text-[9px] font-black uppercase tracking-widest shrink-0"
+                  className="h-8 px-4 flex items-center gap-2 rounded-lg bg-gold-accent text-[#0f141e] hover:scale-105 active:scale-95 transition-all shadow-gold-glow text-[9px] font-black uppercase tracking-widest shrink-0"
                   onClick={openVersionEditor}
                   type="button"
                 >
@@ -5469,7 +5431,7 @@ function TenantDetailPage({
               </div>
 
               {documentFeedback && (
-                <div className="m-4 md:m-5 mb-0 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase tracking-widest flex items-center gap-2 animate-in fade-in zoom-in-95 backdrop-blur-md">
+                <div className="mx-4 mt-3 mb-0 p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase tracking-widest flex items-center gap-2 animate-in fade-in zoom-in-95 backdrop-blur-md">
                   <span className="material-symbols-outlined text-base">verified</span>
                   {documentFeedback}
                 </div>
@@ -5502,14 +5464,14 @@ function TenantDetailPage({
                     : "bg-blue-500/10 border-blue-500/20 text-blue-400";
 
                 return (
-                  <div className={`m-4 md:m-5 mb-0 p-3 rounded-xl border backdrop-blur-md ${warningStyles} text-[9px] font-black uppercase tracking-widest flex items-center gap-2 animate-in fade-in zoom-in-95`}>
+                  <div className={`mx-4 mt-3 mb-0 p-2.5 rounded-xl border backdrop-blur-md ${warningStyles} text-[9px] font-black uppercase tracking-widest flex items-center gap-2 animate-in fade-in zoom-in-95`}>
                     <span className="material-symbols-outlined text-base">schedule</span>
                     {warningMessage}
                   </div>
                 );
               })()}
 
-              <div className="overflow-x-auto no-scrollbar pb-4 md:pb-5 px-4 md:px-5 pt-4 md:pt-5">
+              <div className="overflow-x-auto no-scrollbar p-4 pt-3">
                 <table className="w-full text-left min-w-[1200px] border-collapse">
                   <thead>
                     <tr className="bg-white/[0.02]">
@@ -5517,7 +5479,7 @@ function TenantDetailPage({
                       <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 min-w-[240px] w-[240px]" rowSpan="2">Nomor Kontrak</th>
                       <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5" rowSpan="2">Berkas Kontrak</th>
                       <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5" rowSpan="2">Keterangan</th>
-                      <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center" rowSpan="2">Periode Awal Kontrak</th>
+                      <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center w-[110px] min-w-[110px]" rowSpan="2">Periode Awal Kontrak</th>
                       <th className="px-4 py-2 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 text-center whitespace-nowrap border border-white/5" colSpan="2">Periode Berjalan</th>
                       <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5" rowSpan="2">Paket</th>
                       <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center" rowSpan="2">Jumlah</th>
@@ -5527,8 +5489,8 @@ function TenantDetailPage({
                       <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5" rowSpan="2">Tanggapan</th>
                     </tr>
                     <tr className="bg-white/[0.02]">
-                      <th className="px-4 py-2 text-[8px] font-black uppercase tracking-[0.2em] text-white/20 text-center whitespace-nowrap border border-white/5">Awal</th>
-                      <th className="px-4 py-2 text-[8px] font-black uppercase tracking-[0.2em] text-white/20 text-center whitespace-nowrap border border-white/5">Akhir</th>
+                      <th className="px-4 py-2 text-[8px] font-black uppercase tracking-[0.2em] text-white/20 text-center whitespace-nowrap border border-white/5 w-[110px] min-w-[110px]">Awal</th>
+                      <th className="px-4 py-2 text-[8px] font-black uppercase tracking-[0.2em] text-white/20 text-center whitespace-nowrap border border-white/5 w-[110px] min-w-[110px]">Akhir</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -5564,8 +5526,8 @@ function TenantDetailPage({
                           : "hover:bg-white/[0.02]";
 
                       return (
-                        <tr 
-                          key={row.id} 
+                        <tr
+                          key={row.id}
                           className={`${rowStateClass} transition-colors group/row`}
                           onBlur={(e) => {
                             if (!isEditingContractRow) return;
@@ -5679,7 +5641,7 @@ function TenantDetailPage({
                               )}
 
                               {isEditingContractRow && (
-                                <label 
+                                <label
                                   className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded border border-white/10 bg-white/5 text-white/40 hover:text-white hover:border-white/20 transition-all"
                                   onClick={() => { isSelectingFileRef.current = true; }}
                                   title="Ganti berkas"
@@ -5732,13 +5694,14 @@ function TenantDetailPage({
 
                           {/* Periode Awal Kontrak */}
                           <td className="px-4 py-3 whitespace-nowrap border border-white/5 text-center p-0">
-                            <input
-                              className="h-9 w-full bg-transparent px-4 text-[10px] font-black text-white border-transparent focus:border-gold-accent/40 focus:bg-white/[0.04] hover:bg-white/[0.02] outline-none transition-all text-center disabled:opacity-50"
-                              type="date"
+                            <DateInput
+                              className="h-9 w-full"
+                              hideIcon={true}
+                              inputClass="w-full h-full bg-transparent px-2 text-[10px] font-black text-white border-transparent focus:border-gold-accent/40 focus:bg-white/[0.04] hover:bg-white/[0.02] outline-none transition-all text-center disabled:opacity-50"
                               disabled={isSavingContractRow}
                               value={isEditingContractRow ? (contractRowEditor.startDate ?? "") : (contractPeriodInfo.contractStartDate ?? "").slice(0, 10)}
-                              onChange={(e) => {
-                                setContractRowEditor((previous) => previous ? { ...previous, startDate: e.target.value } : previous);
+                              onChange={(val) => {
+                                setContractRowEditor((previous) => previous ? { ...previous, startDate: val } : previous);
                               }}
                               onFocus={() => {
                                 if (!isEditingContractRow) {
@@ -5758,13 +5721,14 @@ function TenantDetailPage({
 
                           {/* Periode Berjalan Awal */}
                           <td className="px-4 py-3 whitespace-nowrap border border-white/5 p-0">
-                            <input
-                              className="h-9 w-full bg-transparent px-4 text-[10px] font-black text-white border-transparent focus:border-gold-accent/40 focus:bg-white/[0.04] hover:bg-white/[0.02] outline-none transition-all text-center disabled:opacity-50"
-                              type="date"
+                            <DateInput
+                              className="h-9 w-full"
+                              hideIcon={true}
+                              inputClass="w-full h-full bg-transparent px-2 text-[10px] font-black text-white border-transparent focus:border-gold-accent/40 focus:bg-white/[0.04] hover:bg-white/[0.02] outline-none transition-all text-center disabled:opacity-50"
                               disabled={isSavingContractRow}
                               value={isEditingContractRow ? (contractRowEditor.startDate ?? "") : (row.periodStart ?? "").slice(0, 10)}
-                              onChange={(e) => {
-                                setContractRowEditor((previous) => previous ? { ...previous, startDate: e.target.value } : previous);
+                              onChange={(val) => {
+                                setContractRowEditor((previous) => previous ? { ...previous, startDate: val } : previous);
                               }}
                               onFocus={() => {
                                 if (!isEditingContractRow) {
@@ -5784,13 +5748,14 @@ function TenantDetailPage({
 
                           {/* Periode Berjalan Akhir */}
                           <td className="px-4 py-3 whitespace-nowrap border border-white/5 p-0">
-                            <input
-                              className="h-9 w-full bg-transparent px-4 text-[10px] font-black text-white border-transparent focus:border-gold-accent/40 focus:bg-white/[0.04] hover:bg-white/[0.02] outline-none transition-all text-center disabled:opacity-50"
-                              type="date"
+                            <DateInput
+                              className="h-9 w-full"
+                              hideIcon={true}
+                              inputClass="w-full h-full bg-transparent px-2 text-[10px] font-black text-white border-transparent focus:border-gold-accent/40 focus:bg-white/[0.04] hover:bg-white/[0.02] outline-none transition-all text-center disabled:opacity-50"
                               disabled={isSavingContractRow}
                               value={isEditingContractRow ? (contractRowEditor.endDate ?? "") : (row.periodEnd ?? "").slice(0, 10)}
-                              onChange={(e) => {
-                                setContractRowEditor((previous) => previous ? { ...previous, endDate: e.target.value } : previous);
+                              onChange={(val) => {
+                                setContractRowEditor((previous) => previous ? { ...previous, endDate: val } : previous);
                               }}
                               onFocus={() => {
                                 if (!isEditingContractRow) {
@@ -5908,7 +5873,7 @@ function TenantDetailPage({
                               )}
 
                               {isEditingContractRow && (
-                                <label 
+                                <label
                                   className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded border border-white/10 bg-white/5 text-white/40 hover:text-white hover:border-white/20 transition-all"
                                   onClick={() => { isSelectingFileRef.current = true; }}
                                   title="Ganti berkas"
@@ -5980,7 +5945,7 @@ function TenantDetailPage({
             {/* Billing Header (Card 1) */}
             <section className="glass-card backdrop-blur-xl rounded-premium border-white/10 shadow-glass-depth relative overflow-hidden">
               <div className="absolute -right-24 -top-24 h-64 w-64 rounded-full bg-blue-500/5 blur-3xl backdrop-blur-md" />
-              
+
               <div className="px-6 py-5 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/5 bg-white/[0.01]">
                 <div className="space-y-1 relative z-10">
                   <h2 className="text-[14px] md:text-base font-black text-white tracking-tight uppercase">Manajemen Tagihan Bulanan</h2>
@@ -6014,39 +5979,39 @@ function TenantDetailPage({
                       let diffDays = null;
                       let isSameMonth = true;
                       let isSameDay = true;
-                      
-                      const items = [...invoiceRows].sort((a,b) => (a.paymentOrder || 0) - (b.paymentOrder || 0));
+
+                      const items = [...invoiceRows].sort((a, b) => (a.paymentOrder || 0) - (b.paymentOrder || 0));
                       for (let i = 1; i < items.length; i++) {
-                         const prev = items[i-1];
-                         const curr = items[i];
-                         
-                         const prevDateStr = prev.periodStartDate || prev.dueDate;
-                         const currDateStr = curr.periodStartDate || curr.dueDate;
-                         
-                         if (!prevDateStr || !currDateStr) {
-                            isSameMonth = false;
-                            isSameDay = false;
-                            break;
-                         }
-                         
-                         const d1 = new Date(prevDateStr);
-                         const d2 = new Date(currDateStr);
-                         
-                         if (!Number.isFinite(d1.getTime()) || !Number.isFinite(d2.getTime())) {
-                            isSameMonth = false;
-                            isSameDay = false;
-                            break;
-                         }
-                         
-                         const mDiff = (d2.getFullYear() - d1.getFullYear()) * 12 + (d2.getMonth() - d1.getMonth());
-                         if (diffMonths === null) diffMonths = mDiff;
-                         else if (diffMonths !== mDiff) isSameMonth = false;
-                         
-                         const dayDiff = Math.round((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24));
-                         if (diffDays === null) diffDays = dayDiff;
-                         else if (diffDays !== dayDiff) isSameDay = false;
+                        const prev = items[i - 1];
+                        const curr = items[i];
+
+                        const prevDateStr = prev.periodStartDate || prev.dueDate;
+                        const currDateStr = curr.periodStartDate || curr.dueDate;
+
+                        if (!prevDateStr || !currDateStr) {
+                          isSameMonth = false;
+                          isSameDay = false;
+                          break;
+                        }
+
+                        const d1 = new Date(prevDateStr);
+                        const d2 = new Date(currDateStr);
+
+                        if (!Number.isFinite(d1.getTime()) || !Number.isFinite(d2.getTime())) {
+                          isSameMonth = false;
+                          isSameDay = false;
+                          break;
+                        }
+
+                        const mDiff = (d2.getFullYear() - d1.getFullYear()) * 12 + (d2.getMonth() - d1.getMonth());
+                        if (diffMonths === null) diffMonths = mDiff;
+                        else if (diffMonths !== mDiff) isSameMonth = false;
+
+                        const dayDiff = Math.round((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24));
+                        if (diffDays === null) diffDays = dayDiff;
+                        else if (diffDays !== dayDiff) isSameDay = false;
                       }
-                      
+
                       if (isSameMonth && diffMonths > 0) return `Setiap ${diffMonths} Bulan`;
                       if (isSameDay && diffDays > 0) return `Setiap ${diffDays} Hari`;
                       return "Acak";
@@ -6078,105 +6043,80 @@ function TenantDetailPage({
             </section>
 
             {/* Controls (Card 2) */}
-            <section className="glass-card backdrop-blur-xl rounded-premium border-white/10 shadow-glass-depth overflow-hidden p-6">
-              <div className="flex flex-wrap items-end gap-5">
-
-                {/* Mode Set Tanggal */}
-                <div className="flex flex-col gap-2">
-                  <p className="text-[8px] font-black uppercase tracking-[0.3em] text-white/20 px-1">Batas Bayar</p>
-                  <div className="flex items-center gap-1 p-1 rounded-xl border border-white/10 bg-white/[0.02]">
-                    {[
-                      { value: "manual", label: "Satuan", icon: "edit_note" },
-                      { value: "fixed_day", label: "Semua", icon: "calendar_month" },
-                    ].map((opt) => (
-                      <button
-                        key={opt.value}
-                        className={`inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all ${invoiceSetDateMode === opt.value ? 'bg-gold-accent text-[#0f141e] shadow-gold-glow' : 'text-white/30 hover:text-white hover:bg-white/5'}`}
-                        onClick={() => setInvoiceSetDateMode(opt.value)}
-                        type="button"
-                      >
-                        <span className="material-symbols-outlined text-[12px]">{opt.icon}</span>
-                        {opt.label}
-                      </button>
-                    ))}
+            <section className="glass-card backdrop-blur-xl rounded-premium border-white/10 shadow-glass-depth overflow-visible p-4 relative z-20">
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between pb-3 border-b border-white/5">
+                  <div className="flex items-center gap-4">
+                    <div className="h-8 w-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                      <span className="material-symbols-outlined text-emerald-400 text-sm">tune</span>
+                    </div>
+                    <div className="flex flex-col gap-0.5">
+                      <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-white">Form Bulk Update</h3>
+                      <span className="text-[9px] font-bold text-white/40 tracking-widest">Ubah Banyak Data Sekaligus</span>
+                    </div>
                   </div>
+                  <span className="text-[8px] font-black uppercase tracking-[0.3em] text-emerald-400/50 hidden sm:inline-block">
+                    {selectedInvoiceIds.size > 0 ? `Mode Terpilih (${selectedInvoiceIds.size})` : "Mode Global (Semua)"}
+                  </span>
                 </div>
+                
+                <div className="flex flex-wrap items-end gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <p className="text-[8px] font-black uppercase tracking-[0.3em] text-white/30 px-1">Tgl Batas Bayar</p>
+                    <DateInput
+                      value={invoiceBulkForm.dueDate}
+                      onChange={(val) => setInvoiceBulkForm(p => ({ ...p, dueDate: val }))}
+                      className="h-8 w-32 rounded-lg border border-white/10 bg-white/[0.02] transition-all focus-within:border-gold-accent/50 focus-within:bg-white/5"
+                      inputClass="w-full h-full bg-transparent px-2.5 text-[10px] font-bold text-white outline-none"
+                    />
+                  </div>
 
-                {/* Input Tanggal */}
-                {invoiceSetDateMode === "fixed_day" && (
-                  <div className="flex items-end gap-2 animate-in slide-in-from-left-4 duration-200">
-                    <div className="flex flex-col gap-2">
-                      <p className="text-[8px] font-black uppercase tracking-[0.3em] text-white/20 px-1">Tanggal</p>
-                      <input
-                        className="h-10 w-16 rounded-xl border border-white/10 bg-white/[0.02] text-center text-[11px] font-black text-white outline-none focus:border-gold-accent/50 transition-all"
-                        max="31"
-                        min="1"
-                        onChange={(e) => setInvoiceFixedDueDay(e.target.value)}
-                        type="number"
-                        value={invoiceFixedDueDay}
+                  <div className="flex flex-col gap-1.5">
+                    <p className="text-[8px] font-black uppercase tracking-[0.3em] text-white/30 px-1">Nominal (Rp)</p>
+                    <input
+                      className="h-8 w-28 rounded-lg border border-white/10 bg-white/[0.02] px-2.5 text-[10px] font-bold text-white outline-none focus:border-gold-accent/50 transition-all placeholder:text-white/20"
+                      onChange={(e) => {
+                        const val = formatRupiahInput(parseRupiahInput(e.target.value));
+                        setInvoiceBulkForm(p => ({ ...p, amount: val }));
+                      }}
+                      type="text"
+                      value={invoiceBulkForm.amount}
+                      placeholder="Kosongkan..."
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <p className="text-[8px] font-black uppercase tracking-[0.3em] text-white/30 px-1">Status Invoice</p>
+                    <div className="w-36 relative z-50">
+                      <GlassSelect
+                        value={invoiceBulkForm.status}
+                        onChange={(value) => setInvoiceBulkForm(p => ({ ...p, status: value }))}
+                        options={[{ value: "", label: "Kosongkan..." }, ...INVOICE_STATUS_OPTIONS]}
+                        className="h-8"
+                        textClass="text-[10px] font-bold tracking-wide"
+                        optionTextClass="text-[10px] font-bold tracking-wide"
                       />
                     </div>
-                    <button
-                      className="h-10 w-10 shrink-0 flex items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-[#0f141e] hover:shadow-[0_0_15px_rgba(16,185,129,0.4)] transition-all disabled:opacity-40 backdrop-blur-md"
-                      disabled={isSavingInvoice}
-                      onClick={() => void handleApplyGlobalSetDate()}
-                      type="button"
-                      title="Terapkan"
-                    >
-                      <span className="material-symbols-outlined text-[18px]">done_all</span>
-                    </button>
                   </div>
-                )}
 
-                {/* Mode Set Nominal */}
-                <div className="flex flex-col gap-2">
-                  <p className="text-[8px] font-black uppercase tracking-[0.3em] text-white/20 px-1">Jumlah Bayar</p>
-                  <div className="flex items-center gap-1 p-1 rounded-xl border border-white/10 bg-white/[0.02]">
-                    {[
-                      { value: "manual", label: "Satuan", icon: "edit_note" },
-                      { value: "fixed_amount", label: "Semua", icon: "payments" },
-                    ].map((opt) => (
-                      <button
-                        key={opt.value}
-                        className={`inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all ${invoiceSetAmountMode === opt.value ? 'bg-gold-accent text-[#0f141e] shadow-gold-glow' : 'text-white/30 hover:text-white hover:bg-white/5'}`}
-                        onClick={() => setInvoiceSetAmountMode(opt.value)}
-                        type="button"
-                      >
-                        <span className="material-symbols-outlined text-[12px]">{opt.icon}</span>
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
+                  <button
+                    className="h-8 w-auto px-4 ml-auto shrink-0 flex items-center justify-center gap-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-[#0f141e] hover:shadow-[0_0_15px_rgba(16,185,129,0.4)] transition-all disabled:opacity-40 backdrop-blur-md"
+                    disabled={isSavingInvoice || invoiceRows.length === 0}
+                    onClick={() => void handleApplyBulkInvoiceUpdates()}
+                    type="button"
+                    title="Terapkan Perubahan"
+                  >
+                    <span className="text-[9px] font-black uppercase tracking-widest">
+                      Terapkan
+                    </span>
+                    <span className="material-symbols-outlined text-[14px]">done_all</span>
+                  </button>
                 </div>
-
-                {/* Input Nominal */}
-                {invoiceSetAmountMode === "fixed_amount" && (
-                  <div className="flex items-end gap-2 animate-in slide-in-from-left-4 duration-200">
-                    <div className="flex flex-col gap-2">
-                      <p className="text-[8px] font-black uppercase tracking-[0.3em] text-white/20 px-1">Nominal (Rp)</p>
-                      <input
-                        className="h-10 w-28 rounded-xl border border-white/10 bg-white/[0.02] text-right px-3 text-[11px] font-black text-white outline-none focus:border-gold-accent/50 transition-all"
-                        onChange={handleInvoiceFixedAmountChange}
-                        type="text"
-                        value={invoiceFixedAmount}
-                      />
-                    </div>
-                    <button
-                      className="h-10 w-10 shrink-0 flex items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-[#0f141e] hover:shadow-[0_0_15px_rgba(16,185,129,0.4)] transition-all disabled:opacity-40 backdrop-blur-md"
-                      disabled={isSavingInvoice}
-                      onClick={() => void handleApplyGlobalSetAmount()}
-                      type="button"
-                      title="Terapkan"
-                    >
-                      <span className="material-symbols-outlined text-[18px]">done_all</span>
-                    </button>
-                  </div>
-                )}
               </div>
             </section>
 
             {invoiceFeedback && (
-              <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-widest flex items-center gap-3 animate-in fade-in zoom-in-95 backdrop-blur-md">
+              <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-bold tracking-wide flex items-center gap-3 animate-in fade-in zoom-in-95 backdrop-blur-md">
                 <span className="material-symbols-outlined text-lg">verified</span>
                 {invoiceFeedback}
               </div>
@@ -6218,27 +6158,36 @@ function TenantDetailPage({
                 <table className="w-full text-left min-w-[1200px] border-collapse">
                   <thead>
                     <tr className="bg-white/[0.02]">
-                      <th className="w-12 px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">No</th>
-                      <th className="w-16 px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Urutan</th>
-                      <th className="min-w-[160px] px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Nomor Invoice</th>
-                      <th className="min-w-[160px] px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Batas Bayar</th>
-                      <th className="min-w-[140px] px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Jumlah (Rp)</th>
-                      <th className="min-w-[160px] px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Status</th>
-                      <th className="min-w-[120px] px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Waktu Bayar</th>
-                      <th className="min-w-[180px] px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Invoice</th>
-                      <th className="min-w-[120px] px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Bukti Bayar</th>
-                      <th className="min-w-[120px] px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Aksi</th>
+                      <th className="w-10 px-2.5 py-2 text-center border border-white/5">
+                        <input
+                          type="checkbox"
+                          className="cursor-pointer rounded bg-white/[0.05] border-white/20 text-emerald-400 focus:ring-emerald-500/50 outline-none disabled:opacity-30 disabled:cursor-not-allowed"
+                          checked={displayInvoiceRows.length > 0 && selectedInvoiceIds.size === displayInvoiceRows.length}
+                          onChange={handleToggleSelectAllInvoices}
+                          disabled={displayInvoiceRows.length === 0}
+                          title="Pilih Semua"
+                        />
+                      </th>
+                      <th className="w-12 px-2.5 py-2 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">No</th>
+                      <th className="w-16 px-2.5 py-2 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Urutan</th>
+                      <th className="min-w-[160px] px-2.5 py-2 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Nomor Invoice</th>
+                      <th className="min-w-[160px] px-2.5 py-2 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Batas Bayar</th>
+                      <th className="min-w-[140px] px-2.5 py-2 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Jumlah (Rp)</th>
+                      <th className="min-w-[160px] px-2.5 py-2 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Status</th>
+                      <th className="min-w-[120px] px-2.5 py-2 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Waktu Bayar</th>
+                      <th className="min-w-[180px] px-2.5 py-2 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Invoice</th>
+                      <th className="min-w-[120px] px-2.5 py-2 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Bukti Bayar</th>
                     </tr>
                   </thead>
                   <tbody>
                     {displayInvoiceRows.length === 0 && (
                       <tr>
-                        <td className="px-4 py-8 text-center text-[9px] text-white/20 italic uppercase tracking-[0.2em] border border-white/5" colSpan="10">Belum ada invoice aktif.</td>
+                        <td className="px-2.5 py-6 text-center text-[10px] text-white/30 italic tracking-wider border border-white/5" colSpan="10">Belum ada invoice aktif.</td>
                       </tr>
                     )}
                     {displayInvoiceRows.map((invoice, idx) => {
                       const draft = getInvoiceDraft(invoice);
-                      const isSetDateLockedByGlobal = invoiceSetDateMode === "fixed_day";
+                      const isSetDateLockedByGlobal = false;
                       const workflowMeta = invoice.workflowMeta ?? getInvoiceWorkflowMeta(invoice, workflowInvoiceRows);
                       const statusMeta = invoice.statusMeta ?? resolveInvoiceStatusMeta({ ...invoice, workflowMeta });
                       const hasInvoiceFile = isOpenableFileUrl(invoice?.invoiceFileUrl);
@@ -6249,7 +6198,6 @@ function TenantDetailPage({
                       const canUploadInvoiceFile = !isSavingInvoice && (workflowMeta.canUploadMainInvoice || workflowMeta.canUploadFirstWarning || hasInvoiceFile);
                       const canUploadSecondWarning = !isSavingInvoice && workflowMeta.canUploadSecondWarning;
                       const canUploadPaymentProof = !isSavingInvoice && hasAnyInvoiceFile;
-                      const canMarkPaid = !isSavingInvoice && workflowMeta.canMarkPaid;
 
                       const statusStyle = (() => {
                         if (statusMeta.key === "paid") return "bg-emerald-500/10 border-emerald-500/20 text-emerald-400";
@@ -6262,17 +6210,26 @@ function TenantDetailPage({
                       })();
 
                       return (
-                        <tr key={invoice.id} className="transition-colors group/row hover:bg-white/[0.02]">
+                        <tr key={invoice.id} className={`transition-colors group/row ${selectedInvoiceIds.has(invoice.id) ? "bg-emerald-500/5" : "hover:bg-white/[0.02]"}`}>
+                          <td className="px-2.5 py-2 text-center border border-white/5">
+                            <input
+                              type="checkbox"
+                              className="cursor-pointer rounded bg-white/[0.05] border-white/20 text-emerald-400 focus:ring-emerald-500/50 outline-none disabled:opacity-30 disabled:cursor-not-allowed"
+                              checked={selectedInvoiceIds.has(invoice.id)}
+                              onChange={() => handleToggleSelectInvoice(invoice.id)}
+                              title="Pilih Baris"
+                            />
+                          </td>
                           {/* No */}
-                          <td className="px-4 py-3 text-[10px] font-black text-white/20 whitespace-nowrap border border-white/5 text-center">{idx + 1}</td>
+                          <td className="px-2.5 py-2 text-[10px] font-black text-white/20 whitespace-nowrap border border-white/5 text-center">{idx + 1}</td>
 
                           {/* Pembayaran Ke */}
-                          <td className="px-4 py-3 whitespace-nowrap border border-white/5 text-center">
+                          <td className="px-2.5 py-2 whitespace-nowrap border border-white/5 text-center">
                             <span className="text-[11px] font-black text-white">#{invoice.paymentOrder}</span>
                           </td>
 
                           {/* Nomor Invoice */}
-                          <td className="px-4 py-3 whitespace-nowrap border border-white/5">
+                          <td className="px-2.5 py-2 whitespace-nowrap border border-white/5">
                             <input
                               className="h-8 w-36 rounded-lg border border-white/10 bg-white/[0.03] px-2.5 text-[10px] font-bold text-white outline-none transition-all placeholder:text-white/15 focus:border-gold-accent/50 focus:bg-white/5 disabled:opacity-50"
                               disabled={isSavingInvoice}
@@ -6285,7 +6242,7 @@ function TenantDetailPage({
                           </td>
 
                           {/* Terakhir Bayar (set date / due date) */}
-                          <td className="px-4 py-3 whitespace-nowrap border border-white/5 text-center">
+                          <td className="px-2.5 py-2 whitespace-nowrap border border-white/5 text-center">
                             <div className="space-y-1 flex flex-col items-center">
                               <DateInput
                                 value={draft.dueDate}
@@ -6294,20 +6251,21 @@ function TenantDetailPage({
                                   handleInvoiceAutoSave(invoice, { dueDate: val });
                                 }}
                                 disabled={isSetDateLockedByGlobal || isSavingInvoice}
+                                hideIcon={true}
                                 className="h-8 w-36 rounded-lg border border-white/10 bg-white/[0.03] transition-all focus-within:border-gold-accent/50 focus-within:bg-white/5"
-                                inputClass="w-full h-full bg-transparent px-2.5 pr-8 text-[10px] font-bold text-white text-center outline-none"
+                                inputClass="w-full h-full bg-transparent px-2.5 text-[10px] font-bold text-white text-center outline-none"
                               />
                               {isSetDateLockedByGlobal && (
                                 <p className="text-[8px] font-black text-white/20 uppercase tracking-widest">Global Locked</p>
                               )}
                               {workflowMeta.setupWarnings.some((warning) => warning.code === "missing_due_date") && !draft.dueDate && (
-                                <p className="text-[8px] font-black text-rose-300 uppercase tracking-widest">Atur batas bayar</p>
+                                <p className="text-[9px] font-bold text-rose-300 tracking-wide mt-0.5">Atur batas bayar</p>
                               )}
                             </div>
                           </td>
 
                           {/* Jumlah Dibayar */}
-                          <td className="px-4 py-3 whitespace-nowrap border border-white/5 text-right">
+                          <td className="px-2.5 py-2 whitespace-nowrap border border-white/5 text-right">
                             <div className="space-y-1">
                               <div className="flex items-center justify-end gap-1.5 h-8 px-2.5 rounded-lg border border-white/10 bg-white/[0.03] w-32 ml-auto transition-all focus-within:border-gold-accent/50 focus-within:bg-white/5">
                                 <input
@@ -6321,39 +6279,60 @@ function TenantDetailPage({
                                 />
                               </div>
                               {workflowMeta.setupWarnings.some((warning) => warning.code === "missing_amount") && parseRupiahInput(draft.amount) <= 0 && (
-                                <p className="text-[8px] font-black text-rose-300 uppercase tracking-widest text-right">Atur nominal</p>
+                                <p className="text-[9px] font-bold text-rose-300 tracking-wide text-right mt-0.5">Atur nominal</p>
                               )}
                             </div>
                           </td>
 
-                          {/* Status Pembayaran */}
-                          <td className="px-4 py-3 whitespace-nowrap border border-white/5 text-center">
-                            <select
-                              className={`h-8 w-36 mx-auto rounded-md border px-2 text-[8px] font-black uppercase tracking-widest outline-none transition-all ${statusStyle} bg-[#121824] focus:border-gold-accent/50 disabled:opacity-50`}
-                              disabled={isSavingInvoice}
-                              onChange={(e) => {
-                                updateInvoiceDraftField(invoice.id, "status", e.target.value);
-                                handleInvoiceAutoSave(invoice, { status: e.target.value });
-                              }}
-                              value={draft.status}
-                            >
-                              {INVOICE_STATUS_OPTIONS.map((option) => (
-                                <option key={option.value} value={option.value}>
-                                  {option.label}
-                                </option>
-                              ))}
-                            </select>
+                          <td className="px-2.5 py-2 whitespace-nowrap border border-white/5 text-center">
+                            <div className="relative mx-auto w-36">
+                              <button
+                                className={`flex h-8 w-full items-center justify-between rounded-md border px-2.5 text-[10px] font-bold tracking-wide outline-none transition-all ${statusStyle} hover:border-gold-accent/30 focus:border-gold-accent/50 disabled:opacity-50 shadow-sm backdrop-blur-md`}
+                                disabled={isSavingInvoice}
+                                onClick={() => setOpenInvoiceStatusId(openInvoiceStatusId === invoice.id ? null : invoice.id)}
+                                type="button"
+                              >
+                                <span>{INVOICE_STATUS_OPTIONS.find((opt) => opt.value === draft.status)?.label || draft.status}</span>
+                                <span className={`material-symbols-outlined text-[14px] transition-transform duration-300 ${openInvoiceStatusId === invoice.id ? "rotate-180 text-gold-accent" : "text-white/40"}`}>expand_more</span>
+                              </button>
+                              {openInvoiceStatusId === invoice.id && (
+                                <>
+                                  <div className="fixed inset-0 z-[110]" onClick={() => setOpenInvoiceStatusId(null)} />
+                                  <div className="absolute left-0 top-[calc(100%+4px)] z-[120] w-full rounded-lg border border-white/10 bg-[#0a0f18]/95 p-1 shadow-2xl backdrop-blur-2xl animate-in fade-in zoom-in-95 duration-200">
+                                    <div className="no-scrollbar max-h-40 overflow-y-auto space-y-0.5">
+                                      {INVOICE_STATUS_OPTIONS.map((option) => {
+                                        const isSelected = draft.status === option.value;
+                                        return (
+                                          <button
+                                            key={option.value}
+                                            className={`flex w-full items-center justify-between px-2 py-1.5 text-left text-[10px] font-bold tracking-wide transition-all rounded-md ${isSelected ? "bg-gold-accent/10 text-gold-accent" : "text-white/60 hover:bg-white/10 hover:text-white"}`}
+                                            onClick={() => {
+                                              updateInvoiceDraftField(invoice.id, "status", option.value);
+                                              handleInvoiceAutoSave(invoice, { status: option.value });
+                                              setOpenInvoiceStatusId(null);
+                                            }}
+                                            type="button"
+                                          >
+                                            {option.label}
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                </>
+                              )}
+                            </div>
                           </td>
 
                           {/* Waktu Terbayar */}
-                          <td className="px-4 py-3 whitespace-nowrap border border-white/5 text-center">
+                          <td className="px-2.5 py-2 whitespace-nowrap border border-white/5 text-center">
                             <span className="text-[10px] font-black text-white/50">
                               {invoice.paidAt ? formatDate(invoice.paidAt) : <span className="text-white/20 italic font-normal">—</span>}
                             </span>
                           </td>
 
                           {/* Upload Invoice */}
-                          <td className="px-4 py-3 whitespace-nowrap border border-white/5 text-center">
+                          <td className="px-2.5 py-2 whitespace-nowrap border border-white/5 text-center">
                             <div className="flex flex-col items-center justify-center gap-1.5">
                               <label className={`relative inline-flex items-center justify-center gap-1.5 h-7 px-2.5 rounded border text-[8px] font-black uppercase tracking-widest transition-all cursor-pointer ${canUploadInvoiceFile ? 'border-white/10 bg-white/5 text-white/40 hover:border-white/20 hover:text-white' : 'border-white/5 bg-white/[0.02] text-white/10 cursor-not-allowed'}`}>
                                 <span className="material-symbols-outlined text-[12px]">upload_file</span>
@@ -6402,7 +6381,7 @@ function TenantDetailPage({
                           </td>
 
                           {/* Bukti Bayar */}
-                          <td className="px-4 py-3 whitespace-nowrap border border-white/5 text-center">
+                          <td className="px-2.5 py-2 whitespace-nowrap border border-white/5 text-center">
                             <div className="flex flex-col items-center justify-center gap-1.5">
                               <label className={`relative inline-flex items-center justify-center gap-1.5 h-7 px-2.5 rounded border text-[8px] font-black uppercase tracking-widest transition-all cursor-pointer ${canUploadPaymentProof ? 'border-white/10 bg-white/5 text-white/40 hover:border-white/20 hover:text-white' : 'border-white/5 bg-white/[0.02] text-white/10 cursor-not-allowed'}`}>
                                 <span className="material-symbols-outlined text-[12px]">receipt_long</span>
@@ -6427,23 +6406,6 @@ function TenantDetailPage({
                             </div>
                           </td>
 
-                          {/* Aksi */}
-                          <td className="px-4 py-3 whitespace-nowrap border border-white/5 text-right">
-                            <div className="flex justify-end gap-1.5">
-                              {canMarkPaid ? (
-                                <button
-                                  className="h-7 rounded border border-emerald-500/20 bg-emerald-500/10 px-2.5 text-[8px] font-black uppercase tracking-widest text-emerald-300 transition-all hover:border-emerald-500/40 hover:text-emerald-200 disabled:opacity-50"
-                                  disabled={!canMarkPaid}
-                                  onClick={() => void handleMarkInvoicePaid(invoice)}
-                                  title="Sudah Bayar"
-                                >
-                                  Sudah Bayar
-                                </button>
-                              ) : (
-                                <span className="text-[8px] font-black uppercase tracking-widest text-white/15">Auto Save</span>
-                              )}
-                            </div>
-                          </td>
                         </tr>
                       );
                     })}
@@ -6456,7 +6418,7 @@ function TenantDetailPage({
               <div className="px-6 md:px-8 py-5 border-b border-white/5 bg-white/[0.01] flex flex-col md:flex-row md:items-center justify-between gap-3">
                 <div className="flex flex-col gap-1">
                   <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-white/60">Arsip Riwayat Settlement</h3>
-                  <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest">
+                  <p className="text-[10px] font-bold text-white/30 tracking-wider">
                     Invoice nonaktif digroup berdasarkan periode kontrak atau versi perpanjangan.
                   </p>
                 </div>
@@ -6471,7 +6433,7 @@ function TenantDetailPage({
                     <span className="material-symbols-outlined text-white/30 text-3xl">history</span>
                   </div>
                   <h4 className="text-[12px] font-black uppercase tracking-[0.2em] text-white/60 mb-2">Belum Ada Arsip</h4>
-                  <p className="text-[9px] font-bold text-white/30 tracking-widest uppercase">Arsip riwayat settlement kosong.</p>
+                  <p className="text-[10px] font-bold text-white/30 tracking-widest">Arsip riwayat settlement kosong.</p>
                 </div>
               ) : (
                 <div className="divide-y divide-white/5">
@@ -6598,14 +6560,14 @@ function TenantDetailPage({
         {activeTab === "documents" && (
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
             {/* Document List */}
-            <section className="lg:col-span-7 glass-card backdrop-blur-xl rounded-xl border-white/10 shadow-glass-depth overflow-hidden">
+            <section className="lg:col-span-7 glass-card backdrop-blur-xl rounded-xl border-white/10 shadow-glass-depth overflow-hidden flex flex-col">
               <div className="px-5 py-4 border-b border-white/5 bg-white/[0.01] flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <span className="material-symbols-outlined text-gold-accent" style={{ fontSize: "18px" }}>folder_open</span>
                   <h3 className="text-[10px] md:text-[11px] font-black uppercase tracking-[0.2em] text-white/60">Repositori Dokumen Lokasi</h3>
                 </div>
               </div>
-              <div className="p-4 space-y-3">
+              <div className="p-4 space-y-3 flex-1 flex flex-col">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
                   <div className="relative flex-1 w-full">
                     <input
@@ -6619,7 +6581,7 @@ function TenantDetailPage({
                   </div>
                   <button
                     onClick={() => setDocumentSort(prev => prev === "desc" ? "asc" : "desc")}
-                    className="h-8 px-3 shrink-0 flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 text-[9px] font-bold text-white/60 uppercase tracking-widest hover:text-white hover:bg-white/10 transition-all"
+                    className="h-8 w-[96px] shrink-0 flex items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/5 text-[9px] font-bold text-white/60 uppercase tracking-widest hover:text-white hover:bg-white/10 transition-all"
                     title={documentSort === "desc" ? "Urutkan Terlama" : "Urutkan Terbaru"}
                   >
                     <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>
@@ -6629,16 +6591,16 @@ function TenantDetailPage({
                   </button>
                 </div>
 
-                <div className="space-y-2.5">
-	                  {(() => {
-	                    const filteredAndSortedDocs = allDocuments
-	                      .filter(doc => {
-	                        if (!documentSearch) return true;
-	                        const searchLower = documentSearch.toLowerCase();
-	                        const label = resolveDocumentTypeLabel(doc?.jenisDokumen).toLowerCase();
-	                        const noRef = (doc?.nomorDokumen || "").toLowerCase();
-	                        return label.includes(searchLower) || noRef.includes(searchLower);
-	                      })
+                <div className="space-y-2.5 flex-1 flex flex-col">
+                  {(() => {
+                    const filteredAndSortedDocs = allDocuments
+                      .filter(doc => {
+                        if (!documentSearch) return true;
+                        const searchLower = documentSearch.toLowerCase();
+                        const label = resolveDocumentTypeLabel(doc?.jenisDokumen).toLowerCase();
+                        const noRef = (doc?.nomorDokumen || "").toLowerCase();
+                        return label.includes(searchLower) || noRef.includes(searchLower);
+                      })
                       .sort((a, b) => {
                         const dateA = a?.tanggalDokumen ? new Date(a.tanggalDokumen).getTime() : 0;
                         const dateB = b?.tanggalDokumen ? new Date(b.tanggalDokumen).getTime() : 0;
@@ -6648,9 +6610,10 @@ function TenantDetailPage({
                     return (
                       <>
                         {filteredAndSortedDocs.length === 0 && (
-                          <div className="p-6 text-center border border-dashed border-white/5 rounded-xl">
-                            <p className="text-[10px] font-bold text-white/10 uppercase tracking-widest">
-                              {documentSearch ? "Dokumen tidak ditemukan." : "Belum ada dokumen yang diunggah ke repositori ini."}
+                          <div className="flex-1 flex flex-col items-center justify-center gap-2 p-6 text-center border border-dashed border-white/5 rounded-xl bg-white/[0.01] min-h-[160px]">
+                            <span className="material-symbols-outlined text-[24px] text-white/10">folder_off</span>
+                            <p className="text-[10px] font-black text-white/20 uppercase tracking-widest">
+                              {documentSearch ? "Dokumen tidak ditemukan." : "Belum ada dokumen yang diunggah."}
                             </p>
                           </div>
                         )}
@@ -6662,9 +6625,9 @@ function TenantDetailPage({
                                   <span className="material-symbols-outlined" style={{ fontSize: "16px" }}>description</span>
                                 </div>
                                 <div className="space-y-0.5">
-	                                  <p className="text-[11px] md:text-[12px] font-black text-white uppercase tracking-tight group-hover/doc:text-gold-accent transition-colors">
-	                                    {resolveDocumentTypeLabel(doc?.jenisDokumen)}
-	                                  </p>
+                                  <p className="text-[11px] md:text-[12px] font-black text-white uppercase tracking-tight group-hover/doc:text-gold-accent transition-colors">
+                                    {resolveDocumentTypeLabel(doc?.jenisDokumen)}
+                                  </p>
                                   <p className="text-[8px] font-bold text-white/30 uppercase tracking-widest">
                                     {doc?.nomorDokumen || "No Ref: —"} • {formatDate(doc?.tanggalDokumen)}
                                   </p>
@@ -6867,55 +6830,57 @@ function TenantDetailPage({
         )}
 
         {billingEditor && createPortal(
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0f141e]/80 backdrop-blur-sm px-4">
-            <div className="w-full max-w-sm glass-card rounded-premium border border-white/10 shadow-glass-depth p-6 relative animate-in fade-in zoom-in-95">
-              <div className="absolute inset-0 overflow-hidden rounded-premium pointer-events-none">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
+            <div className="w-full max-w-[320px] bg-[#0f141e]/95 backdrop-blur-2xl rounded-2xl border border-white/10 shadow-2xl p-5 relative animate-in fade-in zoom-in-95">
+              <div className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none">
                 <div className="absolute -right-24 -top-24 h-48 w-48 rounded-full bg-gold-accent/10 blur-3xl backdrop-blur-md" />
               </div>
-              
+
               {/* Header */}
-              <div className="mb-4 flex items-start justify-between gap-4 border-b border-white/[0.05] pb-3 relative z-10">
-                <div className="space-y-1">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-gold-accent">
+              <div className="mb-4 flex items-start justify-between gap-3 border-b border-white/[0.05] pb-3 relative z-10">
+                <div className="space-y-0.5">
+                  <p className="text-[8px] font-black uppercase tracking-[0.2em] text-gold-accent">
                     Konfigurasi Invoice
                   </p>
-                  <h3 className="text-lg font-black text-white tracking-tight uppercase">
-                    Ubah Periode Tagihan
+                  <h3 className="text-sm font-black text-white tracking-tight uppercase">
+                    Periode Tagihan
                   </h3>
-                  <p className="text-[9px] font-bold text-white/40 leading-relaxed">
+                  <p className="text-[9px] font-bold text-white/40 leading-relaxed tracking-wide">
                     Atur siklus penagihan reguler.
                   </p>
                 </div>
                 <button
-                  className="h-8 w-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:bg-[#ff2400] hover:border-[#ff2400] hover:text-white transition-all backdrop-blur-md shrink-0 mt-0.5 group"
+                  className="h-7 w-7 rounded-lg border border-white/10 bg-white/5 flex items-center justify-center text-white/40 transition-all hover:bg-rose-500/10 hover:border-rose-500/20 hover:text-rose-400 backdrop-blur-md shrink-0 group"
                   onClick={() => setBillingEditor(null)}
                   type="button"
                   title="Tutup"
                 >
-                  <span className="material-symbols-outlined text-[16px] transition-transform group-hover:scale-110">
+                  <span className="material-symbols-outlined text-[14px] transition-transform group-hover:rotate-90">
                     close
                   </span>
                 </button>
               </div>
 
               {/* Form */}
-              <form className="space-y-5 relative z-10" onSubmit={handleSaveBillingCycle}>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-1.5 mt-0.5">
-                    <label className="ml-1 text-[8px] md:text-[9px] font-black uppercase tracking-widest text-white/20">
+              <form className="space-y-4 relative z-10" onSubmit={handleSaveBillingCycle}>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="relative space-y-1.5 mt-0.5">
+                    <label className="ml-1 block text-[8px] font-black uppercase tracking-widest text-white/20">
                       Frekuensi
                     </label>
-                    <input
-                      className="h-10 w-full rounded-xl border border-white/5 bg-white/[0.01] px-3 text-[10px] font-black text-white outline-none focus:border-gold-accent/40 focus:bg-white/[0.04] transition-all placeholder:text-white/20 backdrop-blur-3xl"
-                      onChange={(e) =>
-                        setBillingEditor((previous) =>
-                          previous ? { ...previous, billingEvery: e.target.value } : previous,
-                        )
-                      }
-                      type="number"
-                      value={billingEditor.billingEvery}
-                      min="1"
-                    />
+                    <div className="relative">
+                      <input
+                        className="h-8 w-full rounded-lg border border-white/5 bg-white/[0.01] px-3 text-[10px] font-bold text-white outline-none focus:border-gold-accent/40 focus:bg-white/[0.04] transition-all placeholder:text-white/20 backdrop-blur-3xl"
+                        onChange={(e) =>
+                          setBillingEditor((previous) =>
+                            previous ? { ...previous, billingEvery: e.target.value } : previous,
+                          )
+                        }
+                        type="number"
+                        value={billingEditor.billingEvery}
+                        min="1"
+                      />
+                    </div>
                   </div>
                   <div className="mt-0.5">
                     <GlassSelect
@@ -6931,6 +6896,9 @@ function TenantDetailPage({
                         { value: "bulan", label: "Bulan" },
                         { value: "tahun", label: "Tahun" },
                       ]}
+                      className="h-8 !rounded-lg"
+                      textClass="text-[10px] font-bold tracking-wide"
+                      optionTextClass="text-[10px] font-bold tracking-wide"
                     />
                   </div>
                 </div>
@@ -6942,16 +6910,16 @@ function TenantDetailPage({
                   </div>
                 )}
 
-                <div className="flex justify-end gap-3 pt-2">
+                <div className="flex justify-end gap-2 pt-1">
                   <button
-                    className="h-10 px-5 rounded-xl border border-white/10 bg-white/5 text-[9px] font-black uppercase tracking-widest text-white/60 hover:bg-white/10 hover:text-white transition-all backdrop-blur-md"
+                    className="h-8 px-4 rounded-lg border border-white/10 bg-white/5 text-[9px] font-bold tracking-wide text-white/60 hover:bg-white/10 hover:text-white transition-all backdrop-blur-md"
                     onClick={() => setBillingEditor(null)}
                     type="button"
                   >
                     Batal
                   </button>
                   <button
-                    className="h-10 px-6 rounded-xl bg-gold-accent border border-gold-accent/20 text-[9px] font-black uppercase tracking-widest text-[#0f141e] hover:bg-gold-accent/90 transition-all shadow-gold-glow disabled:opacity-50 flex items-center gap-2"
+                    className="h-8 px-5 rounded-lg bg-gold-accent border border-gold-accent/20 text-[9px] font-bold tracking-wide text-[#0f141e] hover:bg-gold-accent/90 transition-all shadow-gold-glow disabled:opacity-50 flex items-center gap-1.5"
                     disabled={isSavingBilling}
                     type="submit"
                   >
@@ -6975,18 +6943,18 @@ function TenantDetailPage({
         )}
 
         {versionEditor && createPortal(
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0f141e]/80 backdrop-blur-sm px-4">
-            <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto glass-card rounded-premium border border-white/10 shadow-glass-depth p-4 md:p-5 relative">
+          <div className="fixed inset-0 z-[200] flex items-center justify-center px-4 backdrop-blur-md bg-black/60 animate-fade-in duration-300">
+            <div className="w-full max-w-2xl overflow-hidden rounded-2xl glass-card backdrop-blur-xl p-4 md:p-5 border border-white/20 shadow-[0_0_100px_rgba(0,0,0,0.8)] animate-in zoom-in-95 duration-300 relative">
               {/* Header */}
-              <div className="mb-3 flex items-start justify-between gap-4 border-b border-white/[0.05] pb-3">
-                <div className="space-y-1.5">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-gold-accent">
+              <div className="mb-2 flex items-start justify-between gap-4 border-b border-white/10 pb-2">
+                <div className="flex flex-col gap-1">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-gold-accent">
                     Ubah / Upgrade Paket
                   </p>
-                  <h3 className="text-xl font-black text-white tracking-tight uppercase">
+                  <h3 className="text-lg font-black text-white tracking-tight uppercase leading-none">
                     {tenantName}
                   </h3>
-                  <p className="text-[10px] font-bold text-white/50 leading-relaxed mt-0.5">
+                  <p className="text-[9px] font-bold text-white/50 leading-snug">
                     Paket lama berlaku sampai akhir bulan berjalan. Paket baru aktif mulai bulan berikutnya.
                   </p>
                 </div>
@@ -7002,7 +6970,7 @@ function TenantDetailPage({
               </div>
 
               {/* Form */}
-              <form className="space-y-2.5" onSubmit={handleCreateVersion}>
+              <form className="space-y-2" onSubmit={handleCreateVersion}>
                 <GlassSelect
                   label="Alasan Kontrak"
                   value={versionEditor.reason ?? "ubah_paket"}
@@ -7028,8 +6996,8 @@ function TenantDetailPage({
                     placeholder="Tulis alasan perubahan kontrak"
                   />
                 )}
-                
-                <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2">
+
+                <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
                   <GlassInput
                     label="Tanggal Request Perubahan"
                     type="date"
@@ -7051,7 +7019,7 @@ function TenantDetailPage({
                     placeholder="Opsional"
                   />
                 </div>
-                
+
                 <GlassSelect
                   label="Paket Baru"
                   value={versionEditor.packageType ?? "sharing_core"}
@@ -7065,7 +7033,7 @@ function TenantDetailPage({
                     { value: "core", label: "Core" },
                   ]}
                 />
-                
+
                 {(versionEditor.packageType ?? "sharing_core") === "sharing_core" ? (
                   <GlassInput
                     label="Shared Core Ratio Baru"
@@ -7091,7 +7059,7 @@ function TenantDetailPage({
                   />
                 )}
 
-                <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2">
+                <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
                   <GlassInput
                     label="Nominal Bulanan Baru"
                     type="text"
@@ -7122,7 +7090,7 @@ function TenantDetailPage({
                   />
                 </div>
 
-                <div className="rounded-xl border border-blue-500/20 bg-blue-500/10 px-4 py-3 text-[11px] font-bold text-blue-400 leading-relaxed backdrop-blur-md">
+                <div className="rounded-lg border border-blue-500/20 bg-blue-500/10 px-3 py-2 text-[9px] font-bold text-blue-400 leading-snug backdrop-blur-md">
                   Paket lama berlaku sampai {formatDate(addDaysToIsoDate(getFirstDayOfNextMonth(versionEditor.requestedDate), -1))}. Paket baru aktif mulai {formatDate(getFirstDayOfNextMonth(versionEditor.requestedDate))}. Invoice belum lunas mulai bulan tersebut akan menyesuaikan.
                 </div>
 
@@ -7132,16 +7100,16 @@ function TenantDetailPage({
                   </div>
                 )}
 
-                <div className="mt-4 flex justify-end gap-3 border-t border-white/[0.05] pt-3">
+                <div className="mt-3 flex justify-end gap-3 border-t border-white/10 pt-3">
                   <button
-                    className="h-10 px-6 rounded-xl border border-white/10 bg-white/5 text-[10px] font-black uppercase tracking-widest text-white/40 transition-all hover:bg-white/10 hover:text-white"
+                    className="h-8 px-4 rounded-lg border border-white/10 bg-white/5 text-[9px] font-black uppercase tracking-widest text-white/40 transition-all hover:bg-white/10 hover:text-white"
                     onClick={() => setVersionEditor(null)}
                     type="button"
                   >
                     Batal
                   </button>
                   <button
-                    className="h-10 px-6 rounded-xl bg-gold-accent text-[10px] font-black uppercase tracking-widest text-[#0f141e] transition-all hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 shadow-gold-glow flex items-center gap-2"
+                    className="h-8 px-4 rounded-lg bg-gold-accent text-[9px] font-black uppercase tracking-widest text-[#0f141e] transition-all hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 shadow-gold-glow flex items-center gap-1.5"
                     disabled={isSubmittingVersion}
                     type="submit"
                   >
@@ -7149,7 +7117,7 @@ function TenantDetailPage({
                       <>Menyimpan...</>
                     ) : (
                       <>
-                        <span className="material-symbols-outlined text-[14px]">save</span>
+                        <span className="material-symbols-outlined text-[12px]">save</span>
                         Simpan Perubahan
                       </>
                     )}
@@ -7263,11 +7231,10 @@ function TenantDetailPage({
                       { value: "custom", label: "Custom" },
                     ].map((option) => (
                       <label
-                        className={`flex h-10 items-center justify-center rounded-xl border text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer ${
-                          renewalConfirmData.billingMode === option.value
+                        className={`flex h-10 items-center justify-center rounded-xl border text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer ${renewalConfirmData.billingMode === option.value
                             ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-300"
                             : "border-white/10 bg-white/[0.02] text-white/45 hover:bg-white/[0.05] hover:text-white"
-                        }`}
+                          }`}
                         key={option.value}
                       >
                         <input

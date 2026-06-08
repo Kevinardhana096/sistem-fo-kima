@@ -172,12 +172,12 @@ export default function FoRouteMultiPreview({ tenants = [], ispLogoUrl = "", isp
 
   if (routeData.length === 0) {
     return (
-      <section className="glass-card backdrop-blur-xl rounded-premium p-20 flex flex-col items-center justify-center border-white/10 shadow-glass-depth">
-        <div className="w-24 h-24 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center text-white/20 mb-8">
-          <span className="material-symbols-outlined text-5xl">map</span>
+      <section className="glass-card backdrop-blur-xl rounded-xl py-16 flex flex-col items-center justify-center border-white/10 shadow-glass-depth">
+        <div className="h-12 w-12 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 shadow-inner-glass mb-3 animate-pulse">
+          <span className="material-symbols-outlined text-2xl text-gold-accent/40">route</span>
         </div>
-        <h2 className="text-2xl font-bold text-white tracking-widest">Peta Jalur Lokasi</h2>
-        <p className="mt-3 text-sm font-bold text-white/30 max-w-md text-center leading-relaxed">
+        <h4 className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em]">PETA JALUR LOKASI</h4>
+        <p className="text-[8px] font-bold text-white/20 uppercase tracking-widest mt-1 text-center max-w-sm">
           Belum ada lokasi dengan jalur FO yang terkonfigurasi di bawah ISP ini.
         </p>
       </section>

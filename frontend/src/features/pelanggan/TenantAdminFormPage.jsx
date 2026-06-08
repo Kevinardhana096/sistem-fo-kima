@@ -68,6 +68,47 @@ const GlassFieldInput = ({ label, type = "text", value, onChange, placeholder = 
     );
 };
 
+const FileUploadCard = ({ label, fileName, onFileSelected, onClear, uploadPathParts = [], icon = "upload_file", error = "" }) => (
+    <div className="space-y-1.5">
+        <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-gold-accent/60 ml-1">{label}</label>
+        <div className={`relative overflow-hidden rounded-xl border border-dashed bg-black/20 p-4 transition-all hover:border-gold-accent/40 backdrop-blur-md ${error ? "border-rose-500/70 ring-2 ring-rose-500/10" : "border-white/10"}`}>
+            <input
+                className="absolute inset-0 z-10 cursor-pointer opacity-0"
+                onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (!file) return;
+                    uploadFileForRecord(file, uploadPathParts).then((fileUrl) => onFileSelected(file, fileUrl));
+                    event.target.value = "";
+                }}
+                type="file"
+            />
+            <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-gold-accent backdrop-blur-md">
+                    <span className="material-symbols-outlined" style={{ fontSize: "16px" }}>{icon}</span>
+                </div>
+                <div className="min-w-0 flex-1">
+                    <p className="truncate text-[10px] font-black uppercase tracking-widest text-white">{fileName || "Pilih Berkas"}</p>
+                    <p className="mt-0.5 text-[9px] font-bold tracking-wide text-white/40">Opsional. Klik area ini untuk upload.</p>
+                </div>
+                {fileName && (
+                    <button
+                        className="relative z-20 rounded-lg border border-rose-500/20 bg-rose-500/10 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-rose-400 hover:bg-rose-500 hover:text-white transition-all"
+                        onClick={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            onClear();
+                        }}
+                        type="button"
+                    >
+                        Hapus
+                    </button>
+                )}
+            </div>
+        </div>
+        {error && <p className="text-[10px] font-black uppercase tracking-widest text-rose-400">{error}</p>}
+    </div>
+);
+
 const GlassCustomSelect = ({ label, value, onChange, options, icon, heightClass = "h-9", iconOnly = false }) => {
     const [isOpen, setIsOpen] = useState(false);
     const containerRef = useRef(null);
@@ -182,6 +223,11 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
         monthlyAmount: "0",
         activationFeeAmount: "0",
         logoFileDataUrl: "",
+        contractNumber: "",
+        bakFileName: "",
+        bakFileDataUrl: "",
+        contractFileName: "",
+        contractFileDataUrl: "",
     });
     const [selectedIspId, setSelectedIspId] = useState(null);
     const [submitError, setSubmitError] = useState("");
@@ -283,6 +329,11 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                     contractStartDate: form.contractStartDate || form.contractPeriodStart,
                     contractPeriodStart: form.contractPeriodStart,
                     contractPeriodEnd: form.contractPeriodEnd,
+                    contractNumber: form.contractNumber || undefined,
+                    bakFileName: form.bakFileName || undefined,
+                    bakFileUrl: form.bakFileDataUrl || undefined,
+                    contractFileName: form.contractFileName || undefined,
+                    contractFileUrl: form.contractFileDataUrl || undefined,
                     paket: form.paket,
                     jumlah: form.paket === "core" ? Math.round(Number(form.jumlah || 0)) : 0,
                     contractSharingRatio: form.paket === "shared" ? `${form.ratioLeft || 1}:${form.ratioRight || 8}` : undefined,
@@ -326,7 +377,7 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                             </p>
                         </div>
                         <h1 className="text-3xl md:text-4xl xl:text-5xl font-black text-white tracking-tight leading-tight">
-                            {isEditMode ? "Edit" : "Daftar Lokasi Baru"}
+                            {isEditMode ? "Edit Lokasi" : "Daftar Lokasi Baru"}
                         </h1>
                         <p className="mt-1 max-w-xl text-[11px] font-bold text-white/40">
                             Silakan lengkapi data administratif dan konfigurasi layanan untuk {isEditMode ? "memperbarui lokasi" : "mendaftarkan titik lokasi"}.
@@ -496,6 +547,35 @@ function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, 
                                         <GlassFieldInput label="Awal Kontrak (Ops)" icon="calendar_today" type="date" value={form.contractStartDate} onChange={(val) => setForm(p => ({ ...p, contractStartDate: val }))} />
                                         <GlassFieldInput label="Mulai Periode" icon="event_available" type="date" value={form.contractPeriodStart} error={fieldErrors.contractPeriodStart} onChange={(val) => { setForm(p => ({ ...p, contractPeriodStart: val, status: deriveOperationalStatus(val, p.contractPeriodEnd, p.status) })); setFieldErrors((errors) => ({ ...errors, contractPeriodStart: "" })); }} />
                                         <GlassFieldInput label="Akhir Periode" icon="event_busy" type="date" value={form.contractPeriodEnd} error={fieldErrors.contractPeriodEnd} onChange={(val) => { setForm(p => ({ ...p, contractPeriodEnd: val, status: deriveOperationalStatus(p.contractPeriodStart, val, p.status) })); setFieldErrors((errors) => ({ ...errors, contractPeriodEnd: "" })); }} />
+                                    </div>
+
+                                    <div className="flex items-center gap-4 mt-4 pt-0">
+                                        <div className="flex-1 border-t border-white/10"></div>
+                                        <span className="text-[9px] font-black uppercase tracking-[0.3em] text-white/30">Data Opsional</span>
+                                        <div className="flex-1 border-t border-white/10"></div>
+                                    </div>
+
+                                    <div className="mt-1.5 space-y-3">
+                                        <div className="w-full">
+                                            <GlassFieldInput label="Nomor Kontrak" icon="tag" placeholder="Masukkan nomor kontrak jika sudah ada" value={form.contractNumber} onChange={(val) => setForm(p => ({ ...p, contractNumber: val }))} />
+                                        </div>
+                                        
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <FileUploadCard
+                                                label="Upload BAK"
+                                                fileName={form.bakFileName}
+                                                uploadPathParts={["customers", "new", "documents"]}
+                                                onFileSelected={(file, dataUrl) => setForm(p => ({ ...p, bakFileName: file.name, bakFileDataUrl: dataUrl }))}
+                                                onClear={() => setForm(p => ({ ...p, bakFileName: "", bakFileDataUrl: "" }))}
+                                            />
+                                            <FileUploadCard
+                                                label="Upload Kontrak"
+                                                fileName={form.contractFileName}
+                                                uploadPathParts={["customers", "new", "documents"]}
+                                                onFileSelected={(file, dataUrl) => setForm(p => ({ ...p, contractFileName: file.name, contractFileDataUrl: dataUrl }))}
+                                                onClear={() => setForm(p => ({ ...p, contractFileName: "", contractFileDataUrl: "" }))}
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                             </div>

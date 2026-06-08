@@ -114,6 +114,7 @@ export default function IspEntryPointMap({
       onEditPoint={onEditPoint}
       onMapClick={handleMapClick}
       onMovePoint={onMovePoint}
+      onRequestClose={() => setIsFullscreen(false)}
       onRequestFullscreen={() => setIsFullscreen(true)}
       readOnly={readOnly}
     />
@@ -124,17 +125,10 @@ export default function IspEntryPointMap({
       {renderMap()}
       {isFullscreen && createPortal(
         <div className="fixed inset-0 z-[220] bg-slate-950">
-          <div className="absolute left-4 top-4 z-[1200] rounded-xl border border-white/10 bg-slate-900/90 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white shadow-2xl backdrop-blur-md">
+          <div className="absolute left-4 top-4 z-[1200] flex h-9 items-center rounded-xl border border-white/10 bg-slate-900/90 px-4 text-[10px] font-black uppercase tracking-widest text-white shadow-2xl backdrop-blur-md">
             Peta Titik Masuk ISP
           </div>
-          <button
-            className="absolute right-4 top-4 z-[1200] flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-slate-900/90 text-white/70 shadow-2xl backdrop-blur-md transition hover:bg-white/10 hover:text-white"
-            onClick={() => setIsFullscreen(false)}
-            title="Tutup layar penuh"
-            type="button"
-          >
-            <span className="material-symbols-outlined text-lg">close</span>
-          </button>
+          
           {renderMap({ fullscreen: true })}
         </div>,
         document.body,
@@ -151,6 +145,7 @@ function EntryPointMapSurface({
   onEditPoint,
   onMapClick,
   onMovePoint,
+  onRequestClose,
   onRequestFullscreen,
   readOnly,
 }) {
@@ -159,28 +154,61 @@ function EntryPointMapSurface({
   return (
     <div className={`isp-mini-map relative overflow-hidden border border-white/10 ${fullscreen ? "h-dvh w-screen rounded-none" : "h-[320px] rounded-xl"}`}>
       {!readOnly && (
-        <div className={`absolute z-[1000] rounded-lg border border-white/10 bg-slate-900/90 text-center text-[9px] font-bold text-white/60 backdrop-blur-sm shadow-xl transition-all ${fullscreen ? "top-4 left-1/2 -translate-x-1/2 px-4 py-2 w-max max-w-md" : "top-2 left-2 right-2 px-2.5 py-1.5"}`}>
-          <span className="text-gold-accent">Klik peta</span> untuk tambah titik • <span className="text-sky-400">Drag marker</span> untuk pindah
+        <div className={`absolute z-[1000] flex items-center justify-center rounded-lg border border-white/10 bg-slate-900/90 text-[9px] font-bold text-white/60 backdrop-blur-sm shadow-xl transition-all ${fullscreen ? "top-4 left-1/2 -translate-x-1/2 h-9 px-4 w-max max-w-md" : "top-2 left-2 right-2 h-9 px-2.5"}`}>
+          <span><span className="text-gold-accent">Klik peta</span> untuk tambah titik • <span className="text-sky-400">Drag marker</span> untuk pindah</span>
         </div>
       )}
-      <div className="absolute bottom-5 right-2 z-[1000] flex flex-col gap-2">
+      <div className={`absolute z-[1000] flex flex-col gap-2 ${fullscreen ? "top-4 right-4" : (!readOnly ? "top-14 right-2" : "top-2 right-2")}`}>
+        {fullscreen && (
+          <button
+            className="group flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-slate-900/80 text-white/70 shadow-lg backdrop-blur-md transition hover:bg-rose-500 hover:text-white hover:border-rose-500"
+            onClick={onRequestClose}
+            title="Tutup layar penuh"
+            type="button"
+          >
+            <span className="material-symbols-outlined text-[16px] transition-transform group-hover:rotate-90">close</span>
+          </button>
+        )}
+
+        <div className="flex flex-col rounded-xl border border-white/10 bg-slate-900/80 backdrop-blur-md shadow-lg overflow-hidden w-9">
+          <button
+            className="w-full h-9 text-white/70 hover:bg-white/10 hover:text-white transition flex items-center justify-center"
+            onClick={() => mapRef.current?.zoomIn()}
+            title="Zoom In"
+            type="button"
+          >
+            <span className="material-symbols-outlined text-[16px]">add</span>
+          </button>
+          <div className="h-px bg-white/10 w-full" />
+          <button
+            className="w-full h-9 text-white/70 hover:bg-white/10 hover:text-white transition flex items-center justify-center"
+            onClick={() => mapRef.current?.zoomOut()}
+            title="Zoom Out"
+            type="button"
+          >
+            <span className="material-symbols-outlined text-[16px]">remove</span>
+          </button>
+        </div>
+      </div>
+
+      <div className={`absolute z-[1000] flex flex-col gap-2 ${fullscreen ? "bottom-4 right-4" : "bottom-5 right-2"}`}>
         {!fullscreen && (
           <button
-            className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-slate-900/80 text-white/70 shadow-lg backdrop-blur-md transition hover:bg-white/10 hover:text-white"
+            className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-slate-900/80 text-white/70 shadow-lg backdrop-blur-md transition hover:bg-white/10 hover:text-white"
             onClick={onRequestFullscreen}
             title="Layar penuh"
             type="button"
           >
-            <span className="material-symbols-outlined text-[13px]">open_in_full</span>
+            <span className="material-symbols-outlined text-[14px]">open_in_full</span>
           </button>
         )}
         <button
-          className="flex h-8 w-8 items-center justify-center rounded-lg border border-gold-accent/30 bg-slate-900/80 text-gold-accent shadow-lg backdrop-blur-md transition hover:bg-gold-accent hover:text-[#0f141e]"
+          className="flex h-9 w-9 items-center justify-center rounded-xl border border-gold-accent/30 bg-slate-900/80 text-gold-accent shadow-lg backdrop-blur-md transition hover:bg-gold-accent hover:text-[#0f141e]"
           onClick={() => mapRef.current?.flyTo(KIMA_CENTER, DEFAULT_ZOOM, { duration: 0.8 })}
           title="Pusatkan ke KIMA"
           type="button"
         >
-          <span className="material-symbols-outlined text-[12px]">my_location</span>
+          <span className="material-symbols-outlined text-[14px]">my_location</span>
         </button>
       </div>
       <MapContainer
@@ -195,7 +223,7 @@ function EntryPointMapSurface({
         zoom={DEFAULT_ZOOM}
         zoomSnap={0.5}
       >
-        <ZoomControl position="topright" />
+        
         <TileLayer
           maxNativeZoom={TILE_MAX_NATIVE_ZOOM}
           maxZoom={MAP_MAX_ZOOM}

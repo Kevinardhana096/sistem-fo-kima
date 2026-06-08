@@ -606,12 +606,6 @@ function CustomerWorkspacePage({
                             <span><span className="text-white font-black">{allGroups.length}</span> ISP Terkait</span>
                         </div>
 
-                        {isAnyFilterActive && (
-                            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gold-accent/10 border border-gold-accent/20 text-[9px] font-black uppercase tracking-widest text-gold-accent shadow-lg shadow-gold-accent/5 backdrop-blur-md">
-                                <span className="material-symbols-outlined text-[15px]">filter_list</span>
-                                Filter Aktif
-                            </div>
-                        )}
                         {hasMoreCustomers && (
                             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-[9px] font-black uppercase tracking-widest text-blue-200/80 shadow-sm backdrop-blur-md">
                                 <span className="material-symbols-outlined text-[15px]">database</span>
