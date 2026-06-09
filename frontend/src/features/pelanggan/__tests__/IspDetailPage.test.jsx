@@ -117,4 +117,43 @@ describe('IspDetailPage - tab kontrak', () => {
     await waitFor(() => expect(screen.queryByText(/memuat detail/i)).not.toBeInTheDocument());
     expect(screen.queryByRole('button', { name: /tambah kontrak/i })).not.toBeInTheDocument();
   });
+
+  it('menyamakan angka tindak lanjut daftar lokasi dengan ringkasan butuh perhatian detail lokasi', async () => {
+    const { default: api } = await import('../../../lib/api');
+    api.isps.getById.mockResolvedValue({
+      ...baseIsp,
+      contractRows: [],
+      entryPoints: [],
+      tenants: [
+        {
+          id: 101,
+          name: 'Lokasi Prioritas',
+          customerId: 'CUST-101',
+          status: 'aktif',
+          contracts: [
+            {
+              id: 501,
+              contractNumber: '',
+              startDate: '2026-01-01',
+              endDate: '2027-01-01',
+              versions: [],
+            },
+          ],
+          latestDocuments: [],
+          invoices: [],
+          todoSummary: {
+            priority: [{ id: 'priority-1', code: 'route_attention' }],
+            needAction: [{ id: 'need-action-1', code: 'custom_attention' }],
+            counts: { priority: 1, needAction: 1 },
+          },
+          activationFeePaidAt: null,
+        },
+      ],
+    });
+
+    renderPage({ initialTab: 'customers' });
+
+    expect(await screen.findByText('Lokasi Prioritas')).toBeInTheDocument();
+    expect(screen.getByText('6')).toBeInTheDocument();
+  });
 });
