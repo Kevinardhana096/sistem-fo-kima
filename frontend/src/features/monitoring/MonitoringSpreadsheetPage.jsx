@@ -7,6 +7,7 @@ import {
     formatCoreAllocation,
     formatCurrency,
     formatDate,
+    formatMonthYear,
     getRemainingRentalDays,
     getMonthStatusClass,
     toTitleCase,
@@ -268,9 +269,9 @@ function MonitoringSpreadsheetPage({
                         </dd>
                     </div>
                     <div className="rounded-xl bg-white/5 border border-white/5 p-3 transition-colors hover:bg-white/[0.07] backdrop-blur-md">
-                        <dt className="text-[9px] font-black uppercase tracking-[0.15em] text-white/30 mb-1.5">Jatuh Tempo</dt>
+                        <dt className="text-[9px] font-black uppercase tracking-[0.15em] text-white/30 mb-1.5">Bulan Jatuh Tempo</dt>
                         <dd className="text-[11px] font-bold text-white/70">
-                            {selectedInvoiceCell.dueDate ? formatDate(selectedInvoiceCell.dueDate) : "-"}
+                            {selectedInvoiceCell.dueDate ? formatMonthYear(selectedInvoiceCell.dueDate) : "-"}
                         </dd>
                     </div>
                     <div className="rounded-xl bg-white/5 border border-white/5 p-3 transition-colors hover:bg-white/[0.07] backdrop-blur-md">

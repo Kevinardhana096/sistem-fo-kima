@@ -18,14 +18,15 @@ import {
   formatCurrency,
   formatDate,
   formatDateTime,
+  formatMonthYear,
   formatPackageRatio,
   getCustomerDisplayActionSummary,
-  getNextMonthIsoDate,
   isOpenableFileUrl,
   openSafeFile,
   resolveCustomerContractPeriodInfo,
   resolveCustomerPackageInfo,
   resolveCustomerOperationalStatus,
+  resolveInvoiceDueMonthIsoDate,
   toTitleCase,
 } from "../../app/utils";
 import api from "../../lib/api";
@@ -211,7 +212,7 @@ function getInvoiceSetupWarnings(invoice) {
   if (!dueDate) {
     warnings.push({
       code: "missing_due_date",
-      message: "Segera mengatur tanggal terakhir pembayaran.",
+      message: "Segera mengatur bulan jatuh tempo pembayaran.",
     });
   }
 
@@ -1141,7 +1142,7 @@ function TenantDetailPage({
         periodMonth: Number.isFinite(periodDate.getTime()) ? periodDate.getUTCMonth() + 1 : null,
         periodStartDate: row.periodStartDate,
         periodEndDate: row.periodEndDate,
-        dueDate: getNextMonthIsoDate(row.periodStartDate, 1),
+        dueDate: resolveInvoiceDueMonthIsoDate(row.periodStartDate),
         amount: scheduledAmount,
         status: "belum_ditagih",
         scheduleStatus: "active",
@@ -1727,9 +1728,9 @@ function TenantDetailPage({
 
     return {
       type: "upload_h_minus_7",
-      title: `Peringatan H-7 pembayaran ke-${nextActionInvoice.paymentOrder}`,
+      title: `Reminder bulan jatuh tempo pembayaran ke-${nextActionInvoice.paymentOrder}`,
       message:
-        "Mendekati jatuh tempo. Isi nomor invoice lalu upload invoice peringatan pertama untuk pembayaran ini.",
+        "Memasuki reminder bulan jatuh tempo. Isi nomor invoice lalu upload invoice peringatan pertama untuk pembayaran ini.",
       dueDate,
     };
   })();
@@ -2387,7 +2388,7 @@ function TenantDetailPage({
           periodEndDate: row.periodEndDate,
           periodYear,
           periodMonth,
-          dueDate: getNextMonthIsoDate(row.periodStartDate, 1),
+          dueDate: resolveInvoiceDueMonthIsoDate(row.periodStartDate),
           amount: scheduledAmount,
           scheduleStatus: "active",
         };
@@ -3648,7 +3649,7 @@ function TenantDetailPage({
 
   const validateInvoiceDraftBase = (draft) => {
     if (!draft.dueDate) {
-      return "Set date (tanggal terakhir pembayaran) wajib diisi sebelum upload invoice.";
+      return "Bulan jatuh tempo pembayaran wajib diisi sebelum upload invoice.";
     }
 
     const amount = parseRupiahInput(draft.amount);
@@ -3801,11 +3802,11 @@ function TenantDetailPage({
       splitOrder,
       source: "manual",
       triggerCode: splitOrder === 2 ? "h_minus_3" : "h_minus_7",
-      title: splitOrder === 2 ? "Peringatan H-3" : "Peringatan H-7",
+      title: splitOrder === 2 ? "Peringatan H-3" : "Reminder Bulan Jatuh Tempo",
       description:
         splitOrder === 2
-          ? "Invoice peringatan kedua sebelum tanggal terakhir pembayaran."
-          : "Invoice peringatan pertama sebelum tanggal terakhir pembayaran.",
+          ? "Invoice peringatan kedua sebelum akhir periode reminder pembayaran."
+          : "Invoice peringatan pertama untuk bulan jatuh tempo pembayaran.",
     });
   };
 
@@ -4997,7 +4998,7 @@ function TenantDetailPage({
                   </div>
                   <div>
                     <span className="text-[13px] font-black text-white">Setiap {billingEvery} {billingUnitLabel}</span>
-                    <p className="text-[9px] font-bold text-white/30 tracking-wide mt-0.5">Auto-generate H-7</p>
+                    <p className="text-[9px] font-bold text-white/30 tracking-wide mt-0.5">Auto-generate reminder bulan</p>
                   </div>
                 </div>
               </div>
@@ -5043,7 +5044,7 @@ function TenantDetailPage({
                                   {item.dueDate && (
                                     <div className="mt-2 flex items-center gap-1.5 text-[8px] font-black uppercase text-red-400/60">
                                       <span className="material-symbols-outlined text-[12px]">event_busy</span>
-                                      Tenggat: {formatDate(item.dueDate)}
+                                      Bulan jatuh tempo: {formatMonthYear(item.dueDate)}
                                     </div>
                                   )}
                                 </div>
@@ -6251,7 +6252,7 @@ function TenantDetailPage({
                 
                 <div className="flex flex-wrap items-end gap-3">
                   <div className="flex flex-col gap-1.5">
-                    <p className="text-[8px] font-black uppercase tracking-[0.3em] text-white/30 px-1">Tgl Batas Bayar</p>
+                    <p className="text-[8px] font-black uppercase tracking-[0.3em] text-white/30 px-1">Bulan Jatuh Tempo</p>
                     <DateInput
                       value={invoiceBulkForm.dueDate}
                       onChange={(val) => setInvoiceBulkForm(p => ({ ...p, dueDate: val }))}
@@ -6363,7 +6364,7 @@ function TenantDetailPage({
                       <th className="w-12 px-2.5 py-2 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">No</th>
                       <th className="w-16 px-2.5 py-2 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Urutan</th>
                       <th className="min-w-[160px] px-2.5 py-2 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Nomor Invoice</th>
-                      <th className="min-w-[160px] px-2.5 py-2 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Batas Bayar</th>
+                      <th className="min-w-[160px] px-2.5 py-2 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Bulan Jatuh Tempo</th>
                       <th className="min-w-[140px] px-2.5 py-2 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Jumlah (Rp)</th>
                       <th className="min-w-[160px] px-2.5 py-2 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Status</th>
                       <th className="min-w-[120px] px-2.5 py-2 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Waktu Bayar</th>
@@ -6433,7 +6434,7 @@ function TenantDetailPage({
                             />
                           </td>
 
-                          {/* Terakhir Bayar (set date / due date) */}
+                          {/* Bulan jatuh tempo (due date teknis) */}
                           <td className="px-2.5 py-2 whitespace-nowrap border border-white/5 text-center">
                             <div className="space-y-1 flex flex-col items-center">
                               <DateInput
@@ -6451,7 +6452,7 @@ function TenantDetailPage({
                                 <p className="text-[8px] font-black text-white/20 uppercase tracking-widest">Global Locked</p>
                               )}
                               {workflowMeta.setupWarnings.some((warning) => warning.code === "missing_due_date") && !draft.dueDate && (
-                                <p className="text-[9px] font-bold text-rose-300 tracking-wide mt-0.5">Atur batas bayar</p>
+                                <p className="text-[9px] font-bold text-rose-300 tracking-wide mt-0.5">Atur bulan jatuh tempo</p>
                               )}
                             </div>
                           </td>
