@@ -26,13 +26,30 @@ function isoToDisplay(iso) {
     return `${d}/${m}/${y}`;
 }
 
+function isValidIsoDate(iso) {
+    if (typeof iso !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+        return false;
+    }
+
+    const [year, month, day] = iso.split("-").map(Number);
+    const parsedDate = new Date(`${iso}T00:00:00.000Z`);
+
+    return Number.isFinite(parsedDate.getTime())
+        && parsedDate.getUTCFullYear() === year
+        && parsedDate.getUTCMonth() + 1 === month
+        && parsedDate.getUTCDate() === day;
+}
+
 /** DD/MM/YYYY → YYYY-MM-DD (untuk disimpan ke state) */
 function displayToIso(display) {
     const clean = display.replace(/[^\d/]/g, "");
     const parts = clean.split("/");
     if (parts.length === 3 && parts[2].length === 4) {
         const [d, m, y] = parts;
-        if (d && m && y) return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+        if (d && m && y) {
+            const iso = `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+            return isValidIsoDate(iso) ? iso : "";
+        }
     }
     return "";
 }
