@@ -7,6 +7,7 @@ import DateInput from "../../components/shared/DateInput";
 import IspEntryPointMap from "./components/IspEntryPointMap";
 import {
     formatDate,
+    getCustomerDisplayActionSummary,
     getIspContractActionItems,
     isOpenableFileUrl,
     openSafeFile,
@@ -134,13 +135,27 @@ const getIspContractRowEditStatus = (row) => {
     if (rawStatus === 'expired' || rawStatus === 'belum_diperpanjang') return 'expired';
     return 'aktif';
 };
-const getTenantActionCount = (tenant) => {
-    const priorityCount = Number(tenant?.todoSummary?.counts?.priority ?? 0);
-    const needActionCount = Number(tenant?.todoSummary?.counts?.needAction ?? 0);
-    const hasUnpaidActivationFee = normalizeOperationalStatus(tenant?.status) === "aktif"
-        && !(tenant?.activationFeePaidAt ?? tenant?.activation_fee_paid_at);
+const getTenantEmptyState = (tenantId) => {
+    if (typeof window === "undefined") {
+        return {};
+    }
 
-    return priorityCount + needActionCount + (hasUnpaidActivationFee ? 1 : 0);
+    try {
+        const rawValue = window.localStorage.getItem(`tenant-contract-empty-state-${tenantId}`);
+        return rawValue ? JSON.parse(rawValue) : {};
+    } catch {
+        return {};
+    }
+};
+
+const getTenantActionCount = (tenant, todayIso) => {
+    const emptyState = getTenantEmptyState(tenant?.id);
+    const summary = getCustomerDisplayActionSummary(tenant, {
+        todayIso,
+        emptyContractNumberRows: emptyState.contractNumberRows ?? {},
+        emptyBakRows: emptyState.bakRows ?? {},
+    });
+    return summary.total;
 };
 const resolveRouteStatus = (customerStatus, routeStatus) => isStoppedStatus(customerStatus)
     ? "nonaktif"
@@ -2248,7 +2263,7 @@ function IspDetailPage({
                                                     <td className="px-3 py-2.5 text-center text-[11px] font-bold text-[#ff2400] border-r border-white/10">
                                                         {isTeknisi ? (
                                                             (!tenant.route && tenant.status === "aktif") || (tenant.route?.activeFlowStatus ?? tenant.status_jalur) === "gangguan" ? "YA" : "-"
-                                                        ) : getTenantActionCount(tenant)}
+                                                        ) : getTenantActionCount(tenant, todayIso)}
                                                     </td>
                                                     <td className="px-3 py-2.5 text-right">
                                                         <div className="flex justify-end gap-1.5">
