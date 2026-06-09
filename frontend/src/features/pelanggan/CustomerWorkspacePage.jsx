@@ -794,8 +794,11 @@ function CustomerWorkspacePage({
                                                                         </td>
                                                                         {!isTeknisi && (
                                                                             <td className="px-4 py-2.5">
-                                                                                <div className="flex flex-col justify-center">
-                                                                                    <span className={`text-[11px] font-black ${actionCounts.needAction > 0 ? "text-red-500" : "text-white"}`}>{actionCounts.needAction}</span>
+                                                                                <div
+                                                                                    className="flex flex-col justify-center"
+                                                                                    title={`${actionCounts.total} tindakan aktif${actionCounts.priority > 0 ? `, ${actionCounts.priority} prioritas` : ""}${actionCounts.needAction > 0 ? `, ${actionCounts.needAction} perlu tindakan` : ""}`}
+                                                                                >
+                                                                                    <span className={`text-[11px] font-black ${actionCounts.total > 0 ? "text-red-500" : "text-white"}`}>{actionCounts.total}</span>
                                                                                     <span className="text-[8px] font-black text-white/20 uppercase tracking-widest">Tindakan</span>
                                                                                 </div>
                                                                             </td>
