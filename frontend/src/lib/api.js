@@ -4795,6 +4795,11 @@ export const contractVersionRenewalFollowUpsApi = {
     return data;
   },
 
+  async delete(id) {
+    const { error } = await supabase.from('contract_version_renewal_follow_ups').delete().eq('id', id);
+    if (error) throw error;
+  },
+
   async update(id, followUpData) {
     const { data, error } = await supabase
       .from('contract_version_renewal_follow_ups')
@@ -4980,6 +4985,11 @@ export const ispRenewalFollowUpsApi = {
 
     if (error) throw error;
     return data;
+  },
+
+  async delete(id) {
+    const { error } = await supabase.from('isp_renewal_follow_ups').delete().eq('id', id);
+    if (error) throw error;
   },
 
   async update(id, followUpData) {

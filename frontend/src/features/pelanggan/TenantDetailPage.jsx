@@ -591,6 +591,7 @@ function TenantDetailPage({
   const isTeknisi = currentRole === "teknisi";
   const isIsp = currentRole === "isp";
   const canManageRoute = currentRole === "admin" || currentRole === "teknisi";
+  const canManageTenantContracts = currentRole === "admin";
   const [activeTab, setActiveTab] = useState(initialTab);
   const [detail, setDetail] = useState(null);
   const [timeline, setTimeline] = useState([]);
@@ -4126,7 +4127,7 @@ function TenantDetailPage({
     const followUps = Array.isArray(row?.renewalFollowUps)
       ? row.renewalFollowUps
       : [];
-    return followUps.some((followUp) =>
+    return followUps.length > 0 && followUps.every((followUp) =>
       isOpenableFileUrl(followUp?.renewalFileUrl),
     );
   };
@@ -4139,105 +4140,162 @@ function TenantDetailPage({
     if (followUps.length === 0) {
       if (columnType === "renewal") {
         return (
-          <label className="relative inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-white/10 bg-white/5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all cursor-pointer backdrop-blur-md">
-            <span className="material-symbols-outlined text-[13px]">upload_file</span>
-            Upload
-            <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => void handleUploadTenantRenewal(row, e.target.files?.[0] ?? null)} />
+          <label className="relative inline-flex h-5 items-center gap-1 rounded-md border border-white/10 bg-white/5 px-1.5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all cursor-pointer shrink-0">
+            <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>upload_file</span>Upload
+            <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => void handleUploadTenantRenewal(row.id, e.target.files?.[0] ?? null)} />
           </label>
         );
       }
       return <span className="text-[10px] font-black text-white/20">—</span>;
     }
 
+    const itemsToRender = columnType === "response"
+      ? (followUps.length > 0 ? [ [...followUps].reverse().find(f => isOpenableFileUrl(f?.renewalFileUrl)) || followUps[followUps.length - 1] ] : [])
+      : followUps;
+
     return (
-      <div className="flex flex-col gap-2">
-        {followUps.map((followUp) => {
+      <div className="flex flex-col gap-1.5 items-center justify-center">
+        {itemsToRender.map((followUp, index) => {
           const hasRenewalFile = isOpenableFileUrl(followUp?.renewalFileUrl);
           const hasResponseFile = isOpenableFileUrl(followUp?.responseFileUrl);
+          const currentDecision = followUp?.responseStatus ?? "lanjut";
+          const isLast = index === itemsToRender.length - 1;
+          const isFirst = index === 0;
+
           return (
-            <div key={followUp.id} className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-2 space-y-1.5">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[8px] font-black uppercase tracking-widest text-gold-accent/60">Split {followUp.splitOrder}</span>
-                <span className="text-[8px] font-bold text-white/20 uppercase">{followUp.source === "auto" ? "Auto" : followUp.source === "manual" ? "Manual" : "Upload"}</span>
+            <div key={followUp.id} className="flex items-center justify-center gap-1.5">
+              <div className="flex items-center gap-1 rounded-lg border border-white/[0.06] bg-white/[0.02] p-1 backdrop-blur-md">
+                {columnType === "renewal" ? (
+                  <>
+                    {hasRenewalFile ? (
+                      <>
+                        <button onClick={() => openSafeFile(followUp.renewalFileUrl, followUp.renewalFileName)} className="inline-flex h-5 items-center gap-1 rounded-md border border-gold-accent/20 bg-gold-accent/10 px-1.5 text-[8px] font-black uppercase tracking-widest text-gold-accent hover:bg-gold-accent hover:text-[#0f141e] transition-all shrink-0">
+                          <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>visibility</span>Lihat
+                        </button>
+                        <label className="relative inline-flex h-5 items-center gap-1 rounded-md border border-white/10 bg-white/5 px-1.5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all cursor-pointer shrink-0">
+                          <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>upload_file</span>Ganti
+                          <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => void handleUploadTenantRenewal(row.id, e.target.files?.[0] ?? null, followUp.id)} />
+                        </label>
+                        {!isFirst && (
+                          <button 
+                            onClick={async () => {
+                              if (window.confirm("Apakah Anda yakin ingin menghapus split tindak lanjut ini?")) {
+                                try {
+                                  setIsActionLoading(true);
+                                  await api.tenantRenewalFollowUps.delete(followUp.id);
+                                  await loadDetail();
+                                  if (onRefreshAll) onRefreshAll();
+                                } catch (err) {
+                                  setError(err instanceof Error ? err.message : "Gagal menghapus split.");
+                                } finally {
+                                  setIsActionLoading(false);
+                                }
+                              }
+                            }}
+                            className="h-5 w-5 shrink-0 rounded-md flex items-center justify-center border border-[#ff2400]/20 bg-[#ff2400]/10 text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all"
+                            title="Hapus split"
+                          >
+                            <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>close</span>
+                          </button>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <label className="relative inline-flex h-5 items-center gap-1 rounded-md border border-white/10 bg-white/5 px-1.5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all cursor-pointer shrink-0">
+                          <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>upload_file</span>Upload
+                          <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => void handleUploadTenantRenewal(row.id, e.target.files?.[0] ?? null, followUp.id)} />
+                        </label>
+                        {!isFirst && (
+                          <button 
+                            onClick={async () => {
+                              if (window.confirm("Apakah Anda yakin ingin menghapus split tindak lanjut ini?")) {
+                                try {
+                                  setIsActionLoading(true);
+                                  await api.tenantRenewalFollowUps.delete(followUp.id);
+                                  await loadDetail();
+                                  if (onRefreshAll) onRefreshAll();
+                                } catch (err) {
+                                  setError(err instanceof Error ? err.message : "Gagal menghapus split.");
+                                } finally {
+                                  setIsActionLoading(false);
+                                }
+                              }
+                            }}
+                            className="h-5 w-5 shrink-0 rounded-md flex items-center justify-center border border-[#ff2400]/20 bg-[#ff2400]/10 text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all"
+                            title="Hapus split"
+                          >
+                            <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>close</span>
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {hasResponseFile ? (
+                      <>
+                        <button onClick={() => openSafeFile(followUp.responseFileUrl, followUp.responseFileName)} className="inline-flex h-5 items-center gap-1 rounded-md border border-emerald-500/20 bg-emerald-500/10 px-1.5 text-[8px] font-black uppercase tracking-widest text-emerald-400 hover:bg-emerald-500 hover:text-[#0f141e] transition-all shrink-0">
+                          <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>open_in_new</span>Tanggapan
+                        </button>
+                        <label className="relative inline-flex h-5 items-center gap-1 rounded-md border border-white/10 bg-white/5 px-1.5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all cursor-pointer shrink-0">
+                          <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>upload_file</span>Ganti
+                          <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => void handleRespondTenantRenewal(row.id, currentDecision, e.target.files?.[0] ?? null, followUp.id)} />
+                        </label>
+                      </>
+                    ) : (
+                      <>
+                        <label className="relative inline-flex h-5 items-center gap-1 rounded-md border border-emerald-500/20 bg-emerald-500/10 px-1.5 text-[8px] font-black uppercase tracking-widest text-emerald-400 hover:bg-emerald-500 hover:text-[#0f141e] transition-all cursor-pointer shrink-0">
+                          <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>check</span>Lanjut
+                          <input
+                            type="file"
+                            className="absolute inset-0 opacity-0 cursor-pointer"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0] ?? null;
+                              if (!file) return;
+                              const currentVersion = versions.find(v => v.id === row.versionId) ?? null;
+                              const currentContract = contractsList.find(c => c.id === row.contractId) ?? null;
+                              const prevCoreType = currentVersion?.coreType ?? currentVersion?.core_type ?? currentContract?.coreType ?? currentContract?.core_type ?? "core";
+                              const prevCoreTotal = currentVersion?.coreTotal ?? currentVersion?.core_total ?? currentContract?.coreTotal ?? currentContract?.core_total ?? 1;
+                              const prevRatio = currentVersion?.sharedCoreRatio ?? currentVersion?.shared_core_ratio ?? currentContract?.sharingRatio ?? currentContract?.sharing_ratio ?? "1/32";
+                              const prevMonthlyAmount = currentVersion?.monthlyAmount ?? currentVersion?.monthly_amount ?? currentContract?.monthlyAmount ?? currentContract?.monthly_amount ?? 0;
+                              const prevBillingEvery = currentContract?.billingEvery ?? currentContract?.billing_every ?? contract?.billingEvery ?? 1;
+                              const prevBillingUnit = currentContract?.billingUnit ?? currentContract?.billing_unit ?? contract?.billingUnit ?? "bulan";
+                              setRenewalConfirmData({
+                                row,
+                                decision: "lanjut",
+                                file,
+                                followUpId: followUp.id,
+                                usePreviousPackage: true,
+                                packageType: prevCoreType,
+                                coreTotal: prevCoreTotal,
+                                ratio: prevRatio,
+                                monthlyAmount: prevMonthlyAmount,
+                                billingMode: resolveBillingMode(prevBillingEvery, prevBillingUnit),
+                                billingEvery: String(prevBillingEvery ?? 1),
+                                billingUnit: String(prevBillingUnit ?? "bulan"),
+                              });
+                            }}
+                          />
+                        </label>
+                        <label className="relative inline-flex h-5 items-center gap-1 rounded-md border border-white/10 bg-white/5 px-1.5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all cursor-pointer shrink-0">
+                          <span className="material-symbols-outlined text-[9px]">close</span>Tidak
+                          <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => void handleRespondTenantRenewal(row.id, "tidak", e.target.files?.[0] ?? null, followUp.id)} />
+                        </label>
+                      </>
+                    )}
+                  </>
+                )}
               </div>
-              {columnType === "renewal" ? (
-                hasRenewalFile ? (
-                  <div className="flex items-center gap-1.5">
-                    <a href={followUp.renewalFileUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 h-7 px-2.5 rounded-lg border border-gold-accent/20 bg-gold-accent/10 text-[8px] font-black text-gold-accent uppercase tracking-widest hover:bg-gold-accent hover:text-[#0f141e] transition-all">
-                      <span className="material-symbols-outlined text-[11px]">open_in_new</span>Lihat
-                    </a>
-                    <label className="relative inline-flex items-center gap-1 h-7 px-2.5 rounded-lg border border-white/10 bg-white/5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all cursor-pointer backdrop-blur-md">
-                      <span className="material-symbols-outlined text-[11px]">upload_file</span>Ganti
-                      <input
-                        type="file"
-                        className="absolute inset-0 opacity-0 cursor-pointer"
-                        onChange={(e) => void handleUploadTenantRenewal(row, e.target.files?.[0] ?? null, followUp.id)}
-                      />
-                    </label>
-                  </div>
-                ) : (
-                  <label className="relative inline-flex items-center gap-1 h-7 px-2.5 rounded-lg border border-white/10 bg-white/5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all cursor-pointer backdrop-blur-md">
-                    <span className="material-symbols-outlined text-[11px]">upload_file</span>Upload
-                    <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => void handleUploadTenantRenewal(row, e.target.files?.[0] ?? null, followUp.id)} />
-                  </label>
-                )
-              ) : (
-                hasResponseFile ? (
-                  <div className="flex items-center gap-1.5">
-                    <a href={followUp.responseFileUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 h-7 px-2.5 rounded-lg border border-emerald-500/20 bg-emerald-500/10 text-[8px] font-black text-emerald-400 uppercase tracking-widest hover:bg-emerald-500 hover:text-[#0f141e] transition-all">
-                      <span className="material-symbols-outlined text-[11px]">open_in_new</span>Tanggapan
-                    </a>
-                    <label className="relative inline-flex items-center gap-1 h-7 px-2.5 rounded-lg border border-white/10 bg-white/5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all cursor-pointer backdrop-blur-md">
-                      <span className="material-symbols-outlined text-[11px]">upload_file</span>Ganti
-                      <input
-                        type="file"
-                        className="absolute inset-0 opacity-0 cursor-pointer"
-                        onChange={(e) => void handleReplaceTenantRenewalResponse(row, followUp, e.target.files?.[0] ?? null)}
-                      />
-                    </label>
-                  </div>
-                ) : hasRenewalFile ? (
-                  <div className="flex items-center gap-1.5">
-                    <label className="relative inline-flex items-center gap-1 h-7 px-2.5 rounded-lg border border-emerald-500/20 bg-emerald-500/10 text-[8px] font-black uppercase tracking-widest text-emerald-400 hover:bg-emerald-500 hover:text-[#0f141e] transition-all cursor-pointer backdrop-blur-md">
-                      Lanjut
-                      <input
-                        type="file"
-                        className="absolute inset-0 opacity-0 cursor-pointer"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0] ?? null;
-                          if (!file) return;
-                          const currentVersion = versions.find(v => v.id === row.versionId) ?? null;
-                          const currentContract = contractsList.find(c => c.id === row.contractId) ?? null;
-                          const prevCoreType = currentVersion?.coreType ?? currentVersion?.core_type ?? currentContract?.coreType ?? currentContract?.core_type ?? "core";
-                          const prevCoreTotal = currentVersion?.coreTotal ?? currentVersion?.core_total ?? currentContract?.coreTotal ?? currentContract?.core_total ?? 1;
-                          const prevRatio = currentVersion?.sharedCoreRatio ?? currentVersion?.shared_core_ratio ?? currentContract?.sharingRatio ?? currentContract?.sharing_ratio ?? "1/32";
-                          const prevMonthlyAmount = currentVersion?.monthlyAmount ?? currentVersion?.monthly_amount ?? currentContract?.monthlyAmount ?? currentContract?.monthly_amount ?? 0;
-                          const prevBillingEvery = currentContract?.billingEvery ?? currentContract?.billing_every ?? contract?.billingEvery ?? 1;
-                          const prevBillingUnit = currentContract?.billingUnit ?? currentContract?.billing_unit ?? contract?.billingUnit ?? "bulan";
-                          setRenewalConfirmData({
-                            row,
-                            decision: "lanjut",
-                            file,
-                            followUpId: followUp.id,
-                            usePreviousPackage: true,
-                            packageType: prevCoreType,
-                            coreTotal: prevCoreTotal,
-                            ratio: prevRatio,
-                            monthlyAmount: prevMonthlyAmount,
-                            billingMode: resolveBillingMode(prevBillingEvery, prevBillingUnit),
-                            billingEvery: String(prevBillingEvery ?? 1),
-                            billingUnit: String(prevBillingUnit ?? "bulan"),
-                          });
-                        }}
-                      />
-                    </label>
-                    <label className="relative inline-flex items-center gap-1 h-7 px-2.5 rounded-lg border border-white/10 bg-white/5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:bg-white/10 hover:text-white transition-all cursor-pointer backdrop-blur-md">
-                      Tidak<input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => void handleRespondTenantRenewal(row, "tidak", e.target.files?.[0] ?? null, followUp.id)} />
-                    </label>
-                  </div>
-                ) : (
-                  <span className="text-[8px] font-bold text-white/20">Menunggu upload</span>
-                )
+              {columnType === "renewal" && isLast && canManageTenantContracts && hasInitialTenantRenewalUpload(row) && (
+                <button
+                  className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-white/10 bg-white/5 text-white/40 hover:bg-white/10 hover:text-white transition-all disabled:opacity-30 shadow-sm"
+                  disabled={!hasInitialTenantRenewalUpload(row)}
+                  onClick={() => handleAddTenantRenewalSplit(row.id)}
+                  type="button"
+                  title="Tambah split perpanjangan"
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
+                </button>
               )}
             </div>
           );
@@ -5492,24 +5550,45 @@ function TenantDetailPage({
                           {/* Nomor Kontrak */}
                           <td className="px-4 py-3 border border-white/5 p-0 min-w-[240px] w-[240px]">
                             {isEditingContractRow ? (
-                              <input
-                                className={`min-h-9 w-full bg-transparent px-4 py-2 ${contractNumberTextSizeClass} font-black uppercase tracking-tight text-white border-transparent focus:border-gold-accent/40 focus:bg-white/[0.04] hover:bg-white/[0.02] outline-none transition-all disabled:opacity-50`}
-                                placeholder="Nomor kontrak / BAK"
-                                title={String(contractNumberValue)}
-                                disabled={isSavingContractRow}
-                                value={contractNumberValue}
-                                onChange={(e) => {
-                                  setContractRowEditor((previous) => previous ? { ...previous, contractNumber: e.target.value } : previous);
-                                }}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") {
-                                    e.currentTarget.blur();
-                                  } else if (e.key === "Escape") {
-                                    setContractRowEditor(null);
-                                    e.currentTarget.blur();
-                                  }
-                                }}
-                              />
+                              <div className="flex items-center gap-1.5 px-2 bg-black/40 min-h-9 w-full border border-gold-accent/40">
+                                <input
+                                  className={`flex-1 w-full bg-transparent px-2 py-1 ${contractNumberTextSizeClass} font-black uppercase tracking-tight text-white outline-none disabled:opacity-50`}
+                                  placeholder="Nomor kontrak / BAK"
+                                  title={String(contractNumberValue)}
+                                  disabled={isSavingContractRow}
+                                  value={contractNumberValue}
+                                  onChange={(e) => {
+                                    setContractRowEditor((previous) => previous ? { ...previous, contractNumber: e.target.value } : previous);
+                                  }}
+                                  autoFocus
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                      e.preventDefault();
+                                      void triggerAutoSave();
+                                    } else if (e.key === "Escape") {
+                                      setContractRowEditor(null);
+                                    }
+                                  }}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => void triggerAutoSave()}
+                                  className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all"
+                                  title="Simpan"
+                                  onMouseDown={(e) => e.preventDefault()}
+                                >
+                                  <span className="material-symbols-outlined text-[10px]">check</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setContractRowEditor(null)}
+                                  className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-[#ff2400]/20 text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all"
+                                  title="Batal"
+                                  onMouseDown={(e) => e.preventDefault()}
+                                >
+                                  <span className="material-symbols-outlined text-[10px]">close</span>
+                                </button>
+                              </div>
                             ) : (
                               <button
                                 className={`min-h-9 w-full px-4 py-2 text-left ${contractNumberTextSizeClass} font-black uppercase tracking-tight leading-snug text-white whitespace-normal break-words hover:bg-white/[0.02] focus:bg-white/[0.04] focus:outline-none focus:ring-1 focus:ring-gold-accent/40 transition-all`}
@@ -5542,7 +5621,7 @@ function TenantDetailPage({
                                     className="text-white/40 hover:text-white flex items-center justify-center"
                                     title="Batal berkas baru"
                                   >
-                                    <span className="material-symbols-outlined text-[10px]">close</span>
+                                    <span className="material-symbols-outlined text-[9px]">close</span>
                                   </button>
                                 </div>
                               ) : (isEditingContractRow ? contractRowEditor.contractFileUrl : row.contractFileUrl) ? (
@@ -5552,7 +5631,7 @@ function TenantDetailPage({
                                     href={isEditingContractRow ? contractRowEditor.contractFileUrl : row.contractFileUrl}
                                     target="_blank" rel="noopener noreferrer"
                                   >
-                                    <span className="material-symbols-outlined text-[10px]">visibility</span>
+                                    <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>visibility</span>
                                     Lihat
                                   </a>
                                   <button
@@ -5567,31 +5646,31 @@ function TenantDetailPage({
                                         setContractRowEditor(prev => prev ? { ...prev, contractFileUrl: "" } : null);
                                       }
                                     }}
-                                    className="h-6 w-6 rounded border border-[#ff2400]/20 bg-[#ff2400]/10 flex items-center justify-center text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all"
+                                    className="h-5 w-5 rounded border border-[#ff2400]/20 bg-[#ff2400]/10 flex items-center justify-center text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all shrink-0"
                                     title="Hapus berkas"
                                   >
-                                    <span className="material-symbols-outlined text-[10px]">close</span>
+                                    <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>close</span>
                                   </button>
                                 </div>
                               ) : (
                                 <button
                                   type="button"
                                   onClick={() => openContractRowEditor(row, "contractFile")}
-                                  className="inline-flex h-7 items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all"
+                                  className="inline-flex h-6 items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all shrink-0"
                                 >
-                                  <span className="material-symbols-outlined text-[12px]">upload_file</span>
+                                  <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>upload_file</span>
                                   Upload
                                 </button>
                               )}
 
-                              {isEditingContractRow && (
-                                <label
-                                  className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded border border-white/10 bg-white/5 text-white/40 hover:text-white hover:border-white/20 transition-all"
-                                  onClick={() => { isSelectingFileRef.current = true; }}
-                                  title="Ganti berkas"
-                                >
-                                  <span className="material-symbols-outlined text-[12px]">upload_file</span>
-                                  <input
+                              {isEditingContractRow ? (
+                                                                <label
+                                                                    className="inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-white/10 bg-white/5 text-white/40 hover:text-white hover:border-white/20 transition-all shrink-0"
+                                                                    onClick={() => { isSelectingFileRef.current = true; }}
+                                                                    title="Ganti berkas"
+                                                                >
+                                                                    <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>upload_file</span>
+                                                                    <input
                                     type="file"
                                     className="hidden"
                                     disabled={isSavingContractRow}
@@ -5618,7 +5697,16 @@ function TenantDetailPage({
                                     }}
                                   />
                                 </label>
-                              )}
+                                                            ) : canManageTenantContracts && row.contractFileUrl && (
+                                                                <button
+                                                                    type="button"
+                                                                    className="inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-white/10 bg-white/5 text-white/40 hover:text-white hover:border-white/20 transition-all shrink-0"
+                                                                    onClick={() => openContractRowEditor(row, "contractFile")}
+                                                                    title="Ganti berkas"
+                                                                >
+                                                                    <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>upload_file</span>
+                                                                </button>
+                                                            )}
                             </div>
                           </td>
 
@@ -5774,7 +5862,7 @@ function TenantDetailPage({
                                     className="text-white/40 hover:text-white flex items-center justify-center"
                                     title="Batal berkas baru"
                                   >
-                                    <span className="material-symbols-outlined text-[10px]">close</span>
+                                    <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>close</span>
                                   </button>
                                 </div>
                               ) : (isEditingContractRow ? contractRowEditor.bakFileUrl : row.bakFileUrl) ? (
@@ -5784,7 +5872,7 @@ function TenantDetailPage({
                                     href={isEditingContractRow ? contractRowEditor.bakFileUrl : row.bakFileUrl}
                                     target="_blank" rel="noopener noreferrer"
                                   >
-                                    <span className="material-symbols-outlined text-[10px]">visibility</span>
+                                    <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>visibility</span>
                                     Lihat
                                   </a>
                                   <button
@@ -5802,7 +5890,7 @@ function TenantDetailPage({
                                     className="h-6 w-6 rounded border border-[#ff2400]/20 bg-[#ff2400]/10 flex items-center justify-center text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all"
                                     title="Hapus berkas"
                                   >
-                                    <span className="material-symbols-outlined text-[10px]">close</span>
+                                    <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>close</span>
                                   </button>
                                 </div>
                               ) : (
@@ -5816,14 +5904,14 @@ function TenantDetailPage({
                                 </button>
                               )}
 
-                              {isEditingContractRow && (
-                                <label
-                                  className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded border border-white/10 bg-white/5 text-white/40 hover:text-white hover:border-white/20 transition-all"
-                                  onClick={() => { isSelectingFileRef.current = true; }}
-                                  title="Ganti berkas"
-                                >
-                                  <span className="material-symbols-outlined text-[12px]">upload_file</span>
-                                  <input
+                              {isEditingContractRow ? (
+                                    <label
+                                        className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded border border-white/10 bg-white/5 text-white/40 hover:text-white hover:border-white/20 transition-all"
+                                        onClick={() => { isSelectingFileRef.current = true; }}
+                                        title="Ganti berkas"
+                                    >
+                                        <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>upload_file</span>
+                                        <input
                                     type="file"
                                     className="hidden"
                                     disabled={isSavingContractRow}
@@ -5850,23 +5938,23 @@ function TenantDetailPage({
                                     }}
                                   />
                                 </label>
-                              )}
+                                ) : canManageTenantContracts && row.bakFileUrl && (
+                                    <button
+                                        type="button"
+                                        className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded border border-white/10 bg-white/5 text-white/40 hover:text-white hover:border-white/20 transition-all"
+                                        onClick={() => openContractRowEditor(row, "bakFile")}
+                                        title="Ganti berkas"
+                                    >
+                                        <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>upload_file</span>
+                                    </button>
+                                )}
                             </div>
                           </td>
 
                           {/* Perpanjangan */}
                           <td className="px-4 py-3 whitespace-nowrap border border-white/5">
-                            <div className="space-y-2">
+                            <div className="flex items-center justify-center gap-2">
                               {renderTenantRenewalFollowUps(row, "renewal")}
-                              {hasInitialTenantRenewalUpload(row) && (
-                                <button
-                                  className="inline-flex items-center gap-1 h-7 px-2.5 rounded-lg border border-blue-500/20 bg-blue-500/10 text-blue-400 text-[8px] font-black uppercase tracking-widest hover:bg-blue-500 hover:text-white transition-all backdrop-blur-md"
-                                  onClick={() => void handleAddTenantRenewalSplit(row)}
-                                >
-                                  <span className="material-symbols-outlined text-[11px]">add</span>
-                                  Split
-                                </button>
-                              )}
                             </div>
                           </td>
 
@@ -6310,7 +6398,7 @@ function TenantDetailPage({
                                     value={secondWarningDraft.invoiceNumber}
                                   />
                                   <label className="relative inline-flex h-6 w-full cursor-pointer items-center justify-center gap-1.5 rounded border border-orange-500/20 bg-orange-500/10 px-2 text-[7px] font-black uppercase tracking-widest text-orange-200 transition-all hover:border-orange-500/40">
-                                    <span className="material-symbols-outlined text-[10px]">upload_file</span>
+                                    <span className="material-symbols-outlined" style={{ fontSize: '10px' }}>upload_file</span>
                                     Upload SP2
                                     <input
                                       className="absolute inset-0 cursor-pointer opacity-0"
