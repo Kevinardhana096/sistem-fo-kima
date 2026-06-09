@@ -2369,11 +2369,33 @@ function TenantDetailPage({
     );
   };
 
-  const archiveActiveInvoicesForContract = async (targetContractId) => {
+  const getActivePersistedInvoiceIdsForContract = (targetContractId) => {
+    const normalizedContractId = Number(targetContractId);
+    if (!Number.isFinite(normalizedContractId)) {
+      return [];
+    }
+
+    return invoices
+      .filter((invoice) => {
+        const invoiceId = Number(invoice?.id);
+        const invoiceContractId = Number(invoice?.contractId ?? invoice?.contract_id);
+        const scheduleStatus = String(invoice?.scheduleStatus ?? invoice?.schedule_status ?? "").toLowerCase();
+        return Number.isFinite(invoiceId)
+          && invoiceContractId === normalizedContractId
+          && scheduleStatus !== "history";
+      })
+      .map((invoice) => Number(invoice.id));
+  };
+
+  const archiveActiveInvoicesForContract = async (targetContractId, invoiceIds = null) => {
     const normalizedContractId = Number(targetContractId);
     if (!Number.isFinite(normalizedContractId)) {
       return;
     }
+
+    const explicitInvoiceIds = Array.isArray(invoiceIds)
+      ? new Set(invoiceIds.map((invoiceId) => Number(invoiceId)).filter(Number.isFinite))
+      : null;
 
     const activePersistedInvoices = invoices.filter((invoice) => {
       const invoiceId = Number(invoice?.id);
@@ -2381,7 +2403,8 @@ function TenantDetailPage({
       const scheduleStatus = String(invoice?.scheduleStatus ?? invoice?.schedule_status ?? "").toLowerCase();
       return Number.isFinite(invoiceId)
         && invoiceContractId === normalizedContractId
-        && scheduleStatus !== "history";
+        && scheduleStatus !== "history"
+        && (!explicitInvoiceIds || explicitInvoiceIds.has(invoiceId));
     });
 
     await Promise.all(
@@ -2532,6 +2555,11 @@ function TenantDetailPage({
   };
 
   const openVersionEditor = () => {
+    if (!canManageTenantContracts) {
+      setError("Hanya admin yang dapat mengubah paket kontrak tenant.");
+      return;
+    }
+
     const latestVersion = versions[0];
     const packageType = latestVersion?.sharedCoreRatio ?? contract?.sharingRatio ? "sharing_core" : "core";
     const monthlyAmount = Number(latestVersion?.monthlyAmount ?? latestVersion?.monthly_amount ?? 0);
@@ -2549,12 +2577,7 @@ function TenantDetailPage({
     setVersionError("");
   };
 
-  const openContractRowEditor = (row, focusField = null) => {
-    if (!row?.contractId) {
-      setError("Data kontrak tidak valid untuk diedit.");
-      return;
-    }
-
+  const buildContractRowEditorState = (row, focusField = null) => {
     const isVersionRow = Boolean(row.versionId);
     const contractDoc = isVersionRow
       ? contractDocumentByVersionId.get(Number(row.versionId)) ?? null
@@ -2563,7 +2586,7 @@ function TenantDetailPage({
       ? bakDocumentByVersionId.get(Number(row.versionId)) ?? bakDocumentByContractId.get(Number(row.contractId)) ?? null
       : bakDocumentByContractId.get(Number(row.contractId)) ?? null;
 
-    setContractRowEditor({
+    return {
       rowId: row.id,
       contractId: row.contractId,
       versionId: row.versionId,
@@ -2585,7 +2608,21 @@ function TenantDetailPage({
       contractDocId: contractDoc?.id ?? null,
       bakDocId: bakDoc?.id ?? null,
       focusField,
-    });
+    };
+  };
+
+  const openContractRowEditor = (row, focusField = null) => {
+    if (!canManageTenantContracts) {
+      setError("Hanya admin yang dapat mengubah data kontrak tenant.");
+      return;
+    }
+
+    if (!row?.contractId) {
+      setError("Data kontrak tidak valid untuk diedit.");
+      return;
+    }
+
+    setContractRowEditor(buildContractRowEditorState(row, focusField));
     setError("");
   };
 
@@ -2624,7 +2661,7 @@ function TenantDetailPage({
     const targetTab = getOverviewTodoTargetTab(item);
     setActiveTab(targetTab);
 
-    if (targetTab === "contracts" && canEditTenant) {
+    if (targetTab === "contracts" && canManageTenantContracts) {
       const targetContractRow =
         contractRowsForTable.find((row) => row.id === primaryContractRowMarkerId) ??
         contractRowsForTable.find((row) => row.isActive) ??
@@ -2721,13 +2758,14 @@ function TenantDetailPage({
     if (event && event.preventDefault) {
       event.preventDefault();
     }
-    if (!contractRowEditor) {
+    const { __editorState: editorStateOverride, ...fieldOverrides } = overrides;
+    if (!contractRowEditor && !editorStateOverride) {
       return;
     }
 
     const editorState = {
-      ...contractRowEditor,
-      ...overrides,
+      ...(editorStateOverride ?? contractRowEditor),
+      ...fieldOverrides,
     };
 
     const contractNumber = String(editorState.contractNumber ?? "").trim();
@@ -2755,21 +2793,16 @@ function TenantDetailPage({
     setDocumentFeedback("");
 
     try {
-      // Delete documents if they were cleared or are being replaced by a new uploaded file
-      if (editorState.contractDocId && (!editorState.contractFileUrl || contractUploadedFile)) {
-        try {
-          await api.documents.delete(editorState.contractDocId);
-        } catch (e) {
-          console.warn("Failed to delete previous contract document:", e);
-        }
-      }
-      if (editorState.bakDocId && (!editorState.bakFileUrl || bakUploadedFile)) {
-        try {
-          await api.documents.delete(editorState.bakDocId);
-        } catch (e) {
-          console.warn("Failed to delete previous BAK document:", e);
-        }
-      }
+      const shouldDeletePreviousContractDocument = Boolean(
+        editorState.contractDocId && (!editorState.contractFileUrl || contractUploadedFile),
+      );
+      const shouldDeletePreviousBakDocument = Boolean(
+        editorState.bakDocId && (!editorState.bakFileUrl || bakUploadedFile),
+      );
+      const hasDocumentRemoval = Boolean(
+        (editorState.contractDocId && !editorState.contractFileUrl && !(contractUploadedFile instanceof File))
+        || (editorState.bakDocId && !editorState.bakFileUrl && !(bakUploadedFile instanceof File)),
+      );
 
       const originalRow = contractRowsForTable.find((row) => row.id === editorState.rowId);
       const originalMonthlyAmount = Number(originalRow?.monthlyAmount ?? 0);
@@ -2929,10 +2962,27 @@ function TenantDetailPage({
         uploadDocumentIfNeeded(bakUploadedFile, "BAK", "bak"),
       ]);
 
+      // Hapus dokumen lama hanya setelah upload/insert dokumen pengganti selesai,
+      // agar kegagalan upload tidak membuat arsip legal kehilangan berkas lama.
+      await Promise.all([
+        shouldDeletePreviousContractDocument
+          ? api.documents.delete(editorState.contractDocId).catch((deleteError) => {
+            console.warn("Failed to delete previous contract document:", deleteError);
+          })
+          : Promise.resolve(),
+        shouldDeletePreviousBakDocument
+          ? api.documents.delete(editorState.bakDocId).catch((deleteError) => {
+            console.warn("Failed to delete previous BAK document:", deleteError);
+          })
+          : Promise.resolve(),
+      ]);
+
       setContractRowEditor(null);
       const feedbackMsg = hasFileUpload && !hasDataChanges
         ? "Berkas berhasil diunggah."
-        : "Data baris kontrak berhasil diperbarui.";
+        : hasDocumentRemoval && !hasDataChanges
+          ? "Berkas berhasil dihapus."
+          : "Data baris kontrak berhasil diperbarui.";
       setDocumentFeedback(feedbackMsg);
       await Promise.all([loadDetail(), onRefreshAll?.()]);
     } catch (requestError) {
@@ -2958,6 +3008,8 @@ function TenantDetailPage({
       String(contractRowEditor.startDate ?? "").slice(0, 10) !== String(originalRow.periodStart ?? "").slice(0, 10) ||
       String(contractRowEditor.endDate ?? "").slice(0, 10) !== String(originalRow.periodEnd ?? "").slice(0, 10) ||
       parseRupiahInput(contractRowEditor.monthlyAmount) !== Number(originalRow.monthlyAmount ?? 0) ||
+      String(contractRowEditor.contractFileUrl ?? "").trim() !== String(originalRow.contractFileUrl ?? "").trim() ||
+      String(contractRowEditor.bakFileUrl ?? "").trim() !== String(originalRow.bakFileUrl ?? "").trim() ||
       contractRowEditor.contractUploadedFile !== null ||
       contractRowEditor.bakUploadedFile !== null;
 
@@ -3941,6 +3993,11 @@ function TenantDetailPage({
   };
 
   const handleAddTenantRenewalSplit = async (row) => {
+    if (!canManageTenantContracts) {
+      setError("Hanya admin yang dapat menambah split tindak lanjut tenant.");
+      return;
+    }
+
     if (!row?.contractId || !row?.versionId) {
       setError(
         "Versi kontrak tenant belum tersedia untuk split tindak lanjut.",
@@ -4009,6 +4066,11 @@ function TenantDetailPage({
   };
 
   const handleUploadTenantRenewal = async (row, file, followUpId = null) => {
+    if (!canManageTenantContracts) {
+      setError("Hanya admin yang dapat mengunggah perpanjangan tenant.");
+      return;
+    }
+
     if (!file || !row?.contractId) {
       return;
     }
@@ -4049,12 +4111,20 @@ function TenantDetailPage({
     packageOverrides = null,
     billingCycle = null,
   ) => {
+    if (!canManageTenantContracts) {
+      setError("Hanya admin yang dapat mengunggah tanggapan perpanjangan tenant.");
+      return;
+    }
+
     if (!file || !row?.contractId) {
       return;
     }
 
     setError("");
     try {
+      const invoiceIdsToArchiveAfterRenewal = billingCycle
+        ? getActivePersistedInvoiceIdsForContract(row.contractId)
+        : [];
       const versionId = await ensureContractRenewalVersionId(row);
       const responseFileUrl = await uploadFileForRecord(file, ["customers", customer.id, "renewal-responses"]);
       const updatePayload = {
@@ -4068,17 +4138,20 @@ function TenantDetailPage({
       }
       if (billingCycle) {
         updatePayload.billingCycle = billingCycle;
-        await api.contracts.update(row.contractId, {
-          billingEvery: billingCycle.every,
-          billingUnit: billingCycle.unit,
-        });
-        await archiveActiveInvoicesForContract(row.contractId);
       }
       if (followUpId) {
         await api.contractVersionRenewalFollowUps.update(followUpId, updatePayload);
       } else {
         const followUp = await api.contractVersionRenewalFollowUps.create(versionId);
         await api.contractVersionRenewalFollowUps.update(followUp.id, updatePayload);
+      }
+
+      if (billingCycle) {
+        await api.contracts.update(row.contractId, {
+          billingEvery: billingCycle.every,
+          billingUnit: billingCycle.unit,
+        });
+        await archiveActiveInvoicesForContract(row.contractId, invoiceIdsToArchiveAfterRenewal);
       }
 
       await Promise.all([loadDetail(), onRefreshAll?.()]);
@@ -4104,6 +4177,40 @@ function TenantDetailPage({
     const followUps = Array.isArray(row?.renewalFollowUps)
       ? row.renewalFollowUps
       : [];
+
+    if (!canManageTenantContracts) {
+      const readonlyFollowUps = columnType === "response"
+        ? followUps.filter((followUp) => isOpenableFileUrl(followUp?.responseFileUrl)).slice(-1)
+        : followUps.filter((followUp) => isOpenableFileUrl(followUp?.renewalFileUrl));
+
+      if (readonlyFollowUps.length === 0) {
+        return <span className="text-[10px] font-black text-white/20">—</span>;
+      }
+
+      return (
+        <div className="flex flex-col gap-1.5 items-center justify-center">
+          {readonlyFollowUps.map((followUp) => (
+            <button
+              key={followUp.id}
+              onClick={() => openSafeFile(
+                columnType === "response" ? followUp.responseFileUrl : followUp.renewalFileUrl,
+                columnType === "response" ? followUp.responseFileName : followUp.renewalFileName,
+              )}
+              className={`inline-flex h-5 items-center gap-1 rounded-md border px-1.5 text-[8px] font-black uppercase tracking-widest transition-all shrink-0 ${columnType === "response"
+                ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-[#0f141e]"
+                : "border-gold-accent/20 bg-gold-accent/10 text-gold-accent hover:bg-gold-accent hover:text-[#0f141e]"
+              }`}
+              type="button"
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>
+                {columnType === "response" ? "open_in_new" : "visibility"}
+              </span>
+              {columnType === "response" ? "Tanggapan" : "Lihat"}
+            </button>
+          ))}
+        </div>
+      );
+    }
 
     if (followUps.length === 0) {
       if (columnType === "renewal") {
@@ -5390,14 +5497,16 @@ function TenantDetailPage({
                   <h2 className="text-[14px] md:text-base font-black text-white tracking-tight uppercase">Manajemen Kontrak Tenant</h2>
                   <p className="text-[10px] font-bold text-white/50 leading-relaxed mt-0.5">Arsip legal dan perpanjangan layanan.</p>
                 </div>
-                <button
-                  className="h-8 px-4 flex items-center gap-2 rounded-lg bg-gold-accent text-[#0f141e] hover:scale-105 active:scale-95 transition-all shadow-gold-glow text-[9px] font-black uppercase tracking-widest shrink-0"
-                  onClick={openVersionEditor}
-                  type="button"
-                >
-                  <span className="material-symbols-outlined text-[14px]">upgrade</span>
-                  Ubah / Upgrade Paket
-                </button>
+                {canManageTenantContracts && (
+                  <button
+                    className="h-8 px-4 flex items-center gap-2 rounded-lg bg-gold-accent text-[#0f141e] hover:scale-105 active:scale-95 transition-all shadow-gold-glow text-[9px] font-black uppercase tracking-widest shrink-0"
+                    onClick={openVersionEditor}
+                    type="button"
+                  >
+                    <span className="material-symbols-outlined text-[14px]">upgrade</span>
+                    Ubah / Upgrade Paket
+                  </button>
+                )}
               </div>
 
               {documentFeedback && (
@@ -5562,6 +5671,7 @@ function TenantDetailPage({
                                 className={`min-h-9 w-full px-4 py-2 text-left ${contractNumberTextSizeClass} font-black uppercase tracking-tight leading-snug text-white whitespace-normal break-words hover:bg-white/[0.02] focus:bg-white/[0.04] focus:outline-none focus:ring-1 focus:ring-gold-accent/40 transition-all`}
                                 title={String(contractNumberValue)}
                                 type="button"
+                                disabled={!canManageTenantContracts}
                                 onClick={() => openContractRowEditor(row, null)}
                               >
                                 {contractNumberValue || <span className="text-white/20">Nomor kontrak / BAK</span>}
@@ -5602,25 +5712,25 @@ function TenantDetailPage({
                                     <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>visibility</span>
                                     Lihat
                                   </a>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      if (!isEditingContractRow) {
-                                        openContractRowEditor(row, null);
-                                        setTimeout(() => {
-                                          setContractRowEditor(prev => prev ? { ...prev, contractFileUrl: "" } : null);
-                                        }, 50);
-                                      } else {
-                                        setContractRowEditor(prev => prev ? { ...prev, contractFileUrl: "" } : null);
-                                      }
-                                    }}
-                                    className="h-5 w-5 rounded border border-[#ff2400]/20 bg-[#ff2400]/10 flex items-center justify-center text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all shrink-0"
-                                    title="Hapus berkas"
-                                  >
-                                    <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>close</span>
-                                  </button>
+                                  {canManageTenantContracts && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const baseEditorState = isEditingContractRow
+                                          ? contractRowEditor
+                                          : buildContractRowEditorState(row, null);
+                                        const nextEditorState = { ...baseEditorState, contractFileUrl: "" };
+                                        setContractRowEditor(nextEditorState);
+                                        void handleSaveContractRow(null, { __editorState: nextEditorState });
+                                      }}
+                                      className="h-5 w-5 rounded border border-[#ff2400]/20 bg-[#ff2400]/10 flex items-center justify-center text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all shrink-0"
+                                      title="Hapus berkas"
+                                    >
+                                      <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>close</span>
+                                    </button>
+                                  )}
                                 </div>
-                              ) : (
+                              ) : canManageTenantContracts ? (
                                 <button
                                   type="button"
                                   onClick={() => openContractRowEditor(row, "contractFile")}
@@ -5629,6 +5739,8 @@ function TenantDetailPage({
                                   <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>upload_file</span>
                                   Upload
                                 </button>
+                              ) : (
+                                <span className="text-[10px] font-black text-white/20">—</span>
                               )}
 
                               {isEditingContractRow ? (
@@ -5698,16 +5810,10 @@ function TenantDetailPage({
                               className="h-9 w-full"
                               hideIcon={true}
                               inputClass="w-full h-full bg-transparent px-2 text-[10px] font-black text-white border-transparent focus:border-gold-accent/40 focus:bg-white/[0.04] hover:bg-white/[0.02] outline-none transition-all text-center disabled:opacity-50"
-                              disabled={isSavingContractRow}
-                              value={isEditingContractRow ? (contractRowEditor.startDate ?? "") : (contractPeriodInfo.contractStartDate ?? "").slice(0, 10)}
-                              onChange={(val) => {
-                                setContractRowEditor((previous) => previous ? { ...previous, startDate: val } : previous);
-                              }}
-                              onFocus={() => {
-                                if (!isEditingContractRow) {
-                                  openContractRowEditor(row, null);
-                                }
-                              }}
+                              disabled={true}
+                              value={(contractPeriodInfo.contractStartDate ?? "").slice(0, 10)}
+                              onChange={() => {}}
+                              onFocus={() => {}}
                               onKeyDown={(e) => {
                                 if (e.key === "Enter") {
                                   e.currentTarget.blur();
@@ -5725,7 +5831,7 @@ function TenantDetailPage({
                               className="h-9 w-full"
                               hideIcon={true}
                               inputClass="w-full h-full bg-transparent px-2 text-[10px] font-black text-white border-transparent focus:border-gold-accent/40 focus:bg-white/[0.04] hover:bg-white/[0.02] outline-none transition-all text-center disabled:opacity-50"
-                              disabled={isSavingContractRow}
+                              disabled={isSavingContractRow || !canManageTenantContracts}
                               value={isEditingContractRow ? (contractRowEditor.startDate ?? "") : (row.periodStart ?? "").slice(0, 10)}
                               onChange={(val) => {
                                 setContractRowEditor((previous) => previous ? { ...previous, startDate: val } : previous);
@@ -5752,7 +5858,7 @@ function TenantDetailPage({
                               className="h-9 w-full"
                               hideIcon={true}
                               inputClass="w-full h-full bg-transparent px-2 text-[10px] font-black text-white border-transparent focus:border-gold-accent/40 focus:bg-white/[0.04] hover:bg-white/[0.02] outline-none transition-all text-center disabled:opacity-50"
-                              disabled={isSavingContractRow}
+                              disabled={isSavingContractRow || !canManageTenantContracts}
                               value={isEditingContractRow ? (contractRowEditor.endDate ?? "") : (row.periodEnd ?? "").slice(0, 10)}
                               onChange={(val) => {
                                 setContractRowEditor((previous) => previous ? { ...previous, endDate: val } : previous);
@@ -5789,7 +5895,7 @@ function TenantDetailPage({
                               className="h-9 w-full bg-transparent px-4 text-[11px] font-black text-white border-transparent focus:border-gold-accent/40 focus:bg-white/[0.04] hover:bg-white/[0.02] outline-none transition-all text-right disabled:opacity-50"
                               type="text"
                               placeholder="Nominal / bulan"
-                              disabled={isSavingContractRow}
+                              disabled={isSavingContractRow || !canManageTenantContracts}
                               value={isEditingContractRow ? (contractRowEditor.monthlyAmount ?? "") : (formatRupiahInput(row.monthlyAmount) ?? "")}
                               onChange={(e) => {
                                 setContractRowEditor((previous) => previous ? { ...previous, monthlyAmount: formatRupiahInput(e.target.value) } : previous);
@@ -5843,25 +5949,25 @@ function TenantDetailPage({
                                     <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>visibility</span>
                                     Lihat
                                   </a>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      if (!isEditingContractRow) {
-                                        openContractRowEditor(row, null);
-                                        setTimeout(() => {
-                                          setContractRowEditor(prev => prev ? { ...prev, bakFileUrl: "" } : null);
-                                        }, 50);
-                                      } else {
-                                        setContractRowEditor(prev => prev ? { ...prev, bakFileUrl: "" } : null);
-                                      }
-                                    }}
-                                    className="h-6 w-6 rounded border border-[#ff2400]/20 bg-[#ff2400]/10 flex items-center justify-center text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all"
-                                    title="Hapus berkas"
-                                  >
-                                    <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>close</span>
-                                  </button>
+                                  {canManageTenantContracts && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const baseEditorState = isEditingContractRow
+                                          ? contractRowEditor
+                                          : buildContractRowEditorState(row, null);
+                                        const nextEditorState = { ...baseEditorState, bakFileUrl: "" };
+                                        setContractRowEditor(nextEditorState);
+                                        void handleSaveContractRow(null, { __editorState: nextEditorState });
+                                      }}
+                                      className="h-6 w-6 rounded border border-[#ff2400]/20 bg-[#ff2400]/10 flex items-center justify-center text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all"
+                                      title="Hapus berkas"
+                                    >
+                                      <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>close</span>
+                                    </button>
+                                  )}
                                 </div>
-                              ) : (
+                              ) : canManageTenantContracts ? (
                                 <button
                                   type="button"
                                   onClick={() => openContractRowEditor(row, "bakFile")}
@@ -5870,9 +5976,11 @@ function TenantDetailPage({
                                   <span className="material-symbols-outlined text-[12px]">upload_file</span>
                                   Upload
                                 </button>
+                              ) : (
+                                <span className="text-[10px] font-black text-white/20">—</span>
                               )}
 
-                              {isEditingContractRow ? (
+                              {isEditingContractRow && canManageTenantContracts ? (
                                     <label
                                         className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded border border-white/10 bg-white/5 text-white/40 hover:text-white hover:border-white/20 transition-all"
                                         onClick={() => { isSelectingFileRef.current = true; }}
@@ -7319,10 +7427,27 @@ function TenantDetailPage({
                     let packageOverrides = null;
                     if (!usePreviousPackage) {
                       const parsedAmount = parseRupiahInput(monthlyAmount);
+                      const parsedCoreTotal = Number(coreTotal);
+                      const normalizedPackageType = packageType === "sharing_core" ? "sharing_core" : "core";
+                      const normalizedRatio = String(ratio ?? "").trim();
+
+                      if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+                        setError("Nominal paket perpanjangan wajib lebih dari 0.");
+                        return;
+                      }
+                      if (normalizedPackageType === "core" && (!Number.isFinite(parsedCoreTotal) || parsedCoreTotal <= 0)) {
+                        setError("Jumlah core paket perpanjangan wajib lebih dari 0.");
+                        return;
+                      }
+                      if (normalizedPackageType === "sharing_core" && !/^[1-9]\d*[:/][1-9]\d*$/.test(normalizedRatio)) {
+                        setError("Rasio sharing core perpanjangan tidak valid. Gunakan format seperti 1:8 atau 1/32.");
+                        return;
+                      }
+
                       packageOverrides = {
-                        coreType: packageType,
-                        coreTotal: packageType === "core" ? Number(coreTotal) : 0,
-                        sharedCoreRatio: packageType === "sharing_core" ? ratio : null,
+                        coreType: normalizedPackageType,
+                        coreTotal: normalizedPackageType === "core" ? parsedCoreTotal : 0,
+                        sharedCoreRatio: normalizedPackageType === "sharing_core" ? normalizedRatio.replace("/", ":") : null,
                         monthlyAmount: parsedAmount,
                         yearlyAmount: parsedAmount * 12,
                       };
