@@ -393,7 +393,7 @@ function resolveInvoiceStatusMeta(invoice) {
   };
 }
 
-function GlassSelect({ label, value, onChange, options, placeholder = "Pilih opsi", className = "", textClass = "text-[10px] font-black uppercase tracking-widest", optionTextClass = "text-[9px] font-black uppercase tracking-widest" }) {
+function GlassSelect({ label, value, onChange, options, placeholder = "Pilih opsi", className = "", textClass = "text-[10px] font-black uppercase tracking-widest", optionTextClass = "text-[9px] font-black uppercase tracking-widest", disabled = false }) {
   const [isOpen, setIsOpen] = useState(false);
   const selectedOption = options.find((opt) => opt.value === value);
 
@@ -406,7 +406,8 @@ function GlassSelect({ label, value, onChange, options, placeholder = "Pilih ops
       )}
       <div className="relative">
         <button
-          className={`group flex ${className || "h-10"} w-full items-center justify-between rounded-xl border border-white/5 bg-white/[0.01] backdrop-blur-3xl px-3 ${textClass} text-white outline-none transition-all focus:border-gold-accent/40 focus:bg-white/[0.04]`}
+          className={`group flex ${className || "h-10"} w-full items-center justify-between rounded-xl border border-white/5 bg-white/[0.01] backdrop-blur-3xl px-3 ${textClass} text-white outline-none transition-all focus:border-gold-accent/40 focus:bg-white/[0.04] disabled:cursor-not-allowed disabled:opacity-40`}
+          disabled={disabled}
           onClick={() => setIsOpen(!isOpen)}
           type="button"
         >
@@ -421,7 +422,7 @@ function GlassSelect({ label, value, onChange, options, placeholder = "Pilih ops
           </span>
         </button>
 
-        {isOpen && (
+        {isOpen && !disabled && (
           <>
             <div
               className="fixed inset-0 z-[60]"
@@ -519,6 +520,20 @@ const parseRupiahInput = (value) => {
   if (!value) return 0;
   const numberString = String(value).replace(/[^0-9]/g, "");
   return Number(numberString) || 0;
+};
+
+const isValidIsoDate = (value) => {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return false;
+  }
+
+  const [year, month, day] = value.split("-").map(Number);
+  const parsedDate = new Date(`${value}T00:00:00.000Z`);
+
+  return Number.isFinite(parsedDate.getTime())
+    && parsedDate.getUTCFullYear() === year
+    && parsedDate.getUTCMonth() + 1 === month
+    && parsedDate.getUTCDate() === day;
 };
 
 const getDaysUntilIsoDate = (targetDateValue, todayIso) => {
@@ -3914,6 +3929,11 @@ function TenantDetailPage({
   };
 
   const handleApplyBulkInvoiceUpdates = async () => {
+    if (!canManageTenantContracts) {
+      setError("Hanya admin yang dapat memperbarui invoice secara massal.");
+      return;
+    }
+
     const isSelectedMode = selectedInvoiceIds.size > 0;
     const targetInvoices = isSelectedMode
       ? invoiceRows.filter((row) => selectedInvoiceIds.has(row.id))
@@ -3934,6 +3954,11 @@ function TenantDetailPage({
       return;
     }
 
+    if (hasDueDate && !isValidIsoDate(dueDate)) {
+      setError("Tanggal batas bayar harus berupa tanggal valid.");
+      return;
+    }
+
     const requestedAmount = hasAmount ? parseRupiahInput(amount) : null;
     if (hasAmount && (!Number.isFinite(requestedAmount) || requestedAmount < 0)) {
       setError("Nominal harus diisi dengan angka valid.");
@@ -3945,41 +3970,77 @@ function TenantDetailPage({
     setInvoiceFeedback("");
 
     try {
-      await Promise.all(
-        targetInvoices.map((invoice) => {
-          if (String(invoice.id).startsWith("schedule-")) {
-            return Promise.resolve();
-          }
+      const operations = targetInvoices.map((invoice) => {
+        const updatePayload = {};
+        if (hasDueDate) updatePayload.dueDate = dueDate;
+        if (hasAmount) updatePayload.amount = requestedAmount;
+        if (hasStatus) {
+          updatePayload.status = status;
+          updatePayload.paidAt = status === "lunas"
+            ? (invoice.paidAt || new Date().toISOString())
+            : null;
+        }
 
-          const updatePayload = {};
-          if (hasDueDate) updatePayload.due_date = dueDate;
-          if (hasAmount) updatePayload.amount = requestedAmount;
-          if (hasStatus) updatePayload.status = status;
+        const promise = isSchedulePlaceholder(invoice)
+          ? persistActiveInvoice(invoice, {
+            ...updatePayload,
+            dueDate: hasDueDate ? dueDate : invoice.dueDate,
+            amount: hasAmount ? requestedAmount : Number(invoice.amount ?? 0),
+            status: hasStatus ? status : String(invoice.status ?? "belum_ditagih"),
+            scheduleStatus: "active",
+          })
+          : api.invoices.update(invoice.id, updatePayload);
 
-          return api.invoices.update(invoice.id, updatePayload);
-        }),
-      );
-
-      setInvoiceDrafts((previousDrafts) => {
-        const nextDrafts = { ...previousDrafts };
-
-        targetInvoices.forEach((invoice) => {
-          const previousDraft = previousDrafts[invoice.id] ?? {};
-          nextDrafts[invoice.id] = { ...previousDraft };
-
-          if (hasDueDate) nextDrafts[invoice.id].dueDate = dueDate;
-          if (hasAmount) nextDrafts[invoice.id].amount = formatRupiahInput(requestedAmount);
-          if (hasStatus) nextDrafts[invoice.id].status = status;
-        });
-
-        return nextDrafts;
+        return { invoice, promise };
       });
 
-      setInvoiceFeedback(`Berhasil memperbarui ${targetInvoices.length} data invoice.`);
-      setInvoiceBulkForm({ dueDate: "", amount: "", status: "" });
-      if (isSelectedMode) {
-        setSelectedInvoiceIds(new Set());
+      const operationResults = await Promise.allSettled(
+        operations.map((operation) => operation.promise),
+      );
+      const successfulInvoices = operations
+        .filter((_, index) => operationResults[index].status === "fulfilled")
+        .map((operation) => operation.invoice);
+      const failedResults = operationResults.filter((result) => result.status === "rejected");
+
+      if (successfulInvoices.length > 0) {
+        setInvoiceDrafts((previousDrafts) => {
+          const nextDrafts = { ...previousDrafts };
+
+          successfulInvoices.forEach((invoice) => {
+            const previousDraft = previousDrafts[invoice.id] ?? {};
+            nextDrafts[invoice.id] = { ...previousDraft };
+
+            if (hasDueDate) nextDrafts[invoice.id].dueDate = dueDate;
+            if (hasAmount) nextDrafts[invoice.id].amount = formatRupiahInput(requestedAmount);
+            if (hasStatus) nextDrafts[invoice.id].status = status;
+          });
+
+          return nextDrafts;
+        });
       }
+
+      if (failedResults.length > 0) {
+        const firstError = failedResults[0].reason;
+        const firstErrorMessage = firstError instanceof Error
+          ? firstError.message
+          : "Sebagian invoice gagal diperbarui.";
+
+        if (successfulInvoices.length === 0) {
+          throw new Error(firstErrorMessage);
+        }
+
+        setError(
+          `Sebagian invoice gagal diperbarui (${failedResults.length}/${targetInvoices.length}). Detail pertama: ${firstErrorMessage}`,
+        );
+        setInvoiceFeedback(`Berhasil memperbarui ${successfulInvoices.length} dari ${targetInvoices.length} data invoice.`);
+      } else {
+        setInvoiceFeedback(`Berhasil memperbarui ${successfulInvoices.length} data invoice.`);
+        setInvoiceBulkForm({ dueDate: "", amount: "", status: "" });
+        if (isSelectedMode) {
+          setSelectedInvoiceIds(new Set());
+        }
+      }
+
       await Promise.all([loadDetail(), onRefreshAll?.()]);
     } catch (requestError) {
       setError(
@@ -6175,18 +6236,20 @@ function TenantDetailPage({
                       value={invoiceBulkForm.dueDate}
                       onChange={(val) => setInvoiceBulkForm(p => ({ ...p, dueDate: val }))}
                       className="h-8 w-32 rounded-lg border border-white/10 bg-white/[0.02] transition-all focus-within:border-gold-accent/50 focus-within:bg-white/5"
-                      inputClass="w-full h-full bg-transparent px-2.5 text-[10px] font-bold text-white outline-none"
+                      inputClass="w-full h-full bg-transparent px-2.5 text-[10px] font-bold text-white outline-none disabled:cursor-not-allowed disabled:opacity-40"
+                      disabled={!canManageTenantContracts}
                     />
                   </div>
 
                   <div className="flex flex-col gap-1.5">
                     <p className="text-[8px] font-black uppercase tracking-[0.3em] text-white/30 px-1">Nominal (Rp)</p>
                     <input
-                      className="h-8 w-28 rounded-lg border border-white/10 bg-white/[0.02] px-2.5 text-[10px] font-bold text-white outline-none focus:border-gold-accent/50 transition-all placeholder:text-white/20"
+                      className="h-8 w-28 rounded-lg border border-white/10 bg-white/[0.02] px-2.5 text-[10px] font-bold text-white outline-none focus:border-gold-accent/50 transition-all placeholder:text-white/20 disabled:cursor-not-allowed disabled:opacity-40"
                       onChange={(e) => {
                         const val = formatRupiahInput(parseRupiahInput(e.target.value));
                         setInvoiceBulkForm(p => ({ ...p, amount: val }));
                       }}
+                      disabled={!canManageTenantContracts}
                       type="text"
                       value={invoiceBulkForm.amount}
                       placeholder="Kosongkan..."
@@ -6199,17 +6262,18 @@ function TenantDetailPage({
                       <GlassSelect
                         value={invoiceBulkForm.status}
                         onChange={(value) => setInvoiceBulkForm(p => ({ ...p, status: value }))}
-                        options={[{ value: "", label: "Kosongkan..." }, ...INVOICE_STATUS_OPTIONS]}
+                        options={[{ value: "", label: "Jangan Ubah" }, ...INVOICE_STATUS_OPTIONS]}
                         className="h-8"
                         textClass="text-[10px] font-bold tracking-wide"
                         optionTextClass="text-[10px] font-bold tracking-wide"
+                        disabled={!canManageTenantContracts}
                       />
                     </div>
                   </div>
 
                   <button
                     className="h-8 w-auto px-4 ml-auto shrink-0 flex items-center justify-center gap-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-[#0f141e] hover:shadow-[0_0_15px_rgba(16,185,129,0.4)] transition-all disabled:opacity-40 backdrop-blur-md"
-                    disabled={isSavingInvoice || invoiceRows.length === 0}
+                    disabled={isSavingInvoice || invoiceRows.length === 0 || !canManageTenantContracts}
                     onClick={() => void handleApplyBulkInvoiceUpdates()}
                     type="button"
                     title="Terapkan Perubahan"
