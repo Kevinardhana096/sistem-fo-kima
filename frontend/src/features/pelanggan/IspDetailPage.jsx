@@ -255,7 +255,6 @@ const FilePickerButton = ({ label, icon, onPickFile, className = "", disabled = 
 const fileActionButtonClass = "inline-flex h-6 items-center gap-1 cursor-pointer font-black text-[8px] uppercase tracking-wider px-2 rounded-md transition-all";
 const fileActionPrimaryClass = "border border-gold-accent/20 bg-gold-accent/10 text-gold-accent hover:bg-gold-accent hover:text-white";
 const fileActionSuccessClass = "border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white";
-const fileActionMutedClass = "border border-white/10 bg-white/5 text-white/30 hover:bg-white/10 hover:text-white";
 
 function IspDetailPage({
     isp,
@@ -1057,8 +1056,6 @@ function IspDetailPage({
             } else {
                 await api.ispContractRows.update(rowId, updates);
             }
-            clearRowDraft(rowId);
-            setEditingContractRowId((current) => (current === rowId ? null : current));
             await loadDetail();
         } catch { setError("Gagal memperbarui data baris."); } finally { setIsActionLoading(false); }
     };
@@ -2515,7 +2512,6 @@ function IspDetailPage({
                                                         ? 'bg-[#ff2400]/10 text-[#ff2400] border-[#ff2400]/20'
                                                         : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
                                                 const contractStartValue = row.contractStartDate ?? detail?.contractStartDate ?? detail?.contract_start_date ?? isp.contractStartDate ?? isp.contract_start_date;
-                                                const editableCellButtonClass = `w-full min-h-8 rounded-lg px-2 py-1 text-center text-[11px] font-bold uppercase transition-all ${canManageIspContracts ? 'text-white/70 hover:bg-white/[0.04] hover:text-white focus:outline-none focus:ring-1 focus:ring-gold-accent/40' : 'text-white/60'}`;
 
                                                 return (
                                                 <tr
