@@ -68,6 +68,16 @@ const getIspActionCounts = (isp, notificationCountsByIspId = {}) => {
 };
 
 const getTenantActionCounts = (tenant, notificationCountsByCustomerId = {}) => {
+    if (tenant?.actionSummary) {
+        const priority = Number(tenant.actionSummary.priority ?? 0);
+        const needAction = Number(tenant.actionSummary.needAction ?? 0);
+        return {
+            priority,
+            needAction,
+            total: Number(tenant.actionSummary.total ?? priority + needAction),
+        };
+    }
+
     const customerId = Number(tenant?.id);
     const notificationCounts = Number.isFinite(customerId) ? notificationCountsByCustomerId[customerId] : null;
     const activeNotificationCount = Number(notificationCounts?.active ?? 0);
