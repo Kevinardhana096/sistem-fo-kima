@@ -81,22 +81,6 @@ const buildPrimaryIspContractRowPayload = (source = {}) => ({
 const isSyntheticPrimaryRowId = (rowId) => String(rowId ?? '').startsWith('primary-isp-contract-');
 const isPendingPrimaryRenewalFollowUpId = (followUpId) => String(followUpId ?? '').startsWith('pending-primary-renewal-');
 
-const buildPendingPrimaryRenewalFollowUp = (rowId, fileUrl, fileName) => ({
-    id: `pending-primary-renewal-${rowId}`,
-    rowId,
-    splitOrder: 1,
-    source: 'upload',
-    title: 'Surat perpanjangan dikirim',
-    description: 'Berkas perpanjangan ISP sudah diunggah dari detail ISP.',
-    status: 'pending_response',
-    renewalFileUrl: fileUrl,
-    renewalFileName: fileName,
-    responseFileUrl: null,
-    responseFileName: null,
-    responseStatus: null,
-    isPendingPrimaryRenewal: true,
-});
-
 const getIspRowDate = (value) => String(value ?? '').slice(0, 10);
 
 const isSamePrimaryIspContractPeriod = (row, primaryRow) => {
@@ -343,6 +327,38 @@ function IspDetailPage({
             bakFileUrl: row.bakFileUrl ?? "",
             focusField,
         });
+    };
+
+
+    const requireIspContractManageAccess = () => {
+        if (canManageIspContracts) return true;
+        setError("Hanya admin yang dapat mengubah rincian kontrak dan adendum ISP.");
+        return false;
+    };
+
+    const buildPersistablePrimaryContractRowPayload = () => {
+        const rowPayload = buildPrimaryIspContractRowPayload(detail ?? isp);
+        const periodStart = String(rowPayload.periodStart ?? "").slice(0, 10);
+        const periodEnd = String(rowPayload.periodEnd ?? "").slice(0, 10);
+
+        if (!periodStart || !periodEnd) {
+            throw new Error("Lengkapi periode berjalan kontrak utama sebelum membuat perpanjangan.");
+        }
+
+        if (periodStart > periodEnd) {
+            throw new Error("Periode kontrak utama tidak valid. Periode awal tidak boleh lebih besar dari periode akhir.");
+        }
+
+        return { ...rowPayload, periodStart, periodEnd };
+    };
+
+    const persistPrimaryContractRow = async () => {
+        const existingPrimaryRow = contractRows.find((row) => row?.isPrimaryIspContract === false && isSamePrimaryIspContractPeriod(row, buildPrimaryIspContractRow(detail, isp)));
+        if (existingPrimaryRow?.id && Number.isFinite(Number(existingPrimaryRow.id))) {
+            return existingPrimaryRow;
+        }
+
+        return api.ispContractRows.create(buildPersistablePrimaryContractRowPayload());
     };
 
     const openUserPopup = async () => {
@@ -717,41 +733,49 @@ function IspDetailPage({
 
     const handleFileUpload = async (rowId, type, file, followUpId = null) => {
         if (!file) return;
+        if (!requireIspContractManageAccess()) return;
         setIsActionLoading(true);
         setError("");
         try {
             const targetRow = contractRows.find((row) => row.id === rowId);
 
-            if (
-                type === "renewal"
-                && (targetRow?.isPrimaryIspContract || isSyntheticPrimaryRowId(rowId))
-            ) {
-                const fileDataUrl = await uploadFileForRecord(file, ["isps", isp.id, "renewals"]);
-                setPendingPrimaryRenewals((previous) => ({
-                    ...previous,
-                    [rowId]: buildPendingPrimaryRenewalFollowUp(rowId, fileDataUrl, file.name),
-                }));
-                return;
-            }
-
-            if (type === "renewal" && !followUpId) {
+            if (type === "renewal") {
                 let actualRowId = rowId;
+                let actualFollowUpId = followUpId;
+
+                if (targetRow?.isPrimaryIspContract || isSyntheticPrimaryRowId(rowId)) {
+                    const persistedPrimaryRow = await persistPrimaryContractRow();
+                    actualRowId = persistedPrimaryRow?.id;
+                }
 
                 if (!actualRowId || !Number.isFinite(Number(actualRowId))) {
                     throw new Error("Baris kontrak ISP belum siap untuk perpanjangan.");
                 }
 
-                const createdFollowUp = await api.ispRenewalFollowUps.createForContractRow(actualRowId);
-                const createdFollowUpId = createdFollowUp?.id;
-                if (!createdFollowUpId) {
+                if (!actualFollowUpId || isPendingPrimaryRenewalFollowUpId(actualFollowUpId)) {
+                    const createdFollowUp = await api.ispRenewalFollowUps.createForContractRow(actualRowId);
+                    actualFollowUpId = createdFollowUp?.id;
+                }
+
+                if (!actualFollowUpId || !Number.isFinite(Number(actualFollowUpId))) {
                     throw new Error("Gagal membuat baris perpanjangan.");
                 }
 
                 const fileDataUrl = await uploadFileForRecord(file, ["isps", isp.id, "renewals"]);
-                await api.ispRenewalFollowUps.update(createdFollowUpId, {
+                await api.ispRenewalFollowUps.update(actualFollowUpId, {
                     renewal_file_url: fileDataUrl,
                     renewal_file_name: file.name,
+                    status: 'pending_response',
                 });
+
+                if (targetRow?.isPrimaryIspContract || isSyntheticPrimaryRowId(rowId)) {
+                    setPendingPrimaryRenewals((previous) => {
+                        const next = { ...previous };
+                        delete next[rowId];
+                        return next;
+                    });
+                }
+
                 await loadDetail();
                 if (onRefreshAll) onRefreshAll();
                 return;
@@ -764,11 +788,6 @@ function IspDetailPage({
                     contract: { contractFileUrl: fileDataUrl, contractFileName: file.name },
                 };
                 await api.isps.update(isp.id, fieldMap[type]);
-            } else if (type === "renewal" && followUpId) {
-                await api.ispRenewalFollowUps.update(followUpId, {
-                    renewal_file_url: fileDataUrl,
-                    renewal_file_name: file.name,
-                });
             } else {
                 const fieldMap = {
                     bak: { bak_file_url: fileDataUrl, bak_file_name: file.name },
@@ -787,6 +806,7 @@ function IspDetailPage({
 
     const handleRespondRenewal = async (rowId, decision, file, followUpId = null) => {
         if (!file) { setError("Harap pilih berkas tanggapan."); return; }
+        if (!requireIspContractManageAccess()) return;
         if (!followUpId) {
             setError("Berkas tanggapan harus menempel pada baris perpanjangan.");
             return;
@@ -794,16 +814,23 @@ function IspDetailPage({
         setIsActionLoading(true);
         setError("");
         try {
+            const targetRow = contractRows.find((row) => row.id === rowId);
+            const followUps = targetRow?.isPrimaryIspContract
+                ? (pendingPrimaryRenewals[rowId] ? [pendingPrimaryRenewals[rowId]] : [])
+                : (Array.isArray(targetRow?.renewalFollowUps) ? targetRow.renewalFollowUps : []);
+            const targetFollowUp = followUps.find((followUp) => String(followUp?.id) === String(followUpId));
+
+            if (!isOpenableFileUrl(targetFollowUp?.renewalFileUrl)) {
+                throw new Error("Unggah berkas perpanjangan terlebih dahulu sebelum mengirim tanggapan.");
+            }
+
             const fileDataUrl = await uploadFileForRecord(file, ["isps", isp.id, "responses"]);
             if (isPendingPrimaryRenewalFollowUpId(followUpId)) {
-                const targetRow = contractRows.find((row) => row.id === rowId);
-                const pendingRenewal = pendingPrimaryRenewals[rowId];
-                if (!targetRow?.isPrimaryIspContract || !pendingRenewal?.renewalFileUrl) {
+                if (!targetRow?.isPrimaryIspContract) {
                     throw new Error("Berkas perpanjangan belum siap untuk ditanggapi.");
                 }
 
-                const rowPayload = buildPrimaryIspContractRowPayload(detail ?? isp);
-                const createdRow = await api.ispContractRows.create(rowPayload);
+                const createdRow = await persistPrimaryContractRow();
                 const actualRowId = createdRow?.id;
                 if (!actualRowId || !Number.isFinite(Number(actualRowId))) {
                     throw new Error("Baris kontrak ISP belum siap untuk tanggapan.");
@@ -811,8 +838,8 @@ function IspDetailPage({
 
                 const createdFollowUp = await api.ispRenewalFollowUps.createForContractRow(actualRowId);
                 await api.ispRenewalFollowUps.update(createdFollowUp.id, {
-                    renewal_file_url: pendingRenewal.renewalFileUrl,
-                    renewal_file_name: pendingRenewal.renewalFileName,
+                    renewal_file_url: targetFollowUp.renewalFileUrl,
+                    renewal_file_name: targetFollowUp.renewalFileName,
                     status: 'completed',
                     response_file_url: fileDataUrl,
                     response_file_name: file.name,
@@ -842,14 +869,14 @@ function IspDetailPage({
     };
 
     const handleAddRenewalSplit = async (rowId) => {
+        if (!requireIspContractManageAccess()) return;
         setIsActionLoading(true);
         setError("");
         try {
             const targetRow = contractRows.find((row) => row.id === rowId);
             let actualRowId = rowId;
             if (targetRow?.isPrimaryIspContract || isSyntheticPrimaryRowId(rowId)) {
-                const rowPayload = buildPrimaryIspContractRowPayload(detail ?? isp);
-                const createdRow = await api.ispContractRows.create(rowPayload);
+                const createdRow = await persistPrimaryContractRow();
                 actualRowId = createdRow?.id;
             }
 
@@ -881,6 +908,9 @@ function IspDetailPage({
 
         if (followUps.length === 0) {
             if (columnType === "renewal") {
+                if (!canManageIspContracts) {
+                    return <span className="text-[10px] font-bold text-white/20">Belum diunggah</span>;
+                }
                 return (
                     <FilePickerButton
                         label="Upload"
@@ -916,13 +946,15 @@ function IspDetailPage({
                                                 <button onClick={() => openSafeFile(followUp.renewalFileUrl, followUp.renewalFileName)} className="inline-flex h-5 items-center gap-1 rounded-md border border-gold-accent/20 bg-gold-accent/10 px-1.5 text-[8px] font-black uppercase tracking-widest text-gold-accent hover:bg-gold-accent hover:text-[#0f141e] transition-all shrink-0">
                                                     <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>visibility</span>Lihat
                                                 </button>
-                                                <FilePickerButton
-                                                    label="Ganti"
-                                                    className="inline-flex h-5 items-center gap-1 rounded-md border border-white/10 bg-white/5 px-1.5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all shrink-0"
-                                                    icon={<span className="material-symbols-outlined" style={{ fontSize: '14px' }}>upload_file</span>}
-                                                    onPickFile={(file) => void handleFileUpload(row.id, "renewal", file, followUp.id)}
-                                                />
-                                                {!isFirst && (
+                                                {canManageIspContracts && (
+                                                    <FilePickerButton
+                                                        label="Ganti"
+                                                        className="inline-flex h-5 items-center gap-1 rounded-md border border-white/10 bg-white/5 px-1.5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all shrink-0"
+                                                        icon={<span className="material-symbols-outlined" style={{ fontSize: '14px' }}>upload_file</span>}
+                                                        onPickFile={(file) => void handleFileUpload(row.id, "renewal", file, followUp.id)}
+                                                    />
+                                                )}
+                                                {canManageIspContracts && !isFirst && (
                                                     <button 
                                                         onClick={async () => {
                                                             if (window.confirm("Apakah Anda yakin ingin menghapus split tindak lanjut ini?")) {
@@ -947,13 +979,17 @@ function IspDetailPage({
                                             </>
                                         ) : (
                                             <>
-                                                <FilePickerButton
-                                                    label="Upload"
-                                                    className="inline-flex h-5 items-center gap-1 rounded-md border border-white/10 bg-white/5 px-1.5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all shrink-0"
-                                                    icon={<span className="material-symbols-outlined" style={{ fontSize: '14px' }}>upload_file</span>}
-                                                    onPickFile={(file) => void handleFileUpload(row.id, "renewal", file, followUp.id)}
-                                                />
-                                                {!isFirst && (
+                                                {canManageIspContracts ? (
+                                                    <FilePickerButton
+                                                        label="Upload"
+                                                        className="inline-flex h-5 items-center gap-1 rounded-md border border-white/10 bg-white/5 px-1.5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all shrink-0"
+                                                        icon={<span className="material-symbols-outlined" style={{ fontSize: '14px' }}>upload_file</span>}
+                                                        onPickFile={(file) => void handleFileUpload(row.id, "renewal", file, followUp.id)}
+                                                    />
+                                                ) : (
+                                                    <span className="text-[10px] font-bold text-white/20">Belum diunggah</span>
+                                                )}
+                                                {canManageIspContracts && !isFirst && (
                                                     <button 
                                                         onClick={async () => {
                                                             if (window.confirm("Apakah Anda yakin ingin menghapus split tindak lanjut ini?")) {
@@ -985,14 +1021,16 @@ function IspDetailPage({
                                                 <button onClick={() => openSafeFile(followUp.responseFileUrl, followUp.responseFileName)} className="inline-flex h-5 items-center gap-1 rounded-md border border-emerald-500/20 bg-emerald-500/10 px-1.5 text-[8px] font-black uppercase tracking-widest text-emerald-400 hover:bg-emerald-500 hover:text-[#0f141e] transition-all shrink-0">
                                                     <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>open_in_new</span>Tanggapan
                                                 </button>
-                                                <FilePickerButton
-                                                    label="Ganti"
-                                                    className="inline-flex h-5 items-center gap-1 rounded-md border border-white/10 bg-white/5 px-1.5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all shrink-0"
-                                                    icon={<span className="material-symbols-outlined" style={{ fontSize: '14px' }}>upload_file</span>}
-                                                    onPickFile={(file) => void handleRespondRenewal(row.id, currentDecision, file, followUp.id)}
-                                                />
+                                                {canManageIspContracts && (
+                                                    <FilePickerButton
+                                                        label="Ganti"
+                                                        className="inline-flex h-5 items-center gap-1 rounded-md border border-white/10 bg-white/5 px-1.5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all shrink-0"
+                                                        icon={<span className="material-symbols-outlined" style={{ fontSize: '14px' }}>upload_file</span>}
+                                                        onPickFile={(file) => void handleRespondRenewal(row.id, currentDecision, file, followUp.id)}
+                                                    />
+                                                )}
                                             </>
-                                        ) : (
+                                        ) : canManageIspContracts && hasRenewalFile ? (
                                             <>
                                                 <FilePickerButton
                                                     label="Lanjut"
@@ -1007,12 +1045,14 @@ function IspDetailPage({
                                                     onPickFile={(file) => void handleRespondRenewal(row.id, "tidak", file, followUp.id)}
                                                 />
                                             </>
+                                        ) : (
+                                            <span className="text-[10px] font-black text-white/20">—</span>
                                         )}
                                     </>
                                 )}
                             </div>
                             {columnType === "renewal" && isLast && canManageIspContracts && hasInitialRenewalUpload(row) && (
-                                <button className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-white/10 bg-white/5 text-white/40 hover:bg-white/10 hover:text-white transition-all disabled:opacity-30 shadow-sm" disabled={row.isPrimaryIspContract || !hasInitialRenewalUpload(row)} onClick={() => handleAddRenewalSplit(row.id)} type="button" title="Tambah split perpanjangan">
+                                <button className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-white/10 bg-white/5 text-white/40 hover:bg-white/10 hover:text-white transition-all disabled:opacity-30 shadow-sm" disabled={!hasInitialRenewalUpload(row)} onClick={() => handleAddRenewalSplit(row.id)} type="button" title="Tambah split perpanjangan">
                                     <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
                                 </button>
                             )}
@@ -1113,6 +1153,14 @@ function IspDetailPage({
                 updates.bak_file_url = await uploadFileForRecord(currentEditor.bakUploadedFile, ["isps", isp.id, "bak"]);
                 updates.bak_file_name = currentEditor.bakUploadedFile.name;
             }
+            if (!(currentEditor.contractUploadedFile instanceof File) && !String(currentEditor.contractFileUrl ?? "").trim()) {
+                updates.contract_file_url = null;
+                updates.contract_file_name = null;
+            }
+            if (!(currentEditor.bakUploadedFile instanceof File) && !String(currentEditor.bakFileUrl ?? "").trim()) {
+                updates.bak_file_url = null;
+                updates.bak_file_name = null;
+            }
             await handleUpdateRow(currentEditor.rowId, updates);
             setContractRowEditor(null);
             return true;
@@ -1141,6 +1189,8 @@ function IspDetailPage({
             String(contractRowEditor.contractStartDate ?? "").slice(0, 10) !== String(originalContractStartDate ?? "").slice(0, 10) ||
             String(contractRowEditor.periodStart ?? "").slice(0, 10) !== String(originalRow.periodStart ?? "").slice(0, 10) ||
             String(contractRowEditor.periodEnd ?? "").slice(0, 10) !== String(originalRow.periodEnd ?? "").slice(0, 10) ||
+            String(contractRowEditor.contractFileUrl ?? "").trim() !== String(originalRow.contractFileUrl ?? "").trim() ||
+            String(contractRowEditor.bakFileUrl ?? "").trim() !== String(originalRow.bakFileUrl ?? "").trim() ||
             contractRowEditor.contractUploadedFile !== null ||
             contractRowEditor.bakUploadedFile !== null;
 
@@ -1173,6 +1223,7 @@ function IspDetailPage({
 
     const handleSaveContractDraft = async () => {
         if (!contractDraft) return;
+        if (!requireIspContractManageAccess()) return;
 
         const contractReference = String(contractDraft.contractReference ?? "").trim();
         const contractStartDate = String(contractDraft.contractStartDate ?? "").slice(0, 10);
@@ -2604,23 +2655,25 @@ function IspDetailPage({
                                                                     <button type="button" onClick={() => openSafeFile(isEditingContractRow ? contractRowEditor.contractFileUrl : row.contractFileUrl, row.contractFileName)} className={`${fileActionButtonClass} ${fileActionPrimaryClass}`}>
                                                                         <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>description</span>Buka Kontrak
                                                                     </button>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => {
-                                                                            if (!isEditingContractRow) {
-                                                                                openContractRowEditor(row, null);
-                                                                                setTimeout(() => {
+                                                                    {canManageIspContracts && (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => {
+                                                                                if (!isEditingContractRow) {
+                                                                                    openContractRowEditor(row, null);
+                                                                                    setTimeout(() => {
+                                                                                        setContractRowEditor(prev => prev ? { ...prev, contractFileUrl: "" } : null);
+                                                                                    }, 50);
+                                                                                } else {
                                                                                     setContractRowEditor(prev => prev ? { ...prev, contractFileUrl: "" } : null);
-                                                                                }, 50);
-                                                                            } else {
-                                                                                setContractRowEditor(prev => prev ? { ...prev, contractFileUrl: "" } : null);
-                                                                            }
-                                                                        }}
-                                                                        className="h-5 w-5 rounded border border-[#ff2400]/20 bg-[#ff2400]/10 flex items-center justify-center text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all shrink-0"
-                                                                        title="Hapus berkas"
-                                                                    >
-                                                                        <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>close</span>
-                                                                    </button>
+                                                                                }
+                                                                            }}
+                                                                            className="h-5 w-5 rounded border border-[#ff2400]/20 bg-[#ff2400]/10 flex items-center justify-center text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all shrink-0"
+                                                                            title="Hapus berkas"
+                                                                        >
+                                                                            <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>close</span>
+                                                                        </button>
+                                                                    )}
                                                                 </div>
                                                             ) : !canManageIspContracts ? (
                                                                 <span className="text-[10px] font-bold text-white/20">Belum diunggah</span>
@@ -2774,23 +2827,25 @@ function IspDetailPage({
                                                                     <button type="button" onClick={() => openSafeFile(isEditingContractRow ? contractRowEditor.bakFileUrl : row.bakFileUrl, row.bakFileName)} className={`${fileActionButtonClass} ${fileActionSuccessClass}`}>
                                                                         <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>task_alt</span>Buka BAK
                                                                     </button>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => {
-                                                                            if (!isEditingContractRow) {
-                                                                                openContractRowEditor(row, null);
-                                                                                setTimeout(() => {
+                                                                    {canManageIspContracts && (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => {
+                                                                                if (!isEditingContractRow) {
+                                                                                    openContractRowEditor(row, null);
+                                                                                    setTimeout(() => {
+                                                                                        setContractRowEditor(prev => prev ? { ...prev, bakFileUrl: "" } : null);
+                                                                                    }, 50);
+                                                                                } else {
                                                                                     setContractRowEditor(prev => prev ? { ...prev, bakFileUrl: "" } : null);
-                                                                                }, 50);
-                                                                            } else {
-                                                                                setContractRowEditor(prev => prev ? { ...prev, bakFileUrl: "" } : null);
-                                                                            }
-                                                                        }}
-                                                                        className="h-5 w-5 rounded border border-[#ff2400]/20 bg-[#ff2400]/10 flex items-center justify-center text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all shrink-0"
-                                                                        title="Hapus berkas"
-                                                                    >
-                                                                        <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>close</span>
-                                                                    </button>
+                                                                                }
+                                                                            }}
+                                                                            className="h-5 w-5 rounded border border-[#ff2400]/20 bg-[#ff2400]/10 flex items-center justify-center text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all shrink-0"
+                                                                            title="Hapus berkas"
+                                                                        >
+                                                                            <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>close</span>
+                                                                        </button>
+                                                                    )}
                                                                 </div>
                                                             ) : !canManageIspContracts ? (
                                                                 <span className="text-[10px] font-bold text-white/20">Belum diunggah</span>
