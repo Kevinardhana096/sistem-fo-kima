@@ -5090,19 +5090,19 @@ export const ispRenewalFollowUpsApi = {
 
       const todayIso = new Date().toISOString().slice(0, 10);
       const currentRowStatus = resolveIspContractRowStatus(currentRow, todayIso);
-      if (currentRowStatus !== 'beroperasi') {
+      if (currentRowStatus === 'berhenti') {
         return data;
       }
 
-    const currentEnd = String(currentRow.periodEnd ?? currentRow.period_end ?? '').slice(0, 10);
-    if (!currentEnd) {
-      return data;
-    }
+      const currentEnd = String(currentRow.periodEnd ?? currentRow.period_end ?? '').slice(0, 10);
+      if (!currentEnd) {
+        return data;
+      }
 
-    const currentRowId = Number(currentRow.id);
-    if (!Number.isFinite(currentRowId)) {
-      return data;
-    }
+      const currentRowId = Number(currentRow.id);
+      if (!Number.isFinite(currentRowId)) {
+        return data;
+      }
 
       const nextPeriodStart = String(new Date(`${currentEnd}T00:00:00.000Z`).toISOString().slice(0, 10));
       const nextPeriodStartDate = new Date(`${nextPeriodStart}T00:00:00.000Z`);
