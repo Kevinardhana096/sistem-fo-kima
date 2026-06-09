@@ -18,13 +18,29 @@ const KIMA_ICON = L.icon({
   className: "fo-kima-marker",
 });
 
-function createEntryPointIcon(label, isDefault) {
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function createEntryPointIcon(label, isDefault, logoUrl = "") {
   const color = isDefault ? "#f59e0b" : "#0ea5e9";
+  const safeLabel = escapeHtml(label || "Titik Masuk ISP");
+  const safeLogoUrl = String(logoUrl ?? "").trim();
+  const inner = safeLogoUrl
+    ? `<img src="${escapeHtml(safeLogoUrl)}" alt="${safeLabel}" style="width:22px;height:22px;object-fit:contain;transform:rotate(45deg);" />`
+    : '<span style="transform:rotate(45deg);font-size:10px;font-weight:800;color:white;">FO</span>';
+  const background = safeLogoUrl ? "white" : color;
+
   return L.divIcon({
     className: "",
-    html: `<div style="position:relative;width:28px;height:34px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.4));cursor:grab;">
-      <div style="width:28px;height:28px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:${color};display:flex;align-items:center;justify-content:center;">
-        <span style="transform:rotate(45deg);font-size:10px;font-weight:800;color:white;">FO</span>
+    html: `<div title="${safeLabel}" style="position:relative;width:28px;height:34px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.4));cursor:grab;">
+      <div style="width:28px;height:28px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:${background};border:2px solid ${color};display:flex;align-items:center;justify-content:center;overflow:hidden;">
+        ${inner}
       </div>
     </div>`,
     iconSize: [28, 34],
@@ -88,6 +104,7 @@ export default function IspEntryPointMap({
   onEditPoint,
   onDeletePoint,
   readOnly = false,
+  ispLogoUrl = "",
 }) {
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -117,6 +134,7 @@ export default function IspEntryPointMap({
       onRequestClose={() => setIsFullscreen(false)}
       onRequestFullscreen={() => setIsFullscreen(true)}
       readOnly={readOnly}
+      ispLogoUrl={ispLogoUrl}
     />
   );
 
@@ -148,6 +166,7 @@ function EntryPointMapSurface({
   onRequestClose,
   onRequestFullscreen,
   readOnly,
+  ispLogoUrl,
 }) {
   const mapRef = useRef(null);
 
@@ -239,7 +258,7 @@ function EntryPointMapSurface({
           const lat = Number(point.latitude);
           const lng = Number(point.longitude);
           if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
-          const icon = createEntryPointIcon(point.label, point.isDefault);
+          const icon = createEntryPointIcon(point.label, point.isDefault, ispLogoUrl);
           return (
             <Marker
               key={point.id}
