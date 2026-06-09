@@ -3496,25 +3496,7 @@ function TenantDetailPage({
     });
   };
 
-  const handleInvoiceFixedAmountChange = (e) => {
-    const input = e.target;
-    const rawValue = input.value;
-    const selectionStart = input.selectionStart;
-    const oldLength = rawValue.length;
-    const formatted = formatRupiahInput(rawValue);
 
-    setInvoiceFixedAmount(formatted);
-
-    requestAnimationFrame(() => {
-      const newLength = formatted.length;
-      const lengthDiff = newLength - oldLength;
-      let newSelectionStart = selectionStart + lengthDiff;
-      newSelectionStart = Math.max(0, Math.min(newSelectionStart, newLength));
-      if (typeof input.setSelectionRange === "function") {
-        input.setSelectionRange(newSelectionStart, newSelectionStart);
-      }
-    });
-  };
 
   const updateInvoiceFollowUpDraftField = (invoiceId, followUpKey, field, value) => {
     setInvoiceDrafts((previousDrafts) => {
@@ -3853,49 +3835,7 @@ function TenantDetailPage({
     }
   };
 
-  const handleMarkInvoicePaid = async (invoice) => {
-    const isPending = invoice?.workflowMeta?.key === "pending" || invoice?.statusMeta?.key === "pending";
-    if (!isPending && !hasAnyUploadedInvoiceFile(invoice)) {
-      setError("Upload invoice terlebih dahulu sebelum konfirmasi pembayaran.");
-      return;
-    }
 
-    setIsSavingInvoice(true);
-    setError("");
-    setInvoiceFeedback("");
-    try {
-      const paidAt = new Date().toISOString();
-      let persistedInvoiceId = invoice.id;
-
-      if (isSchedulePlaceholder(invoice)) {
-        const draft = getInvoiceDraft(invoice);
-        const amount = parseRupiahInput(draft.amount) || Number(invoice.amount) || 0;
-
-        const persistedInvoice = await persistActiveInvoice(invoice, {
-          dueDate: draft.dueDate || invoice.dueDate,
-          amount,
-          status: "lunas",
-          paidAt: paidAt,
-          invoiceNumber: String(draft.invoiceNumber ?? "").trim() || null,
-          scheduleStatus: "active",
-        });
-        persistedInvoiceId = persistedInvoice.id;
-      } else {
-        await api.invoices.update(invoice.id, { paidAt, status: "lunas" });
-      }
-
-      setInvoiceFeedback(`Invoice #${persistedInvoiceId} ditandai sudah bayar.`);
-      await Promise.all([loadDetail(), onRefreshAll?.()]);
-    } catch (requestError) {
-      setError(
-        requestError instanceof Error
-          ? requestError.message
-          : "Gagal mengonfirmasi pembayaran.",
-      );
-    } finally {
-      setIsSavingInvoice(false);
-    }
-  };
 
   const handleToggleSelectAllInvoices = () => {
     if (selectedInvoiceIds.size === displayInvoiceRows.length) {

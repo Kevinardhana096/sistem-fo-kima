@@ -7,10 +7,8 @@ import {
     formatCoreAllocation,
     formatCurrency,
     formatDate,
-    formatDateTime,
     getRemainingRentalDays,
     getMonthStatusClass,
-    parseDateValue,
     toTitleCase,
 } from "../../app/utils";
 import api from "../../lib/api";
@@ -425,7 +423,7 @@ function MonitoringSpreadsheetPage({
         } finally {
             setIsLoadingSupplementary(false);
         }
-    }, [appliedFilters.year, billingRows]);
+    }, [appliedFilters.year]);
 
     const loadHistoryData = useCallback(async () => {
         setIsLoadingHistory(true);
@@ -596,12 +594,7 @@ function MonitoringSpreadsheetPage({
 
 
 
-    const yearOptions = [
-        String(Number(currentYear) - 2),
-        String(Number(currentYear) - 1),
-        currentYear,
-        String(Number(currentYear) + 1),
-    ];
+
 
     const availablePackages = useMemo(() => {
         const pkts = billingRows

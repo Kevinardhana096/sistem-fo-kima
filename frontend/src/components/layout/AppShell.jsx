@@ -397,15 +397,7 @@ function TopNav({
         }
     };
 
-    const handleMarkRead = async (event, notification) => {
-        event.stopPropagation();
-        try {
-            await api.notifications.markRead(notification.id);
-            await loadNotifications();
-        } catch (error) {
-            console.error("Failed to mark notification as read:", error);
-        }
-    };
+
 
     const unreadCount = notifications.filter((notification) => !notification.readAt).length;
 
