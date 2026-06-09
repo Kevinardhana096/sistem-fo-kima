@@ -2418,6 +2418,7 @@ function IspDetailPage({
                                                     onMovePoint={handleMoveEntryPoint}
                                                     onEditPoint={(point) => openEntryPointEditor({ mode: "edit", data: { id: point.id, label: point.label, latitude: String(point.latitude), longitude: String(point.longitude), status: point.status, fiberType: point.fiberType || "", coreCapacity: point.coreCapacity != null ? String(point.coreCapacity) : "", description: point.description || "", isDefault: point.isDefault } })}
                                                     onDeletePoint={handleDeleteEntryPoint}
+                                                    ispLogoUrl={detail?.logoUrl ?? detail?.logo_url ?? isp.logoUrl ?? isp.logo_url ?? ""}
                                                 />
                                             </div>
 
