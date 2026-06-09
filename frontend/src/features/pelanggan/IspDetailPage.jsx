@@ -2523,20 +2523,20 @@ function IspDetailPage({
                                                         <div className="flex flex-col items-center justify-center gap-2">
                                                             <div className="flex items-center justify-center gap-2 flex-wrap">
                                                                 {isOpenableFileUrl(row.contractFileUrl) ? (
-                                                                    <button onClick={() => openSafeFile(row.contractFileUrl, row.contractFileName)} className={`${fileActionButtonClass} ${fileActionPrimaryClass}`} title={row.contractFileName || "Buka berkas kontrak"}><span className="material-symbols-outlined" style={{ fontSize: "14px" }}>description</span>Buka Kontrak</button>
+                                                                    <button onClick={() => openSafeFile(row.contractFileUrl, row.contractFileName)} className={`${fileActionButtonClass} ${fileActionPrimaryClass}`}><span className="material-symbols-outlined" style={{ fontSize: "14px" }}>description</span>Buka</button>
                                                                 ) : !isEditingContractRow ? <span className="text-[10px] font-bold text-white/20">Belum diunggah</span> : null}
                                                                 {isEditingContractRow && (
                                                                     <FilePickerButton
-                                                                        label={isOpenableFileUrl(row.contractFileUrl) ? "Ganti Kontrak" : "Upload Kontrak"}
+                                                                        label={isOpenableFileUrl(row.contractFileUrl) ? "Ganti" : "Upload"}
                                                                         className={`${fileActionButtonClass} ${fileActionMutedClass}`}
                                                                         onPickFile={(file) => setContractRowFileDraft(row.id, 'contract', file)}
                                                                     />
                                                                 )}
                                                             </div>
-                                                            {isEditingContractRow && (draft.contractUploadedFileName ? (
-                                                                <div className="flex max-w-[210px] items-center gap-2 rounded-lg border border-amber-400/20 bg-amber-400/10 px-2 py-1 text-left">
+                                                            {isEditingContractRow && draft.contractUploadedFileName && (
+                                                                <div className="flex max-w-[190px] items-center gap-2 rounded-lg border border-amber-400/20 bg-amber-400/10 px-2 py-1 text-left">
                                                                     <span className="material-symbols-outlined text-amber-300" style={{ fontSize: "13px" }}>pending</span>
-                                                                    <span className="min-w-0 flex-1 truncate text-[9px] font-bold text-amber-100" title={draft.contractUploadedFileName}>Siap ganti kontrak: {draft.contractUploadedFileName}</span>
+                                                                    <span className="min-w-0 flex-1 truncate text-[9px] font-bold text-amber-100" title={draft.contractUploadedFileName}>Siap ganti: {draft.contractUploadedFileName}</span>
                                                                     <button type="button" className="text-white/40 hover:text-white" onClick={() => clearContractRowFileDraft(row.id, 'contract')} title="Batalkan ganti file kontrak">
                                                                         <span className="material-symbols-outlined" style={{ fontSize: "13px" }}>close</span>
                                                                     </button>
@@ -2544,6 +2544,7 @@ function IspDetailPage({
                                                             ) : (
                                                                 <p className="max-w-[210px] text-center text-[8px] font-bold uppercase tracking-widest text-white/20">Pilih file kontrak baru lalu simpan baris</p>
                                                             ))}
+                                                            )}
                                                         </div>
                                                     </td>
                                                     <td className="px-3 py-2.5 border-r border-white/10 text-center">
