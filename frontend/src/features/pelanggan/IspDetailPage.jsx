@@ -2541,6 +2541,9 @@ function IspDetailPage({
                                                                         <span className="material-symbols-outlined" style={{ fontSize: "13px" }}>close</span>
                                                                     </button>
                                                                 </div>
+                                                            ) : (
+                                                                <p className="max-w-[210px] text-center text-[8px] font-bold uppercase tracking-widest text-white/20">Pilih file kontrak baru lalu simpan baris</p>
+                                                            ))}
                                                             )}
                                                         </div>
                                                     </td>
