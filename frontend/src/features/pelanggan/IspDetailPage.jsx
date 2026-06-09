@@ -376,12 +376,20 @@ function IspDetailPage({
         setError("");
     };
 
-    const setContractRowFileDraft = (rowId, type, file) => {
-        if (!file) return;
+    const setContractRowFileDraft = (row, type, file) => {
+        if (!file || !row) return;
         const filePatch = type === "bak"
             ? { bakUploadedFile: file, bakUploadedFileName: file.name }
             : { contractUploadedFile: file, contractUploadedFileName: file.name };
-        setRowDraft(rowId, filePatch);
+        setEditingContractRowId(row.id);
+        setInlineDrafts((prev) => ({
+            ...prev,
+            [row.id]: {
+                ...createRowDraft(row),
+                ...(prev[row.id] ?? {}),
+                ...filePatch,
+            },
+        }));
         setError("");
     };
 
@@ -2523,13 +2531,13 @@ function IspDetailPage({
                                                         <div className="flex flex-col items-center justify-center gap-2">
                                                             <div className="flex items-center justify-center gap-2 flex-wrap">
                                                                 {isOpenableFileUrl(row.contractFileUrl) ? (
-                                                                    <button onClick={() => openSafeFile(row.contractFileUrl, row.contractFileName)} className={`${fileActionButtonClass} ${fileActionPrimaryClass}`}><span className="material-symbols-outlined" style={{ fontSize: "14px" }}>description</span>Buka</button>
-                                                                ) : !isEditingContractRow ? <span className="text-[10px] font-bold text-white/20">Belum diunggah</span> : null}
-                                                                {isEditingContractRow && (
+                                                                    <button onClick={() => openSafeFile(row.contractFileUrl, row.contractFileName)} className={`${fileActionButtonClass} ${fileActionPrimaryClass}`}><span className="material-symbols-outlined" style={{ fontSize: "14px" }}>description</span>Buka Kontrak</button>
+                                                                ) : !canManageIspContracts ? <span className="text-[10px] font-bold text-white/20">Belum diunggah</span> : null}
+                                                                {canManageIspContracts && (
                                                                     <FilePickerButton
-                                                                        label={isOpenableFileUrl(row.contractFileUrl) ? "Ganti" : "Upload"}
+                                                                        label={isOpenableFileUrl(row.contractFileUrl) ? "Ganti Kontrak" : "Upload Kontrak"}
                                                                         className={`${fileActionButtonClass} ${fileActionMutedClass}`}
-                                                                        onPickFile={(file) => setContractRowFileDraft(row.id, 'contract', file)}
+                                                                        onPickFile={(file) => setContractRowFileDraft(row, 'contract', file)}
                                                                     />
                                                                 )}
                                                             </div>
@@ -2537,7 +2545,7 @@ function IspDetailPage({
                                                                 draft.contractUploadedFileName ? (
                                                                     <div className="flex max-w-[190px] items-center gap-2 rounded-lg border border-amber-400/20 bg-amber-400/10 px-2 py-1 text-left">
                                                                         <span className="material-symbols-outlined text-amber-300" style={{ fontSize: "13px" }}>pending</span>
-                                                                        <span className="min-w-0 flex-1 truncate text-[9px] font-bold text-amber-100" title={draft.contractUploadedFileName}>Siap ganti: {draft.contractUploadedFileName}</span>
+                                                                        <span className="min-w-0 flex-1 truncate text-[9px] font-bold text-amber-100" title={draft.contractUploadedFileName}>Siap ganti kontrak: {draft.contractUploadedFileName}</span>
                                                                         <button type="button" className="text-white/40 hover:text-white" onClick={() => clearContractRowFileDraft(row.id, 'contract')} title="Batalkan ganti file kontrak">
                                                                             <span className="material-symbols-outlined" style={{ fontSize: "13px" }}>close</span>
                                                                         </button>
@@ -2616,12 +2624,12 @@ function IspDetailPage({
                                                             <div className="flex items-center justify-center gap-2 flex-wrap">
                                                                 {isOpenableFileUrl(row.bakFileUrl) ? (
                                                                     <button onClick={() => openSafeFile(row.bakFileUrl, row.bakFileName)} className={`${fileActionButtonClass} ${fileActionSuccessClass}`}><span className="material-symbols-outlined" style={{ fontSize: "14px" }}>task_alt</span>Buka BAK</button>
-                                                                ) : !isEditingContractRow ? <span className="text-[10px] font-bold text-white/20">Belum diunggah</span> : null}
-                                                                {isEditingContractRow && (
+                                                                ) : !canManageIspContracts ? <span className="text-[10px] font-bold text-white/20">Belum diunggah</span> : null}
+                                                                {canManageIspContracts && (
                                                                     <FilePickerButton
-                                                                        label={isOpenableFileUrl(row.bakFileUrl) ? "Ganti" : "Upload BAK"}
+                                                                        label={isOpenableFileUrl(row.bakFileUrl) ? "Ganti BAK" : "Upload BAK"}
                                                                         className={`${fileActionButtonClass} ${fileActionMutedClass}`}
-                                                                        onPickFile={(file) => setContractRowFileDraft(row.id, 'bak', file)}
+                                                                        onPickFile={(file) => setContractRowFileDraft(row, 'bak', file)}
                                                                     />
                                                                 )}
                                                             </div>
