@@ -34,13 +34,6 @@ const getContractRowStatus = (row, todayIso) => {
     return periodEnd && periodEnd < todayIso ? "expired" : "beroperasi";
 };
 
-const getContractRowStatusLabel = (row, todayIso) => {
-    const status = getContractRowStatus(row, todayIso);
-    if (status === "expired") return "Belum Diperpanjang";
-    if (status === "berhenti") return "Berhenti";
-    return "Beroperasi";
-};
-
 const buildPrimaryIspContractRow = (ispDetail, fallbackIsp) => {
     const source = ispDetail ?? fallbackIsp ?? {};
     const hasPrimaryContractData = [
@@ -299,6 +292,7 @@ function IspDetailPage({
     const [pendingPrimaryRenewals, setPendingPrimaryRenewals] = useState({});
     const [, setIsActionLoading] = useState(false);
     const [inlineDrafts, setInlineDrafts] = useState({});
+    const [editingContractRowId, setEditingContractRowId] = useState(null);
     const [contractDraft, setContractDraft] = useState(null);
     const [contractDraftSaving, setContractDraftSaving] = useState(false);
     const [risalahRows, setRisalahRows] = useState([]);
@@ -335,6 +329,8 @@ function IspDetailPage({
 
     const getRowDraft = (row) => inlineDrafts[row.id] ?? {
         contractReference: row.contractReference ?? "",
+        status: getIspContractRowEditStatus(row),
+        contractStartDate: row.contractStartDate ?? detail?.contractStartDate ?? detail?.contract_start_date ?? isp.contractStartDate ?? isp.contract_start_date ?? "",
         periodStart: row.periodStart ?? "",
         periodEnd: row.periodEnd ?? "",
     };
@@ -356,6 +352,28 @@ function IspDetailPage({
             delete next[rowId];
             return next;
         });
+    };
+
+    const openContractRowEditor = (row) => {
+        if (!canManageIspContracts) return;
+        setError("");
+        setEditingContractRowId(row.id);
+        setInlineDrafts((prev) => ({
+            ...prev,
+            [row.id]: {
+                contractReference: row.contractReference ?? "",
+                status: getIspContractRowEditStatus(row),
+                contractStartDate: row.contractStartDate ?? detail?.contractStartDate ?? detail?.contract_start_date ?? isp.contractStartDate ?? isp.contract_start_date ?? "",
+                periodStart: row.periodStart ?? "",
+                periodEnd: row.periodEnd ?? "",
+            },
+        }));
+    };
+
+    const cancelContractRowEditor = (rowId) => {
+        clearRowDraft(rowId);
+        setEditingContractRowId(null);
+        setError("");
     };
 
     const openUserPopup = async () => {
@@ -981,6 +999,7 @@ function IspDetailPage({
                 await api.ispContractRows.update(rowId, updates);
             }
             clearRowDraft(rowId);
+            setEditingContractRowId((current) => (current === rowId ? null : current));
             await loadDetail();
         } catch { setError("Gagal memperbarui data baris."); } finally { setIsActionLoading(false); }
     };
@@ -994,19 +1013,19 @@ function IspDetailPage({
 
         if (!contractReference) {
             setError("Nomor kontrak wajib diisi.");
-            return;
+            return false;
         }
         if (!periodStart) {
             setError("Periode berjalan awal wajib diisi.");
-            return;
+            return false;
         }
         if (!periodEnd) {
             setError("Periode berjalan akhir wajib diisi.");
-            return;
+            return false;
         }
         if (periodStart > periodEnd) {
             setError("Periode awal tidak boleh lebih besar dari periode akhir.");
-            return;
+            return false;
         }
 
         setError("");
@@ -1015,16 +1034,9 @@ function IspDetailPage({
             contract_start_date: contractStartDate || null,
             period_start: periodStart,
             period_end: periodEnd,
+            status: draft.status ?? getIspContractRowEditStatus(row),
         });
-    };
-
-    const handleSetRowStatus = async (row, status) => {
-        setIsActionLoading(true);
-        try {
-            await handleUpdateRow(row.id, { status });
-        } finally {
-            setIsActionLoading(false);
-        }
+        return true;
     };
 
     const createEmptyContractDraft = () => ({
@@ -2371,143 +2383,191 @@ function IspDetailPage({
                                                 </tr>
                                             </thead>
                                         <tbody className="divide-y divide-white/10">
-                                            {filteredContracts.map((row, idx) => (
-                                                <tr key={row.id} className="hover:bg-white/[0.02] transition-colors">
+                                            {filteredContracts.map((row, idx) => {
+                                                const isEditingContractRow = editingContractRowId === row.id;
+                                                const draft = getRowDraft(row);
+                                                const statusForBadge = isEditingContractRow ? draft.status : getContractRowStatus(row, todayIso);
+                                                const statusLabel = statusForBadge === 'expired'
+                                                    ? 'Belum Diperpanjang'
+                                                    : statusForBadge === 'berhenti'
+                                                        ? 'Berhenti'
+                                                        : 'Beroperasi';
+                                                const statusClasses = statusForBadge === 'berhenti'
+                                                    ? 'bg-white/5 text-white/30 border-white/10'
+                                                    : statusForBadge === 'expired'
+                                                        ? 'bg-[#ff2400]/10 text-[#ff2400] border-[#ff2400]/20'
+                                                        : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+                                                const contractStartValue = row.contractStartDate ?? detail?.contractStartDate ?? detail?.contract_start_date ?? isp.contractStartDate ?? isp.contract_start_date;
+                                                const editableCellButtonClass = `w-full min-h-8 rounded-lg px-2 py-1 text-center text-[11px] font-bold uppercase transition-all ${canManageIspContracts ? 'text-white/70 hover:bg-white/[0.04] hover:text-white focus:outline-none focus:ring-1 focus:ring-gold-accent/40' : 'text-white/60'}`;
+
+                                                return (
+                                                <tr
+                                                    key={row.id}
+                                                    className={`${isEditingContractRow ? 'bg-gold-accent/[0.03]' : 'hover:bg-white/[0.02]'} transition-colors`}
+                                                    onBlur={(event) => {
+                                                        if (!isEditingContractRow) return;
+                                                        const currentTarget = event.currentTarget;
+                                                        setTimeout(() => {
+                                                            if (!currentTarget.contains(document.activeElement)) {
+                                                                void handleInlineRowSave(row);
+                                                            }
+                                                        }, 100);
+                                                    }}
+                                                >
                                                     <td className="px-3 py-2.5 text-center text-[11px] font-bold text-white/20 border-r border-white/10">{String(idx + 1).padStart(2, '0')}</td>
-                                                    <td className="px-3 py-2.5 text-center border-r border-white/10">
-                                                        <input
-                                                            type="text"
-                                                            className="w-full rounded-lg bg-white/10 border border-white/20 px-3 py-1.5 text-[11px] font-bold text-white outline-none focus:border-gold-accent transition-all"
-                                                            value={getRowDraft(row).contractReference || ""}
-                                                            onChange={(e) => setRowDraft(row.id, { contractReference: e.target.value })}
-                                                            onBlur={() => void handleInlineRowSave(row)}
-                                                            onKeyDown={(event) => {
-                                                                if (event.key === "Enter") {
-                                                                    event.preventDefault();
-                                                                    void handleInlineRowSave(row);
-                                                                }
-                                                                if (event.key === "Escape") {
-                                                                    clearRowDraft(row.id);
-                                                                }
-                                                            }}
-                                                            />
-                                                        </td>
+                                                    <td className="px-3 py-2.5 text-center border-r border-white/10 min-w-[230px]">
+                                                        {isEditingContractRow ? (
+                                                            <div className="flex items-center gap-2">
+                                                                <input
+                                                                    type="text"
+                                                                    className="min-h-8 w-full rounded-lg bg-white/10 border border-white/20 px-3 py-1.5 text-[11px] font-bold text-white outline-none focus:border-gold-accent transition-all"
+                                                                    value={draft.contractReference || ""}
+                                                                    onChange={(e) => setRowDraft(row.id, { contractReference: e.target.value })}
+                                                                    onKeyDown={(event) => {
+                                                                        if (event.key === "Enter") {
+                                                                            event.preventDefault();
+                                                                            event.currentTarget.blur();
+                                                                        }
+                                                                        if (event.key === "Escape") {
+                                                                            cancelContractRowEditor(row.id);
+                                                                            event.currentTarget.blur();
+                                                                        }
+                                                                    }}
+                                                                />
+                                                                <button className="h-8 w-8 shrink-0 rounded-lg border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all" onClick={() => void handleInlineRowSave(row)} type="button" title="Simpan perubahan">
+                                                                    <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>check</span>
+                                                                </button>
+                                                                <button className="h-8 w-8 shrink-0 rounded-lg border border-white/10 bg-white/5 text-white/40 hover:bg-white/10 hover:text-white transition-all" onClick={() => cancelContractRowEditor(row.id)} type="button" title="Batalkan edit">
+                                                                    <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>close</span>
+                                                                </button>
+                                                            </div>
+                                                        ) : (
+                                                            <button className={editableCellButtonClass} disabled={!canManageIspContracts} onClick={() => openContractRowEditor(row)} type="button" title={canManageIspContracts ? "Edit baris kontrak" : undefined}>
+                                                                {row.contractReference || <span className="text-white/20">Nomor kontrak</span>}
+                                                            </button>
+                                                        )}
+                                                    </td>
                                                     <td className="px-3 py-2.5 text-center border-r border-white/10">
                                                         <div className="flex flex-col items-center gap-2">
-                                                            {(() => {
-                                                                const status = getContractRowStatus(row, todayIso);
-                                                                const label = getContractRowStatusLabel(row, todayIso);
-                                                                const classes = status === 'berhenti'
-                                                                    ? 'bg-white/5 text-white/30 border-white/10'
-                                                                    : status === 'expired'
-                                                                        ? 'bg-[#ff2400]/10 text-[#ff2400] border-[#ff2400]/20'
-                                                                        : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
-                                                                return <span className={`inline-flex items-center rounded-full border px-3 py-1 text-[8px] font-black uppercase tracking-widest ${classes}`}>{label}</span>;
-                                                            })()}
+                                                            <span className={`inline-flex items-center rounded-full border px-3 py-1 text-[8px] font-black uppercase tracking-widest ${statusClasses}`}>{statusLabel}</span>
+                                                            {isEditingContractRow && (
                                                                 <select
-                                                                 value={getIspContractRowEditStatus(row)}
-                                                                 onChange={(event) => void handleSetRowStatus(row, event.target.value)}
-                                                                 className="w-full rounded-lg bg-white/10 border border-white/20 px-2 py-1.5 text-[10px] font-bold text-white outline-none focus:border-gold-accent transition-all uppercase"
-                                                             >
-                                                                 <option value="aktif">Beroperasi</option>
-                                                                 <option value="expired">Belum Diperpanjang</option>
-                                                                 <option value="berhenti">Berhenti</option>
-                                                              </select>
+                                                                    value={draft.status || "aktif"}
+                                                                    onChange={(event) => setRowDraft(row.id, { status: event.target.value })}
+                                                                    className="w-full rounded-lg bg-white/10 border border-white/20 px-2 py-1.5 text-[10px] font-bold text-white outline-none focus:border-gold-accent transition-all uppercase"
+                                                                >
+                                                                    <option value="aktif">Beroperasi</option>
+                                                                    <option value="expired">Belum Diperpanjang</option>
+                                                                    <option value="berhenti">Berhenti</option>
+                                                                </select>
+                                                            )}
                                                         </div>
                                                     </td>
                                                     <td className="px-3 py-2.5 text-center border-r border-white/10">
                                                         <div className="flex items-center justify-center gap-2 flex-wrap">
                                                             {isOpenableFileUrl(row.contractFileUrl) ? (
                                                                 <button onClick={() => openSafeFile(row.contractFileUrl, row.contractFileName)} className={`${fileActionButtonClass} ${fileActionPrimaryClass}`}><span className="material-symbols-outlined" style={{ fontSize: "14px" }}>description</span>Buka</button>
-                                                            ) : null}
-                                                            <FilePickerButton
-                                                                label={isOpenableFileUrl(row.contractFileUrl) ? "Ganti" : "Upload"}
-                                                                className={`${fileActionButtonClass} ${fileActionMutedClass}`}
-                                                                onPickFile={(file) => void handleFileUpload(row.id, 'contract', file)}
-                                                            />
+                                                            ) : !isEditingContractRow ? <span className="text-[10px] font-bold text-white/20">Belum diunggah</span> : null}
+                                                            {isEditingContractRow && (
+                                                                <FilePickerButton
+                                                                    label={isOpenableFileUrl(row.contractFileUrl) ? "Ganti" : "Upload"}
+                                                                    className={`${fileActionButtonClass} ${fileActionMutedClass}`}
+                                                                    onPickFile={(file) => void handleFileUpload(row.id, 'contract', file)}
+                                                                />
+                                                            )}
                                                         </div>
                                                     </td>
                                                     <td className="px-3 py-2.5 border-r border-white/10 text-center">
-                                                        {row.isPrimaryIspContract ? (
-                                                            (() => {
-                                                                const draft = getRowDraft(row);
-                                                                const fallbackValue = row.contractStartDate ?? detail?.contractStartDate ?? detail?.contract_start_date ?? isp.contractStartDate ?? isp.contract_start_date ?? "";
-                                                                return (
-                                                                    <DateInput
-                                                                        value={draft.contractStartDate || fallbackValue}
-                                                                        onChange={(val) => setRowDraft(row.id, { contractStartDate: val })}
-                                                                        onBlur={() => void handleInlineRowSave(row)}
-                                                                        onKeyDown={(event) => {
-                                                                            if (event.key === "Enter") {
-                                                                                event.preventDefault();
-                                                                                void handleInlineRowSave(row);
-                                                                            }
-                                                                        }}
-                                                                        className="rounded-md bg-white/10 border border-white/20 w-28 h-7"
-                                                                        hideIcon={true}
-                                                                        inputClass="w-full h-full bg-transparent px-2 text-center text-[11px] text-white outline-none uppercase"
-                                                                    />
-                                                                );
-                                                            })()
+                                                        {isEditingContractRow ? (
+                                                            <DateInput
+                                                                value={draft.contractStartDate || contractStartValue || ""}
+                                                                onChange={(val) => setRowDraft(row.id, { contractStartDate: val })}
+                                                                onKeyDown={(event) => {
+                                                                    if (event.key === "Enter") {
+                                                                        event.preventDefault();
+                                                                        event.currentTarget.blur();
+                                                                    }
+                                                                }}
+                                                                className="rounded-md bg-white/10 border border-white/20 w-28 h-7"
+                                                                hideIcon={true}
+                                                                inputClass="w-full h-full bg-transparent px-2 text-center text-[11px] text-white outline-none uppercase"
+                                                            />
                                                         ) : (
-                                                            <span className="text-[11px] font-bold text-white/60 uppercase">{formatDate(row.contractStartDate ?? detail?.contractStartDate ?? detail?.contract_start_date ?? isp.contractStartDate ?? isp.contract_start_date)}</span>
+                                                            <button className={editableCellButtonClass} disabled={!canManageIspContracts} onClick={() => openContractRowEditor(row)} type="button">
+                                                                {formatDate(contractStartValue)}
+                                                            </button>
                                                         )}
                                                     </td>
                                                     <td className="px-3 py-2.5 text-center border-r border-white/10">
-                                                        <DateInput
-                                                            value={getRowDraft(row).periodStart || ""}
-                                                            onChange={(val) => setRowDraft(row.id, { periodStart: val })}
-                                                            onBlur={() => void handleInlineRowSave(row)}
-                                                            onKeyDown={(event) => {
-                                                                if (event.key === "Enter") {
-                                                                    event.preventDefault();
-                                                                    void handleInlineRowSave(row);
-                                                                }
-                                                            }}
-                                                            className="rounded-md bg-white/10 border border-white/20 w-28 h-7"
-                                                            hideIcon={true}
-                                                            inputClass="w-full h-full bg-transparent px-2 text-center text-[11px] text-white outline-none uppercase"
-                                                        />
+                                                        {isEditingContractRow ? (
+                                                            <DateInput
+                                                                value={draft.periodStart || ""}
+                                                                onChange={(val) => setRowDraft(row.id, { periodStart: val })}
+                                                                onKeyDown={(event) => {
+                                                                    if (event.key === "Enter") {
+                                                                        event.preventDefault();
+                                                                        event.currentTarget.blur();
+                                                                    }
+                                                                }}
+                                                                className="rounded-md bg-white/10 border border-white/20 w-28 h-7"
+                                                                hideIcon={true}
+                                                                inputClass="w-full h-full bg-transparent px-2 text-center text-[11px] text-white outline-none uppercase"
+                                                            />
+                                                        ) : (
+                                                            <button className={editableCellButtonClass} disabled={!canManageIspContracts} onClick={() => openContractRowEditor(row)} type="button">
+                                                                {formatDate(row.periodStart)}
+                                                            </button>
+                                                        )}
                                                     </td>
                                                     <td className="px-3 py-2.5 text-center border-r border-white/10">
-                                                        <DateInput
-                                                            value={getRowDraft(row).periodEnd || ""}
-                                                            onChange={(val) => setRowDraft(row.id, { periodEnd: val })}
-                                                            onBlur={() => void handleInlineRowSave(row)}
-                                                            onKeyDown={(event) => {
-                                                                if (event.key === "Enter") {
-                                                                    event.preventDefault();
-                                                                    void handleInlineRowSave(row);
-                                                                }
-                                                            }}
-                                                            className="rounded-md bg-white/10 border border-white/20 w-28 h-7"
-                                                            hideIcon={true}
-                                                            inputClass="w-full h-full bg-transparent px-2 text-center text-[11px] text-white outline-none uppercase"
-                                                        />
+                                                        {isEditingContractRow ? (
+                                                            <DateInput
+                                                                value={draft.periodEnd || ""}
+                                                                onChange={(val) => setRowDraft(row.id, { periodEnd: val })}
+                                                                onKeyDown={(event) => {
+                                                                    if (event.key === "Enter") {
+                                                                        event.preventDefault();
+                                                                        event.currentTarget.blur();
+                                                                    }
+                                                                }}
+                                                                className="rounded-md bg-white/10 border border-white/20 w-28 h-7"
+                                                                hideIcon={true}
+                                                                inputClass="w-full h-full bg-transparent px-2 text-center text-[11px] text-white outline-none uppercase"
+                                                            />
+                                                        ) : (
+                                                            <button className={editableCellButtonClass} disabled={!canManageIspContracts} onClick={() => openContractRowEditor(row)} type="button">
+                                                                {formatDate(row.periodEnd)}
+                                                            </button>
+                                                        )}
                                                     </td>
                                                     <td className="px-3 py-2.5 text-center border-r border-white/10">
                                                         <div className="flex items-center justify-center gap-2 flex-wrap">
                                                             {isOpenableFileUrl(row.bakFileUrl) ? (
                                                                 <button onClick={() => openSafeFile(row.bakFileUrl, row.bakFileName)} className={`${fileActionButtonClass} ${fileActionSuccessClass}`}><span className="material-symbols-outlined" style={{ fontSize: "14px" }}>task_alt</span>Buka BAK</button>
-                                                            ) : null}
-                                                            <FilePickerButton
-                                                                label={isOpenableFileUrl(row.bakFileUrl) ? "Ganti" : "Upload BAK"}
-                                                                className={`${fileActionButtonClass} ${fileActionMutedClass}`}
-                                                                onPickFile={(file) => void handleFileUpload(row.id, 'bak', file)}
-                                                            />
+                                                            ) : !isEditingContractRow ? <span className="text-[10px] font-bold text-white/20">Belum diunggah</span> : null}
+                                                            {isEditingContractRow && (
+                                                                <FilePickerButton
+                                                                    label={isOpenableFileUrl(row.bakFileUrl) ? "Ganti" : "Upload BAK"}
+                                                                    className={`${fileActionButtonClass} ${fileActionMutedClass}`}
+                                                                    onPickFile={(file) => void handleFileUpload(row.id, 'bak', file)}
+                                                                />
+                                                            )}
                                                         </div>
                                                     </td>
                                                     <td className="px-3 py-2.5 min-w-[280px] border-r border-white/10 text-center">
                                                         <div className="flex items-center justify-center gap-2">
                                                             {renderRenewalFollowUps(row, "renewal")}
-                                                            <button className="shrink-0 w-6 h-6 flex items-center justify-center rounded-md bg-white/5 border border-white/10 text-white/40 transition-all hover:bg-white/10 disabled:opacity-30" disabled={row.isPrimaryIspContract || !hasInitialRenewalUpload(row)} onClick={() => handleAddRenewalSplit(row.id)} type="button" title="Tambah split perpanjangan">
-                                                                <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>add_circle</span>
-                                                            </button>
+                                                            {canManageIspContracts && (
+                                                                <button className="shrink-0 w-6 h-6 flex items-center justify-center rounded-md bg-white/5 border border-white/10 text-white/40 transition-all hover:bg-white/10 disabled:opacity-30" disabled={row.isPrimaryIspContract || !hasInitialRenewalUpload(row)} onClick={() => handleAddRenewalSplit(row.id)} type="button" title="Tambah split perpanjangan">
+                                                                    <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>add_circle</span>
+                                                                </button>
+                                                            )}
                                                         </div>
                                                     </td>
                                                     <td className="px-3 py-2.5 min-w-[240px] border-r border-white/10 text-center">{renderRenewalFollowUps(row, "response")}</td>
                                                 </tr>
-                                            ))}
+                                                );
+                                            })}
                                             {filteredContracts.length === 0 && (
                                                 <tr>
                                                     <td colSpan="10" className="py-10 text-center">
