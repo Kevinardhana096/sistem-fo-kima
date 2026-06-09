@@ -135,26 +135,8 @@ const getIspContractRowEditStatus = (row) => {
     if (rawStatus === 'expired' || rawStatus === 'belum_diperpanjang') return 'expired';
     return 'aktif';
 };
-const getTenantEmptyState = (tenantId) => {
-    if (typeof window === "undefined") {
-        return {};
-    }
-
-    try {
-        const rawValue = window.localStorage.getItem(`tenant-contract-empty-state-${tenantId}`);
-        return rawValue ? JSON.parse(rawValue) : {};
-    } catch {
-        return {};
-    }
-};
-
 const getTenantActionCount = (tenant, todayIso) => {
-    const emptyState = getTenantEmptyState(tenant?.id);
-    const summary = getCustomerDisplayActionSummary(tenant, {
-        todayIso,
-        emptyContractNumberRows: emptyState.contractNumberRows ?? {},
-        emptyBakRows: emptyState.bakRows ?? {},
-    });
+    const summary = getCustomerDisplayActionSummary(tenant, { todayIso });
     return summary.total;
 };
 const resolveRouteStatus = (customerStatus, routeStatus) => isStoppedStatus(customerStatus)
