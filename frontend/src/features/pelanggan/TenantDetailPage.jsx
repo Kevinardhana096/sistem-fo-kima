@@ -22,6 +22,7 @@ import {
   getCustomerDisplayActionSummary,
   getNextMonthIsoDate,
   isOpenableFileUrl,
+  openSafeFile,
   resolveCustomerContractPeriodInfo,
   resolveCustomerPackageInfo,
   resolveCustomerOperationalStatus,
@@ -618,6 +619,7 @@ function TenantDetailPage({
   const [contractRowEditor, setContractRowEditor] = useState(null);
   const isSelectingFileRef = useRef(false);
   const [isSavingContractRow, setIsSavingContractRow] = useState(false);
+  const [, setIsActionLoading] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [ispPopupOpen, setIspPopupOpen] = useState(false);
   const [deleteError, setDeleteError] = useState("");
@@ -4089,40 +4091,6 @@ function TenantDetailPage({
     }
   };
 
-  const handleReplaceTenantRenewalResponse = async (row, followUp, file) => {
-    if (!file || !row?.contractId || !followUp?.id) {
-      return;
-    }
-
-    const previousDecision = String(
-      followUp?.responseStatus
-      ?? followUp?.responseDecision
-      ?? followUp?.response_decision
-      ?? "",
-    );
-    const decision = ["lanjut", "tidak"].includes(previousDecision)
-      ? previousDecision
-      : "lanjut";
-
-    setError("");
-    try {
-      const responseFileUrl = await uploadFileForRecord(file, ["customers", customer.id, "renewal-responses"]);
-      await api.contractVersionRenewalFollowUps.update(followUp.id, {
-        response_file_url: responseFileUrl,
-        response_file_name: file.name,
-        response_status: decision,
-        status: "completed",
-      });
-      await Promise.all([loadDetail(), onRefreshAll?.()]);
-    } catch (requestError) {
-      setError(
-        requestError instanceof Error
-          ? requestError.message
-          : "Gagal mengganti berkas tanggapan tenant.",
-      );
-    }
-  };
-
   const hasInitialTenantRenewalUpload = (row) => {
     const followUps = Array.isArray(row?.renewalFollowUps)
       ? row.renewalFollowUps
@@ -4142,7 +4110,7 @@ function TenantDetailPage({
         return (
           <label className="relative inline-flex h-5 items-center gap-1 rounded-md border border-white/10 bg-white/5 px-1.5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all cursor-pointer shrink-0">
             <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>upload_file</span>Upload
-            <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => void handleUploadTenantRenewal(row.id, e.target.files?.[0] ?? null)} />
+            <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => void handleUploadTenantRenewal(row, e.target.files?.[0] ?? null)} />
           </label>
         );
       }
@@ -4174,7 +4142,7 @@ function TenantDetailPage({
                         </button>
                         <label className="relative inline-flex h-5 items-center gap-1 rounded-md border border-white/10 bg-white/5 px-1.5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all cursor-pointer shrink-0">
                           <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>upload_file</span>Ganti
-                          <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => void handleUploadTenantRenewal(row.id, e.target.files?.[0] ?? null, followUp.id)} />
+                          <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => void handleUploadTenantRenewal(row, e.target.files?.[0] ?? null, followUp.id)} />
                         </label>
                         {!isFirst && (
                           <button 
@@ -4182,7 +4150,7 @@ function TenantDetailPage({
                               if (window.confirm("Apakah Anda yakin ingin menghapus split tindak lanjut ini?")) {
                                 try {
                                   setIsActionLoading(true);
-                                  await api.tenantRenewalFollowUps.delete(followUp.id);
+                                  await api.contractVersionRenewalFollowUps.delete(followUp.id);
                                   await loadDetail();
                                   if (onRefreshAll) onRefreshAll();
                                 } catch (err) {
@@ -4203,7 +4171,7 @@ function TenantDetailPage({
                       <>
                         <label className="relative inline-flex h-5 items-center gap-1 rounded-md border border-white/10 bg-white/5 px-1.5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all cursor-pointer shrink-0">
                           <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>upload_file</span>Upload
-                          <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => void handleUploadTenantRenewal(row.id, e.target.files?.[0] ?? null, followUp.id)} />
+                          <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => void handleUploadTenantRenewal(row, e.target.files?.[0] ?? null, followUp.id)} />
                         </label>
                         {!isFirst && (
                           <button 
@@ -4211,7 +4179,7 @@ function TenantDetailPage({
                               if (window.confirm("Apakah Anda yakin ingin menghapus split tindak lanjut ini?")) {
                                 try {
                                   setIsActionLoading(true);
-                                  await api.tenantRenewalFollowUps.delete(followUp.id);
+                                  await api.contractVersionRenewalFollowUps.delete(followUp.id);
                                   await loadDetail();
                                   if (onRefreshAll) onRefreshAll();
                                 } catch (err) {
@@ -4239,7 +4207,7 @@ function TenantDetailPage({
                         </button>
                         <label className="relative inline-flex h-5 items-center gap-1 rounded-md border border-white/10 bg-white/5 px-1.5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all cursor-pointer shrink-0">
                           <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>upload_file</span>Ganti
-                          <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => void handleRespondTenantRenewal(row.id, currentDecision, e.target.files?.[0] ?? null, followUp.id)} />
+                          <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => void handleRespondTenantRenewal(row, currentDecision, e.target.files?.[0] ?? null, followUp.id)} />
                         </label>
                       </>
                     ) : (
@@ -4279,7 +4247,7 @@ function TenantDetailPage({
                         </label>
                         <label className="relative inline-flex h-5 items-center gap-1 rounded-md border border-white/10 bg-white/5 px-1.5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all cursor-pointer shrink-0">
                           <span className="material-symbols-outlined text-[9px]">close</span>Tidak
-                          <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => void handleRespondTenantRenewal(row.id, "tidak", e.target.files?.[0] ?? null, followUp.id)} />
+                          <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => void handleRespondTenantRenewal(row, "tidak", e.target.files?.[0] ?? null, followUp.id)} />
                         </label>
                       </>
                     )}
@@ -4290,7 +4258,7 @@ function TenantDetailPage({
                 <button
                   className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-white/10 bg-white/5 text-white/40 hover:bg-white/10 hover:text-white transition-all disabled:opacity-30 shadow-sm"
                   disabled={!hasInitialTenantRenewalUpload(row)}
-                  onClick={() => handleAddTenantRenewalSplit(row.id)}
+                  onClick={() => handleAddTenantRenewalSplit(row)}
                   type="button"
                   title="Tambah split perpanjangan"
                 >
