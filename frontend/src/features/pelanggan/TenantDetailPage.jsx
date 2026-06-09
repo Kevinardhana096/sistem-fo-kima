@@ -19,6 +19,7 @@ import {
   formatDate,
   formatDateTime,
   formatPackageRatio,
+  getCustomerDisplayActionSummary,
   getNextMonthIsoDate,
   isOpenableFileUrl,
   resolveCustomerContractPeriodInfo,
@@ -1856,8 +1857,11 @@ function TenantDetailPage({
     ...backendNeedActionTodos,
     ...derivedNeedActionTodos,
   ];
-  const totalActionItems =
-    displayPriorityTodos.length + displayNeedActionTodos.length;
+  const totalActionItems = getCustomerDisplayActionSummary(detail ?? customer, {
+    todayIso,
+    emptyContractNumberRows,
+    emptyBakRows,
+  }).total;
 
   const displayTimeline = useMemo(() => {
     const nonInvoiceTimeline = timeline.filter(

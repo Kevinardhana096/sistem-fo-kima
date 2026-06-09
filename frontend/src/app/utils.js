@@ -625,6 +625,186 @@ export const resolveCustomerContractNumber = (customer) => {
     );
 };
 
+const getCustomerTodoItems = (customer, bucket) => (
+    Array.isArray(customer?.todoSummary?.[bucket]) ? customer.todoSummary[bucket] : []
+);
+
+const getInvoiceFollowUpsForAttention = (invoice) => (
+    Array.isArray(invoice?.invoiceFollowUps)
+        ? [...invoice.invoiceFollowUps].sort((left, right) => Number(left?.splitOrder ?? left?.split_order ?? 0) - Number(right?.splitOrder ?? right?.split_order ?? 0))
+        : []
+);
+
+const isInvoicePaidForAttention = (invoice) => String(invoice?.status ?? "").toLowerCase() === "lunas"
+    || isOpenableFileUrl(invoice?.paymentProofFileUrl ?? invoice?.payment_proof_file_url)
+    || (typeof (invoice?.paidAt ?? invoice?.paid_at) === "string" && String(invoice?.paidAt ?? invoice?.paid_at).trim().length > 0);
+
+const getInvoiceSetupWarningsForAttention = (invoice) => {
+    const warnings = [];
+    const dueDate = String(invoice?.workflowDueDate ?? invoice?.dueDate ?? invoice?.due_date ?? "").trim();
+    const amount = Number(invoice?.workflowAmount ?? invoice?.amount ?? 0);
+
+    if (!dueDate) warnings.push("missing_due_date");
+    if (!Number.isFinite(amount) || amount <= 0) warnings.push("missing_amount");
+
+    return warnings;
+};
+
+const getInvoiceWorkflowKeyForAttention = (invoice, rowsForSequence = [], todayIso = getTodayIso()) => {
+    const followUps = getInvoiceFollowUpsForAttention(invoice);
+    const firstFollowUp = followUps.find((followUp) => Number(followUp?.splitOrder ?? followUp?.split_order ?? 0) === 1) ?? null;
+    const secondFollowUp = followUps.find((followUp) => Number(followUp?.splitOrder ?? followUp?.split_order ?? 0) === 2) ?? null;
+    const setupWarnings = getInvoiceSetupWarningsForAttention(invoice);
+    const dueDate = String(invoice?.workflowDueDate ?? invoice?.dueDate ?? invoice?.due_date ?? "").trim().slice(0, 10);
+    const h7Date = dueDate ? addDaysToIsoDate(dueDate, -7) : "";
+    const h3Date = dueDate ? addDaysToIsoDate(dueDate, -3) : "";
+    const hasMainInvoiceFile = isOpenableFileUrl(invoice?.invoiceFileUrl ?? invoice?.invoice_file_url);
+    const firstWarningUploaded = isOpenableFileUrl(firstFollowUp?.invoiceFileUrl ?? firstFollowUp?.invoice_file_url);
+    const secondWarningUploaded = isOpenableFileUrl(secondFollowUp?.invoiceFileUrl ?? secondFollowUp?.invoice_file_url);
+    const paid = isInvoicePaidForAttention(invoice);
+    const h7Reached = Boolean(h7Date && h7Date <= todayIso);
+    const h3Reached = Boolean(h3Date && h3Date <= todayIso);
+    const dueDateReached = Boolean(dueDate && dueDate <= todayIso);
+    const hasAnyInvoiceFile = hasMainInvoiceFile || firstWarningUploaded || secondWarningUploaded;
+    const hasBlockingPreviousUnpaid = rowsForSequence.some(
+        (candidate) => Number(candidate.paymentOrder ?? 0) < Number(invoice.paymentOrder ?? 0) && !isInvoicePaidForAttention(candidate),
+    );
+
+    if (paid) return "paid";
+    if (setupWarnings.length > 0) return "pending_setup";
+    if (dueDateReached && (secondWarningUploaded || h3Reached)) return "warning_unpaid";
+    if (h3Reached && !hasBlockingPreviousUnpaid && (hasMainInvoiceFile || firstWarningUploaded) && !secondWarningUploaded) return "warning_required_h3";
+    if (hasAnyInvoiceFile) return "waiting_payment_confirmation";
+    if (h7Reached && !hasBlockingPreviousUnpaid) return "warning_required_h7";
+    return "pending";
+};
+
+const getCustomerActiveInvoicesForAttention = (customer) => (
+    Array.isArray(customer?.invoices)
+        ? customer.invoices
+            .filter((invoice) => !(invoice?.deletedAt ?? invoice?.deleted_at))
+            .filter((invoice) => String(invoice?.scheduleStatus ?? invoice?.schedule_status ?? "active") === "active")
+            .sort((left, right) => {
+                const leftKey = `${left.periodYear ?? left.period_year ?? ""}-${String(left.periodMonth ?? left.period_month ?? "").padStart(2, "0")}`;
+                const rightKey = `${right.periodYear ?? right.period_year ?? ""}-${String(right.periodMonth ?? right.period_month ?? "").padStart(2, "0")}`;
+                return leftKey === rightKey ? Number(left.id ?? 0) - Number(right.id ?? 0) : leftKey.localeCompare(rightKey);
+            })
+        : []
+).map((invoice, index) => ({ ...invoice, paymentOrder: index + 1 }));
+
+const getCustomerDocumentByTypeAndContractId = (customer, documentType, contractId) => {
+    const normalizedType = String(documentType ?? "").toLowerCase();
+    const normalizedContractId = Number(contractId);
+
+    return (Array.isArray(customer?.latestDocuments) ? customer.latestDocuments : Array.isArray(customer?.documents) ? customer.documents : [])
+        .filter((document) => !(document?.deletedAt ?? document?.deleted_at))
+        .find((document) => {
+            const itemType = String(document?.jenisDokumen ?? document?.jenis_dokumen ?? "").toLowerCase();
+            const itemContractId = Number(document?.contractId ?? document?.contract_id);
+            return itemType === normalizedType && Number.isFinite(normalizedContractId) && itemContractId === normalizedContractId;
+        }) ?? null;
+};
+
+const getContractRenewalAttentionCount = (contract, todayIso) => {
+    const effectiveVersion = getEffectiveContractVersion(contract, todayIso);
+    const periodEnd = String(
+        effectiveVersion?.endDate
+        ?? effectiveVersion?.end_date
+        ?? contract?.endDate
+        ?? contract?.end_date
+        ?? "",
+    ).slice(0, 10);
+
+    if (!periodEnd) return 0;
+
+    const periodEndTime = parseDateValue(periodEnd)?.getTime();
+    const todayTime = parseDateValue(todayIso)?.getTime();
+    const daysUntilEnd = Math.ceil(((periodEndTime ?? 0) - (todayTime ?? 0)) / (24 * 60 * 60 * 1000));
+    if (!Number.isFinite(daysUntilEnd) || daysUntilEnd <= 0 || daysUntilEnd > 90) return 0;
+
+    const renewalFollowUps = Array.isArray(effectiveVersion?.renewalFollowUps)
+        ? effectiveVersion.renewalFollowUps
+        : [];
+    const hasRenewalUpload = renewalFollowUps.some((followUp) => isOpenableFileUrl(followUp?.renewalFileUrl ?? followUp?.renewal_file_url));
+    const hasResponse = renewalFollowUps.some((followUp) => isOpenableFileUrl(followUp?.responseFileUrl ?? followUp?.response_file_url));
+
+    if (hasResponse) return 0;
+    if (daysUntilEnd <= 30) return 1;
+    if (daysUntilEnd <= 60 && hasRenewalUpload) return 1;
+    if (daysUntilEnd <= 90 && !hasRenewalUpload) return 1;
+    return 0;
+};
+
+export const getCustomerDisplayActionSummary = (customer, options = {}) => {
+    const todayIso = options.todayIso ?? getTodayIso();
+    const emptyContractNumberRows = options.emptyContractNumberRows ?? {};
+    const emptyBakRows = options.emptyBakRows ?? {};
+    const priority = getCustomerTodoItems(customer, "priority")
+        .filter((item) => item?.code !== "required_document_missing")
+        .length;
+    let needAction = getCustomerTodoItems(customer, "needAction")
+        .filter((item) => ![
+            "required_document_missing",
+            "invoice_not_uploaded",
+            "payment_pending",
+            "invoice_amount_missing",
+        ].includes(item?.code))
+        .length;
+
+    const activeInvoices = getCustomerActiveInvoicesForAttention(customer);
+    const setupIncompleteCount = activeInvoices.filter((invoice) => getInvoiceSetupWarningsForAttention(invoice).length > 0).length;
+    const nextActionInvoice = activeInvoices.find((invoice) => [
+        "pending_setup",
+        "warning_required_h7",
+        "warning_required_h3",
+        "warning_unpaid",
+    ].includes(getInvoiceWorkflowKeyForAttention(invoice, activeInvoices, todayIso))) ?? null;
+
+    needAction += setupIncompleteCount;
+    if (nextActionInvoice) needAction += 1;
+
+    const activationFeePaidAt = customer?.activationFeePaidAt ?? customer?.activation_fee_paid_at ?? null;
+    if (!activationFeePaidAt) needAction += 1;
+
+    const contract = getCustomerPrimaryContract(customer, todayIso);
+    if (contract) {
+        const activeContractId = Number(contract?.id);
+        const contractRowId = `contract-${contract.id}`;
+        const contractNumber = String(contract?.contractNumber ?? contract?.contract_number ?? "").trim();
+        const hasContractNumberValue = Boolean(contractNumber);
+        const isContractNumberExplicitlyEmpty = Object.values(emptyContractNumberRows).some(Boolean);
+        const activeContractDocument = getCustomerDocumentByTypeAndContractId(customer, "kontrak", activeContractId);
+        const activeBakDocument = getCustomerDocumentByTypeAndContractId(customer, "bak", activeContractId);
+        const hasActiveContractFile = isOpenableFileUrl(activeContractDocument?.fileUrl ?? activeContractDocument?.file_url);
+        const hasActiveBakFile = Boolean(activeBakDocument);
+        const isBakExplicitlyEmpty = Boolean(emptyBakRows[contractRowId]);
+
+        if (!hasContractNumberValue && !isContractNumberExplicitlyEmpty) needAction += 1;
+        if (!hasActiveContractFile) needAction += 1;
+        if (!hasActiveBakFile && !isBakExplicitlyEmpty) needAction += 1;
+        needAction += getContractRenewalAttentionCount(contract, todayIso);
+    }
+
+    return {
+        priority,
+        needAction,
+        total: priority + needAction,
+    };
+};
+
+const getStoredCustomerEmptyState = (customerId) => {
+    if (typeof window === "undefined") {
+        return {};
+    }
+
+    try {
+        const rawValue = window.localStorage.getItem(`tenant-contract-empty-state-${customerId}`);
+        return rawValue ? JSON.parse(rawValue) : {};
+    } catch {
+        return {};
+    }
+};
+
 export const mapCustomerToRow = (customer, index) => {
     const operationalStatus = resolveCustomerOperationalStatus(customer);
     const active = operationalStatus === "aktif";
@@ -632,9 +812,12 @@ export const mapCustomerToRow = (customer, index) => {
     const activationFeePaidAt = customer.activationFeePaidAt ?? customer.activation_fee_paid_at ?? null;
     const routeStatus = typeof customer.routeStatus === "string"
         ? customer.routeStatus
-        : "aktif";
+        : typeof customer.route?.activeFlowStatus === "string"
+            ? customer.route.activeFlowStatus
+            : "aktif";
     const packageInfo = resolveCustomerPackageInfo(customer);
     const contractPeriodInfo = resolveCustomerContractPeriodInfo(customer);
+    const emptyState = getStoredCustomerEmptyState(customer.id);
 
     // Handle both NestJS format (customer.isps) and Supabase format (customer.ispMemberships)
     let ispList = [];
@@ -687,6 +870,12 @@ export const mapCustomerToRow = (customer, index) => {
         contractNumber: resolveCustomerContractNumber(customer),
         activationFeeAmount,
         activationFeePaidAt,
+        todoSummary: customer.todoSummary,
+        actionSummary: getCustomerDisplayActionSummary(customer, {
+            emptyContractNumberRows: emptyState.contractNumberRows ?? {},
+            emptyBakRows: emptyState.bakRows ?? {},
+        }),
+        latestDocuments: customer.latestDocuments ?? customer.documents ?? [],
         paket: packageInfo.paket,
         jumlah: packageInfo.jumlah,
     };

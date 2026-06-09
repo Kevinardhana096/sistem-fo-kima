@@ -1836,21 +1836,7 @@ export const customersApi = {
 
     const { data: customers, error, count } = await supabase
       .from('customers')
-      .select(`
-        id,
-        customer_code,
-        isp_name,
-        name,
-        status,
-        activation_fee_amount,
-        activation_fee_paid_at,
-        contract_start_date,
-        created_at,
-        updated_at,
-        ispMemberships:customer_isp_memberships(
-          isp:isps(id,name,status,logo_url)
-        )
-      `, { count: 'exact' })
+      .select(CUSTOMER_DETAIL_SELECT, { count: 'exact' })
       .is('deleted_at', null)
       .order('name', { ascending: true })
       .range(from, to);
@@ -1866,89 +1852,7 @@ export const customersApi = {
       };
     }
 
-    const customerIds = customers.map((customer) => customer.id).filter(Boolean);
-
-    const [contracts, routeVersions] = await Promise.all([
-      fetchInChunks(customerIds, async (ids) => {
-        const { data, error: contractsError } = await supabase
-          .from('contracts')
-          .select(`
-            id,
-            customer_id,
-            contract_number,
-            start_date,
-            end_date,
-            core_type,
-            core_total,
-            sharing_ratio,
-            status,
-            billing_every,
-            billing_unit,
-            created_at,
-            updated_at,
-            deleted_at,
-            versions:contract_versions(
-              id,
-              contract_id,
-              contract_number,
-              version_number,
-              start_date,
-              end_date,
-              core_type,
-              core_total,
-              shared_core_ratio,
-              monthly_amount,
-              yearly_amount,
-              remarks,
-              deleted_at
-            )
-          `)
-          .in('customer_id', ids);
-
-        if (contractsError) throw contractsError;
-        return data || [];
-      }),
-      fetchInChunks(customerIds, async (ids) => {
-        const { data, error: routesError } = await supabase
-          .from('customer_route_versions')
-          .select('id, customer_id, version_number, flow_status, created_at')
-          .in('customer_id', ids);
-
-        if (routesError) throw routesError;
-        return data || [];
-      }),
-    ]);
-
-    const contractsByCustomerId = new Map();
-    contracts.forEach((contract) => {
-      const list = contractsByCustomerId.get(contract.customer_id) || [];
-      list.push(contract);
-      contractsByCustomerId.set(contract.customer_id, list);
-    });
-
-    const routeVersionsByCustomerId = new Map();
-    routeVersions.forEach((routeVersion) => {
-      const list = routeVersionsByCustomerId.get(routeVersion.customer_id) || [];
-      list.push(routeVersion);
-      routeVersionsByCustomerId.set(routeVersion.customer_id, list);
-    });
-
-    const rows = customers.map((customer) => {
-      const customerRouteVersions = routeVersionsByCustomerId.get(customer.id) || [];
-      const latestRouteVersion = [...customerRouteVersions].sort((left, right) => {
-        const versionDiff = Number(right.version_number ?? 0) - Number(left.version_number ?? 0);
-        if (versionDiff !== 0) return versionDiff;
-        return getDateValue(right.created_at) - getDateValue(left.created_at);
-      })[0];
-
-      return {
-        ...customer,
-        contracts: contractsByCustomerId.get(customer.id) || [],
-        routeVersions: customerRouteVersions,
-        routeStatus: latestRouteVersion?.flow_status ?? 'aktif',
-        invoices: [],
-      };
-    });
+    const rows = customers.map(mapCustomerDetail);
 
     return {
       data: rows,
