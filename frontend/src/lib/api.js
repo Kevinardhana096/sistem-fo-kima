@@ -1868,7 +1868,7 @@ export const customersApi = {
 
     const customerIds = customers.map((customer) => customer.id).filter(Boolean);
 
-    const [contracts, routeVersions] = await Promise.all([
+    const [contracts, routeVersions, documents] = await Promise.all([
       fetchInChunks(customerIds, async (ids) => {
         const { data, error: contractsError } = await supabase
           .from('contracts')
@@ -1917,6 +1917,16 @@ export const customersApi = {
         if (routesError) throw routesError;
         return data || [];
       }),
+      fetchInChunks(customerIds, async (ids) => {
+        const { data, error: documentsError } = await supabase
+          .from('documents')
+          .select('id, customer_id, contract_id, contract_version_id, contract_number, jenis_dokumen, nomor_dokumen, tanggal_dokumen, file_url, created_at, deleted_at')
+          .in('customer_id', ids)
+          .is('deleted_at', null);
+
+        if (documentsError) throw documentsError;
+        return data || [];
+      }),
     ]);
 
     const contractsByCustomerId = new Map();
@@ -1933,6 +1943,13 @@ export const customersApi = {
       routeVersionsByCustomerId.set(routeVersion.customer_id, list);
     });
 
+    const documentsByCustomerId = new Map();
+    documents.forEach((document) => {
+      const list = documentsByCustomerId.get(document.customer_id) || [];
+      list.push(mapCustomerDocument(document));
+      documentsByCustomerId.set(document.customer_id, list);
+    });
+
     const rows = customers.map((customer) => {
       const customerRouteVersions = routeVersionsByCustomerId.get(customer.id) || [];
       const latestRouteVersion = [...customerRouteVersions].sort((left, right) => {
@@ -1944,6 +1961,7 @@ export const customersApi = {
       return {
         ...customer,
         contracts: contractsByCustomerId.get(customer.id) || [],
+        latestDocuments: documentsByCustomerId.get(customer.id) || [],
         routeVersions: customerRouteVersions,
         routeStatus: latestRouteVersion?.flow_status ?? 'aktif',
         invoices: [],

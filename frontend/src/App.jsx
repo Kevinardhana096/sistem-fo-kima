@@ -492,6 +492,20 @@ function App() {
         }, {});
     }, [notifications]);
 
+
+    const notificationDetailsByCustomerId = useMemo(() => {
+        return notifications.reduce((itemsByCustomerId, notification) => {
+            const customerId = Number(notification.customerId);
+            if (!Number.isFinite(customerId) || customerId <= 0 || notification.resolvedAt) {
+                return itemsByCustomerId;
+            }
+
+            const existing = itemsByCustomerId[customerId] ?? [];
+            itemsByCustomerId[customerId] = [...existing, notification];
+            return itemsByCustomerId;
+        }, {});
+    }, [notifications]);
+
     const notificationCountsByIspId = useMemo(() => {
         return notifications.reduce((counts, notification) => {
             const ispId = Number(notification.ispId);
@@ -1643,6 +1657,7 @@ function App() {
                 customersPageInfo={customersPageInfo}
                 notificationCountsByCustomerId={notificationCountsByCustomerId}
                 notificationCountsByIspId={notificationCountsByIspId}
+                notificationDetailsByCustomerId={notificationDetailsByCustomerId}
                 isps={isps}
                 error={customersError}
                 secondaryError={ispsError}

@@ -2,6 +2,7 @@ import { useMemo, useState, useEffect, useRef } from "react";
 import AppShell from "../../components/layout/AppShell";
 import { SummaryCard, StatCard } from "../../components/shared/AppShared";
 import api from "../../lib/api";
+import { isOpenableFileUrl } from "../../app/utils";
 import { getPackageDisplay, normalizeOperationalStatus, isStoppedStatus, resolveTenantOperationalStatus } from "./utils";
 
 const getTenantOperationalStatus = (tenant, todayIso) => {
@@ -54,6 +55,53 @@ const getCurrentContractNumber = (tenant, todayIso) => {
     const activeContract = contracts.find((contract) => isInPeriod(contract, todayIso));
     return normalizeContractNumber(activeContract?.contractNumber ?? activeContract?.contract_number ?? tenant?.contractNumber);
 };
+const getLatestWorkspaceContract = (tenant) => {
+    const contracts = Array.isArray(tenant?.contracts)
+        ? tenant.contracts.filter((contract) => !(contract?.deletedAt ?? contract?.deleted_at))
+        : [];
+
+    return [...contracts].sort((left, right) => {
+        const leftDate = new Date(`${String(left?.endDate ?? left?.end_date ?? left?.startDate ?? left?.start_date ?? "").slice(0, 10)}T00:00:00.000Z`).getTime();
+        const rightDate = new Date(`${String(right?.endDate ?? right?.end_date ?? right?.startDate ?? right?.start_date ?? "").slice(0, 10)}T00:00:00.000Z`).getTime();
+        return (Number.isFinite(rightDate) ? rightDate : 0) - (Number.isFinite(leftDate) ? leftDate : 0);
+    })[0] ?? null;
+};
+
+const getDocumentActionSummary = (tenant) => {
+    const contract = getLatestWorkspaceContract(tenant);
+    if (!contract) {
+        return { total: 0, labels: [] };
+    }
+
+    const contractId = Number(contract?.id);
+    const documents = Array.isArray(tenant?.latestDocuments)
+        ? tenant.latestDocuments
+        : Array.isArray(tenant?.documents)
+            ? tenant.documents
+            : [];
+    const activeContractDocuments = Number.isFinite(contractId)
+        ? documents.filter((document) => Number(document?.contractId ?? document?.contract_id) === contractId && !(document?.deletedAt ?? document?.deleted_at))
+        : [];
+
+    const contractDocument = activeContractDocuments.find((document) => String(document?.jenisDokumen ?? document?.jenis_dokumen ?? "").toLowerCase() === "kontrak");
+    const bakDocument = activeContractDocuments.find((document) => String(document?.jenisDokumen ?? document?.jenis_dokumen ?? "").toLowerCase() === "bak");
+    const labels = [];
+
+    if (!String(contract?.contractNumber ?? contract?.contract_number ?? "").trim()) {
+        labels.push({ code: "contract_number_missing", label: "nomor kontrak belum diisi" });
+    }
+
+    if (!isOpenableFileUrl(contractDocument?.fileUrl ?? contractDocument?.file_url)) {
+        labels.push({ code: "contract_file_missing", label: "berkas kontrak belum diunggah" });
+    }
+
+    if (!bakDocument) {
+        labels.push({ code: "bak_missing", label: "BAK belum tersedia" });
+    }
+
+    return { total: labels.length, labels };
+};
+
 const getIspActionCounts = (isp, notificationCountsByIspId = {}) => {
     const ispId = Number(isp?.id);
     const notificationCounts = Number.isFinite(ispId) ? notificationCountsByIspId[ispId] : null;
@@ -67,26 +115,39 @@ const getIspActionCounts = (isp, notificationCountsByIspId = {}) => {
     };
 };
 
-const getTenantActionCounts = (tenant, notificationCountsByCustomerId = {}) => {
+const getTenantActionCounts = (tenant, notificationCountsByCustomerId = {}, notificationDetailsByCustomerId = {}) => {
     const customerId = Number(tenant?.id);
     const notificationCounts = Number.isFinite(customerId) ? notificationCountsByCustomerId[customerId] : null;
-    const activeNotificationCount = Number(notificationCounts?.active ?? 0);
-    const unreadNotificationCount = Number(notificationCounts?.unread ?? 0);
+    const activeNotifications = Number.isFinite(customerId) && Array.isArray(notificationDetailsByCustomerId[customerId])
+        ? notificationDetailsByCustomerId[customerId]
+        : [];
+    const activeNotificationCount = Number(notificationCounts?.active ?? activeNotifications.length);
+    const unreadNotificationCount = Number(notificationCounts?.unread ?? activeNotifications.filter((notification) => !notification?.readAt).length);
+    const activeNotificationCodes = new Set(activeNotifications.map((notification) => notification?.code).filter(Boolean));
+    const documentActionSummary = getDocumentActionSummary(tenant);
+    const missingDocumentActions = documentActionSummary.labels.filter((item) => !activeNotificationCodes.has(item.code));
 
     if (activeNotificationCount > 0) {
+        const priority = unreadNotificationCount;
+        const needAction = Math.max(activeNotificationCount - unreadNotificationCount, 0) + missingDocumentActions.length;
+
         return {
-            priority: unreadNotificationCount,
-            needAction: Math.max(activeNotificationCount - unreadNotificationCount, 0),
-            total: activeNotificationCount,
+            priority,
+            needAction,
+            total: activeNotificationCount + missingDocumentActions.length,
+            documentActions: documentActionSummary.total,
+            documentActionLabels: documentActionSummary.labels.map((item) => item.label),
         };
     }
 
     const priority = Number(tenant?.todoSummary?.counts?.priority ?? 0);
-    const needAction = Number(tenant?.todoSummary?.counts?.needAction ?? 0);
+    const needAction = Number(tenant?.todoSummary?.counts?.needAction ?? 0) + missingDocumentActions.length;
     return {
         priority,
         needAction,
         total: priority + needAction,
+        documentActions: documentActionSummary.total,
+        documentActionLabels: documentActionSummary.labels.map((item) => item.label),
     };
 };
 
@@ -169,6 +230,7 @@ function CustomerWorkspacePage({
     customersPageInfo = null,
     notificationCountsByCustomerId = {},
     notificationCountsByIspId = {},
+    notificationDetailsByCustomerId = {},
     isps,
     error,
     secondaryError,
@@ -235,7 +297,7 @@ function CustomerWorkspacePage({
 
             const contractStatusKey = getTenantOperationalStatus(tenant, todayIso);
             const tenantRouteStatus = resolveTenantRouteStatus(tenant, todayIso);
-            const actionCounts = getTenantActionCounts(tenant, notificationCountsByCustomerId);
+            const actionCounts = getTenantActionCounts(tenant, notificationCountsByCustomerId, notificationDetailsByCustomerId);
             const todoStatusKey = actionCounts.total > 0 ? "perlu_tindakan" : "tidak_ada";
 
             const matchesSearch = !normalizedSearch || searchableText.includes(normalizedSearch);
@@ -245,7 +307,7 @@ function CustomerWorkspacePage({
 
             return matchesSearch && matchesContractStatus && matchesRouteStatus && matchesTodo;
         });
-    }, [customers, listType, normalizedSearch, contractStatusFilter, routeStatusFilter, todoFilter, todayIso, notificationCountsByCustomerId]);
+    }, [customers, listType, normalizedSearch, contractStatusFilter, routeStatusFilter, todoFilter, todayIso, notificationCountsByCustomerId, notificationDetailsByCustomerId]);
 
     // --- LOGIC: Groups & Tenants ---
     const allGroups = useMemo(() => {
@@ -256,8 +318,8 @@ function CustomerWorkspacePage({
                 const tenants = filteredTenants.filter(t => Array.isArray(t.ispList) && t.ispList.includes(isp.name));
 
                 const ispActionCounts = getIspActionCounts(isp, notificationCountsByIspId);
-                const actionTenantCount = tenants.filter((tenant) => getTenantActionCounts(tenant, notificationCountsByCustomerId).total > 0).length;
-                const tenantActionCount = tenants.reduce((total, tenant) => total + getTenantActionCounts(tenant, notificationCountsByCustomerId).total, 0);
+                const actionTenantCount = tenants.filter((tenant) => getTenantActionCounts(tenant, notificationCountsByCustomerId, notificationDetailsByCustomerId).total > 0).length;
+                const tenantActionCount = tenants.reduce((total, tenant) => total + getTenantActionCounts(tenant, notificationCountsByCustomerId, notificationDetailsByCustomerId).total, 0);
                 const totalActionCount = tenantActionCount + ispActionCounts.total;
 
                 return {
@@ -296,8 +358,8 @@ function CustomerWorkspacePage({
                 contractReference: "Kumpulan lokasi yang belum terhubung ke ISP master",
                 tenants: otherTenants.sort((a, b) => a.name.localeCompare(b.name)),
                 activeTenantCount: otherTenants.filter((tenant) => isTenantActive(tenant, todayIso)).length,
-                actionTenantCount: otherTenants.filter((tenant) => getTenantActionCounts(tenant, notificationCountsByCustomerId).total > 0).length,
-                totalActionCount: otherTenants.reduce((total, tenant) => total + getTenantActionCounts(tenant, notificationCountsByCustomerId).total, 0),
+                actionTenantCount: otherTenants.filter((tenant) => getTenantActionCounts(tenant, notificationCountsByCustomerId, notificationDetailsByCustomerId).total > 0).length,
+                totalActionCount: otherTenants.reduce((total, tenant) => total + getTenantActionCounts(tenant, notificationCountsByCustomerId, notificationDetailsByCustomerId).total, 0),
             });
         }
 
@@ -312,7 +374,7 @@ function CustomerWorkspacePage({
             // Default: newest first
             return b.id - a.id;
         });
-    }, [filteredIsps, filteredTenants, shouldIncludeEmptyIspGroups, normalizedSearch, ispSortMethod, todayIso, notificationCountsByCustomerId, notificationCountsByIspId, todoFilter]);
+    }, [filteredIsps, filteredTenants, shouldIncludeEmptyIspGroups, normalizedSearch, ispSortMethod, todayIso, notificationCountsByCustomerId, notificationCountsByIspId, notificationDetailsByCustomerId, todoFilter]);
 
     const totalPages = Math.ceil(allGroups.length / itemsPerPage);
     const paginatedGroups = useMemo(() => {
@@ -730,7 +792,7 @@ function CustomerWorkspacePage({
                                                                 </tr>
                                                             ) : (
                                                                 group.tenants.map((tenant) => {
-                                                                    const actionCounts = getTenantActionCounts(tenant, notificationCountsByCustomerId);
+                                                                    const actionCounts = getTenantActionCounts(tenant, notificationCountsByCustomerId, notificationDetailsByCustomerId);
                                                                     return (
                                                                         <tr key={`${group.id}-${tenant.id}`} className="hover:bg-white/[0.04] transition-colors group/row">
                                                                         <td className="px-4 py-2.5">
@@ -794,8 +856,11 @@ function CustomerWorkspacePage({
                                                                         </td>
                                                                         {!isTeknisi && (
                                                                             <td className="px-4 py-2.5">
-                                                                                <div className="flex flex-col justify-center">
-                                                                                    <span className={`text-[11px] font-black ${actionCounts.needAction > 0 ? "text-red-500" : "text-white"}`}>{actionCounts.needAction}</span>
+                                                                                <div
+                                                                                    className="flex flex-col justify-center"
+                                                                                    title={`${actionCounts.total} tindakan aktif${actionCounts.priority > 0 ? `, ${actionCounts.priority} prioritas` : ""}${actionCounts.needAction > 0 ? `, ${actionCounts.needAction} perlu tindakan` : ""}${actionCounts.documentActions > 0 ? `, kelengkapan berkas: ${actionCounts.documentActionLabels.join(", ")}` : ""}`}
+                                                                                >
+                                                                                    <span className={`text-[11px] font-black ${actionCounts.total > 0 ? "text-red-500" : "text-white"}`}>{actionCounts.total}</span>
                                                                                     <span className="text-[8px] font-black text-white/20 uppercase tracking-widest">Tindakan</span>
                                                                                 </div>
                                                                             </td>
