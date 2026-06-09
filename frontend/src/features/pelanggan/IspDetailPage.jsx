@@ -2533,17 +2533,18 @@ function IspDetailPage({
                                                                     />
                                                                 )}
                                                             </div>
-                                                            {isEditingContractRow && draft.contractUploadedFileName && (
-                                                                <div className="flex max-w-[190px] items-center gap-2 rounded-lg border border-amber-400/20 bg-amber-400/10 px-2 py-1 text-left">
-                                                                    <span className="material-symbols-outlined text-amber-300" style={{ fontSize: "13px" }}>pending</span>
-                                                                    <span className="min-w-0 flex-1 truncate text-[9px] font-bold text-amber-100" title={draft.contractUploadedFileName}>Siap ganti: {draft.contractUploadedFileName}</span>
-                                                                    <button type="button" className="text-white/40 hover:text-white" onClick={() => clearContractRowFileDraft(row.id, 'contract')} title="Batalkan ganti file kontrak">
-                                                                        <span className="material-symbols-outlined" style={{ fontSize: "13px" }}>close</span>
-                                                                    </button>
-                                                                </div>
-                                                            ) : (
-                                                                <p className="max-w-[210px] text-center text-[8px] font-bold uppercase tracking-widest text-white/20">Pilih file kontrak baru lalu simpan baris</p>
-                                                            ))}
+                                                            {isEditingContractRow && (
+                                                                draft.contractUploadedFileName ? (
+                                                                    <div className="flex max-w-[190px] items-center gap-2 rounded-lg border border-amber-400/20 bg-amber-400/10 px-2 py-1 text-left">
+                                                                        <span className="material-symbols-outlined text-amber-300" style={{ fontSize: "13px" }}>pending</span>
+                                                                        <span className="min-w-0 flex-1 truncate text-[9px] font-bold text-amber-100" title={draft.contractUploadedFileName}>Siap ganti: {draft.contractUploadedFileName}</span>
+                                                                        <button type="button" className="text-white/40 hover:text-white" onClick={() => clearContractRowFileDraft(row.id, 'contract')} title="Batalkan ganti file kontrak">
+                                                                            <span className="material-symbols-outlined" style={{ fontSize: "13px" }}>close</span>
+                                                                        </button>
+                                                                    </div>
+                                                                ) : (
+                                                                    <p className="max-w-[210px] text-center text-[8px] font-bold uppercase tracking-widest text-white/20">Pilih file kontrak baru lalu simpan baris</p>
+                                                                )
                                                             )}
                                                         </div>
                                                     </td>
