@@ -327,13 +327,19 @@ function IspDetailPage({
     const [userForm, setUserForm] = useState({ username: "", email: "", password: "", displayName: "" });
     const [showPassword, setShowPassword] = useState(false);
 
-    const getRowDraft = (row) => inlineDrafts[row.id] ?? {
+    const createRowDraft = (row) => ({
         contractReference: row.contractReference ?? "",
         status: getIspContractRowEditStatus(row),
         contractStartDate: row.contractStartDate ?? detail?.contractStartDate ?? detail?.contract_start_date ?? isp.contractStartDate ?? isp.contract_start_date ?? "",
         periodStart: row.periodStart ?? "",
         periodEnd: row.periodEnd ?? "",
-    };
+        contractUploadedFile: null,
+        contractUploadedFileName: "",
+        bakUploadedFile: null,
+        bakUploadedFileName: "",
+    });
+
+    const getRowDraft = (row) => inlineDrafts[row.id] ?? createRowDraft(row);
 
     const setRowDraft = (rowId, patch) => {
         setInlineDrafts((prev) => ({
@@ -360,19 +366,30 @@ function IspDetailPage({
         setEditingContractRowId(row.id);
         setInlineDrafts((prev) => ({
             ...prev,
-            [row.id]: {
-                contractReference: row.contractReference ?? "",
-                status: getIspContractRowEditStatus(row),
-                contractStartDate: row.contractStartDate ?? detail?.contractStartDate ?? detail?.contract_start_date ?? isp.contractStartDate ?? isp.contract_start_date ?? "",
-                periodStart: row.periodStart ?? "",
-                periodEnd: row.periodEnd ?? "",
-            },
+            [row.id]: createRowDraft(row),
         }));
     };
 
     const cancelContractRowEditor = (rowId) => {
         clearRowDraft(rowId);
         setEditingContractRowId(null);
+        setError("");
+    };
+
+    const setContractRowFileDraft = (rowId, type, file) => {
+        if (!file) return;
+        const filePatch = type === "bak"
+            ? { bakUploadedFile: file, bakUploadedFileName: file.name }
+            : { contractUploadedFile: file, contractUploadedFileName: file.name };
+        setRowDraft(rowId, filePatch);
+        setError("");
+    };
+
+    const clearContractRowFileDraft = (rowId, type) => {
+        const filePatch = type === "bak"
+            ? { bakUploadedFile: null, bakUploadedFileName: "" }
+            : { contractUploadedFile: null, contractUploadedFileName: "" };
+        setRowDraft(rowId, filePatch);
         setError("");
     };
 
@@ -994,6 +1011,18 @@ function IspDetailPage({
                 if (Object.prototype.hasOwnProperty.call(updates, "status")) {
                     payload.status = updates.status;
                 }
+                if (Object.prototype.hasOwnProperty.call(updates, "contract_file_url")) {
+                    payload.contractFileUrl = updates.contract_file_url;
+                }
+                if (Object.prototype.hasOwnProperty.call(updates, "contract_file_name")) {
+                    payload.contractFileName = updates.contract_file_name;
+                }
+                if (Object.prototype.hasOwnProperty.call(updates, "bak_file_url")) {
+                    payload.bakFileUrl = updates.bak_file_url;
+                }
+                if (Object.prototype.hasOwnProperty.call(updates, "bak_file_name")) {
+                    payload.bakFileName = updates.bak_file_name;
+                }
                 await api.isps.update(isp.id, payload);
             } else {
                 await api.ispContractRows.update(rowId, updates);
@@ -1028,14 +1057,41 @@ function IspDetailPage({
             return false;
         }
 
-        setError("");
-        await handleUpdateRow(row.id, {
+        const updates = {
             contract_reference: contractReference,
             contract_start_date: contractStartDate || null,
             period_start: periodStart,
             period_end: periodEnd,
             status: draft.status ?? getIspContractRowEditStatus(row),
-        });
+        };
+        const pendingReplacementLabels = [
+            draft.contractUploadedFile instanceof File && isOpenableFileUrl(row.contractFileUrl) ? "Kontrak" : null,
+            draft.bakUploadedFile instanceof File && isOpenableFileUrl(row.bakFileUrl) ? "BAK" : null,
+        ].filter(Boolean);
+
+        if (pendingReplacementLabels.length > 0) {
+            const confirmed = window.confirm(`Ganti berkas ${pendingReplacementLabels.join(" dan ")} yang sudah tersimpan? Berkas lama akan diganti setelah perubahan disimpan.`);
+            if (!confirmed) return false;
+        }
+
+        setError("");
+        setIsActionLoading(true);
+        try {
+            if (draft.contractUploadedFile instanceof File) {
+                updates.contract_file_url = await uploadFileForRecord(draft.contractUploadedFile, ["isps", isp.id, "contract"]);
+                updates.contract_file_name = draft.contractUploadedFile.name;
+            }
+            if (draft.bakUploadedFile instanceof File) {
+                updates.bak_file_url = await uploadFileForRecord(draft.bakUploadedFile, ["isps", isp.id, "bak"]);
+                updates.bak_file_name = draft.bakUploadedFile.name;
+            }
+        } catch (uploadError) {
+            setError(uploadError instanceof Error ? uploadError.message : "Gagal mengunggah berkas pengganti.");
+            setIsActionLoading(false);
+            return false;
+        }
+
+        await handleUpdateRow(row.id, updates);
         return true;
     };
 
@@ -2464,16 +2520,27 @@ function IspDetailPage({
                                                         </div>
                                                     </td>
                                                     <td className="px-3 py-2.5 text-center border-r border-white/10">
-                                                        <div className="flex items-center justify-center gap-2 flex-wrap">
-                                                            {isOpenableFileUrl(row.contractFileUrl) ? (
-                                                                <button onClick={() => openSafeFile(row.contractFileUrl, row.contractFileName)} className={`${fileActionButtonClass} ${fileActionPrimaryClass}`}><span className="material-symbols-outlined" style={{ fontSize: "14px" }}>description</span>Buka</button>
-                                                            ) : !isEditingContractRow ? <span className="text-[10px] font-bold text-white/20">Belum diunggah</span> : null}
-                                                            {isEditingContractRow && (
-                                                                <FilePickerButton
-                                                                    label={isOpenableFileUrl(row.contractFileUrl) ? "Ganti" : "Upload"}
-                                                                    className={`${fileActionButtonClass} ${fileActionMutedClass}`}
-                                                                    onPickFile={(file) => void handleFileUpload(row.id, 'contract', file)}
-                                                                />
+                                                        <div className="flex flex-col items-center justify-center gap-2">
+                                                            <div className="flex items-center justify-center gap-2 flex-wrap">
+                                                                {isOpenableFileUrl(row.contractFileUrl) ? (
+                                                                    <button onClick={() => openSafeFile(row.contractFileUrl, row.contractFileName)} className={`${fileActionButtonClass} ${fileActionPrimaryClass}`}><span className="material-symbols-outlined" style={{ fontSize: "14px" }}>description</span>Buka</button>
+                                                                ) : !isEditingContractRow ? <span className="text-[10px] font-bold text-white/20">Belum diunggah</span> : null}
+                                                                {isEditingContractRow && (
+                                                                    <FilePickerButton
+                                                                        label={isOpenableFileUrl(row.contractFileUrl) ? "Ganti" : "Upload"}
+                                                                        className={`${fileActionButtonClass} ${fileActionMutedClass}`}
+                                                                        onPickFile={(file) => setContractRowFileDraft(row.id, 'contract', file)}
+                                                                    />
+                                                                )}
+                                                            </div>
+                                                            {isEditingContractRow && draft.contractUploadedFileName && (
+                                                                <div className="flex max-w-[190px] items-center gap-2 rounded-lg border border-amber-400/20 bg-amber-400/10 px-2 py-1 text-left">
+                                                                    <span className="material-symbols-outlined text-amber-300" style={{ fontSize: "13px" }}>pending</span>
+                                                                    <span className="min-w-0 flex-1 truncate text-[9px] font-bold text-amber-100" title={draft.contractUploadedFileName}>Siap ganti: {draft.contractUploadedFileName}</span>
+                                                                    <button type="button" className="text-white/40 hover:text-white" onClick={() => clearContractRowFileDraft(row.id, 'contract')} title="Batalkan ganti file kontrak">
+                                                                        <span className="material-symbols-outlined" style={{ fontSize: "13px" }}>close</span>
+                                                                    </button>
+                                                                </div>
                                                             )}
                                                         </div>
                                                     </td>
@@ -2541,16 +2608,27 @@ function IspDetailPage({
                                                         )}
                                                     </td>
                                                     <td className="px-3 py-2.5 text-center border-r border-white/10">
-                                                        <div className="flex items-center justify-center gap-2 flex-wrap">
-                                                            {isOpenableFileUrl(row.bakFileUrl) ? (
-                                                                <button onClick={() => openSafeFile(row.bakFileUrl, row.bakFileName)} className={`${fileActionButtonClass} ${fileActionSuccessClass}`}><span className="material-symbols-outlined" style={{ fontSize: "14px" }}>task_alt</span>Buka BAK</button>
-                                                            ) : !isEditingContractRow ? <span className="text-[10px] font-bold text-white/20">Belum diunggah</span> : null}
-                                                            {isEditingContractRow && (
-                                                                <FilePickerButton
-                                                                    label={isOpenableFileUrl(row.bakFileUrl) ? "Ganti" : "Upload BAK"}
-                                                                    className={`${fileActionButtonClass} ${fileActionMutedClass}`}
-                                                                    onPickFile={(file) => void handleFileUpload(row.id, 'bak', file)}
-                                                                />
+                                                        <div className="flex flex-col items-center justify-center gap-2">
+                                                            <div className="flex items-center justify-center gap-2 flex-wrap">
+                                                                {isOpenableFileUrl(row.bakFileUrl) ? (
+                                                                    <button onClick={() => openSafeFile(row.bakFileUrl, row.bakFileName)} className={`${fileActionButtonClass} ${fileActionSuccessClass}`}><span className="material-symbols-outlined" style={{ fontSize: "14px" }}>task_alt</span>Buka BAK</button>
+                                                                ) : !isEditingContractRow ? <span className="text-[10px] font-bold text-white/20">Belum diunggah</span> : null}
+                                                                {isEditingContractRow && (
+                                                                    <FilePickerButton
+                                                                        label={isOpenableFileUrl(row.bakFileUrl) ? "Ganti" : "Upload BAK"}
+                                                                        className={`${fileActionButtonClass} ${fileActionMutedClass}`}
+                                                                        onPickFile={(file) => setContractRowFileDraft(row.id, 'bak', file)}
+                                                                    />
+                                                                )}
+                                                            </div>
+                                                            {isEditingContractRow && draft.bakUploadedFileName && (
+                                                                <div className="flex max-w-[190px] items-center gap-2 rounded-lg border border-amber-400/20 bg-amber-400/10 px-2 py-1 text-left">
+                                                                    <span className="material-symbols-outlined text-amber-300" style={{ fontSize: "13px" }}>pending</span>
+                                                                    <span className="min-w-0 flex-1 truncate text-[9px] font-bold text-amber-100" title={draft.bakUploadedFileName}>Siap ganti: {draft.bakUploadedFileName}</span>
+                                                                    <button type="button" className="text-white/40 hover:text-white" onClick={() => clearContractRowFileDraft(row.id, 'bak')} title="Batalkan ganti file BAK">
+                                                                        <span className="material-symbols-outlined" style={{ fontSize: "13px" }}>close</span>
+                                                                    </button>
+                                                                </div>
                                                             )}
                                                         </div>
                                                     </td>
