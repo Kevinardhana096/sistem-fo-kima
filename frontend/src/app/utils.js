@@ -95,6 +95,18 @@ export const formatDateTime = (value) => {
     }).format(parsed);
 };
 
+export const formatMonthYear = (value) => {
+    const parsed = parseDateValue(value);
+    if (!parsed) {
+        return "-";
+    }
+
+    return new Intl.DateTimeFormat("id-ID", {
+        month: "long",
+        year: "numeric",
+    }).format(parsed);
+};
+
 export const formatCurrency = (value) => {
     const amount = Number(value ?? 0);
     return new Intl.NumberFormat("id-ID", {
@@ -174,6 +186,23 @@ export const getNextMonthIsoDate = (isoDate, day = null) => {
     next.setUTCDate(Math.min(Math.max(Math.round(normalizedDay), 1), maxDay));
 
     return next.toISOString().slice(0, 10);
+};
+
+export const resolveInvoiceDueMonthIsoDate = (periodStartDate) => {
+    const parsed = parseDateValue(periodStartDate);
+    if (!parsed) {
+        return "";
+    }
+
+    const startDay = parsed.getUTCDate();
+    const dueMonthOffset = startDay <= 15 ? 0 : 1;
+    const dueMonthDate = new Date(Date.UTC(
+        parsed.getUTCFullYear(),
+        parsed.getUTCMonth() + dueMonthOffset,
+        1,
+    ));
+
+    return dueMonthDate.toISOString().slice(0, 10);
 };
 
 export const shiftIsoDateByBillingCycle = (isoDate, every, unit) => {

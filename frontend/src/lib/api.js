@@ -1,4 +1,4 @@
-import { buildInvoiceScheduleRows, getNextMonthIsoDate, resolveCustomerOperationalStatus } from '../app/utils';
+import { buildInvoiceScheduleRows, resolveCustomerOperationalStatus, resolveInvoiceDueMonthIsoDate } from '../app/utils';
 import { supabase } from './supabase';
 
 /**
@@ -43,7 +43,7 @@ const clearNotificationListCache = () => {
   notificationListCache.clear();
 };
 
-const resolveInvoiceDueDate = (periodStartDate) => getNextMonthIsoDate(periodStartDate, 1);
+const resolveInvoiceDueDate = (periodStartDate) => resolveInvoiceDueMonthIsoDate(periodStartDate);
 
 const resolveBillingCycleInvoiceAmount = (monthlyAmount, billingCycle) => {
   const amount = Number(monthlyAmount ?? 0);
@@ -845,8 +845,8 @@ const getDerivedNotifications = async (latestRouteByCustomerId = null) => {
             code: 'invoice_h_minus_7',
             type: 'invoice_reminder',
             severity: 'warning',
-            title: 'Peringatan H-7 pembayaran',
-            message: `${customerName} mendekati jatuh tempo. Upload invoice pembayaran diperlukan.`,
+            title: 'Reminder bulan jatuh tempo',
+            message: `${customerName} sudah memasuki reminder bulan jatuh tempo. Upload invoice pembayaran diperlukan.`,
             customerId,
             customerName,
             actionLabel: 'Buka Invoice',
