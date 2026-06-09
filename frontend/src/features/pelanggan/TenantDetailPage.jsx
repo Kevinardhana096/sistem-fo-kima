@@ -1410,6 +1410,26 @@ function TenantDetailPage({
     setSelectedEntryPointIds(persistedSelectedEntryPointIds);
   }, [persistedSelectedEntryPointIds]);
 
+  const visibleTenantEntryPointIds = useMemo(() => {
+    const explicitSelectedIds = (Array.isArray(selectedEntryPointIds) ? selectedEntryPointIds : [])
+      .map(Number)
+      .filter(Number.isFinite);
+
+    if (explicitSelectedIds.length > 0) {
+      return explicitSelectedIds.slice(0, 1);
+    }
+
+    const fallbackEntryPoint =
+      availableIspEntryPoints.find((point) => Boolean(point?.isDefault ?? point?.is_default)) ??
+      availableIspEntryPoints[0] ??
+      null;
+    const fallbackId = Number(fallbackEntryPoint?.id);
+
+    return Number.isFinite(fallbackId) ? [fallbackId] : [];
+  }, [availableIspEntryPoints, selectedEntryPointIds]);
+
+  const primaryProviderIconUrl = isps[0]?.logoUrl || isps[0]?.logo_url || "";
+
   const sortedInvoices = useMemo(() => {
     const nextItems = [...activeInvoices];
     nextItems.sort((left, right) => {
@@ -4457,13 +4477,13 @@ function TenantDetailPage({
               initialControlPoints={previewRoutePoints}
               initialRouteMeta={activeRoutePlannerMeta}
               providerEntryPoints={availableIspEntryPoints}
-              selectedProviderEntryPointIds={selectedEntryPointIds}
+              selectedProviderEntryPointIds={visibleTenantEntryPointIds}
               onApplyPlannedRoute={async (plannedPoints, plannerMeta) => {
                 await handleApplyPlannedRoute(plannedPoints, plannerMeta);
                 onBack?.();
               }}
               mode="full"
-              providerIconUrl={isps[0]?.logoUrl || ""}
+              providerIconUrl={primaryProviderIconUrl}
               customerIconUrl={detail?.logo_url || ""}
               customHeaderInfo={
                 <header className="pointer-events-auto hidden sm:flex flex-col items-center gap-0.5 rounded-xl bg-slate-900/80 px-4 py-1.5 shadow-2xl backdrop-blur-md border border-white/10 max-w-[240px] md:max-w-[300px] text-center shrink-0">
@@ -5176,8 +5196,8 @@ function TenantDetailPage({
               previewRoads={previewRoads}
               previewPoints={previewRoutePoints}
               providerEntryPoints={availableIspEntryPoints}
-              selectedProviderEntryPointIds={selectedEntryPointIds}
-              providerIconUrl={isps[0]?.logoUrl || ""}
+              selectedProviderEntryPointIds={visibleTenantEntryPointIds}
+              providerIconUrl={primaryProviderIconUrl}
               customerIconUrl={detail?.logo_url || ""}
             />
 

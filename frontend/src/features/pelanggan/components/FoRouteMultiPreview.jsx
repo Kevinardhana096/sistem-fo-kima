@@ -94,11 +94,11 @@ function createIspIcon(logoUrl, title = "ISP") {
   });
 }
 
-function createIspEntryPointIcon(isDefault, title = "Titik Masuk ISP") {
+function createIspEntryPointIcon(isDefault, title = "Titik Masuk ISP", logoUrl = "") {
   const color = isDefault ? "#f59e0b" : "#0ea5e9";
   return L.divIcon({
     className: "",
-    html: makePinHtml("", "FO", color, title),
+    html: makePinHtml(logoUrl, "FO", color, title),
     iconSize: [36, 44],
     iconAnchor: [18, 44],
     popupAnchor: [0, -44],
@@ -259,7 +259,7 @@ export default function FoRouteMultiPreview({ tenants = [], entryPoints = [], is
           {entryPointMarkers.map((point) => (
             <Marker
               key={`isp-entry-${point.id}`}
-              icon={createIspEntryPointIcon(point.isDefault, point.label)}
+              icon={createIspEntryPointIcon(point.isDefault, point.label, ispLogoUrl)}
               position={point.coord}
               zIndexOffset={900}
             >
