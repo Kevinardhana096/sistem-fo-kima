@@ -124,19 +124,6 @@ function CustomDropdown({ value, options, onChange, align = "left", position = "
         </div>
     );
 }
-const getLocalDateString = (d) => {
-    const offset = d.getTimezoneOffset();
-    const local = new Date(d.getTime() - (offset * 60 * 1000));
-    return local.toISOString().slice(0, 10);
-};
-
-const getTodayDate = () => getLocalDateString(new Date());
-
-const getYesterdayDate = () => {
-    const d = new Date();
-    d.setDate(d.getDate() - 1);
-    return getLocalDateString(d);
-};
 
 export default function ActivityLogPage({ activeSection, onNavigate, onLogout, currentRole = "admin" }) {
     const [logs, setLogs] = useState([]);
@@ -147,7 +134,7 @@ export default function ActivityLogPage({ activeSection, onNavigate, onLogout, c
     const [dateMode, setDateMode] = useState("all");
     const [dateFrom, setDateFrom] = useState("");
     const [dateTo, setDateTo] = useState("");
-    const [selectedYear, setSelectedYear] = useState(String(new Date().getFullYear()));
+
 
     // Pagination states
     const [currentPage, setCurrentPage] = useState(1);
@@ -162,33 +149,8 @@ export default function ActivityLogPage({ activeSection, onNavigate, onLogout, c
     const [isDeletingLogs, setIsDeletingLogs] = useState(false);
     const [error, setError] = useState("");
 
-    const handleDateModeChange = (mode) => {
-        setDateMode(mode);
-        setCurrentPage(1);
-        const today = getTodayDate();
-        if (mode === "all") {
-            setDateFrom("");
-            setDateTo("");
-        } else if (mode === "range") {
-            setDateFrom(getYesterdayDate());
-            setDateTo(today);
-        } else if (mode === "till_today") {
-            setDateFrom(getYesterdayDate());
-            setDateTo(today);
-        } else if (mode === "year") {
-            setDateFrom(`${selectedYear}-01-01`);
-            setDateTo(`${selectedYear}-12-31`);
-        }
-    };
 
-    const handleYearChange = (year) => {
-        setSelectedYear(year);
-        setCurrentPage(1);
-        if (dateMode === "year") {
-            setDateFrom(`${year}-01-01`);
-            setDateTo(`${year}-12-31`);
-        }
-    };
+
 
 
 
@@ -230,7 +192,7 @@ export default function ActivityLogPage({ activeSection, onNavigate, onLogout, c
         setDateMode("all");
         setDateFrom("");
         setDateTo("");
-        setSelectedYear(String(new Date().getFullYear()));
+
     };
 
     const totalPages = Math.max(Math.ceil(logs.length / itemsPerPage), 1);
@@ -320,24 +282,7 @@ export default function ActivityLogPage({ activeSection, onNavigate, onLogout, c
         }
     };
 
-    const handleDeleteAllLogs = async () => {
-        if (logs.length === 0) return;
-        if (!window.confirm("Hapus SEMUA log aktivitas? Tindakan ini tidak dapat dibatalkan.")) return;
 
-        setIsDeletingLogs(true);
-        setError("");
-        try {
-            await api.activityLogs.deleteAll();
-            setSelectedLog(null);
-            setSelectedLogIds(new Set());
-            await loadLogs();
-        } catch (err) {
-            console.error("Failed to delete all activity logs:", err);
-            setError(err instanceof Error ? err.message : "Gagal menghapus semua log aktivitas.");
-        } finally {
-            setIsDeletingLogs(false);
-        }
-    };
 
     return (
         <AppShell activeSection={activeSection} onNavigate={onNavigate} onLogout={onLogout} currentRole={currentRole}>
