@@ -2372,7 +2372,7 @@ function IspDetailPage({
                                         <FoRouteMultiPreview
                                             tenants={allTenants}
                                             entryPoints={detail?.entryPoints || []}
-                                            ispLogoUrl={detail?.logo_url ?? isp.logo_url ?? ""}
+                                            ispLogoUrl={detail?.logoUrl ?? detail?.logo_url ?? isp.logoUrl ?? isp.logo_url ?? ""}
                                             ispName={ispName}
                                             onTenantClick={(tenantId) => {
                                                 if (!canOpenTenantDetail) return;

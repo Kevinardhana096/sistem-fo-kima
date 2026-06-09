@@ -649,8 +649,18 @@ export default function FoRoutePlanner({
   }, [selectableProviderEntryPoints, selectedProviderEntryPointIds]);
   const activeProviderEntryPointId = useMemo(() => {
     const match = String(pointA?.id ?? "").match(/^provider-entry-(\d+)$/);
-    return match ? Number(match[1]) : null;
-  }, [pointA?.id]);
+    if (match) return Number(match[1]);
+
+    if (!pointA) return null;
+
+    const matchedEntryPoint = selectedProviderEntryPoints.find(
+      (entryPoint) =>
+        Math.abs(Number(pointA.lat) - entryPoint.lat) < 0.000001 &&
+        Math.abs(Number(pointA.lng) - entryPoint.lng) < 0.000001,
+    );
+
+    return matchedEntryPoint ? Number(matchedEntryPoint.id) : null;
+  }, [pointA, selectedProviderEntryPoints]);
   const visibleProviderEntryPoints = useMemo(
     () =>
       selectedProviderEntryPoints.filter(
@@ -688,19 +698,17 @@ export default function FoRoutePlanner({
       ),
     [previewPoints],
   );
-  const visiblePreviewProviderEntryPoints = useMemo(
-    () =>
-      selectedProviderEntryPoints.filter(
-        (entryPoint) =>
-          !previewControlPoints.some(
-            (point) =>
-              point.role === "provider" &&
-              Math.abs(Number(point.lat) - entryPoint.lat) < 0.000001 &&
-              Math.abs(Number(point.lng) - entryPoint.lng) < 0.000001,
-          ),
-      ),
-    [previewControlPoints, selectedProviderEntryPoints],
-  );
+  const visiblePreviewProviderEntryPoints = useMemo(() => {
+    const routeAlreadyShowsProvider = previewControlPoints.some(
+      (point) => point.role === "provider",
+    );
+
+    if (routeAlreadyShowsProvider) {
+      return [];
+    }
+
+    return selectedProviderEntryPoints.slice(0, 1);
+  }, [previewControlPoints, selectedProviderEntryPoints]);
   const previewRouteGeoJson = useMemo(() => {
     if (!isPreviewMode) {
       return null;
