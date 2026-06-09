@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import IspDetailPage from '../IspDetailPage';
@@ -72,6 +72,7 @@ const renderPage = (props = {}) => render(
 describe('IspDetailPage - tab kontrak', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
+    window.localStorage.clear();
     const { default: api } = await import('../../../lib/api');
     api.isps.getById.mockResolvedValue({
       ...baseIsp,
