@@ -2371,6 +2371,7 @@ function IspDetailPage({
                                     <div className="xl:col-span-8 flex flex-col">
                                         <FoRouteMultiPreview
                                             tenants={allTenants}
+                                            entryPoints={detail?.entryPoints || []}
                                             ispLogoUrl={detail?.logo_url ?? isp.logo_url ?? ""}
                                             ispName={ispName}
                                             onTenantClick={(tenantId) => {

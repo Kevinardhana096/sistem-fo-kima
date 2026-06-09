@@ -4,6 +4,7 @@ import {
   GeoJSON,
   MapContainer,
   Marker,
+  Popup,
   TileLayer,
   useMap,
   ZoomControl,
@@ -93,6 +94,17 @@ function createIspIcon(logoUrl, title = "ISP") {
   });
 }
 
+function createIspEntryPointIcon(isDefault, title = "Titik Masuk ISP") {
+  const color = isDefault ? "#f59e0b" : "#0ea5e9";
+  return L.divIcon({
+    className: "",
+    html: makePinHtml("", "FO", color, title),
+    iconSize: [36, 44],
+    iconAnchor: [18, 44],
+    popupAnchor: [0, -44],
+  });
+}
+
 function createCustomerIcon(color, label, logoUrl, title = "") {
   return L.divIcon({
     className: "",
@@ -121,7 +133,7 @@ function MapInstanceCapture({ onReady }) {
   return null;
 }
 
-export default function FoRouteMultiPreview({ tenants = [], ispLogoUrl = "", ispName = "", onTenantClick }) {
+export default function FoRouteMultiPreview({ tenants = [], entryPoints = [], ispLogoUrl = "", ispName = "", onTenantClick }) {
   const routeData = useMemo(() => {
     return tenants
       .map((tenant, idx) => {
@@ -157,20 +169,43 @@ export default function FoRouteMultiPreview({ tenants = [], ispLogoUrl = "", isp
       .filter(Boolean);
   }, [tenants]);
 
+  const entryPointMarkers = useMemo(() => {
+    return (Array.isArray(entryPoints) ? entryPoints : [])
+      .map((point) => {
+        const lat = Number(point?.latitude ?? point?.lat);
+        const lng = Number(point?.longitude ?? point?.lng);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+
+        return {
+          id: point?.id ?? `${point?.label ?? "entry-point"}-${lat}-${lng}`,
+          label: String(point?.label ?? "Titik Masuk ISP").trim() || "Titik Masuk ISP",
+          status: point?.status ?? "",
+          description: point?.description ?? "",
+          fiberType: point?.fiberType ?? point?.fiber_type ?? "",
+          coreCapacity: point?.coreCapacity ?? point?.core_capacity ?? null,
+          isDefault: Boolean(point?.isDefault ?? point?.is_default),
+          coord: [lat, lng],
+        };
+      })
+      .filter(Boolean);
+  }, [entryPoints]);
+
   const bounds = useMemo(() => {
-    const allCoords = routeData.flatMap((r) => {
+    const routeCoords = routeData.flatMap((r) => {
       if (r.geometry) return r.geometry.map(([lng, lat]) => [lat, lng]);
       return r.pointCoords;
     });
+    const allCoords = [...routeCoords, ...entryPointMarkers.map((point) => point.coord)];
     if (allCoords.length === 0) return null;
     return L.latLngBounds(allCoords);
-  }, [routeData]);
+  }, [entryPointMarkers, routeData]);
 
   const ispIcon = useMemo(() => createIspIcon(ispLogoUrl, ispName || "ISP"), [ispLogoUrl, ispName]);
+  const fallbackIspMarker = entryPointMarkers.length === 0 ? routeData[0]?.awalCoord : null;
 
   const mapRef = useRef(null);
 
-  if (routeData.length === 0) {
+  if (routeData.length === 0 && entryPointMarkers.length === 0) {
     return (
       <section className="glass-card backdrop-blur-xl rounded-xl py-16 flex flex-col items-center justify-center border-white/10 shadow-glass-depth">
         <div className="h-12 w-12 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 shadow-inner-glass mb-3 animate-pulse">
@@ -220,9 +255,30 @@ export default function FoRouteMultiPreview({ tenants = [], ispLogoUrl = "", isp
 
           <Marker icon={KIMA_ICON} position={KIMA_CENTER} zIndexOffset={1000} />
 
-          {/* ISP marker */}
-          {routeData[0]?.awalCoord && (
-            <Marker icon={ispIcon} position={routeData[0].awalCoord} />
+          {/* ISP entry point markers */}
+          {entryPointMarkers.map((point) => (
+            <Marker
+              key={`isp-entry-${point.id}`}
+              icon={createIspEntryPointIcon(point.isDefault, point.label)}
+              position={point.coord}
+              zIndexOffset={900}
+            >
+              <Popup>
+                <div className="min-w-[170px] space-y-1 text-xs">
+                  <p className="font-bold text-slate-800">{point.label}</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-sky-600">Titik Masuk ISP</p>
+                  <p className="font-mono text-[10px] text-slate-500">{point.coord[0].toFixed(6)}, {point.coord[1].toFixed(6)}</p>
+                  {point.fiberType && <p className="text-[10px] text-slate-500">Fiber: {point.fiberType}</p>}
+                  {point.coreCapacity != null && point.coreCapacity !== "" && <p className="text-[10px] text-slate-500">Core: {point.coreCapacity}</p>}
+                  {point.description && <p className="text-[10px] text-slate-500">{point.description}</p>}
+                </div>
+              </Popup>
+            </Marker>
+          ))}
+
+          {/* Fallback ISP marker for legacy route data without configured entry points */}
+          {fallbackIspMarker && (
+            <Marker icon={ispIcon} position={fallbackIspMarker} zIndexOffset={900} />
           )}
 
           {/* Routes & customer markers */}
@@ -255,7 +311,7 @@ export default function FoRouteMultiPreview({ tenants = [], ispLogoUrl = "", isp
         <div className="flex items-center gap-2 mb-3">
           <span className="h-3.5 w-1 bg-gold-accent rounded-full" />
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white">Legenda Jalur</p>
-          <span className="ml-auto text-[9px] font-bold text-white/30">{routeData.length} jalur aktif</span>
+          <span className="ml-auto text-[9px] font-bold text-white/30">{routeData.length} jalur aktif • {entryPointMarkers.length} titik ISP</span>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
           {routeData.map((route) => (
