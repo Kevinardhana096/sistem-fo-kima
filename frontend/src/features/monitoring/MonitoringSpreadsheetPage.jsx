@@ -723,7 +723,7 @@ function MonitoringSpreadsheetPage({
             )}
 
             <div className={`max-w-full overflow-auto custom-scrollbar ${tableOnly ? "flex-1 min-h-0" : ""}`}>
-                <table className={`w-full min-w-[2000px] table-fixed border-separate border-spacing-0 text-[10px] ${tableOnly && (isLoading || filteredRows.length === 0) ? "h-full" : ""}`}>
+                <table className={`${isTeknisi ? "w-[1764px]" : "w-[3084px]"} table-fixed border-separate border-spacing-0 text-[10px] ${tableOnly && (isLoading || filteredRows.length === 0) ? "h-full" : ""}`}>
                     <colgroup>
                         <col style={{ width: "64px" }} />
                         <col style={{ width: "180px" }} />
@@ -749,15 +749,15 @@ function MonitoringSpreadsheetPage({
                     </colgroup>
                     <thead>
                         <tr>
-                            <th rowSpan="2" className="sticky left-0 top-0 z-[100] w-[64px] pl-2 pr-0 py-3 text-center font-black uppercase tracking-widest text-gold-accent bg-[#1e293b]/95 border-b border-white/10 shadow-lg backdrop-blur-3xl">
+                            <th rowSpan="2" className="sticky left-0 top-0 z-[100] w-[64px] pl-2 pr-0 py-3 text-center font-black uppercase tracking-widest text-gold-accent bg-[#1e293b] border-b border-white/10 shadow-lg">
                                 NO
                             </th>
-                            <th rowSpan="2" className="sticky left-[64px] top-0 z-[100] -ml-px w-[180px] pl-0 pr-0 py-3 text-center font-black uppercase tracking-widest text-white bg-[#1e293b]/95 border-b border-white/10 shadow-lg backdrop-blur-3xl">
+                            <th rowSpan="2" className="sticky left-[64px] top-0 z-[100] w-[180px] pl-0 pr-0 py-3 text-center font-black uppercase tracking-widest text-white bg-[#1e293b] border-b border-white/10 shadow-lg">
                                 MITRA ISP
                             </th>
-                            <th rowSpan="2" className="sticky left-[244px] top-0 z-[100] -ml-px w-[280px] pl-0 pr-2 py-3 text-center font-black uppercase tracking-widest text-white bg-[#1e293b]/95 border-b border-white/10 shadow-lg backdrop-blur-3xl">
+                            <th rowSpan="2" className="sticky left-[244px] top-0 z-[100] w-[280px] pl-0 pr-2 py-3 text-center font-black uppercase tracking-widest text-white bg-[#1e293b] border-b border-white/10 shadow-lg">
                                 UNIT LOKASI
-                                <span className="absolute right-0 top-0 h-full w-px bg-white/5 backdrop-blur-md" />
+                                <span className="absolute right-0 top-0 h-full w-px bg-white/5" />
                             </th>
                             <th rowSpan="2" className="sticky top-0 z-[90] w-[180px] px-3 py-3 text-center font-black uppercase tracking-widest text-white bg-[#1e293b]/95 border-b border-r border-white/10 backdrop-blur-3xl">
                                 PERIODE AWAL
@@ -784,11 +784,8 @@ function MonitoringSpreadsheetPage({
                             <th rowSpan="2" className="sticky top-0 z-[90] w-[160px] px-4 py-3 text-center font-black uppercase tracking-widest text-white bg-[#1e293b]/95 border-b border-r border-white/10 backdrop-blur-3xl">
                                 SISA SEWA
                             </th>
-                            <th rowSpan="2" className="sticky top-0 z-[90] w-[220px] px-4 py-3 text-center font-black uppercase tracking-widest text-white bg-[#1e293b]/95 border-b border-r border-white/10 backdrop-blur-3xl">
-                                ST. KONTRAK
-                            </th>
-                            <th rowSpan="2" className="sticky top-0 z-[90] w-[180px] px-4 py-3 text-center font-black uppercase tracking-widest text-white bg-[#1e293b]/95 border-b border-r border-white/10 backdrop-blur-3xl">
-                                ST. JALUR
+                            <th colSpan="2" className="sticky top-0 z-[90] px-4 py-2.5 text-center font-black uppercase tracking-widest text-gold-accent bg-[#1e293b]/95 border-b border-r border-white/10 backdrop-blur-3xl">
+                                STATUS
                             </th>
                             {!isTeknisi && (
                                 <>
@@ -813,6 +810,18 @@ function MonitoringSpreadsheetPage({
                                 style={{ top: `${headerRow1Height}px` }}
                             >
                                 AKHIR
+                            </th>
+                            <th
+                                className="sticky z-[80] w-[220px] px-3 py-2 text-center font-black text-[9px] uppercase tracking-widest text-white/40 bg-[#1e293b]/95 border-b border-r border-white/10 backdrop-blur-3xl shadow-md"
+                                style={{ top: `${headerRow1Height}px` }}
+                            >
+                                KONTRAK
+                            </th>
+                            <th
+                                className="sticky z-[80] w-[180px] px-3 py-2 text-center font-black text-[9px] uppercase tracking-widest text-white/40 bg-[#1e293b]/95 border-b border-r border-white/10 backdrop-blur-3xl shadow-md"
+                                style={{ top: `${headerRow1Height}px` }}
+                            >
+                                JALUR
                             </th>
                             {!isTeknisi && monitoringMonths.map((month) => (
                                 <th
@@ -876,10 +885,10 @@ function MonitoringSpreadsheetPage({
                             const actualRowNumber = tableOnly ? rowIndex + 1 : startIndex + rowIndex + 1;
                             return (
                                 <tr key={`${row.customerId}-${rowIndex}`} className="bg-[#0f172a]/40 transition-all group hover:bg-[#1e293b]/60">
-                                    <td className="relative sticky left-0 z-20 w-[64px] pl-2 pr-0 py-3 font-black text-white/30 text-center bg-[#0f172a]/65 backdrop-blur-sm group-hover:!bg-[#0f1117] group-hover:!backdrop-blur-none group-hover:text-gold-accent transition-colors shadow-[2px_0_10px_rgba(0,0,0,0.3)] group-hover:border-l-4 group-hover:border-l-gold-accent">
+                                    <td className="relative sticky left-0 z-20 w-[64px] pl-2 pr-0 py-3 font-black text-white/30 text-center bg-[#0f172a] group-hover:!bg-[#0f1117] group-hover:text-gold-accent transition-colors shadow-[2px_0_10px_rgba(0,0,0,0.3)] group-hover:border-l-4 group-hover:border-l-gold-accent">
                                         {String(actualRowNumber).padStart(2, "0")}
                                     </td>
-                                    <td className="relative sticky left-[64px] z-20 -ml-px w-[180px] pl-0 pr-0 py-3 font-black text-white bg-[#0f172a]/65 backdrop-blur-sm group-hover:!bg-[#0f1117] group-hover:!backdrop-blur-none transition-colors shadow-[2px_0_10px_rgba(0,0,0,0.3)]">
+                                    <td className="relative sticky left-[64px] z-20 w-[180px] pl-0 pr-0 py-3 font-black text-white bg-[#0f172a] group-hover:!bg-[#0f1117] transition-colors shadow-[2px_0_10px_rgba(0,0,0,0.3)]">
                                         <button
                                             className="w-[170px] truncate pl-2 text-left font-black text-white transition-colors hover:text-gold-accent"
                                             onClick={() => handleOpenIspDetail(row.ispId)}
@@ -889,7 +898,7 @@ function MonitoringSpreadsheetPage({
                                             {row.ispName}
                                         </button>
                                     </td>
-                                    <td className="relative sticky left-[244px] z-20 -ml-px w-[280px] pl-0 pr-2 py-3 bg-[#0f172a]/65 backdrop-blur-sm group-hover:!bg-[#0f1117] group-hover:!backdrop-blur-none transition-colors shadow-[4px_0_15px_rgba(0,0,0,0.4)]">
+                                    <td className="relative sticky left-[244px] z-20 w-[280px] pl-0 pr-2 py-3 bg-[#0f172a] group-hover:!bg-[#0f1117] transition-colors shadow-[4px_0_15px_rgba(0,0,0,0.4)]">
                                         <button
                                             className="max-w-[270px] truncate text-left font-black tracking-tight text-on-surface transition-colors hover:text-gold-accent"
                                             onClick={() => onOpenCustomerById(row.customerId, "overview")}
@@ -898,7 +907,7 @@ function MonitoringSpreadsheetPage({
                                         >
                                             {row.customerName}
                                         </button>
-                                        <span className="absolute right-0 top-0 h-full w-px bg-white/10 backdrop-blur-md" />
+                                        <span className="absolute right-0 top-0 h-full w-px bg-white/10" />
                                     </td>
                                     <td className="px-3 py-3 text-on-surface-variant font-bold text-center group-hover:bg-white/5 transition-colors border-r border-white/5 backdrop-blur-md">
                                         {formatDate(row.ispContractStart)}
@@ -1119,11 +1128,11 @@ function MonitoringSpreadsheetPage({
 
     const historyTableSection = (
         <section className={`glass-card monitoring-card backdrop-blur-xl rounded-premium border-white/40 shadow-glass-depth max-w-full ${tableOnly ? "flex h-full flex-col overflow-hidden" : ""}`}>
-            <div className="flex flex-col gap-3 border-b border-white/10 bg-[#0f141e]/60 px-5 py-2.5 backdrop-blur-md md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-col gap-3 border-b border-white/10 bg-[#0f141e]/60 px-5 py-3.5 backdrop-blur-md md:flex-row md:items-center md:justify-between rounded-t-premium">
                 <div>
-                    <p className="text-[9px] font-black uppercase tracking-[0.3em] text-gold-accent/70">Arsip Kontrak</p>
-                    <h2 className="mt-1 text-sm font-black uppercase tracking-widest text-white">Riwayat Monitoring</h2>
-                    <p className="mt-1 max-w-3xl text-[10px] font-medium leading-relaxed text-white/45">
+                    <p className="text-[9px] font-black uppercase tracking-[0.3em] text-gold-accent/70 leading-none mb-0.5">Arsip Kontrak</p>
+                    <h2 className="text-sm font-black uppercase tracking-widest text-white leading-none mb-0.5">Riwayat Monitoring</h2>
+                    <p className="max-w-3xl text-[10px] font-medium leading-snug text-white/45">
                         Menampilkan kontrak yang sudah selesai tetapi masih beririsan dengan tahun filter.
                     </p>
                 </div>
@@ -1131,7 +1140,7 @@ function MonitoringSpreadsheetPage({
                     {filteredHistoryRows.length} Riwayat
                 </div>
             </div>
-            <div className={`max-w-full overflow-auto custom-scrollbar ${tableOnly ? "flex-1 min-h-0" : ""}`}>
+            <div className={`max-w-full overflow-auto custom-scrollbar rounded-b-premium ${tableOnly ? "flex-1 min-h-0" : ""}`}>
                 <table className={`w-full min-w-[1580px] table-fixed border-separate border-spacing-0 text-[10px] ${tableOnly && (isLoadingHistory || filteredHistoryRows.length === 0) ? "h-full" : ""}`}>
                     <colgroup>
                         <col style={{ width: "64px" }} />
@@ -1607,30 +1616,32 @@ function MonitoringSpreadsheetPage({
                     </div>
                 </section>
 
-                <section className="flex flex-wrap items-center gap-x-8 gap-y-2 rounded-xl glass-premium backdrop-blur-xl px-5 py-2.5 border-white/30">
-                    <div className="flex items-center gap-2">
-                        <span className="h-2 w-2 rounded-full bg-[#00c853] shadow-[0_0_12px_rgba(0,200,83,0.4)]"></span>
-                        <span className="text-[10px] font-black uppercase tracking-widest text-on-surface/60">Lunas</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <span className="h-2 w-2 rounded-full bg-[#ff2400] shadow-[0_0_12px_rgba(255,36,0,0.4)]"></span>
-                        <span className="text-[10px] font-black uppercase tracking-widest text-on-surface/60">Belum Bayar</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <span className="h-2 w-2 rounded-full bg-[#ffab00] shadow-[0_0_12px_rgba(255,171,0,0.4)]"></span>
-                        <span className="text-[10px] font-black uppercase tracking-widest text-on-surface/60">Terlambat</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <span className="h-2 w-2 rounded-full bg-white/10 border border-white/10 backdrop-blur-md"></span>
-                        <span className="text-[10px] font-black uppercase tracking-widest text-on-surface/60">Belum Ditagih</span>
-                    </div>
-                    <div className="flex-1 flex justify-end">
-                        <span className="flex items-center gap-1 text-[10px] font-medium text-on-surface-variant leading-relaxed opacity-60 uppercase tracking-widest">
-                            <span className="material-symbols-outlined" style={{ fontSize: "16px" }}>touch_app</span>
-                            Klik sel bulanan untuk detail
-                        </span>
-                    </div>
-                </section>
+                {!isTeknisi && (
+                    <section className="flex flex-wrap items-center gap-x-8 gap-y-2 rounded-xl glass-premium backdrop-blur-xl px-5 py-2.5 border-white/30">
+                        <div className="flex items-center gap-2">
+                            <span className="h-2 w-2 rounded-full bg-[#00c853] shadow-[0_0_12px_rgba(0,200,83,0.4)]"></span>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-on-surface/60">Lunas</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="h-2 w-2 rounded-full bg-[#ff2400] shadow-[0_0_12px_rgba(255,36,0,0.4)]"></span>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-on-surface/60">Belum Bayar</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="h-2 w-2 rounded-full bg-[#ffab00] shadow-[0_0_12px_rgba(255,171,0,0.4)]"></span>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-on-surface/60">Terlambat</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="h-2 w-2 rounded-full bg-white/10 border border-white/10 backdrop-blur-md"></span>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-on-surface/60">Belum Ditagih</span>
+                        </div>
+                        <div className="flex-1 flex justify-end">
+                            <span className="flex items-center gap-1 text-[10px] font-medium text-on-surface-variant leading-relaxed opacity-60 uppercase tracking-widest">
+                                <span className="material-symbols-outlined" style={{ fontSize: "16px" }}>touch_app</span>
+                                Klik sel bulanan untuk detail
+                            </span>
+                        </div>
+                    </section>
+                )}
 
                 <div className="flex flex-wrap items-center justify-between gap-4 w-full">
                     <section className="flex items-center gap-2 rounded-2xl bg-white/5 border border-white/10 p-1.5 backdrop-blur-md w-fit">

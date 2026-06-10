@@ -116,7 +116,14 @@ export default function TodoListPage({ activeSection, onNavigate, onLogout, curr
 
     useEffect(() => { loadNotifications(); }, [loadNotifications]);
 
-    const counts = useMemo(() => notifications.reduce((acc, n) => {
+    const roleFilteredNotifications = useMemo(() => {
+        if (currentRole === "teknisi") {
+            return notifications.filter(n => getTypeLabel(n) === "Jalur");
+        }
+        return notifications;
+    }, [notifications, currentRole]);
+
+    const counts = useMemo(() => roleFilteredNotifications.reduce((acc, n) => {
         const key = getStatusKey(n);
         acc.total += 1; acc[key] += 1;
         if (!n.resolvedAt) {
@@ -129,19 +136,19 @@ export default function TodoListPage({ activeSection, onNavigate, onLogout, curr
             }
         }
         return acc;
-    }, { total: 0, active: 0, resolved: 0, isp_active: 0, lokasi_active: 0 }), [notifications]);
+    }, { total: 0, active: 0, resolved: 0, isp_active: 0, lokasi_active: 0 }), [roleFilteredNotifications]);
 
     const typeOptions = useMemo(() => {
         const labels = new Set();
-        notifications.forEach((n) => {
+        roleFilteredNotifications.forEach((n) => {
             labels.add(getTypeLabel(n));
         });
         return Array.from(labels).sort((a, b) => a.localeCompare(b));
-    }, [notifications]);
+    }, [roleFilteredNotifications]);
 
     const filteredNotifications = useMemo(() => {
         const queryTokens = search.trim().toLowerCase().split(/\s+/).filter(Boolean);
-        return notifications.filter((n) => {
+        return roleFilteredNotifications.filter((n) => {
             const haystack = [n.title, n.message, n.customerName, n.code, n.type].filter(Boolean).join(" ").toLowerCase();
             const matchesSearch = queryTokens.length === 0 || queryTokens.every((token) => haystack.includes(token));
             const sk = getStatusKey(n);
@@ -149,7 +156,7 @@ export default function TodoListPage({ activeSection, onNavigate, onLogout, curr
                 && (type === "all" || getTypeLabel(n) === type)
                 && (status === "all" || (status === "active" && !n.resolvedAt) || sk === status);
         });
-    }, [notifications, search, status, type]);
+    }, [roleFilteredNotifications, search, status, type]);
 
     useEffect(() => { setCurrentPage(1); }, [search, status, type, itemsPerPage]);
 
@@ -259,8 +266,8 @@ export default function TodoListPage({ activeSection, onNavigate, onLogout, curr
                     <div className="flex w-full sm:w-auto items-center gap-2">
                         <div className="grid grid-cols-1 gap-2 flex-1 sm:flex sm:items-center sm:gap-2">
                             {[
-                                { z: "z-[60]", icon: "category", val: type, setter: setType, opts: [{ value: "all", label: "Semua Tipe" }, ...typeOptions.map((label) => ({ value: label, label: label }))] },
-                            ].map(({ z, icon, val, setter, opts, align = "left" }) => (
+                                currentRole !== "teknisi" ? { z: "z-[60]", icon: "category", val: type, setter: setType, opts: [{ value: "all", label: "Semua Tipe" }, ...typeOptions.map((label) => ({ value: label, label: label }))] } : null,
+                            ].filter(Boolean).map(({ z, icon, val, setter, opts, align = "left" }) => (
                                 <div key={icon} className={`relative ${z} w-full sm:w-36`}>
                                     <div className="relative group h-9 rounded-lg bg-white/5 border border-white/10 focus-within:border-gold-accent/40 focus-within:bg-black/40 transition-all backdrop-blur-md">
                                         <span className={`material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold-accent transition-colors z-10 pointer-events-none`} style={{ fontSize: "18px" }}>{icon}</span>

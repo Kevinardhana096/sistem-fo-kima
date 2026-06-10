@@ -190,7 +190,11 @@ export default function AppShell({
             <TopNav
                 hasSidebar={!hideSidebar}
                 isSidebarCollapsed={isSidebarCollapsed}
+                isMobileMenuOpen={isMobileMenuOpen}
                 onToggleMenu={() => setIsMobileMenuOpen((prev) => !prev)}
+                onCloseMenu={() => setIsMobileMenuOpen(false)}
+                onNavigate={handleMobileNavigate}
+                activeSection={activeSection}
                 onLogout={onLogout}
                 roleConfig={roleConfig}
                 profileDisplayName={profileDisplayName}
@@ -199,7 +203,7 @@ export default function AppShell({
                 isTransitioningAuth={isTransitioningAuth}
             />
 
-            {isMobileMenuOpen && !hideSidebar && (
+            {false && !hideSidebar && (
                 <MobileDropdownMenu
                     activeSection={activeSection}
                     onClose={() => setIsMobileMenuOpen(false)}
@@ -220,7 +224,7 @@ export default function AppShell({
             )}
 
             <main
-                className={`relative z-10 min-h-screen anim-layout-sidebar px-4 sm:px-6 md:px-8 lg:px-10 pb-10 pt-20 lg:pt-24 ${hideSidebar ? "" : (isSidebarCollapsed ? "lg:ml-24" : "lg:ml-60")
+                className={`relative z-10 min-h-screen anim-layout-sidebar px-4 sm:px-6 md:px-8 lg:px-10 pb-10 pt-16 lg:pt-20 ${hideSidebar ? "" : (isSidebarCollapsed ? "lg:ml-24" : "lg:ml-60")
                     }`}
             >
                 <div className="mx-auto max-w-[1600px]">
@@ -353,7 +357,11 @@ export default function AppShell({
 function TopNav({
     hasSidebar = true,
     isSidebarCollapsed,
+    isMobileMenuOpen,
     onToggleMenu,
+    onCloseMenu,
+    onNavigate,
+    activeSection,
     onLogout,
     roleConfig,
     profileDisplayName,
@@ -403,7 +411,7 @@ function TopNav({
 
     return (
         <nav
-            className={`fixed top-4 md:top-5 right-4 md:right-6 z-40 flex items-start justify-between anim-layout-sidebar pointer-events-none ${!hasSidebar
+            className={`fixed top-4 md:top-5 right-4 md:right-6 z-[2020] flex items-start justify-between anim-layout-sidebar pointer-events-none ${!hasSidebar
                     ? "left-4"
                     : isSidebarCollapsed
                     ? "left-4 lg:left-24"
@@ -412,20 +420,60 @@ function TopNav({
         >
             <div className="pointer-events-auto">
                 {hasSidebar && (
-                    <button
-                        className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 shadow-sm text-on-surface anim-surface hover:bg-white/20 lg:hidden"
-                        onClick={onToggleMenu}
-                        type="button"
-                    >
-                        <span className="material-symbols-outlined">menu</span>
-                    </button>
+                    <div className="relative">
+                        <button
+                            className="group flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 backdrop-blur-md border border-white/15 shadow-sm anim-surface hover:bg-white/20 lg:hidden"
+                            onClick={onToggleMenu}
+                            type="button"
+                        >
+                            <span className="material-symbols-outlined text-lg text-on-surface-variant group-hover:text-gold-accent transition-colors">menu</span>
+                        </button>
+                        {isMobileMenuOpen && (
+                            <>
+                                <div className="fixed inset-0 z-[2025]" onClick={onCloseMenu}></div>
+                                <div className="!absolute left-0 top-full z-[2030] mt-3 w-56 origin-top-left rounded-2xl glass-premium border border-white/10 p-3 shadow-glass-depth animate-in fade-in zoom-in-95 duration-200">
+                                    {/* Header / Logo */}
+                                    <div className="flex items-center gap-2.5 px-2 py-1.5 border-b border-white/10 mb-2">
+                                        <div className="h-6 w-6 flex items-center justify-center rounded-lg bg-gold-accent shadow-gold-glow">
+                                            <img alt="Kima" className="h-4 w-4 object-contain" src="/logo-kima.png" />
+                                        </div>
+                                        <div className="text-left">
+                                            <p className="text-[11px] font-black text-on-surface leading-none">KIMA</p>
+                                            <p className="text-[7px] font-bold text-gold-accent uppercase tracking-widest mt-0.5">ARCHIVE</p>
+                                        </div>
+                                    </div>
+                                    <nav className="space-y-1">
+                                        {roleConfig.menuItems.map((item) => {
+                                            const isActive = activeSection === item.key;
+                                            return (
+                                                <button
+                                                    key={item.key}
+                                                    className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left anim-surface transition-all duration-200 ${
+                                                        isActive 
+                                                            ? "active-glow-gold text-on-surface font-black" 
+                                                            : "text-on-surface-variant hover:text-on-surface hover:bg-white/5"
+                                                    }`}
+                                                    onClick={() => { onNavigate(item.key); onCloseMenu(); }}
+                                                >
+                                                    <span className={`material-symbols-outlined text-base transition-transform duration-200 ${
+                                                        isActive ? "text-gold-accent" : "text-on-surface-variant"
+                                                    }`}>{item.icon}</span>
+                                                    <span className="text-[9px] font-bold uppercase tracking-wider">{item.label}</span>
+                                                </button>
+                                            );
+                                        })}
+                                    </nav>
+                                </div>
+                            </>
+                        )}
+                    </div>
                 )}
             </div>
 
-            <div className="absolute right-0 top-0 z-50 flex items-start gap-3 pointer-events-auto">
-                <div className="relative hidden shrink-0 sm:block">
+            <div className="absolute right-0 top-0 z-[2020] flex items-start gap-3 pointer-events-auto">
+                <div className="relative shrink-0">
                     <button
-                        className="relative group flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/10 backdrop-blur-md border border-white/15 shadow-sm anim-surface hover:bg-white/20"
+                        className="relative group flex h-11 w-11 md:h-10 md:w-10 shrink-0 items-center justify-center rounded-xl bg-white/10 backdrop-blur-md border border-white/15 shadow-sm anim-surface hover:bg-white/20"
                         onClick={() => {
                             setIsNotificationsOpen((previous) => !previous);
                             setIsProfileOpen(false);
@@ -443,8 +491,8 @@ function TopNav({
 
                     {isNotificationsOpen && (
                         <>
-                            <div className="fixed inset-0 z-50" onClick={() => setIsNotificationsOpen(false)}></div>
-                            <div className="!absolute right-0 top-full z-[60] mt-3 w-[24rem] max-w-[calc(100vw-2rem)] origin-top-right rounded-3xl glass-premium anim-popover p-3 shadow-glass-depth animate-in fade-in zoom-in duration-300">
+                            <div className="fixed inset-0 z-[2025]" onClick={() => setIsNotificationsOpen(false)}></div>
+                            <div className="!fixed left-6 right-6 max-w-md mx-auto top-[72px] md:!absolute md:right-0 md:left-auto md:mx-0 md:top-full md:mt-3 md:w-[24rem] md:max-w-none z-[2030] origin-top md:origin-top-right rounded-2xl glass-premium border border-white/10 p-0 shadow-glass-depth animate-in fade-in slide-in-from-top-3 duration-300 ease-out">
                                 <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
                                     <div>
                                         <p className="text-sm font-black text-on-surface">Notifikasi</p>
@@ -460,59 +508,61 @@ function TopNav({
                                     </button>
                                 </div>
 
-                                <div className="mt-2 h-[20rem] min-h-[15rem] max-h-[80vh] space-y-2 overflow-y-auto pr-1 custom-scrollbar">
-                                    {isLoadingNotifications && notifications.length === 0 ? (
-                                        <div className="px-4 py-8 text-center text-xs font-bold text-on-surface-variant">Memuat notifikasi...</div>
-                                    ) : notifications.length > 0 ? (
-                                        notifications.map((notification) => {
-                                            const severityClass = notification.severity === "critical"
-                                                ? "bg-rose-500/10 text-rose-600"
-                                                : "bg-amber-500/10 text-amber-700";
-                                            return (
-                                                <div
-                                                    key={notification.id}
-                                                    className={`rounded-xl px-3 py-2.5 anim-surface hover:bg-white/10 backdrop-blur-md ${notification.readAt ? "opacity-70" : "bg-gold-accent/10"}`}
-                                                >
-                                                    <div className="flex w-full items-center gap-3 text-left">
-                                                        <div className="min-w-0 flex-1">
-                                                            <button 
-                                                                onClick={() => handleOpenNotification(notification)}
-                                                                className="w-full text-left group focus:outline-none"
-                                                                type="button"
-                                                            >
-                                                                <div className="mb-1 flex items-center gap-2">
-                                                                    <p className="truncate text-[11px] font-black text-on-surface group-hover:text-gold-accent transition-colors">{notification.title}</p>
-                                                                    {!notification.readAt && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-gold-accent shadow-gold-glow"></span>}
-                                                                    <span className={`rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-widest ${severityClass}`}>
-                                                                        {notification.severity}
-                                                                    </span>
-                                                                </div>
-                                                                <p className="line-clamp-2 text-[10px] font-bold leading-tight text-on-surface-variant group-hover:text-white/80 transition-colors">{notification.message}</p>
-                                                            </button>
-                                                            
-                                                            <div className="-mt-1 flex items-center justify-end">
-                                                                <button
+                                <div className="p-3">
+                                    <div className="h-[20rem] min-h-[15rem] max-h-[80vh] space-y-2 overflow-y-auto pr-1 custom-scrollbar">
+                                        {isLoadingNotifications && notifications.length === 0 ? (
+                                            <div className="px-4 py-8 text-center text-xs font-bold text-on-surface-variant">Memuat notifikasi...</div>
+                                        ) : notifications.length > 0 ? (
+                                            notifications.map((notification) => {
+                                                const severityClass = notification.severity === "critical"
+                                                    ? "bg-rose-500/10 text-rose-600"
+                                                    : "bg-amber-500/10 text-amber-700";
+                                                return (
+                                                    <div
+                                                        key={notification.id}
+                                                        className={`rounded-xl px-3 py-2.5 anim-surface hover:bg-white/10 backdrop-blur-md ${notification.readAt ? "opacity-70" : "bg-gold-accent/10"}`}
+                                                    >
+                                                        <div className="flex w-full items-center gap-3 text-left">
+                                                            <div className="min-w-0 flex-1">
+                                                                <button 
                                                                     onClick={() => handleOpenNotification(notification)}
-                                                                    className="rounded-md bg-gold-accent/10 px-2 py-1 text-[8px] font-black uppercase tracking-widest text-gold-accent border border-gold-accent/20 hover:bg-gold-accent hover:text-black transition-all shadow-sm focus:outline-none"
+                                                                    className="w-full text-left group focus:outline-none"
                                                                     type="button"
                                                                 >
-                                                                    {notification.actionLabel}
+                                                                    <div className="mb-1 flex items-center gap-2">
+                                                                        <p className="truncate text-[11px] font-black text-on-surface group-hover:text-gold-accent transition-colors">{notification.title}</p>
+                                                                        {!notification.readAt && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-gold-accent shadow-gold-glow"></span>}
+                                                                        <span className={`rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-widest ${severityClass}`}>
+                                                                            {notification.severity}
+                                                                        </span>
+                                                                    </div>
+                                                                    <p className="line-clamp-2 text-[10px] font-bold leading-tight text-on-surface-variant group-hover:text-white/80 transition-colors">{notification.message}</p>
                                                                 </button>
+                                                                
+                                                                <div className="mt-0.5 flex items-center justify-end">
+                                                                    <button
+                                                                        onClick={() => handleOpenNotification(notification)}
+                                                                        className="rounded-md bg-gold-accent/10 px-2 py-1 text-[8px] font-black uppercase tracking-widest text-gold-accent border border-gold-accent/20 hover:bg-gold-accent hover:text-black transition-all shadow-sm focus:outline-none"
+                                                                        type="button"
+                                                                    >
+                                                                        {notification.actionLabel}
+                                                                    </button>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
+                                                );
+                                            })
+                                        ) : (
+                                            <div className="px-4 py-10 text-center">
+                                                <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/5 text-on-surface-variant/50 backdrop-blur-md">
+                                                    <span className="material-symbols-outlined text-3xl">notifications_off</span>
                                                 </div>
-                                            );
-                                        })
-                                    ) : (
-                                        <div className="px-4 py-10 text-center">
-                                            <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/5 text-on-surface-variant/50 backdrop-blur-md">
-                                                <span className="material-symbols-outlined text-3xl">notifications_off</span>
+                                                <p className="text-xs font-black uppercase tracking-widest text-on-surface">Tidak ada notifikasi</p>
+                                                <p className="mt-1 text-[10px] font-bold text-on-surface-variant">Semua data operasional aman.</p>
                                             </div>
-                                            <p className="text-xs font-black uppercase tracking-widest text-on-surface">Tidak ada notifikasi</p>
-                                            <p className="mt-1 text-[10px] font-bold text-on-surface-variant">Semua data operasional aman.</p>
-                                        </div>
-                                    )}
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </>
@@ -521,7 +571,7 @@ function TopNav({
 
                 <div className="relative shrink-0">
                     <button
-                        className="flex shrink-0 items-center gap-2 rounded-full bg-white/10 backdrop-blur-md border border-white/15 shadow-sm p-1 pr-4 anim-surface hover:bg-white/20"
+                        className="flex h-11 w-11 md:h-10 md:w-auto shrink-0 items-center justify-center md:justify-start gap-2 rounded-xl bg-white/10 backdrop-blur-md border border-white/15 shadow-sm p-1.5 md:p-1 md:pr-4 anim-surface hover:bg-white/20"
                         onClick={() => {
                             setIsProfileOpen((previous) => !previous);
                             setIsNotificationsOpen(false);
@@ -531,7 +581,7 @@ function TopNav({
                         <div className="relative shrink-0">
                             <img
                                 alt="Profile"
-                                className="h-8 w-8 rounded-full object-cover ring-2 ring-white/50 shadow-sm bg-white"
+                                className="h-8 w-8 rounded-lg object-cover ring-2 ring-white/50 shadow-sm bg-white"
                                 src={`https://ui-avatars.com/api/?name=${encodeURIComponent(profileAvatarName)}&background=f1f5f9&color=94a3b8&bold=true`}
                             />
                         </div>
@@ -545,14 +595,15 @@ function TopNav({
 
                     {isProfileOpen && (
                         <>
-                            <div className="fixed inset-0 z-50" onClick={() => setIsProfileOpen(false)}></div>
-                            <div className="!absolute right-0 top-full z-[60] mt-3 w-52 origin-top-right rounded-2xl glass-premium anim-popover p-2 shadow-glass-depth animate-in fade-in zoom-in duration-300 md:w-56">
+                            <div className="fixed inset-0 z-[2025]" onClick={() => setIsProfileOpen(false)}></div>
+                            <div className="!absolute right-0 top-full z-[2030] mt-3 w-52 origin-top-right rounded-2xl glass-premium anim-popover p-2 shadow-glass-depth animate-in fade-in zoom-in duration-300 md:w-56">
                                 <div className="px-3 py-3 border-b border-white/10 mb-1.5">
                                     <p className="text-xs font-black text-on-surface truncate">{profileDisplayName}</p>
                                     <p className="text-[9px] font-bold text-on-surface-variant uppercase mt-0.5 truncate">{roleConfig.profileSubtitle}</p>
                                 </div>
                                 
-                                <div className="px-1.5 mb-1.5 pb-1.5 border-b border-white/10">
+                                {roleConfig.key !== 'isp' && (
+                                    <div className="px-1.5 mb-1.5 pb-1.5 border-b border-white/10">
                                     <button 
                                         onClick={() => { setIsProfileOpen(false); onEditProfile(); }}
                                         className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[11px] font-bold text-on-surface hover:bg-white/10 anim-surface"
@@ -560,7 +611,8 @@ function TopNav({
                                         <span className="material-symbols-outlined text-base opacity-80">manage_accounts</span>
                                         <span>Edit Profile</span>
                                     </button>
-                                </div>
+                                    </div>
+                                )}
 
                                 <button
                                     className="flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-[11px] font-bold text-rose-400 hover:bg-rose-500/10 anim-surface disabled:cursor-not-allowed disabled:opacity-50"
@@ -592,7 +644,7 @@ function Sidebar({ isCollapsed, onToggle, activeSection, onNavigate, roleConfig 
 
     return (
         <aside
-            className={`fixed left-4 lg:left-6 top-4 md:top-5 bottom-4 md:bottom-5 z-50 hidden lg:flex flex-col rounded-[20px] glass-sidebar shadow-glass-depth anim-layout-sidebar ${isCollapsed ? "w-16" : "w-52"
+            className={`fixed left-4 lg:left-6 top-4 md:top-5 bottom-4 md:bottom-5 z-[2010] hidden lg:flex flex-col rounded-[20px] glass-sidebar shadow-glass-depth anim-layout-sidebar ${isCollapsed ? "w-16" : "w-52"
                 }`}
         >
             <button
@@ -654,33 +706,55 @@ function Sidebar({ isCollapsed, onToggle, activeSection, onNavigate, roleConfig 
 
 function MobileDropdownMenu({ activeSection, onNavigate, onClose, roleConfig }) {
     return (
-        <div className="fixed inset-0 z-50 p-4 lg:hidden">
-            <div className="fixed inset-0 bg-black/20 backdrop-blur-md" onClick={onClose}></div>
-            <div className="relative h-fit w-full rounded-3xl glass-premium anim-popover p-6 shadow-glass-depth">
-                <div className="flex items-center justify-between mb-8">
-                    <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 flex items-center justify-center rounded-xl bg-gold-accent">
-                            <img alt="" className="h-6 w-6 object-contain" src="/logo-kima.png" />
+        <div className="fixed inset-0 z-[2030] p-4 lg:hidden flex items-start justify-center">
+            {/* Dark glass backdrop overlay */}
+            <div className="fixed inset-0 bg-black/40 backdrop-blur-md transition-all duration-300" onClick={onClose}></div>
+            
+            {/* Popover container */}
+            <div className="relative w-full max-w-sm rounded-2xl glass-premium border border-white/10 p-5 shadow-glass-depth animate-in fade-in zoom-in-95 duration-200">
+                {/* Header: Logo & Close Button */}
+                <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-2.5">
+                        <div className="h-8 w-8 flex items-center justify-center rounded-xl bg-gold-accent shadow-gold-glow">
+                            <img alt="Kima Logo" className="h-5 w-5 object-contain" src="/logo-kima.png" />
                         </div>
-                        <p className="text-lg font-black text-on-surface">KIMA</p>
+                        <div className="text-left">
+                            <p className="text-sm font-black text-on-surface tracking-tight leading-none">KIMA</p>
+                            <p className="text-[7px] font-bold text-gold-accent uppercase tracking-[0.2em] mt-0.5">ARCHIVE</p>
+                        </div>
                     </div>
-                    <button onClick={onClose} className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/[0.05] hover:bg-white/10 anim-surface">
-                        <span className="material-symbols-outlined">close</span>
+                    <button 
+                        onClick={onClose} 
+                        className="group h-8 w-8 flex items-center justify-center rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all duration-200"
+                        title="Tutup Menu"
+                        type="button"
+                    >
+                        <span className="material-symbols-outlined text-[16px] text-on-surface-variant group-hover:text-gold-accent transition-colors">close</span>
                     </button>
                 </div>
 
-                <nav className="space-y-2">
+                {/* Navigation Menu */}
+                <nav className="space-y-1.5">
                     {roleConfig.menuItems.map((item) => {
                         const isActive = activeSection === item.key;
                         return (
                             <button
                                 key={item.key}
-                                className={`flex w-full items-center gap-4 rounded-xl px-6 py-4 anim-surface ${isActive ? "bg-white/10 font-black text-white" : "text-on-surface-variant hover:bg-white/5"
-                                    }`}
+                                className={`flex w-full items-center gap-3 rounded-lg px-3.5 py-2.5 anim-surface transition-all duration-200 ${
+                                    isActive 
+                                        ? "active-glow-gold text-on-surface font-black" 
+                                        : "text-on-surface-variant hover:text-on-surface hover:bg-white/5"
+                                }`}
                                 onClick={() => { onNavigate(item.key); onClose(); }}
                             >
-                                <span className={`material-symbols-outlined ${isActive ? "text-gold-accent" : ""}`}>{item.icon}</span>
-                                <span className="text-xs font-bold uppercase tracking-widest">{item.label}</span>
+                                <span className={`material-symbols-outlined text-lg transition-transform duration-200 ${
+                                    isActive ? "text-gold-accent" : "text-on-surface-variant"
+                                }`}>
+                                    {item.icon}
+                                </span>
+                                <span className="text-[10px] font-bold uppercase tracking-widest">
+                                    {item.label}
+                                </span>
                             </button>
                         );
                     })}

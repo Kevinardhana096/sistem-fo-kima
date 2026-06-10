@@ -266,6 +266,8 @@ function IspDetailPage({
     const todayIso = new Date().toISOString().slice(0, 10);
     const [detail, setDetail] = useState(null);
     const [activeTab, setActiveTab] = useState(initialTab);
+    const [isMobileTabMenuOpen, setIsMobileTabMenuOpen] = useState(false);
+    const [isProfileExpanded, setIsProfileExpanded] = useState(false);
     const [error, setError] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [timeline, setTimeline] = useState([]);
@@ -273,6 +275,7 @@ function IspDetailPage({
     const [pendingPrimaryRenewals, setPendingPrimaryRenewals] = useState({});
     const [, setIsActionLoading] = useState(false);
     const [contractRowEditor, setContractRowEditor] = useState(null);
+    const [expandedContracts, setExpandedContracts] = useState({});
     const [isSavingContractRow, setIsSavingContractRow] = useState(false);
     const isSelectingFileRef = useRef(false);
     const [contractDraft, setContractDraft] = useState(null);
@@ -289,6 +292,7 @@ function IspDetailPage({
     const [tenantStatusFilter, setTenantStatusFilter] = useState("all");
     const [tenantPaketFilter, setTenantPaketFilter] = useState("all");
     const [tenantSortMethod, setTenantSortMethod] = useState("newest");
+    const [showTenantFilters, setShowTenantFilters] = useState(false);
 
     // Filtering & Sorting State for Dokumen Table
     const [docSearch, setDocSearch] = useState("");
@@ -923,12 +927,12 @@ function IspDetailPage({
             return <span className="text-[10px] font-black text-white/20">—</span>;
         }
 
-        const itemsToRender = columnType === "response" 
-            ? (followUps.length > 0 ? [ [...followUps].reverse().find(f => isOpenableFileUrl(f?.renewalFileUrl)) || followUps[followUps.length - 1] ] : [])
+        const itemsToRender = columnType === "response"
+            ? (followUps.length > 0 ? [[...followUps].reverse().find(f => isOpenableFileUrl(f?.renewalFileUrl)) || followUps[followUps.length - 1]] : [])
             : followUps;
 
         return (
-            <div className="flex flex-col gap-1.5 items-center justify-center">
+            <div className="flex flex-col gap-1.5 items-center justify-center w-full">
                 {itemsToRender.map((followUp, index) => {
                     const hasRenewalFile = isOpenableFileUrl(followUp?.renewalFileUrl);
                     const hasResponseFile = isOpenableFileUrl(followUp?.responseFileUrl);
@@ -937,125 +941,119 @@ function IspDetailPage({
                     const isFirst = index === 0;
 
                     return (
-                        <div key={followUp.id} className="flex items-center justify-center gap-1.5">
-                            <div className="flex items-center gap-1 rounded-lg border border-white/[0.06] bg-white/[0.02] p-1 backdrop-blur-md">
-                                {columnType === "renewal" ? (
-                                    <>
-                                        {hasRenewalFile ? (
-                                            <>
-                                                <button onClick={() => openSafeFile(followUp.renewalFileUrl, followUp.renewalFileName)} className="inline-flex h-5 items-center gap-1 rounded-md border border-gold-accent/20 bg-gold-accent/10 px-1.5 text-[8px] font-black uppercase tracking-widest text-gold-accent hover:bg-gold-accent hover:text-[#0f141e] transition-all shrink-0">
-                                                    <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>visibility</span>Lihat
-                                                </button>
-                                                {canManageIspContracts && (
-                                                    <FilePickerButton
-                                                        label="Ganti"
-                                                        className="inline-flex h-5 items-center gap-1 rounded-md border border-white/10 bg-white/5 px-1.5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all shrink-0"
-                                                        icon={<span className="material-symbols-outlined" style={{ fontSize: '14px' }}>upload_file</span>}
-                                                        onPickFile={(file) => void handleFileUpload(row.id, "renewal", file, followUp.id)}
-                                                    />
-                                                )}
-                                                {canManageIspContracts && !isFirst && (
-                                                    <button 
-                                                        onClick={async () => {
-                                                            if (window.confirm("Apakah Anda yakin ingin menghapus split tindak lanjut ini?")) {
-                                                                try {
-                                                                    setIsActionLoading(true);
-                                                                    await api.ispRenewalFollowUps.delete(followUp.id);
-                                                                    await loadDetail();
-                                                                    if (onRefreshAll) onRefreshAll();
-                                                                } catch (err) {
-                                                                    setError(err instanceof Error ? err.message : "Gagal menghapus split.");
-                                                                } finally {
-                                                                    setIsActionLoading(false);
-                                                                }
-                                                            }
-                                                        }}
-                                                        className="h-5 w-5 shrink-0 rounded-md flex items-center justify-center border border-[#ff2400]/20 bg-[#ff2400]/10 text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all"
-                                                        title="Hapus split"
-                                                    >
-                                                        <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>close</span>
+                        <div key={followUp.id} className="flex flex-col gap-0.5 w-fit">
+                            <div className="w-[130px]">
+                                <span className={`block text-[7px] font-bold uppercase tracking-widest text-center ${columnType === "renewal" ? "text-white/40" : "text-transparent select-none"}`}>
+                                    Peringatan {index + 1}
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                                <div className="flex items-center gap-1 rounded-lg border border-white/[0.06] bg-white/[0.02] p-1 backdrop-blur-md w-[130px] shrink-0">
+                                    {columnType === "renewal" ? (
+                                        <>
+                                            {hasRenewalFile ? (
+                                                <>
+                                                    <button onClick={() => openSafeFile(followUp.renewalFileUrl, followUp.renewalFileName)} className="flex-1 w-full justify-center inline-flex h-5 items-center gap-1 rounded-md border border-gold-accent/20 bg-gold-accent/10 px-1 text-[8px] font-black uppercase tracking-widest text-gold-accent hover:bg-gold-accent hover:text-[#0f141e] transition-all">
+                                                        <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>visibility</span>Lihat
                                                     </button>
-                                                )}
-                                            </>
-                                        ) : (
-                                            <>
-                                                {canManageIspContracts ? (
-                                                    <FilePickerButton
-                                                        label="Upload"
-                                                        className="inline-flex h-5 items-center gap-1 rounded-md border border-white/10 bg-white/5 px-1.5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all shrink-0"
-                                                        icon={<span className="material-symbols-outlined" style={{ fontSize: '14px' }}>upload_file</span>}
-                                                        onPickFile={(file) => void handleFileUpload(row.id, "renewal", file, followUp.id)}
-                                                    />
-                                                ) : (
-                                                    <span className="text-[10px] font-bold text-white/20">Belum diunggah</span>
-                                                )}
-                                                {canManageIspContracts && !isFirst && (
-                                                    <button 
-                                                        onClick={async () => {
-                                                            if (window.confirm("Apakah Anda yakin ingin menghapus split tindak lanjut ini?")) {
-                                                                try {
-                                                                    setIsActionLoading(true);
-                                                                    await api.ispRenewalFollowUps.delete(followUp.id);
-                                                                    await loadDetail();
-                                                                    if (onRefreshAll) onRefreshAll();
-                                                                } catch (err) {
-                                                                    setError(err instanceof Error ? err.message : "Gagal menghapus split.");
-                                                                } finally {
-                                                                    setIsActionLoading(false);
-                                                                }
-                                                            }
-                                                        }}
-                                                        className="h-5 w-5 shrink-0 rounded-md flex items-center justify-center border border-[#ff2400]/20 bg-[#ff2400]/10 text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all"
-                                                        title="Hapus split"
-                                                    >
-                                                        <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>close</span>
+                                                    {canManageIspContracts && (
+                                                        <FilePickerButton
+                                                            label="Ganti"
+                                                            className="flex-1 w-full justify-center inline-flex h-5 items-center gap-1 rounded-md border border-white/10 bg-white/5 px-1 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all"
+                                                            icon={<span className="material-symbols-outlined" style={{ fontSize: '12px' }}>upload_file</span>}
+                                                            onPickFile={(file) => void handleFileUpload(row.id, "renewal", file, followUp.id)}
+                                                        />
+                                                    )}
+                                                </>
+                                            ) : (
+                                                <>
+                                                    {canManageIspContracts ? (
+                                                        <FilePickerButton
+                                                            label="Upload"
+                                                            className="w-full justify-center inline-flex h-5 items-center gap-1 rounded-md border border-white/10 bg-white/5 px-1 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all"
+                                                            icon={<span className="material-symbols-outlined" style={{ fontSize: '12px' }}>upload_file</span>}
+                                                            onPickFile={(file) => void handleFileUpload(row.id, "renewal", file, followUp.id)}
+                                                        />
+                                                    ) : (
+                                                        <span className="w-full text-center text-[10px] font-bold text-white/20">Belum diunggah</span>
+                                                    )}
+                                                </>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <>
+                                            {hasResponseFile ? (
+                                                <>
+                                                    <button onClick={() => openSafeFile(followUp.responseFileUrl, followUp.responseFileName)} className="flex-1 w-full justify-center inline-flex h-5 items-center gap-1 rounded-md border border-emerald-500/20 bg-emerald-500/10 px-1 text-[8px] font-black uppercase tracking-widest text-emerald-400 hover:bg-emerald-500 hover:text-[#0f141e] transition-all">
+                                                        <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>visibility</span>Lihat
                                                     </button>
-                                                )}
-                                            </>
-                                        )}
-                                    </>
-                                ) : (
-                                    <>
-                                        {hasResponseFile ? (
-                                            <>
-                                                <button onClick={() => openSafeFile(followUp.responseFileUrl, followUp.responseFileName)} className="inline-flex h-5 items-center gap-1 rounded-md border border-emerald-500/20 bg-emerald-500/10 px-1.5 text-[8px] font-black uppercase tracking-widest text-emerald-400 hover:bg-emerald-500 hover:text-[#0f141e] transition-all shrink-0">
-                                                    <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>open_in_new</span>Tanggapan
-                                                </button>
-                                                {canManageIspContracts && (
+                                                    {canManageIspContracts && (
+                                                        <FilePickerButton
+                                                            label="Ganti"
+                                                            className="flex-1 w-full justify-center inline-flex h-5 items-center gap-1 rounded-md border border-white/10 bg-white/5 px-1 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all"
+                                                            icon={<span className="material-symbols-outlined" style={{ fontSize: '12px' }}>upload_file</span>}
+                                                            onPickFile={(file) => void handleRespondRenewal(row.id, currentDecision, file, followUp.id)}
+                                                        />
+                                                    )}
+                                                </>
+                                            ) : canManageIspContracts && hasRenewalFile ? (
+                                                <>
                                                     <FilePickerButton
-                                                        label="Ganti"
-                                                        className="inline-flex h-5 items-center gap-1 rounded-md border border-white/10 bg-white/5 px-1.5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all shrink-0"
-                                                        icon={<span className="material-symbols-outlined" style={{ fontSize: '14px' }}>upload_file</span>}
-                                                        onPickFile={(file) => void handleRespondRenewal(row.id, currentDecision, file, followUp.id)}
+                                                        label="Lanjut"
+                                                        className="flex-1 w-full justify-center inline-flex h-5 items-center gap-0.5 rounded-md border border-emerald-500/20 bg-emerald-500/10 px-1 text-[8px] font-black uppercase tracking-widest text-emerald-400 hover:bg-emerald-500 hover:text-[#0f141e] transition-all"
+                                                        icon={<span className="material-symbols-outlined" style={{ fontSize: '12px' }}>check</span>}
+                                                        onPickFile={(file) => void handleRespondRenewal(row.id, "lanjut", file, followUp.id)}
                                                     />
-                                                )}
-                                            </>
-                                        ) : canManageIspContracts && hasRenewalFile ? (
-                                            <>
-                                                <FilePickerButton
-                                                    label="Lanjut"
-                                                    className="inline-flex h-5 items-center gap-1 rounded-md border border-emerald-500/20 bg-emerald-500/10 px-1.5 text-[8px] font-black uppercase tracking-widest text-emerald-400 hover:bg-emerald-500 hover:text-[#0f141e] transition-all shrink-0"
-                                                    icon={<span className="material-symbols-outlined" style={{ fontSize: '14px' }}>check</span>}
-                                                    onPickFile={(file) => void handleRespondRenewal(row.id, "lanjut", file, followUp.id)}
-                                                />
-                                                <FilePickerButton
-                                                    label="Tidak"
-                                                    className="inline-flex h-5 items-center gap-1 rounded-md border border-white/10 bg-white/5 px-1.5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all shrink-0"
-                                                    icon={<span className="material-symbols-outlined" style={{ fontSize: '14px' }}>close</span>}
-                                                    onPickFile={(file) => void handleRespondRenewal(row.id, "tidak", file, followUp.id)}
-                                                />
-                                            </>
+                                                    <FilePickerButton
+                                                        label="Tidak"
+                                                        className="flex-1 w-full justify-center inline-flex h-5 items-center gap-0.5 rounded-md border border-white/10 bg-white/5 px-1 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all"
+                                                        icon={<span className="material-symbols-outlined" style={{ fontSize: '12px' }}>close</span>}
+                                                        onPickFile={(file) => void handleRespondRenewal(row.id, "tidak", file, followUp.id)}
+                                                    />
+                                                </>
+                                            ) : (
+                                                <span className="w-full text-center text-[10px] font-black text-white/20">—</span>
+                                            )}
+                                        </>
+                                    )}
+                                </div>
+                                {columnType === "renewal" && canManageIspContracts && (
+                                    <div className="flex items-center gap-1 w-[44px] shrink-0 justify-start">
+                                        {!isFirst ? (
+                                            <button
+                                                onClick={async () => {
+                                                    if (window.confirm("Apakah Anda yakin ingin menghapus split tindak lanjut ini?")) {
+                                                        try {
+                                                            setIsActionLoading(true);
+                                                            await api.ispRenewalFollowUps.delete(followUp.id);
+                                                            await loadDetail();
+                                                            if (onRefreshAll) onRefreshAll();
+                                                        } catch (err) {
+                                                            setError(err instanceof Error ? err.message : "Gagal menghapus split.");
+                                                        } finally {
+                                                            setIsActionLoading(false);
+                                                        }
+                                                    }
+                                                }}
+                                                className="h-5 w-5 shrink-0 rounded-md flex items-center justify-center border border-[#ff2400]/20 bg-[#ff2400]/10 text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all"
+                                                title="Hapus split"
+                                            >
+                                                <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>close</span>
+                                            </button>
                                         ) : (
-                                            <span className="text-[10px] font-black text-white/20">—</span>
+                                            <div className="w-5 h-5 shrink-0" />
                                         )}
-                                    </>
+
+                                        {isLast && hasInitialRenewalUpload(row) ? (
+                                            <button className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-white/10 bg-white/5 text-white/40 hover:bg-white/10 hover:text-white transition-all disabled:opacity-30 shadow-sm" disabled={!hasInitialRenewalUpload(row)} onClick={() => handleAddRenewalSplit(row.id)} type="button" title="Tambah split perpanjangan">
+                                                <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
+                                            </button>
+                                        ) : (
+                                            <div className="w-5 h-5 shrink-0" />
+                                        )}
+                                    </div>
                                 )}
                             </div>
-                            {columnType === "renewal" && isLast && canManageIspContracts && hasInitialRenewalUpload(row) && (
-                                <button className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-white/10 bg-white/5 text-white/40 hover:bg-white/10 hover:text-white transition-all disabled:opacity-30 shadow-sm" disabled={!hasInitialRenewalUpload(row)} onClick={() => handleAddRenewalSplit(row.id)} type="button" title="Tambah split perpanjangan">
-                                    <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
-                                </button>
-                            )}
                         </div>
                     );
                 })}
@@ -1344,7 +1342,7 @@ function IspDetailPage({
                 <div className="fixed inset-0 z-[200] flex items-center justify-center px-4 backdrop-blur-md bg-black/60 animate-fade-in duration-300">
                     <div className="w-full max-w-sm rounded-2xl glass-card backdrop-blur-xl p-5 border border-white/20 shadow-[0_0_100px_rgba(0,0,0,0.8)] animate-in zoom-in-95 duration-300 relative overflow-hidden">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-gold-accent/5 blur-3xl pointer-events-none" />
-                        
+
                         {/* Header */}
                         <div className="mb-5 flex items-center justify-between relative z-10">
                             <div className="space-y-0.5">
@@ -1353,9 +1351,9 @@ function IspDetailPage({
                                 </h3>
                                 <p className="text-[9px] font-bold text-gold-accent/40 tracking-[0.3em] uppercase">{ispName}</p>
                             </div>
-                            <button 
-                                className="w-7 h-7 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white/30 hover:bg-[#ff2400]/10 hover:border-[#ff2400]/40 hover:text-[#ff2400] transition-all duration-300 shadow-sm" 
-                                onClick={() => { setUserPopupOpen(false); setShowPassword(false); setUserPopupMode("view"); }} 
+                            <button
+                                className="w-7 h-7 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white/30 hover:bg-[#ff2400]/10 hover:border-[#ff2400]/40 hover:text-[#ff2400] transition-all duration-300 shadow-sm"
+                                onClick={() => { setUserPopupOpen(false); setShowPassword(false); setUserPopupMode("view"); }}
                                 type="button"
                             >
                                 <span className="material-symbols-outlined text-[14px]">close</span>
@@ -1422,7 +1420,7 @@ function IspDetailPage({
                                             </div>
 
                                             {userPopupFeedback && (
-                                                <p className="text-[9px] font-black uppercase tracking-widest text-emerald-400 bg-emerald-500/5 border border-emerald-500/20 rounded-2xl px-5 py-3.5 leading-relaxed">{userPopupFeedback}</p>
+                                                <p className="text-[10px] font-bold text-emerald-400 bg-emerald-500/5 border border-emerald-500/20 rounded-2xl px-5 py-3.5 leading-relaxed">{userPopupFeedback}</p>
                                             )}
                                         </>
                                     ) : (
@@ -1482,7 +1480,7 @@ function IspDetailPage({
                                     </div>
 
                                     {userPopupError && (
-                                        <p className="text-[9px] font-black uppercase tracking-widest text-[#ff2400] bg-[#ff2400]/5 border border-[#ff2400]/20 rounded-2xl px-5 py-3.5 leading-relaxed">{userPopupError}</p>
+                                        <p className="text-[10px] font-bold text-[#ff2400] bg-[#ff2400]/5 border border-[#ff2400]/20 rounded-2xl px-5 py-3.5 leading-relaxed">{userPopupError}</p>
                                     )}
                                 </div>
                             )}
@@ -1621,7 +1619,7 @@ function IspDetailPage({
                         {!isTeknisi && (
                             <div className="flex items-center gap-1.5">
                                 <button
-                                    className="h-7 px-3 flex items-center gap-1.5 rounded-lg bg-white/5 border border-white/10 text-white/60 hover:bg-white/10 hover:text-white transition-all shadow-sm group text-[8px] font-black uppercase tracking-widest backdrop-blur-md"
+                                    className="hidden md:flex h-7 px-3 items-center gap-1.5 rounded-lg bg-white/5 border border-white/10 text-white/60 hover:bg-white/10 hover:text-white transition-all shadow-sm group text-[8px] font-black uppercase tracking-widest backdrop-blur-md"
                                     onClick={() => void loadDetail()}
                                     title="Refresh Data"
                                 >
@@ -1672,26 +1670,24 @@ function IspDetailPage({
                         {/* Top accent line */}
                         <div className="h-px w-full bg-gradient-to-r from-transparent via-gold-accent/30 to-transparent" />
 
-                        <div className="relative p-4 md:p-5 space-y-4">
-                            {/* Row 1: Identity + Status */}
-                            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                                {/* Left: icon + label + name */}
-                                <div className="min-w-0 flex-1 space-y-1.5">
-                                    <div className="flex items-center gap-2">
-                                        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-gold-accent/20 bg-gold-accent/10 text-gold-accent backdrop-blur-md">
+                        <div className="relative p-4 md:p-5">
+                            {/* Row 1: Identity */}
+                            <div className="flex items-start justify-between">
+                                {/* Left: label + name */}
+                                <div className="min-w-0 flex-1 space-y-1.5 md:space-y-2.5">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <div className="hidden md:flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-gold-accent/20 bg-gold-accent/10 text-gold-accent backdrop-blur-md">
                                             <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>corporate_fare</span>
                                         </div>
-                                        <div>
-                                            <p className="text-[7px] font-black uppercase tracking-[0.4em] text-white/20">Internet Service Provider</p>
-                                        </div>
+                                        <p className="text-[8px] md:text-[7px] font-black uppercase tracking-[0.3em] md:tracking-[0.4em] text-gold-accent/60 md:text-white/20 leading-none">Internet Service Provider</p>
                                     </div>
-                                    <h1 className="text-lg md:text-xl font-black tracking-tight text-white uppercase leading-tight">
+                                    <h1 className="text-xl md:text-xl font-black tracking-tight text-white uppercase leading-tight">
                                         {ispName}
                                     </h1>
                                 </div>
 
-                                {/* Right: status pill */}
-                                <div className="flex shrink-0 items-start">
+                                {/* Right: status pill (Desktop Only) */}
+                                <div className="hidden md:flex shrink-0 items-start">
                                     <div className={`inline-flex items-center gap-2 rounded-xl border px-3.5 py-2 ${isOperationallyActive(detail?.status ?? isp.status) ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-white/5 border-white/10 text-white/30'}`}>
                                         <span className={`material-symbols-outlined text-[12px] ${isOperationallyActive(detail?.status ?? isp.status) ? 'text-emerald-400' : 'text-white/30'}`}>{isOperationallyActive(detail?.status ?? isp.status) ? 'check_circle' : 'cancel'}</span>
                                         <div>
@@ -1702,58 +1698,78 @@ function IspDetailPage({
                                 </div>
                             </div>
 
-                            {/* Divider */}
-                            <div className="h-px bg-white/[0.05]" />
+                            <div className={`mt-3 md:mt-4 md:block space-y-3 md:space-y-4 ${isProfileExpanded ? 'block' : 'hidden'}`}>
+                                {/* Divider */}
+                                <div className="h-px bg-white/[0.05]" />
 
-                            {/* Row 2: Metadata grid */}
-                            <div className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-4 lg:grid-cols-4">
-                                {/* Nomor Kontrak */}
-                                <div className="space-y-1.5">
-                                    <p className="text-[8px] font-black uppercase tracking-[0.35em] text-white/20">Nomor Kontrak</p>
-                                    <div className="flex items-center gap-2">
-                                        <span className="material-symbols-outlined text-[12px] text-gold-accent/60">description</span>
-                                        <p className="text-[11px] font-black text-gold-accent uppercase tracking-wide italic">{contractRef}</p>
+                                {/* Row 2: Metadata grid */}
+                                <div className="grid grid-cols-1 gap-x-6 gap-y-3 sm:gap-y-5 sm:grid-cols-4 lg:grid-cols-4">
+                                    {/* Nomor Kontrak */}
+                                    <div className="space-y-1 sm:space-y-1.5">
+                                        <p className="text-[8px] font-black uppercase tracking-[0.35em] text-white/20">Nomor Kontrak</p>
+                                        <div className="flex items-center gap-1 sm:gap-2">
+                                            <span className="material-symbols-outlined text-[10px] sm:text-[12px] scale-[0.75] sm:scale-100 origin-center text-gold-accent/60">description</span>
+                                            <p className="text-[11px] font-black text-gold-accent uppercase tracking-wide italic">{contractRef}</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Periode Awal Kontrak */}
+                                    <div className="space-y-1 sm:space-y-1.5">
+                                        <p className="text-[8px] font-black uppercase tracking-[0.35em] text-white/20">Periode Awal Kontrak</p>
+                                        <div className="flex items-center gap-1 sm:gap-2">
+                                            <span className="material-symbols-outlined text-[10px] sm:text-[12px] scale-[0.75] sm:scale-100 origin-center text-emerald-400/60">event_available</span>
+                                            <p className="text-[11px] font-black text-white tracking-wide font-mono">
+                                                {detail?.contractStartDate ?? isp.contractStartDate ? formatDate(detail?.contractStartDate ?? isp.contractStartDate) : "—"}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Periode Berjalan */}
+                                    <div className="space-y-1 sm:space-y-1.5">
+                                        <p className="text-[8px] font-black uppercase tracking-[0.35em] text-white/20">Periode Berjalan</p>
+                                        <div className="flex items-center gap-1 sm:gap-2">
+                                            <span className="material-symbols-outlined text-[10px] sm:text-[12px] scale-[0.75] sm:scale-100 origin-center text-sky-400/60">date_range</span>
+                                            <p className="text-[11px] font-black text-white tracking-wide font-mono">
+                                                {detail?.contractPeriodStart ?? isp.contractPeriodStart ?? detail?.contractPeriodEnd ?? isp.contractPeriodEnd
+                                                    ? <>{formatDate(detail?.contractPeriodStart ?? isp.contractPeriodStart)}<span className="mx-1.5 text-white/20 font-normal">—</span>{formatDate(detail?.contractPeriodEnd ?? isp.contractPeriodEnd)}</>
+                                                    : "—"
+                                                }
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Paket */}
+                                    <div className="space-y-1 sm:space-y-1.5">
+                                        <p className="text-[8px] font-black uppercase tracking-[0.35em] text-white/20">Paket</p>
+                                        <div className="flex items-center gap-1 sm:gap-2">
+                                            <span className="material-symbols-outlined text-[10px] sm:text-[12px] scale-[0.75] sm:scale-100 origin-center text-amber-400/60">hub</span>
+                                            <p className="text-[11px] font-black text-white tracking-wide uppercase">
+                                                {(() => {
+                                                    const packageQty = detail?.packageQuantity ?? isp.packageQuantity ?? detail?.jumlah ?? isp.jumlah;
+                                                    return packageQty ? `${packageQty} Core` : "- Core";
+                                                })()}
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
+                            </div>
 
-                                {/* Periode Awal Kontrak */}
-                                <div className="space-y-1.5">
-                                    <p className="text-[8px] font-black uppercase tracking-[0.35em] text-white/20">Periode Awal Kontrak</p>
-                                    <div className="flex items-center gap-2">
-                                        <span className="material-symbols-outlined text-[12px] text-emerald-400/60">event_available</span>
-                                        <p className="text-[11px] font-black text-white tracking-wide font-mono">
-                                            {detail?.contractStartDate ?? isp.contractStartDate ? formatDate(detail?.contractStartDate ?? isp.contractStartDate) : "—"}
-                                        </p>
-                                    </div>
+                            {/* Footer: Status + Toggle (Mobile Only) */}
+                            <div className="md:hidden mt-3 pt-2 -mb-2 border-t border-white/[0.05] flex items-center justify-between">
+                                {/* Left: Status Badge */}
+                                <div className={`flex items-center px-2 py-0.5 rounded-full border shadow-sm backdrop-blur-sm ${isOperationallyActive(detail?.status ?? isp.status) ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 shadow-emerald-500/10' : 'bg-white/5 border-white/10 text-white/40 shadow-white/5'}`}>
+                                    <span className="text-[7px] font-black uppercase tracking-[0.2em]">{getOperationalLabel(detail?.status ?? isp.status)}</span>
                                 </div>
 
-                                {/* Periode Berjalan */}
-                                <div className="space-y-1.5">
-                                    <p className="text-[8px] font-black uppercase tracking-[0.35em] text-white/20">Periode Berjalan</p>
-                                    <div className="flex items-center gap-2">
-                                        <span className="material-symbols-outlined text-[12px] text-sky-400/60">date_range</span>
-                                        <p className="text-[11px] font-black text-white tracking-wide font-mono">
-                                            {detail?.contractPeriodStart ?? isp.contractPeriodStart ?? detail?.contractPeriodEnd ?? isp.contractPeriodEnd
-                                                ? <>{formatDate(detail?.contractPeriodStart ?? isp.contractPeriodStart)}<span className="mx-1.5 text-white/20 font-normal">—</span>{formatDate(detail?.contractPeriodEnd ?? isp.contractPeriodEnd)}</>
-                                                : "—"
-                                            }
-                                        </p>
-                                    </div>
-                                </div>
-
-                                {/* Paket */}
-                                <div className="space-y-1.5">
-                                    <p className="text-[8px] font-black uppercase tracking-[0.35em] text-white/20">Paket</p>
-                                    <div className="flex items-center gap-2">
-                                        <span className="material-symbols-outlined text-[12px] text-amber-400/60">hub</span>
-                                        <p className="text-[11px] font-black text-white tracking-wide uppercase">
-                                            {(() => {
-                                                const packageQty = detail?.packageQuantity ?? isp.packageQuantity ?? detail?.jumlah ?? isp.jumlah;
-                                                return packageQty ? `${packageQty} Core` : "- Core";
-                                            })()}
-                                        </p>
-                                    </div>
-                                </div>
+                                {/* Right: Toggle Button */}
+                                <button
+                                    type="button"
+                                    onClick={() => setIsProfileExpanded(!isProfileExpanded)}
+                                    className="flex items-center gap-1 text-[8.5px] font-black uppercase tracking-[0.2em] text-white/40 hover:text-gold-accent transition-colors"
+                                >
+                                    {isProfileExpanded ? "Lebih Sedikit" : "Lebih Lengkap"}
+                                    <span className="material-symbols-outlined text-[10px]">{isProfileExpanded ? "expand_less" : "expand_more"}</span>
+                                </button>
                             </div>
                         </div>
 
@@ -1762,8 +1778,66 @@ function IspDetailPage({
                     </div>
                 </div>
 
-                {/* 2. TABS NAVIGATION */}
-                <section className="glass-card backdrop-blur-xl rounded-2xl p-1 border-white/10 shadow-glass-depth relative overflow-hidden">
+                {/* ══════ MOBILE STICKY HEADER (TABS) ══════ */}
+                <div className="md:hidden fixed top-4 left-4 z-[45]">
+                    {/* Left: Tab Menu Button */}
+                    <div className="relative">
+                        <button
+                            onClick={() => setIsMobileTabMenuOpen(!isMobileTabMenuOpen)}
+                            className="flex h-11 shrink-0 items-center gap-2 rounded-xl bg-white/10 backdrop-blur-md border border-white/15 shadow-sm p-1.5 pl-3 pr-4 anim-surface hover:bg-white/20"
+                            type="button"
+                        >
+                            <span className="material-symbols-outlined text-base text-gold-accent">menu</span>
+                            <span className="text-[10px] font-black tracking-widest uppercase text-white">
+                                {[
+                                    { id: "overview", label: "Ringkasan" },
+                                    { id: "customers", label: "Daftar Lokasi" },
+                                    { id: "jalur", label: "Peta Jalur" },
+                                    { id: "contracts", label: "Kontrak" },
+                                    { id: "risalah", label: "Dokumen" },
+                                    { id: "timeline", label: "Timeline" }
+                                ].find(t => t.id === activeTab)?.label || "Menu"}
+                            </span>
+                        </button>
+
+                        {isMobileTabMenuOpen && (
+                            <>
+                                <div className="fixed inset-0 z-40" onClick={() => setIsMobileTabMenuOpen(false)}></div>
+                                <div className="absolute top-full left-0 mt-3 w-52 origin-top-left p-2 rounded-2xl glass-premium border border-white/10 shadow-glass-depth z-50 flex flex-col gap-1 animate-in fade-in zoom-in duration-300">
+                                    {[
+                                        { id: "overview", label: "Ringkasan", icon: "dashboard" },
+                                        { id: "customers", label: "Daftar Lokasi", icon: "groups" },
+                                        { id: "jalur", label: "Peta Jalur", icon: "map" },
+                                        ...(currentRole !== "teknisi" ? [
+                                            { id: "contracts", label: "Kontrak", icon: "description" },
+                                            { id: "risalah", label: "Dokumen", icon: "inventory_2" },
+                                            { id: "timeline", label: "Timeline", icon: "history" }
+                                        ] : []),
+                                    ].map(tab => (
+                                        <button
+                                            key={tab.id}
+                                            onClick={() => {
+                                                handleTabChange(tab.id);
+                                                setIsMobileTabMenuOpen(false);
+                                            }}
+                                            className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left ${activeTab === tab.id
+                                                    ? 'bg-gold-accent/10 text-gold-accent border border-gold-accent/20'
+                                                    : 'text-white/70 hover:bg-white/10 hover:text-white'
+                                                }`}
+                                            type="button"
+                                        >
+                                            <span className="material-symbols-outlined text-base">{tab.icon}</span>
+                                            <span className="text-[10px] font-bold uppercase tracking-widest">{tab.label}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
+
+                {/* 2. TABS NAVIGATION (DESKTOP) */}
+                <section className="hidden md:block glass-card backdrop-blur-xl rounded-2xl p-1 border-white/10 shadow-glass-depth relative overflow-hidden">
                     <div className="absolute inset-0 bg-white/[0.02] pointer-events-none" />
                     <nav className="relative flex flex-wrap gap-1">
                         {[
@@ -1801,9 +1875,9 @@ function IspDetailPage({
                 ) : (
                     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
                         {error && (
-                            <div className="rounded-premium bg-[#ff2400]/10 border border-[#ff2400]/20 p-6 flex items-center gap-4 mb-8">
-                                <span className="material-symbols-outlined text-[#ff2400] text-[16px]">report</span>
-                                <p className="text-xs font-bold text-white/80">{error}</p>
+                            <div className="rounded-xl bg-[#ff2400]/10 border border-[#ff2400]/20 p-3 flex items-center gap-2 mb-3">
+                                <span className="material-symbols-outlined text-[#ff2400] text-[14px]">report</span>
+                                <p className="text-[10px] font-bold text-white/80">{error}</p>
                             </div>
                         )}
 
@@ -1831,7 +1905,7 @@ function IspDetailPage({
                                                     <p className="text-[10px] font-black text-white uppercase tracking-widest">Status Kontrak</p>
                                                 </div>
                                             </div>
-                                            
+
                                             {/* Badges Grid */}
                                             <div className="grid grid-cols-2 gap-2">
                                                 <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-emerald-400/5 border border-emerald-400/10 hover:bg-emerald-400/10 transition-colors">
@@ -1872,7 +1946,7 @@ function IspDetailPage({
                                                     <p className="text-[10px] font-black text-white uppercase tracking-widest">Status Jalur FO</p>
                                                 </div>
                                             </div>
-                                            
+
                                             {/* Badges Grid */}
                                             <div className="grid grid-cols-2 gap-2">
                                                 <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-emerald-400/5 border border-emerald-400/10 hover:bg-emerald-400/10 transition-colors">
@@ -1916,9 +1990,11 @@ function IspDetailPage({
                                                     <span className="material-symbols-outlined text-gold-accent" style={{ fontSize: "19px" }}>admin_panel_settings</span>
                                                     Tindak Lanjut ISP
                                                 </h3>
-                                                <div className="flex items-center justify-center min-w-[24px] h-6 px-2 rounded-full bg-gold-accent/10 border border-gold-accent/20 text-gold-accent text-[10px] font-black shadow-sm">
-                                                    {ispActionItems.length}
-                                                </div>
+                                                {!isIsp && !isTeknisi && (
+                                                    <div className="flex items-center justify-center min-w-[24px] h-6 px-2 rounded-full bg-gold-accent/10 border border-gold-accent/20 text-gold-accent text-[10px] font-black shadow-sm">
+                                                        {ispActionItems.length}
+                                                    </div>
+                                                )}
                                             </div>
 
                                             <div className="space-y-3 relative z-10">
@@ -1940,30 +2016,30 @@ function IspDetailPage({
                                                         const toneStyle = severityToneMap[item.severity] || fallbackToneMap[item.tone] || fallbackToneMap.orange;
                                                         const itemTitle = item.title || "Tindak lanjut ISP";
                                                         const itemDescription = item.message || item.description || "Ada administrasi ISP yang perlu dilengkapi.";
-	                                                        const itemKey = item.id || item.key || itemTitle;
-	                                                        const actionLabel = item.actionLabel || "Tindakan Admin";
-	                                                        const statusLabel = item.readAt ? "Dibaca" : "Belum Dibaca";
+                                                        const itemKey = item.id || item.key || itemTitle;
+                                                        const actionLabel = item.actionLabel || "Tindakan Admin";
+                                                        const statusLabel = item.readAt ? "Dibaca" : "Belum Dibaca";
 
-	                                                        return (
-	                                                            <div
-	                                                                key={itemKey}
-	                                                                className={`flex flex-col lg:flex-row lg:items-center justify-between gap-2 rounded-sm p-2 border transition-all hover:scale-[1.01] hover:shadow-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-gold-accent/40 ${toneStyle}`}
-	                                                                onClick={() => handleIspActionClick(item)}
-	                                                                onKeyDown={(event) => {
-	                                                                    if (event.key === "Enter" || event.key === " ") {
-	                                                                        event.preventDefault();
-	                                                                        handleIspActionClick(item);
-	                                                                    }
-	                                                                }}
-	                                                                role="button"
-	                                                                tabIndex={0}
-	                                                                title="Buka area penyelesaian"
-	                                                            >
-	                                                                <div className="space-y-1">
-	                                                                    <div className="flex items-center gap-1.5">
-	                                                                        <span className="material-symbols-outlined" style={{ fontSize: "15px" }}>contract_edit</span>
-	                                                                        <h4 className="text-xs font-bold">{itemTitle}</h4>
-	                                                                        {item.id && <span className="h-1.5 w-1.5 rounded-full bg-current opacity-60" title={statusLabel} />}
+                                                        return (
+                                                            <div
+                                                                key={itemKey}
+                                                                className={`flex flex-col lg:flex-row lg:items-center justify-between gap-2 rounded-sm p-2 border transition-all hover:scale-[1.01] hover:shadow-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-gold-accent/40 ${toneStyle}`}
+                                                                onClick={() => handleIspActionClick(item)}
+                                                                onKeyDown={(event) => {
+                                                                    if (event.key === "Enter" || event.key === " ") {
+                                                                        event.preventDefault();
+                                                                        handleIspActionClick(item);
+                                                                    }
+                                                                }}
+                                                                role="button"
+                                                                tabIndex={0}
+                                                                title="Buka area penyelesaian"
+                                                            >
+                                                                <div className="space-y-1">
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <span className="material-symbols-outlined" style={{ fontSize: "15px" }}>contract_edit</span>
+                                                                        <h4 className="text-xs font-bold">{itemTitle}</h4>
+                                                                        {item.id && <span className="h-1.5 w-1.5 rounded-full bg-current opacity-60" title={statusLabel} />}
                                                                     </div>
                                                                     <p className="text-[9px] font-bold opacity-70 leading-relaxed max-w-xl">{itemDescription}</p>
                                                                 </div>
@@ -2049,7 +2125,7 @@ function IspDetailPage({
                                                                 <div className="flex items-start justify-between gap-2 mb-1">
                                                                     <p className="text-[12px] font-bold text-white/90 truncate group-hover/history:text-gold-accent transition-colors">{e.title}</p>
                                                                     <span className="text-[10px] font-black text-white/30 uppercase shrink-0">
-                                                                        {new Date(e.date).toLocaleString('id-ID', {day: 'numeric', month: 'short', hour: '2-digit', minute:'2-digit'}).replace(',', ' •')}
+                                                                        {new Date(e.date).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).replace(',', ' •')}
                                                                     </span>
                                                                 </div>
                                                                 <p className="text-[10px] font-bold text-white/40 leading-relaxed group-hover/history:text-white/60 transition-colors">{e.description}</p>
@@ -2067,9 +2143,9 @@ function IspDetailPage({
                         {activeTab === "customers" && (
                             <div className="space-y-2.5">
                                 {/* ══════ CARD 1: HEADER & STATS ══════ */}
-                                <section className="glass-card backdrop-blur-xl rounded-xl p-5 border-white/10 shadow-glass-depth">
-                                    <div className="flex flex-col justify-between gap-3 lg:flex-row lg:items-end">
-                                        <div className="space-y-3 flex-1">
+                                <section className="glass-card backdrop-blur-xl rounded-xl p-4 md:p-5 border-white/10 shadow-glass-depth">
+                                    <div className="flex flex-col justify-between gap-2.5 lg:gap-4 lg:flex-row lg:items-end">
+                                        <div className="space-y-2.5 md:space-y-3 flex-1">
                                             <div className="space-y-1">
                                                 <div className="flex items-center gap-2">
                                                     <span className="h-4 w-1 bg-gold-accent rounded-full"></span>
@@ -2078,20 +2154,20 @@ function IspDetailPage({
                                                 <p className="text-[9px] font-bold text-white/20 tracking-wider">Manajemen titik layanan dan status operasional.</p>
                                             </div>
 
-                                            <div className="flex flex-wrap items-center gap-2">
-                                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 shadow-sm">
+                                            <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2">
+                                                <div className="flex items-center justify-between sm:justify-start gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 shadow-sm">
                                                     <span className="text-[8px] font-bold text-white/40 tracking-widest">Total:</span>
                                                     <span className="text-[10px] font-bold text-white">{allTenants.length}</span>
                                                 </div>
-                                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 shadow-sm">
+                                                <div className="flex items-center justify-between sm:justify-start gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 shadow-sm">
                                                     <span className="text-[8px] font-bold text-emerald-400 tracking-widest">Beroperasi:</span>
                                                     <span className="text-[10px] font-bold text-emerald-400">{allTenants.filter(t => t.status === "aktif").length}</span>
                                                 </div>
-                                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#ff2400]/10 border border-[#ff2400]/20 shadow-sm">
+                                                <div className="flex items-center justify-between sm:justify-start gap-2 px-3 py-1.5 rounded-lg bg-[#ff2400]/10 border border-[#ff2400]/20 shadow-sm">
                                                     <span className="text-[8px] font-bold text-[#ff2400] tracking-widest">Belum Diperpanjang:</span>
                                                     <span className="text-[10px] font-bold text-[#ff2400]">{allTenants.filter(t => t.status === "expired").length}</span>
                                                 </div>
-                                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 shadow-sm">
+                                                <div className="flex items-center justify-between sm:justify-start gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 shadow-sm">
                                                     <span className="text-[8px] font-bold text-white/20 tracking-widest">Berhenti:</span>
                                                     <span className="text-[10px] font-bold text-white/40">{allTenants.filter(t => t.status === "berhenti").length}</span>
                                                 </div>
@@ -2099,18 +2175,18 @@ function IspDetailPage({
                                         </div>
 
                                         {!isTeknisi && (
-                                            <div className="flex flex-wrap items-center gap-2">
+                                            <div className="flex flex-col sm:flex-row w-full lg:w-auto items-stretch sm:items-center gap-2 lg:mt-0">
                                                 <button
-                                                    className="h-7 px-3 rounded bg-white/5 border border-white/10 text-white text-[8px] font-bold uppercase tracking-widest hover:bg-white/10 transition-all flex items-center gap-1.5"
+                                                    className="h-8 lg:h-7 px-3 justify-center rounded bg-white/5 border border-white/10 text-white text-[8px] font-bold uppercase tracking-widest hover:bg-white/10 transition-all flex items-center gap-1.5"
                                                     onClick={handleExportToExcel}
                                                     type="button"
                                                 >
                                                     <span className="material-symbols-outlined" style={{ fontSize: "16px" }}>description</span>
                                                     Ekspor Excel
                                                 </button>
-                                                {canCreateTenant && (
+                                                {canCreateTenant && !isIsp && (
                                                     <button
-                                                        className="h-7 px-4 rounded bg-gold-accent text-slate-900 text-[8px] font-black uppercase tracking-[0.1em] shadow-gold-glow active:scale-95 transition-all flex items-center gap-1.5"
+                                                        className="h-8 lg:h-7 px-4 justify-center rounded bg-gold-accent text-slate-900 text-[8px] font-black uppercase tracking-[0.1em] shadow-gold-glow active:scale-95 transition-all flex items-center gap-1.5"
                                                         onClick={() => onOpenCreateTenant?.(detail ?? isp)}
                                                         type="button"
                                                     >
@@ -2124,228 +2200,509 @@ function IspDetailPage({
                                 </section>
 
                                 {/* ══════ CARD 2: FILTER & TABLE ══════ */}
-                                <section className="glass-card backdrop-blur-xl rounded-xl p-5 border-white/10 shadow-glass-depth">
+                                <section className="glass-card backdrop-blur-xl rounded-xl p-3 md:p-4 border-white/10 shadow-glass-depth">
                                     {/* ══════ REFINED FILTER PANEL ══════ */}
-                                    <div className="mb-3 flex flex-wrap items-end gap-3 w-full relative z-50">
-                                    {/* 1. Search */}
-                                    <div className="space-y-1.5 flex-1 min-w-[200px]">
-                                        <p className="text-[8px] font-black uppercase tracking-[0.3em] pl-1 text-gold-accent/40">Cari Lokasi</p>
-                                        <div className="relative group">
-                                            <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold-accent transition-all" style={{ fontSize: "16px" }}>search</span>
-                                            <input
-                                                type="text"
-                                                placeholder="Nama atau ID Lokasi..."
-                                                className="w-full h-8 pl-8 pr-3 rounded-lg bg-black/20 border border-white/10 text-[9px] font-bold text-white outline-none focus:border-gold-accent/40 focus:bg-black/40 transition-all shadow-inner-glass"
-                                                value={tenantSearch}
-                                                onChange={(e) => setTenantSearch(e.target.value)}
+                                    
+                                    {/* 1. DESKTOP VIEW FILTER PANEL (hidden on mobile, visible on desktop/laptop) */}
+                                    <div className="hidden xl:flex flex-wrap items-end gap-1.5 w-full relative z-50 mb-1.5">
+                                        {/* 1. Search */}
+                                        <div className="space-y-1.5 flex-1 min-w-[200px]">
+                                            <p className="text-[8px] font-black uppercase tracking-[0.3em] pl-1 text-gold-accent/40">Cari Lokasi</p>
+                                            <div className="relative group">
+                                                <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold-accent transition-all" style={{ fontSize: "16px" }}>search</span>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Nama atau ID Lokasi..."
+                                                    className="w-full h-8 pl-8 pr-3 rounded-lg bg-black/20 border border-white/10 text-[9px] font-bold text-white outline-none focus:border-gold-accent/40 focus:bg-black/40 transition-all shadow-inner-glass"
+                                                    value={tenantSearch}
+                                                    onChange={(e) => setTenantSearch(e.target.value)}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* 2. Status Kontrak */}
+                                        <div className="w-full md:w-[160px]">
+                                            <GlassCustomSelect
+                                                label="Status Kontrak"
+                                                heightClass="h-8"
+                                                icon="verified_user"
+                                                value={tenantStatusFilter}
+                                                onChange={setTenantStatusFilter}
+                                                options={[
+                                                    { value: "all", label: "Semua Status" },
+                                                    { value: "aktif", label: "Beroperasi" },
+                                                    { value: "expired", label: "Belum Diperpanjang" },
+                                                    { value: "berhenti", label: "Berhenti" }
+                                                ]}
                                             />
+                                        </div>
+
+                                        {/* 3. Paket */}
+                                        <div className="w-full md:w-[160px]">
+                                            <GlassCustomSelect
+                                                label="Jenis Paket"
+                                                heightClass="h-8"
+                                                icon="inventory_2"
+                                                value={tenantPaketFilter}
+                                                onChange={setTenantPaketFilter}
+                                                options={[
+                                                    { value: "all", label: "Semua Paket" },
+                                                    { value: "core", label: "Core" },
+                                                    { value: "sharing_core", label: "Sharing Core" }
+                                                ]}
+                                            />
+                                        </div>
+
+                                        {/* 4. Sorting */}
+                                        <div className="w-full md:w-[150px]">
+                                            <GlassCustomSelect
+                                                label="Urutkan"
+                                                heightClass="h-8"
+                                                icon="sort"
+                                                value={tenantSortMethod}
+                                                onChange={setTenantSortMethod}
+                                                options={[
+                                                    { value: "newest", label: "Terbaru" },
+                                                    { value: "oldest", label: "Terlama" },
+                                                    { value: "name_asc", label: "Nama A-Z" },
+                                                    { value: "name_desc", label: "Nama Z-A" }
+                                                ]}
+                                            />
+                                        </div>
+
+                                        {/* 5. Reset Filter */}
+                                        {(() => {
+                                            const isFilterActive = tenantSearch || tenantStatusFilter !== "all" || tenantPaketFilter !== "all" || tenantSortMethod !== "newest";
+                                            return (
+                                                <button
+                                                    onClick={() => {
+                                                        setTenantSearch("");
+                                                        setTenantStatusFilter("all");
+                                                        setTenantPaketFilter("all");
+                                                        setTenantSortMethod("newest");
+                                                    }}
+                                                    title="Hapus Filter"
+                                                    disabled={!isFilterActive}
+                                                    className={`w-8 h-8 rounded-lg border flex items-center justify-center transition-all shrink-0 backdrop-blur-md ${isFilterActive ? "border-[#ff2400]/40 bg-[#ff2400]/20 text-[#ff2400] hover:bg-[#ff2400] hover:text-white cursor-pointer shadow-[0_0_15px_rgba(255,36,0,0.4)]" : "bg-white/5 border-white/10 text-white/40 opacity-40 cursor-not-allowed"}`}
+                                                    type="button"
+                                                >
+                                                    <span className="material-symbols-outlined" style={{ fontSize: "16px" }}>filter_alt_off</span>
+                                                </button>
+                                            );
+                                        })()}
+                                    </div>
+
+                                    {/* 2. MOBILE VIEW FILTER PANEL (hidden on desktop/laptop, visible on mobile) */}
+                                    <div className="xl:hidden flex flex-col gap-3 relative z-50 mb-3">
+                                        {/* ── Search & Filter Toggle Row ── */}
+                                        <div className="flex items-center gap-2">
+                                            <div className="relative flex-1">
+                                                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-white/25 pointer-events-none" style={{ fontSize: "17px" }}>search</span>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Cari nama lokasi..."
+                                                    className="w-full h-10 pl-9 pr-8 rounded-xl bg-white/[0.04] border border-white/[0.08] text-[11px] font-semibold text-white placeholder-white/20 outline-none focus:border-gold-accent/40 focus:bg-white/[0.07] transition-all"
+                                                    value={tenantSearch}
+                                                    onChange={(e) => setTenantSearch(e.target.value)}
+                                                />
+                                                {tenantSearch && (
+                                                    <button onClick={() => setTenantSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/70 transition-colors">
+                                                        <span className="material-symbols-outlined" style={{ fontSize: "15px" }}>close</span>
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowTenantFilters(!showTenantFilters)}
+                                                className={`h-10 w-10 shrink-0 flex items-center justify-center rounded-xl border transition-all ${
+                                                    showTenantFilters 
+                                                        ? "bg-gold-accent/20 border-gold-accent/40 text-gold-accent shadow-[0_0_15px_rgba(212,175,55,0.25)]" 
+                                                        : "bg-white/[0.04] border-white/[0.08] text-white/60 hover:text-white hover:border-white/20"
+                                                }`}
+                                                title="Filter Rincian"
+                                            >
+                                                <span className="material-symbols-outlined" style={{ fontSize: "18px" }}>filter_list</span>
+                                            </button>
+                                        </div>
+
+                                        {/* ── Collapsible Filter Panel ── */}
+                                        {showTenantFilters && (
+                                            <div className="flex flex-col gap-3 pt-2 border-t border-white/[0.05] animate-in fade-in slide-in-from-top-2 duration-200">
+                                                {/* Status */}
+                                                <div className="flex flex-col gap-1.5">
+                                                    <span className="text-[8px] font-black uppercase tracking-[0.25em] text-white/25">Status</span>
+                                                    <div className="flex flex-wrap gap-1.5">
+                                                        {[
+                                                            { value: "aktif", label: "Beroperasi" },
+                                                            { value: "expired", label: "Belum Perpanjang" },
+                                                            { value: "berhenti", label: "Berhenti" },
+                                                        ].map(opt => (
+                                                            <button
+                                                                key={opt.value}
+                                                                type="button"
+                                                                onClick={() => setTenantStatusFilter(tenantStatusFilter === opt.value ? "all" : opt.value)}
+                                                                className={`h-7 px-3 rounded-full text-[9px] font-black uppercase tracking-wide border transition-all ${
+                                                                    tenantStatusFilter === opt.value
+                                                                        ? "bg-gold-accent/20 border-gold-accent/40 text-gold-accent shadow-[0_0_10px_rgba(212,175,55,0.2)]"
+                                                                        : "bg-white/[0.04] border-white/[0.08] text-white/40 hover:text-white/60 hover:border-white/20"
+                                                                }`}
+                                                            >
+                                                                {opt.label}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+                                                {/* Paket */}
+                                                <div className="flex flex-col gap-1.5">
+                                                    <span className="text-[8px] font-black uppercase tracking-[0.25em] text-white/25">Paket</span>
+                                                    <div className="flex flex-wrap gap-1.5">
+                                                        {[
+                                                            { value: "core", label: "Core" },
+                                                            { value: "sharing_core", label: "Sharing Core" },
+                                                        ].map(opt => (
+                                                            <button
+                                                                key={opt.value}
+                                                                type="button"
+                                                                onClick={() => setTenantPaketFilter(tenantPaketFilter === opt.value ? "all" : opt.value)}
+                                                                className={`h-7 px-3 rounded-full text-[9px] font-black uppercase tracking-wide border transition-all ${
+                                                                    tenantPaketFilter === opt.value
+                                                                        ? "bg-sky-500/15 border-sky-500/30 text-sky-400 shadow-[0_0_10px_rgba(56,189,248,0.15)]"
+                                                                        : "bg-white/[0.04] border-white/[0.08] text-white/40 hover:text-white/60 hover:border-white/20"
+                                                                }`}
+                                                            >
+                                                                {opt.label}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+                                                {/* Urutkan */}
+                                                <div className="flex flex-col gap-1.5">
+                                                    <span className="text-[8px] font-black uppercase tracking-[0.25em] text-white/25">Urutkan</span>
+                                                    <div className="flex flex-wrap gap-1.5">
+                                                        {[
+                                                            { value: "newest", label: "Terbaru" },
+                                                            { value: "oldest", label: "Terlama" },
+                                                            { value: "name_asc", label: "A – Z" },
+                                                            { value: "name_desc", label: "Z – A" },
+                                                        ].map(opt => (
+                                                            <button
+                                                                key={opt.value}
+                                                                type="button"
+                                                                onClick={() => setTenantSortMethod(opt.value)}
+                                                                className={`h-7 px-3 rounded-full text-[9px] font-black uppercase tracking-wide border transition-all ${
+                                                                    tenantSortMethod === opt.value
+                                                                        ? "bg-violet-500/15 border-violet-500/30 text-violet-300 shadow-[0_0_10px_rgba(139,92,246,0.15)]"
+                                                                        : "bg-white/[0.04] border-white/[0.08] text-white/40 hover:text-white/60 hover:border-white/20"
+                                                                }`}
+                                                            >
+                                                                {opt.label}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* ── Footer: hasil + reset ── */}
+                                        <div className="flex items-center justify-between pt-2 border-t border-white/[0.06]">
+                                            <span className="text-[9px] font-black text-white/20 uppercase tracking-widest">
+                                                {filteredTenants.length} lokasi
+                                            </span>
+                                            {(tenantSearch || tenantStatusFilter !== "all" || tenantPaketFilter !== "all" || tenantSortMethod !== "newest") && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setTenantSearch("");
+                                                        setTenantStatusFilter("all");
+                                                        setTenantPaketFilter("all");
+                                                        setTenantSortMethod("newest");
+                                                    }}
+                                                    className="flex items-center gap-1 h-6 px-2.5 rounded-full text-[8px] font-black uppercase tracking-wide border border-[#ff2400]/30 bg-[#ff2400]/10 text-[#ff2400] hover:bg-[#ff2400]/20 transition-all"
+                                                >
+                                                    <span className="material-symbols-outlined" style={{ fontSize: "10px" }}>close</span>
+                                                    Reset Filter
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
 
-                                    {/* 2. Status Kontrak */}
-                                    <div className="w-full md:w-[160px]">
-                                        <GlassCustomSelect
-                                            label="Status Kontrak"
-                                            heightClass="h-8"
-                                            icon="verified_user"
-                                            value={tenantStatusFilter}
-                                            onChange={setTenantStatusFilter}
-                                            options={[
-                                                { value: "all", label: "Semua Status" },
-                                                { value: "aktif", label: "Beroperasi" },
-                                                { value: "expired", label: "Belum Diperpanjang" },
-                                                { value: "berhenti", label: "Berhenti" }
-                                            ]}
-                                        />
-                                    </div>
+                                    <div>
 
-                                    {/* 3. Paket */}
-                                    <div className="w-full md:w-[160px]">
-                                        <GlassCustomSelect
-                                            label="Jenis Paket"
-                                            heightClass="h-8"
-                                            icon="inventory_2"
-                                            value={tenantPaketFilter}
-                                            onChange={setTenantPaketFilter}
-                                            options={[
-                                                { value: "all", label: "Semua Paket" },
-                                                { value: "core", label: "Core" },
-                                                { value: "sharing_core", label: "Sharing Core" }
-                                            ]}
-                                        />
-                                    </div>
-
-                                    {/* 4. Sorting */}
-                                    <div className="w-full md:w-[150px]">
-                                        <GlassCustomSelect
-                                            label="Urutkan"
-                                            heightClass="h-8"
-                                            icon="sort"
-                                            value={tenantSortMethod}
-                                            onChange={setTenantSortMethod}
-                                            options={[
-                                                { value: "newest", label: "Terbaru" },
-                                                { value: "oldest", label: "Terlama" },
-                                                { value: "name_asc", label: "Nama A-Z" },
-                                                { value: "name_desc", label: "Nama Z-A" }
-                                            ]}
-                                        />
-                                    </div>
-
-                                    {/* 5. Reset Filter */}
-                                    {(() => {
-                                        const isFilterActive = tenantSearch || tenantStatusFilter !== "all" || tenantPaketFilter !== "all" || tenantSortMethod !== "newest";
-                                        return (
-                                            <button
-                                                onClick={() => {
-                                                    setTenantSearch("");
-                                                    setTenantStatusFilter("all");
-                                                    setTenantPaketFilter("all");
-                                                    setTenantSortMethod("newest");
-                                                }}
-                                                title="Hapus Filter"
-                                                disabled={!isFilterActive}
-                                                className={`w-8 h-8 rounded-lg border flex items-center justify-center transition-all shrink-0 backdrop-blur-md ${isFilterActive ? "border-[#ff2400]/40 bg-[#ff2400]/20 text-[#ff2400] hover:bg-[#ff2400] hover:text-white cursor-pointer shadow-[0_0_15px_rgba(255,36,0,0.4)]" : "bg-white/5 border-white/10 text-white/40 opacity-40 cursor-not-allowed"}`}
-                                                type="button"
-                                            >
-                                                <span className="material-symbols-outlined" style={{ fontSize: "16px" }}>filter_alt_off</span>
-                                            </button>
-                                        );
-                                    })()}
-                                </div>
-
-                                <div className="overflow-x-auto rounded-lg border border-white/10 bg-black/55 backdrop-blur-3xl shadow-2xl custom-scrollbar">
-                                    <table className="min-w-full border-collapse whitespace-nowrap">
-                                        <thead>
-                                            <tr className="bg-white/5 border-b border-white/10">
-                                                <th rowSpan="2" className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">No</th>
-                                                <th rowSpan="2" className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-gold-accent border-r border-white/10">Lokasi</th>
-                                                <th rowSpan="2" className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Status Kontrak</th>
-                                                <th rowSpan="2" className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Status Jalur</th>
-                                                <th rowSpan="2" className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Sisa Sewa</th>
-                                                <th rowSpan="2" className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Periode Awal</th>
-                                                <th colSpan="2" className="px-3 py-1.5 text-center text-[8px] font-black tracking-[0.4em] text-white/30 uppercase border-b border-white/10 border-r border-white/10">Kontrak Berjalan</th>
-                                                <th rowSpan="2" className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Paket</th>
-                                                <th rowSpan="2" className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Jumlah</th>
-                                                <th rowSpan="2" className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Tindak Lanjut</th>
-                                                <th rowSpan="2" className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40">Aksi</th>
-                                            </tr>
-                                            <tr className="bg-white/5">
-                                                <th className="px-3 py-1.5 text-center text-[7px] font-black tracking-[0.2em] text-white/20 uppercase border-r border-white/10">Awal</th>
-                                                <th className="px-3 py-1.5 text-center text-[7px] font-black tracking-[0.2em] text-white/20 uppercase border-r border-white/10">Akhir</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-white/10">
-                                            {filteredTenants.map((tenant, idx) => (
-                                                <tr key={tenant.id} className="hover:bg-white/[0.04] transition-colors group/row">
-                                                    <td className="px-3 py-2.5 text-center text-[11px] font-bold text-white/20 border-r border-white/10">{String(idx + 1).padStart(2, '0')}</td>
-                                                    <td className="px-3 py-2.5 border-r border-white/10">
-                                                        <p className="text-[11px] font-bold text-white group-hover/row:text-gold-accent transition-colors">{tenant.name}</p>
-                                                    </td>
-                                                    <td className="px-3 py-2.5 text-center border-r border-white/10">
-                                                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-[8px] font-bold border transition-all ${normalizeOperationalStatus(tenant.status) === 'aktif' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : normalizeOperationalStatus(tenant.status) === 'expired' ? 'bg-[#ff2400]/10 text-[#ff2400] border-[#ff2400]/20' : isPendingOperationalStatus(tenant.status) ? 'bg-sky-500/10 text-sky-400 border-sky-500/20' : 'bg-white/5 text-white/30 border-white/10'}`}>
-                                                            {getOperationalLabel(tenant.status)}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-3 py-2.5 text-center border-r border-white/10">
-                                                        {(() => {
-                                                            const routeStatus = resolveRouteStatus(tenant.status, tenant.route?.activeFlowStatus ?? tenant.status_jalur);
-                                                            const colors = {
-                                                                aktif: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-                                                                gangguan: "bg-[#ff2400]/10 text-[#ff2400] border-[#ff2400]/20",
-                                                                nonaktif: "bg-white/5 text-white/30 border-white/10",
-                                                            };
-                                                            const color = colors[routeStatus] || colors.nonaktif;
-                                                            return (
-                                                                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[8px] font-bold border ${color}`}>
-                                                                    {routeStatus === 'aktif' ? "Aktif" : routeStatus === 'gangguan' ? "Gangguan" : "Nonaktif"}
+                                        {/* ══════ DESKTOP VIEW (TABLE) ══════ */}
+                                        <div className="hidden xl:block overflow-x-auto custom-scrollbar rounded-lg border border-white/10 bg-black/55 backdrop-blur-3xl shadow-2xl">
+                                            <table className="min-w-full border-collapse whitespace-nowrap">
+                                                <thead>
+                                                    <tr className="bg-white/5 border-b border-white/10">
+                                                        <th rowSpan="2" className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">No</th>
+                                                        <th rowSpan="2" className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-gold-accent border-r border-white/10">Lokasi</th>
+                                                        <th colSpan="2" className="px-3 py-1.5 text-center text-[8px] font-black tracking-[0.4em] text-white/30 uppercase border-b border-white/10 border-r border-white/10">Status</th>
+                                                        <th rowSpan="2" className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Sisa Sewa</th>
+                                                        <th rowSpan="2" className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Periode Awal</th>
+                                                        <th colSpan="2" className="px-3 py-1.5 text-center text-[8px] font-black tracking-[0.4em] text-white/30 uppercase border-b border-white/10 border-r border-white/10">Kontrak Berjalan</th>
+                                                        <th rowSpan="2" className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Paket</th>
+                                                        <th rowSpan="2" className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Jumlah</th>
+                                                        <th rowSpan="2" className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Tindak Lanjut</th>
+                                                        <th rowSpan="2" className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40">Aksi</th>
+                                                    </tr>
+                                                    <tr className="bg-white/5">
+                                                        <th className="px-3 py-1.5 text-center text-[7px] font-black tracking-[0.2em] text-white/20 uppercase border-r border-white/10">Kontrak</th>
+                                                        <th className="px-3 py-1.5 text-center text-[7px] font-black tracking-[0.2em] text-white/20 uppercase border-r border-white/10">Jalur</th>
+                                                        <th className="px-3 py-1.5 text-center text-[7px] font-black tracking-[0.2em] text-white/20 uppercase border-r border-white/10">Awal</th>
+                                                        <th className="px-3 py-1.5 text-center text-[7px] font-black tracking-[0.2em] text-white/20 uppercase border-r border-white/10">Akhir</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-white/10">
+                                                    {filteredTenants.map((tenant, idx) => (
+                                                        <tr key={tenant.id} className="hover:bg-white/[0.04] transition-colors group/row">
+                                                            <td className="px-3 py-2.5 text-center text-[11px] font-bold text-white/20 border-r border-white/10">{String(idx + 1).padStart(2, '0')}</td>
+                                                            <td className="px-3 py-2.5 border-r border-white/10">
+                                                                <p className="text-[11px] font-bold text-white group-hover/row:text-gold-accent transition-colors">{tenant.name}</p>
+                                                            </td>
+                                                            <td className="px-3 py-2.5 text-center border-r border-white/10">
+                                                                <span className={`inline-flex items-center px-3 py-1 rounded-full text-[8px] font-bold border transition-all ${normalizeOperationalStatus(tenant.status) === 'aktif' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : normalizeOperationalStatus(tenant.status) === 'expired' ? 'bg-[#ff2400]/10 text-[#ff2400] border-[#ff2400]/20' : isPendingOperationalStatus(tenant.status) ? 'bg-sky-500/10 text-sky-400 border-sky-500/20' : 'bg-white/5 text-white/30 border-white/10'}`}>
+                                                                    {getOperationalLabel(tenant.status)}
                                                                 </span>
-                                                            );
-                                                        })()}
-                                                    </td>
-                                                    <td className="px-3 py-2.5 text-center border-r border-white/10">
-                                                        {(() => {
-                                                            const endDateStr = tenant.contractPeriodInfo?.contractPeriodEnd ?? tenant.contractPeriodEnd;
-                                                            if (!endDateStr) return <span className="text-[10px] font-bold text-white/20">-</span>;
-                                                            const endDate = new Date(endDateStr);
-                                                            const today = new Date(todayIso);
-                                                            const diffTime = endDate.getTime() - today.getTime();
-                                                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                                                            if (diffDays < 0) return <span className="text-[10px] font-bold text-[#ff2400]">Lewat {Math.abs(diffDays)} Hari</span>;
-                                                            if (diffDays === 0) return <span className="text-[10px] font-bold text-amber-400">Hari Ini</span>;
-                                                            if (diffDays < 30) return <span className="text-[10px] font-bold text-amber-400">{diffDays} Hari</span>;
-                                                            const diffMonths = Math.floor(diffDays / 30);
-                                                            return <span className="text-[10px] font-bold text-emerald-400">{diffMonths} Bulan</span>;
-                                                        })()}
-                                                    </td>
-                                                    <td className="px-3 py-2.5 text-center border-r border-white/10">
-                                                        <p className="text-[10px] font-bold text-white/60 uppercase">{formatDate(tenant.contractPeriodInfo?.contractStartDate ?? tenant.contractStartDate)}</p>
-                                                    </td>
-                                                    <td className="px-3 py-2.5 text-center border-r border-white/10">
-                                                        <p className="text-[10px] font-bold text-white/60 uppercase">{formatDate(tenant.contractPeriodInfo?.contractPeriodStart ?? tenant.contractPeriodStart)}</p>
-                                                    </td>
-                                                    <td className="px-3 py-2.5 text-center border-r border-white/10">
-                                                        <p className="text-[10px] font-bold text-white/60 uppercase">{formatDate(tenant.contractPeriodInfo?.contractPeriodEnd ?? tenant.contractPeriodEnd)}</p>
-                                                    </td>
-                                                    <td className="px-3 py-2.5 text-center border-r border-white/10">
-                                                        <p className="text-[11px] font-bold text-white/70 tracking-widest">{getPackageDisplay(tenant.packageInfo?.paket ?? tenant.paket).label}</p>
-                                                    </td>
-                                                    <td className="px-3 py-2.5 text-center border-r border-white/10">
-                                                        <p className="text-[11px] font-bold text-white/70 tracking-widest">{tenant.packageInfo?.jumlah ?? tenant.contractSharingRatio ?? tenant.jumlah ?? '-'}</p>
-                                                    </td>
-                                                    <td className="px-3 py-2.5 text-center text-[11px] font-bold text-[#ff2400] border-r border-white/10">
-                                                        {isTeknisi ? (
-                                                            (!tenant.route && tenant.status === "aktif") || (tenant.route?.activeFlowStatus ?? tenant.status_jalur) === "gangguan" ? "YA" : "-"
-                                                        ) : getTenantActionCount(tenant, todayIso)}
-                                                    </td>
-                                                    <td className="px-3 py-2.5 text-right">
-                                                        <div className="flex justify-end gap-1.5">
+                                                            </td>
+                                                            <td className="px-3 py-2.5 text-center border-r border-white/10">
+                                                                {(() => {
+                                                                    const routeStatus = resolveRouteStatus(tenant.status, tenant.route?.activeFlowStatus ?? tenant.status_jalur);
+                                                                    const colors = {
+                                                                        aktif: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+                                                                        gangguan: "bg-[#ff2400]/10 text-[#ff2400] border-[#ff2400]/20",
+                                                                        nonaktif: "bg-white/5 text-white/30 border-white/10",
+                                                                    };
+                                                                    const color = colors[routeStatus] || colors.nonaktif;
+                                                                    return (
+                                                                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[8px] font-bold border ${color}`}>
+                                                                            {routeStatus === 'aktif' ? "Aktif" : routeStatus === 'gangguan' ? "Gangguan" : "Nonaktif"}
+                                                                        </span>
+                                                                    );
+                                                                })()}
+                                                            </td>
+                                                            <td className="px-3 py-2.5 text-center border-r border-white/10">
+                                                                {(() => {
+                                                                    const endDateStr = tenant.contractPeriodInfo?.contractPeriodEnd ?? tenant.contractPeriodEnd;
+                                                                    if (!endDateStr) return <span className="text-[10px] font-bold text-white/20">-</span>;
+                                                                    const endDate = new Date(endDateStr);
+                                                                    const today = new Date(todayIso);
+                                                                    const diffTime = endDate.getTime() - today.getTime();
+                                                                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                                                                    if (diffDays < 0) return <span className="text-[10px] font-bold text-[#ff2400]">Lewat {Math.abs(diffDays)} Hari</span>;
+                                                                    if (diffDays === 0) return <span className="text-[10px] font-bold text-amber-400">Hari Ini</span>;
+                                                                    if (diffDays < 30) return <span className="text-[10px] font-bold text-amber-400">{diffDays} Hari</span>;
+                                                                    const diffMonths = Math.floor(diffDays / 30);
+                                                                    return <span className="text-[10px] font-bold text-emerald-400">{diffMonths} Bulan</span>;
+                                                                })()}
+                                                            </td>
+                                                            <td className="px-3 py-2.5 text-center border-r border-white/10">
+                                                                <p className="text-[10px] font-bold text-white/60 uppercase">{formatDate(tenant.contractPeriodInfo?.contractStartDate ?? tenant.contractStartDate)}</p>
+                                                            </td>
+                                                            <td className="px-3 py-2.5 text-center border-r border-white/10">
+                                                                <p className="text-[10px] font-bold text-white/60 uppercase">{formatDate(tenant.contractPeriodInfo?.contractPeriodStart ?? tenant.contractPeriodStart)}</p>
+                                                            </td>
+                                                            <td className="px-3 py-2.5 text-center border-r border-white/10">
+                                                                <p className="text-[10px] font-bold text-white/60 uppercase">{formatDate(tenant.contractPeriodInfo?.contractPeriodEnd ?? tenant.contractPeriodEnd)}</p>
+                                                            </td>
+                                                            <td className="px-3 py-2.5 text-center border-r border-white/10">
+                                                                <p className="text-[11px] font-bold text-white/70 tracking-widest">{getPackageDisplay(tenant.packageInfo?.paket ?? tenant.paket).label}</p>
+                                                            </td>
+                                                            <td className="px-3 py-2.5 text-center border-r border-white/10">
+                                                                <p className="text-[11px] font-bold text-white/70 tracking-widest">{tenant.packageInfo?.jumlah ?? tenant.contractSharingRatio ?? tenant.jumlah ?? '-'}</p>
+                                                            </td>
+                                                            <td className="px-3 py-2.5 text-center text-[11px] font-bold text-[#ff2400] border-r border-white/10">
+                                                                {isTeknisi ? (
+                                                                    (!tenant.route && tenant.status === "aktif") || (tenant.route?.activeFlowStatus ?? tenant.status_jalur) === "gangguan" ? "YA" : "-"
+                                                                ) : getTenantActionCount(tenant, todayIso)}
+                                                            </td>
+                                                            <td className="px-3 py-2.5 text-right">
+                                                                <div className="flex justify-end gap-1.5">
+                                                                    {!isTeknisi && canOpenTenantDetail && (
+                                                                        <button className="w-6 h-6 flex items-center justify-center rounded-md bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all shadow-sm" onClick={() => onOpenTenant(tenant, "invoices")} title="Invoice">
+                                                                            <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>receipt_long</span>
+                                                                        </button>
+                                                                    )}
+                                                                    {canOpenTenantDetail && (
+                                                                        <button className="w-6 h-6 flex items-center justify-center rounded-md bg-white/5 text-white hover:bg-white/10 transition-all shadow-sm" onClick={() => onOpenTenant(tenant, isTeknisi ? "jalur" : "overview")} title="Detail">
+                                                                            <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>visibility</span>
+                                                                        </button>
+                                                                    )}
+                                                                    {!isTeknisi && canEditTenant && (
+                                                                        <button className="w-6 h-6 flex items-center justify-center rounded-md bg-amber-500/10 text-amber-400 hover:bg-amber-500 hover:text-white transition-all shadow-sm" onClick={() => onEditTenant?.(tenant)} title="Edit">
+                                                                            <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>edit</span>
+                                                                        </button>
+                                                                    )}
+                                                                    {!isTeknisi && canDeleteTenant && (
+                                                                        <button className="w-6 h-6 flex items-center justify-center rounded-md bg-[#ff2400]/10 text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all shadow-sm" onClick={() => onDeleteTenant?.(tenant)} title="Hapus">
+                                                                            <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>delete</span>
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                    {filteredTenants.length === 0 && (
+                                                        <tr>
+                                                            <td colSpan="12" className="py-10 text-center">
+                                                                <div className="flex flex-col items-center justify-center">
+                                                                    <div className="h-12 w-12 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 shadow-inner-glass mb-3 animate-pulse">
+                                                                        <span className="material-symbols-outlined text-2xl text-gold-accent/40">location_off</span>
+                                                                    </div>
+                                                                    <h4 className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em]">BELUM ADA RINCIAN LOKASI</h4>
+                                                                    <p className="text-[8px] font-bold text-white/20 uppercase tracking-widest mt-1">
+                                                                        {tenantSearch || tenantStatusFilter !== "all" || tenantPaketFilter !== "all"
+                                                                            ? "Tidak ada lokasi yang cocok dengan filter pencarian"
+                                                                            : "Belum ada titik lokasi yang terdaftar untuk ISP ini"}
+                                                                    </p>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    )}
+                                                </tbody>
+                                            </table>
+                                        </div>
+
+                                        {/* ══════ MOBILE VIEW (CARD LAYOUT) ══════ */}
+                                        <div className="xl:hidden flex flex-col gap-4 mt-3">
+                                            {filteredTenants.map((tenant, idx) => {
+                                                const endDateStr = tenant.contractPeriodInfo?.contractPeriodEnd ?? tenant.contractPeriodEnd;
+                                                const diffDays = endDateStr ? Math.ceil((new Date(endDateStr) - new Date(todayIso)) / 86400000) : null;
+                                                const routeStatus = resolveRouteStatus(tenant.status, tenant.route?.activeFlowStatus ?? tenant.status_jalur);
+                                                const locStatus = normalizeOperationalStatus(tenant.status);
+                                                const actionCount = isTeknisi
+                                                    ? ((!tenant.route && tenant.status === "aktif") || routeStatus === "gangguan" ? "YA" : null)
+                                                    : getTenantActionCount(tenant, todayIso);
+                                                const hasAction = actionCount !== null && actionCount !== "-" && actionCount !== 0;
+                                                return (
+                                                    <div key={tenant.id} className="rounded-2xl bg-white/[0.03] border border-white/[0.07] overflow-hidden">
+
+                                                        {/* ── HEADER: nomor + nama ── */}
+                                                        <div className="flex items-center gap-2.5 px-3.5 pt-3 pb-2.5 border-b border-white/[0.06]">
+                                                            <span className="shrink-0 text-[10px] font-black text-gold-accent/60 tabular-nums">#{String(idx + 1).padStart(2, '0')}</span>
+                                                            <p className="flex-1 text-[13px] font-black text-white uppercase tracking-wide leading-tight">{tenant.name}</p>
+                                                            {diffDays !== null && (
+                                                                <span className={`shrink-0 text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${diffDays < 0 ? 'bg-[#ff2400]/15 border-[#ff2400]/30 text-[#ff2400]' : diffDays < 30 ? 'bg-amber-500/15 border-amber-500/30 text-amber-400' : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'}`}>
+                                                                    {diffDays < 0 ? `Lewat ${Math.abs(diffDays)} hr` : diffDays === 0 ? 'Hari ini' : diffDays < 30 ? `${diffDays} hari` : `${Math.floor(diffDays / 30)} bln`}
+                                                                </span>
+                                                            )}
+                                                        </div>
+
+                                                        {/* ── BODY: detail informasi ── */}
+                                                        <div className="px-3.5 py-2.5 flex flex-col gap-2">
+
+                                                            {/* Status */}
+                                                            <div className="flex items-center gap-1.5 flex-wrap">
+                                                                <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${locStatus === 'aktif' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : locStatus === 'expired' ? 'bg-[#ff2400]/10 border-[#ff2400]/20 text-[#ff2400]' : isPendingOperationalStatus(tenant.status) ? 'bg-sky-500/10 border-sky-500/20 text-sky-400' : 'bg-white/5 border-white/10 text-white/30'}`}>
+                                                                    {getOperationalLabel(tenant.status)}
+                                                                </span>
+                                                                <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${routeStatus === 'aktif' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : routeStatus === 'gangguan' ? 'bg-[#ff2400]/10 border-[#ff2400]/20 text-[#ff2400]' : 'bg-white/5 border-white/10 text-white/30'}`}>
+                                                                    Jalur {routeStatus === 'aktif' ? 'Aktif' : routeStatus === 'gangguan' ? 'Gangguan' : 'Nonaktif'}
+                                                                </span>
+                                                            </div>
+
+                                                            {/* Grid info: 2 kolom */}
+                                                            <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                                                                {/* Paket & Jumlah */}
+                                                                <div>
+                                                                    <p className="text-[9px] font-black uppercase tracking-widest text-white/30 mb-0.5">Paket</p>
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <span className="text-[11px] font-black text-white uppercase">{getPackageDisplay(tenant.packageInfo?.paket ?? tenant.paket).label}</span>
+                                                                        <span className="w-px h-3 bg-white/15 shrink-0"></span>
+                                                                        <span className="text-[11px] font-black text-gold-accent">{tenant.packageInfo?.jumlah ?? tenant.contractSharingRatio ?? tenant.jumlah ?? '–'}</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Periode Awal */}
+                                                                <div>
+                                                                    <p className="text-[9px] font-black uppercase tracking-widest text-white/30 mb-0.5">Periode Awal</p>
+                                                                    <p className="text-[11px] font-bold text-white/60 font-mono">
+                                                                        {formatDate(tenant.contractPeriodInfo?.contractStartDate ?? tenant.contractStartDate) || '–'}
+                                                                    </p>
+                                                                </div>
+
+                                                                {/* Periode Berjalan — full width */}
+                                                                <div className="col-span-2">
+                                                                    <p className="text-[9px] font-black uppercase tracking-widest text-white/30 mb-0.5">Periode Berjalan</p>
+                                                                    <p className="text-[11px] font-bold text-white/60 font-mono">
+                                                                        {formatDate(tenant.contractPeriodInfo?.contractPeriodStart ?? tenant.contractPeriodStart)}
+                                                                        <span className="mx-1.5 text-white/20">–</span>
+                                                                        {formatDate(tenant.contractPeriodInfo?.contractPeriodEnd ?? tenant.contractPeriodEnd)}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Tindak Lanjut */}
+                                                            {!isIsp && (
+                                                                <div className="flex items-center gap-2 pt-1 border-t border-white/[0.05]">
+                                                                    <span className="text-[9px] font-black uppercase tracking-widest text-white/30">Tindak Lanjut</span>
+                                                                    <span className={`text-[10px] font-black px-2 py-0.5 rounded border ${hasAction ? 'bg-[#ff2400]/15 border-[#ff2400]/30 text-[#ff2400]' : 'bg-white/5 border-white/10 text-white/25'}`}>
+                                                                        {hasAction ? actionCount : '–'}
+                                                                    </span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+
+                                                        {/* ── FOOTER: tombol aksi ── */}
+                                                        <div className="border-t border-white/[0.06] flex">
                                                             {!isTeknisi && canOpenTenantDetail && (
-                                                                <button className="w-6 h-6 flex items-center justify-center rounded-md bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all shadow-sm" onClick={() => onOpenTenant(tenant, "invoices")} title="Invoice">
-                                                                    <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>receipt_long</span>
+                                                                <button
+                                                                    className="flex-1 h-9 flex items-center justify-center gap-1.5 text-emerald-400 hover:bg-emerald-500/10 transition-colors border-r border-white/[0.06]"
+                                                                    onClick={() => onOpenTenant(tenant, "invoices")}
+                                                                >
+                                                                    <span className="material-symbols-outlined" style={{ fontSize: "15px" }}>receipt_long</span>
+                                                                    <span className="text-[9.5px] font-black uppercase tracking-widest">Invoice</span>
                                                                 </button>
                                                             )}
                                                             {canOpenTenantDetail && (
-                                                                <button className="w-6 h-6 flex items-center justify-center rounded-md bg-white/5 text-white hover:bg-white/10 transition-all shadow-sm" onClick={() => onOpenTenant(tenant, isTeknisi ? "jalur" : "overview")} title="Detail">
-                                                                    <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>visibility</span>
+                                                                <button
+                                                                    className="flex-1 h-9 flex items-center justify-center gap-1.5 text-white/70 hover:bg-white/5 transition-colors"
+                                                                    onClick={() => onOpenTenant(tenant, isTeknisi ? "jalur" : "overview")}
+                                                                >
+                                                                    <span className="material-symbols-outlined" style={{ fontSize: "15px" }}>open_in_new</span>
+                                                                    <span className="text-[9.5px] font-black uppercase tracking-widest">Detail</span>
                                                                 </button>
                                                             )}
                                                             {!isTeknisi && canEditTenant && (
-                                                                <button className="w-6 h-6 flex items-center justify-center rounded-md bg-amber-500/10 text-amber-400 hover:bg-amber-500 hover:text-white transition-all shadow-sm" onClick={() => onEditTenant?.(tenant)} title="Edit">
+                                                                <button
+                                                                    className="w-11 h-9 flex items-center justify-center text-amber-400 hover:bg-amber-500/10 transition-colors border-l border-white/[0.06]"
+                                                                    onClick={() => onEditTenant?.(tenant)}
+                                                                >
                                                                     <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>edit</span>
                                                                 </button>
                                                             )}
                                                             {!isTeknisi && canDeleteTenant && (
-                                                                <button className="w-6 h-6 flex items-center justify-center rounded-md bg-[#ff2400]/10 text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all shadow-sm" onClick={() => onDeleteTenant?.(tenant)} title="Hapus">
+                                                                <button
+                                                                    className="w-11 h-9 flex items-center justify-center text-[#ff2400]/70 hover:bg-[#ff2400]/10 transition-colors border-l border-white/[0.06]"
+                                                                    onClick={() => onDeleteTenant?.(tenant)}
+                                                                >
                                                                     <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>delete</span>
                                                                 </button>
                                                             )}
                                                         </div>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                            {filteredTenants.length === 0 && (
-                                                <tr>
-                                                    <td colSpan="12" className="py-10 text-center">
-                                                        <div className="flex flex-col items-center justify-center">
-                                                            <div className="h-12 w-12 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 shadow-inner-glass mb-3 animate-pulse">
-                                                                <span className="material-symbols-outlined text-2xl text-gold-accent/40">location_off</span>
-                                                            </div>
-                                                            <h4 className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em]">BELUM ADA RINCIAN LOKASI</h4>
-                                                            <p className="text-[8px] font-bold text-white/20 uppercase tracking-widest mt-1">
-                                                                {tenantSearch || tenantStatusFilter !== "all" || tenantPaketFilter !== "all" 
-                                                                    ? "Tidak ada lokasi yang cocok dengan filter pencarian" 
-                                                                    : "Belum ada titik lokasi yang terdaftar untuk ISP ini"}
-                                                            </p>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            )}
-                                        </tbody>
-                                    </table>
-                                </div>
+                                                    </div>
+                                                );
+                                            })}
 
-                            </section>
+                                            {filteredTenants.length === 0 && (
+                                                <div className="py-12 flex flex-col items-center justify-center gap-3">
+                                                    <div className="h-12 w-12 flex items-center justify-center rounded-xl bg-white/5 border border-white/10">
+                                                        <span className="material-symbols-outlined text-2xl text-gold-accent/40">location_off</span>
+                                                    </div>
+                                                    <div className="text-center">
+                                                        <p className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em]">Belum Ada Lokasi</p>
+                                                        <p className="text-[8px] text-white/20 mt-1">
+                                                            {tenantSearch || tenantStatusFilter !== "all" || tenantPaketFilter !== "all"
+                                                                ? "Tidak cocok dengan filter"
+                                                                : "Belum ada lokasi terdaftar"}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                    </div>
+                                </section>
                             </div>
                         )}
 
@@ -2396,9 +2753,9 @@ function IspDetailPage({
                                                             {(detail?.entryPoints || []).length} Titik
                                                         </span>
                                                         {canManageEntryPoints && (
-                                                            <button 
-                                                                type="button" 
-                                                                className="flex items-center justify-center w-6 h-6 rounded-md bg-gold-accent/10 border border-gold-accent/20 text-gold-accent hover:bg-gold-accent hover:text-[#0f141e] transition-all shadow-sm" 
+                                                            <button
+                                                                type="button"
+                                                                className="flex items-center justify-center w-6 h-6 rounded-md bg-gold-accent/10 border border-gold-accent/20 text-gold-accent hover:bg-gold-accent hover:text-[#0f141e] transition-all shadow-sm"
                                                                 onClick={() => openEntryPointEditor({ mode: "add", data: { label: "", latitude: "", longitude: "", status: "aktif", fiberType: "", coreCapacity: "", description: "", isDefault: false } })}
                                                                 title="Tambah Titik"
                                                             >
@@ -2488,9 +2845,9 @@ function IspDetailPage({
 
                                 {/* ══════ CARD 2: FILTER & TABLE ══════ */}
                                 <section className="glass-card backdrop-blur-xl rounded-xl p-5 border-white/10 shadow-glass-depth">
-                                    <div className="mb-3 flex flex-wrap items-end gap-3 w-full relative z-50">
+                                    <div className="mb-1.5 flex items-center gap-1.5 w-full relative z-50">
                                         {/* Search Bar */}
-                                        <div className="relative group min-w-[280px] flex-1">
+                                        <div className="relative group flex-1 min-w-0">
                                             <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold-accent transition-colors" style={{ fontSize: "16px" }}>search</span>
                                             <input
                                                 type="text"
@@ -2503,32 +2860,32 @@ function IspDetailPage({
 
                                         {/* Sort Toggle */}
                                         <button
-                                            className="group relative flex h-8 w-[96px] shrink-0 items-center justify-center gap-1.5 overflow-hidden rounded-lg border border-white/10 bg-black/20 transition-all hover:border-white/20 hover:bg-black/40"
+                                            className="group relative flex h-8 w-8 xl:w-[96px] shrink-0 items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-black/20 text-white/60 transition-all hover:border-white/20 hover:bg-black/40 hover:text-white"
                                             onClick={() => setContractSortMethod((prev) => (prev === "newest" ? "oldest" : "newest"))}
                                             title={contractSortMethod === "newest" ? "Urutkan Terlama" : "Urutkan Terbaru"}
                                             type="button"
                                         >
                                             <div className="relative flex h-full items-center justify-center">
                                                 <span
-                                                    className={`material-symbols-outlined text-white/50 transition-all duration-300 ${contractSortMethod === "newest" ? "rotate-0 opacity-100" : "-rotate-180 opacity-0 absolute"}`}
-                                                    style={{ fontSize: "14px" }}
+                                                    className={`material-symbols-outlined transition-all duration-300 ${contractSortMethod === "newest" ? "rotate-0 opacity-100 scale-100" : "-rotate-180 opacity-0 scale-75 absolute"}`}
+                                                    style={{ fontSize: "15px" }}
                                                 >
                                                     arrow_downward
                                                 </span>
                                                 <span
-                                                    className={`material-symbols-outlined text-white/50 transition-all duration-300 ${contractSortMethod === "oldest" ? "rotate-0 opacity-100" : "rotate-180 opacity-0 absolute"}`}
-                                                    style={{ fontSize: "14px" }}
+                                                    className={`material-symbols-outlined transition-all duration-300 ${contractSortMethod === "oldest" ? "rotate-0 opacity-100 scale-100" : "rotate-180 opacity-0 scale-75 absolute"}`}
+                                                    style={{ fontSize: "15px" }}
                                                 >
                                                     arrow_upward
                                                 </span>
                                             </div>
-                                            <span className="text-[9px] font-black uppercase tracking-widest text-white/70 transition-colors group-hover:text-white">
+                                            <span className="hidden xl:inline text-[9px] font-black uppercase tracking-widest text-white/70 transition-colors group-hover:text-white">
                                                 {contractSortMethod === "newest" ? "Terbaru" : "Terlama"}
                                             </span>
                                         </button>
                                     </div>
 
-                                    <div className="overflow-x-auto rounded-lg border border-white/10 bg-black/55 backdrop-blur-3xl shadow-2xl custom-scrollbar">
+                                    <div className="hidden xl:block overflow-x-auto rounded-lg border border-white/10 bg-black/55 backdrop-blur-3xl shadow-2xl custom-scrollbar">
                                         <table className="min-w-full border-collapse whitespace-nowrap">
                                             <thead>
                                                 <tr className="bg-white/5 border-b border-white/10">
@@ -2547,398 +2904,845 @@ function IspDetailPage({
                                                     <th className="px-3 py-1.5 text-center text-[7px] font-black tracking-[0.2em] text-white/20 uppercase">Akhir</th>
                                                 </tr>
                                             </thead>
-                                        <tbody className="divide-y divide-white/10">
-                                            {filteredContracts.map((row, idx) => {
-                                                const isEditingContractRow = contractRowEditor?.rowId === row.id;
-                                                const statusForBadge = isEditingContractRow ? contractRowEditor.status : getContractRowStatus(row, todayIso);
-                                                const statusLabel = statusForBadge === 'expired'
-                                                    ? 'Belum Diperpanjang'
-                                                    : statusForBadge === 'berhenti'
-                                                        ? 'Berhenti'
-                                                        : 'Beroperasi';
-                                                const statusClasses = statusForBadge === 'berhenti'
-                                                    ? 'bg-white/5 text-white/30 border-white/10'
-                                                    : statusForBadge === 'expired'
-                                                        ? 'bg-[#ff2400]/10 text-[#ff2400] border-[#ff2400]/20'
-                                                        : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
-                                                const contractStartValue = row.contractStartDate ?? detail?.contractStartDate ?? detail?.contract_start_date ?? isp.contractStartDate ?? isp.contract_start_date;
+                                            <tbody className="divide-y divide-white/10">
+                                                {filteredContracts.map((row, idx) => {
+                                                    const isEditingContractRow = contractRowEditor?.rowId === row.id;
+                                                    const statusForBadge = isEditingContractRow ? contractRowEditor.status : getContractRowStatus(row, todayIso);
+                                                    const statusLabel = statusForBadge === 'expired'
+                                                        ? 'Belum Diperpanjang'
+                                                        : statusForBadge === 'berhenti'
+                                                            ? 'Berhenti'
+                                                            : 'Beroperasi';
+                                                    const statusClasses = statusForBadge === 'berhenti'
+                                                        ? 'bg-white/5 text-white/30 border-white/10'
+                                                        : statusForBadge === 'expired'
+                                                            ? 'bg-[#ff2400]/10 text-[#ff2400] border-[#ff2400]/20'
+                                                            : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+                                                    const contractStartValue = row.contractStartDate ?? detail?.contractStartDate ?? detail?.contract_start_date ?? isp.contractStartDate ?? isp.contract_start_date;
 
-                                                return (
-                                                <tr
-                                                    key={row.id}
-                                                    className={`${isEditingContractRow ? 'bg-gold-accent/[0.03]' : 'hover:bg-white/[0.02]'} transition-colors`}
-                                                    onBlur={(event) => {
-                                                        if (!isEditingContractRow) return;
-                                                        const currentTarget = event.currentTarget;
-                                                        setTimeout(() => {
-                                                            if (!currentTarget.contains(document.activeElement)) {
-                                                                void triggerAutoSave();
-                                                            }
-                                                        }, 100);
-                                                    }}
-                                                >
-                                                    <td className="px-3 py-2.5 text-center text-[11px] font-bold text-white/20 border-r border-white/10">{String(idx + 1).padStart(2, '0')}</td>
-                                                    <td className="border-r border-white/10 p-0 min-w-[230px]">
-                                                        {isEditingContractRow ? (
-                                                            <div className="flex items-center gap-1.5 px-2 bg-black/40 min-h-9 w-full border border-gold-accent/40">
-                                                                <input
-                                                                    type="text"
-                                                                    className="flex-1 w-full bg-transparent px-2 py-1 text-[11px] font-black uppercase tracking-tight text-white outline-none"
-                                                                    value={contractRowEditor.contractReference || ""}
-                                                                    onChange={(e) => setContractRowEditor((prev) => prev ? { ...prev, contractReference: e.target.value } : prev)}
-                                                                    placeholder="Nomor kontrak / BAK"
-                                                                    autoFocus
+                                                    return (
+                                                        <tr
+                                                            key={row.id}
+                                                            className={`${isEditingContractRow ? 'bg-gold-accent/[0.03]' : 'hover:bg-white/[0.02]'} transition-colors`}
+                                                            onBlur={(event) => {
+                                                                if (!isEditingContractRow) return;
+                                                                const currentTarget = event.currentTarget;
+                                                                setTimeout(() => {
+                                                                    if (!currentTarget.contains(document.activeElement)) {
+                                                                        void triggerAutoSave();
+                                                                    }
+                                                                }, 100);
+                                                            }}
+                                                        >
+                                                            <td className="px-3 py-2.5 text-center text-[11px] font-bold text-white/20 border-r border-white/10">{String(idx + 1).padStart(2, '0')}</td>
+                                                            <td className="border-r border-white/10 p-0 min-w-[230px]">
+                                                                {isEditingContractRow ? (
+                                                                    <div className="flex items-center gap-1.5 px-2 bg-black/40 min-h-9 w-full border border-gold-accent/40">
+                                                                        <input
+                                                                            type="text"
+                                                                            className="flex-1 w-full bg-transparent px-2 py-1 text-[11px] font-black uppercase tracking-tight text-white outline-none"
+                                                                            value={contractRowEditor.contractReference || ""}
+                                                                            onChange={(e) => setContractRowEditor((prev) => prev ? { ...prev, contractReference: e.target.value } : prev)}
+                                                                            placeholder="Nomor kontrak / BAK"
+                                                                            autoFocus
+                                                                            onKeyDown={(event) => {
+                                                                                if (event.key === "Enter") {
+                                                                                    event.preventDefault();
+                                                                                    void triggerAutoSave();
+                                                                                }
+                                                                                if (event.key === "Escape") {
+                                                                                    setContractRowEditor(null);
+                                                                                }
+                                                                            }}
+                                                                        />
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => void triggerAutoSave()}
+                                                                            className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all"
+                                                                            title="Simpan"
+                                                                            onMouseDown={(e) => e.preventDefault()}
+                                                                        >
+                                                                            <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>check</span>
+                                                                        </button>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => setContractRowEditor(null)}
+                                                                            className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-[#ff2400]/20 text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all"
+                                                                            title="Batal"
+                                                                            onMouseDown={(e) => e.preventDefault()}
+                                                                        >
+                                                                            <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>close</span>
+                                                                        </button>
+                                                                    </div>
+                                                                ) : (
+                                                                    <button
+                                                                        className="min-h-9 w-full px-4 py-2 text-left text-[11px] font-black uppercase tracking-tight leading-snug text-white whitespace-normal break-words hover:bg-white/[0.02] focus:bg-white/[0.04] focus:outline-none focus:ring-1 focus:ring-gold-accent/40 transition-all"
+                                                                        disabled={!canManageIspContracts}
+                                                                        onClick={() => openContractRowEditor(row)}
+                                                                        type="button"
+                                                                        title={canManageIspContracts ? "Edit baris kontrak" : undefined}
+                                                                    >
+                                                                        {row.contractReference || <span className="text-white/20">Nomor kontrak / BAK</span>}
+                                                                    </button>
+                                                                )}
+                                                            </td>
+                                                            <td className="px-3 py-2.5 text-center border-r border-white/10">
+                                                                <div className="flex flex-col items-center gap-2">
+                                                                    <span className={`inline-flex items-center rounded-full border px-3 py-1 text-[8px] font-black uppercase tracking-widest ${statusClasses}`}>{statusLabel}</span>
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-3 py-2.5 text-center border-r border-white/10 p-0">
+                                                                <div className="flex items-center justify-center gap-1.5 p-2">
+                                                                    {isEditingContractRow && contractRowEditor.contractUploadedFile ? (
+                                                                        <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-blue-500/10 border border-blue-500/20 max-w-[150px]">
+                                                                            <span className="text-[8px] font-bold text-blue-400 truncate" title={contractRowEditor.contractUploadedFileName}>
+                                                                                {contractRowEditor.contractUploadedFileName}
+                                                                            </span>
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => {
+                                                                                    setContractRowEditor(prev => prev ? { ...prev, contractUploadedFile: null, contractUploadedFileName: "" } : null);
+                                                                                }}
+                                                                                className="text-white/40 hover:text-white flex items-center justify-center"
+                                                                                title="Batal berkas baru"
+                                                                            >
+                                                                                <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>close</span>
+                                                                            </button>
+                                                                        </div>
+                                                                    ) : (isEditingContractRow ? contractRowEditor.contractFileUrl : row.contractFileUrl) ? (
+                                                                        <div className="flex items-center gap-1.5">
+                                                                            <button type="button" onClick={() => openSafeFile(isEditingContractRow ? contractRowEditor.contractFileUrl : row.contractFileUrl, row.contractFileName)} className={`${fileActionButtonClass} ${fileActionPrimaryClass}`}>
+                                                                                <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>description</span>Buka Kontrak
+                                                                            </button>
+                                                                            {canManageIspContracts && (
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => {
+                                                                                        if (!isEditingContractRow) {
+                                                                                            openContractRowEditor(row, null);
+                                                                                            setTimeout(() => {
+                                                                                                setContractRowEditor(prev => prev ? { ...prev, contractFileUrl: "" } : null);
+                                                                                            }, 50);
+                                                                                        } else {
+                                                                                            setContractRowEditor(prev => prev ? { ...prev, contractFileUrl: "" } : null);
+                                                                                        }
+                                                                                    }}
+                                                                                    className="h-6 w-6 rounded-md border border-[#ff2400]/20 bg-[#ff2400]/10 flex items-center justify-center text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all shrink-0"
+                                                                                    title="Hapus berkas"
+                                                                                >
+                                                                                    <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>close</span>
+                                                                                </button>
+                                                                            )}
+                                                                        </div>
+                                                                    ) : !canManageIspContracts ? (
+                                                                        <span className="text-[10px] font-bold text-white/20">Belum diunggah</span>
+                                                                    ) : (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => openContractRowEditor(row, "contractFile")}
+                                                                            className="inline-flex h-6 items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all shrink-0"
+                                                                        >
+                                                                            <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>upload_file</span>
+                                                                            Upload
+                                                                        </button>
+                                                                    )}
+                                                                    {isEditingContractRow ? (
+                                                                        <label
+                                                                            className="inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-white/10 bg-white/5 text-white/40 hover:text-white hover:border-white/20 transition-all shrink-0"
+                                                                            onClick={() => { isSelectingFileRef.current = true; }}
+                                                                            title="Ganti berkas"
+                                                                        >
+                                                                            <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>upload_file</span>
+                                                                            <input
+                                                                                type="file"
+                                                                                className="hidden"
+                                                                                disabled={isSavingContractRow}
+                                                                                onChange={async (event) => {
+                                                                                    isSelectingFileRef.current = false;
+                                                                                    const file = event.target.files?.[0] ?? null;
+                                                                                    if (file) {
+                                                                                        setContractRowEditor((previous) => (
+                                                                                            previous ? { ...previous, contractUploadedFile: file, contractUploadedFileName: file.name } : previous
+                                                                                        ));
+                                                                                        await handleSaveContractRow(null, { contractUploadedFile: file });
+                                                                                    }
+                                                                                }}
+                                                                                ref={(el) => {
+                                                                                    if (el && contractRowEditor?.focusField === "contractFile") {
+                                                                                        isSelectingFileRef.current = true;
+                                                                                        el.click();
+                                                                                        setContractRowEditor((prev) => prev ? { ...prev, focusField: null } : null);
+                                                                                    }
+                                                                                }}
+                                                                            />
+                                                                        </label>
+                                                                    ) : canManageIspContracts && row.contractFileUrl && (
+                                                                        <button
+                                                                            type="button"
+                                                                            className="inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-white/10 bg-white/5 text-white/40 hover:text-white hover:border-white/20 transition-all shrink-0"
+                                                                            onClick={() => openContractRowEditor(row, "contractFile")}
+                                                                            title="Ganti berkas"
+                                                                        >
+                                                                            <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>upload_file</span>
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            </td>
+                                                            <td className="border-r border-white/10 text-center p-0">
+                                                                <DateInput
+                                                                    value={isEditingContractRow ? (contractRowEditor.contractStartDate || contractStartValue || "") : (contractStartValue || "")}
+                                                                    onChange={(val) => setContractRowEditor((prev) => prev ? { ...prev, contractStartDate: val } : prev)}
                                                                     onKeyDown={(event) => {
                                                                         if (event.key === "Enter") {
                                                                             event.preventDefault();
-                                                                            void triggerAutoSave();
+                                                                            event.currentTarget.blur();
                                                                         }
                                                                         if (event.key === "Escape") {
                                                                             setContractRowEditor(null);
+                                                                            event.currentTarget.blur();
                                                                         }
                                                                     }}
+                                                                    onFocus={() => {
+                                                                        if (!isEditingContractRow && canManageIspContracts) {
+                                                                            openContractRowEditor(row);
+                                                                        }
+                                                                    }}
+                                                                    className="h-9 w-full"
+                                                                    hideIcon={true}
+                                                                    inputClass="w-full h-full bg-transparent px-2 text-[10px] font-black text-white border-transparent focus:border-gold-accent/40 focus:bg-white/[0.04] hover:bg-white/[0.02] outline-none transition-all text-center uppercase"
+                                                                    disabled={!canManageIspContracts}
                                                                 />
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => void triggerAutoSave()}
-                                                                    className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all"
-                                                                    title="Simpan"
-                                                                    onMouseDown={(e) => e.preventDefault()}
-                                                                >
-                                                                    <span className="material-symbols-outlined text-[12px]">check</span>
-                                                                </button>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => setContractRowEditor(null)}
-                                                                    className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-[#ff2400]/20 text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all"
-                                                                    title="Batal"
-                                                                    onMouseDown={(e) => e.preventDefault()}
-                                                                >
-                                                                    <span className="material-symbols-outlined text-[12px]">close</span>
-                                                                </button>
-                                                            </div>
-                                                        ) : (
-                                                            <button
-                                                                className="min-h-9 w-full px-4 py-2 text-left text-[11px] font-black uppercase tracking-tight leading-snug text-white whitespace-normal break-words hover:bg-white/[0.02] focus:bg-white/[0.04] focus:outline-none focus:ring-1 focus:ring-gold-accent/40 transition-all"
-                                                                disabled={!canManageIspContracts}
-                                                                onClick={() => openContractRowEditor(row)}
-                                                                type="button"
-                                                                title={canManageIspContracts ? "Edit baris kontrak" : undefined}
-                                                            >
-                                                                {row.contractReference || <span className="text-white/20">Nomor kontrak / BAK</span>}
-                                                            </button>
-                                                        )}
-                                                    </td>
-                                                    <td className="px-3 py-2.5 text-center border-r border-white/10">
-                                                        <div className="flex flex-col items-center gap-2">
-                                                            <span className={`inline-flex items-center rounded-full border px-3 py-1 text-[8px] font-black uppercase tracking-widest ${statusClasses}`}>{statusLabel}</span>
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-3 py-2.5 text-center border-r border-white/10 p-0">
-                                                        <div className="flex items-center justify-center gap-1.5 p-2">
-                                                            {isEditingContractRow && contractRowEditor.contractUploadedFile ? (
-                                                                <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-blue-500/10 border border-blue-500/20 max-w-[150px]">
-                                                                    <span className="text-[8px] font-bold text-blue-400 truncate" title={contractRowEditor.contractUploadedFileName}>
-                                                                        {contractRowEditor.contractUploadedFileName}
-                                                                    </span>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => {
-                                                                            setContractRowEditor(prev => prev ? { ...prev, contractUploadedFile: null, contractUploadedFileName: "" } : null);
-                                                                        }}
-                                                                        className="text-white/40 hover:text-white flex items-center justify-center"
-                                                                        title="Batal berkas baru"
-                                                                    >
-                                                                        <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>close</span>
-                                                                    </button>
-                                                                </div>
-                                                            ) : (isEditingContractRow ? contractRowEditor.contractFileUrl : row.contractFileUrl) ? (
-                                                                <div className="flex items-center gap-1.5">
-                                                                    <button type="button" onClick={() => openSafeFile(isEditingContractRow ? contractRowEditor.contractFileUrl : row.contractFileUrl, row.contractFileName)} className={`${fileActionButtonClass} ${fileActionPrimaryClass}`}>
-                                                                        <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>description</span>Buka Kontrak
-                                                                    </button>
-                                                                    {canManageIspContracts && (
+                                                            </td>
+                                                            <td className="border-r border-white/10 text-center p-0">
+                                                                <DateInput
+                                                                    value={isEditingContractRow ? (contractRowEditor.periodStart || "") : (row.periodStart || "")}
+                                                                    onChange={(val) => setContractRowEditor((prev) => prev ? { ...prev, periodStart: val } : prev)}
+                                                                    onKeyDown={(event) => {
+                                                                        if (event.key === "Enter") {
+                                                                            event.preventDefault();
+                                                                            event.currentTarget.blur();
+                                                                        }
+                                                                        if (event.key === "Escape") {
+                                                                            setContractRowEditor(null);
+                                                                            event.currentTarget.blur();
+                                                                        }
+                                                                    }}
+                                                                    onFocus={() => {
+                                                                        if (!isEditingContractRow && canManageIspContracts) {
+                                                                            openContractRowEditor(row);
+                                                                        }
+                                                                    }}
+                                                                    className="h-9 w-full"
+                                                                    hideIcon={true}
+                                                                    inputClass="w-full h-full bg-transparent px-2 text-[10px] font-black text-white border-transparent focus:border-gold-accent/40 focus:bg-white/[0.04] hover:bg-white/[0.02] outline-none transition-all text-center uppercase"
+                                                                    disabled={!canManageIspContracts}
+                                                                />
+                                                            </td>
+                                                            <td className="border-r border-white/10 text-center p-0">
+                                                                <DateInput
+                                                                    value={isEditingContractRow ? (contractRowEditor.periodEnd || "") : (row.periodEnd || "")}
+                                                                    onChange={(val) => setContractRowEditor((prev) => prev ? { ...prev, periodEnd: val } : prev)}
+                                                                    onKeyDown={(event) => {
+                                                                        if (event.key === "Enter") {
+                                                                            event.preventDefault();
+                                                                            event.currentTarget.blur();
+                                                                        }
+                                                                        if (event.key === "Escape") {
+                                                                            setContractRowEditor(null);
+                                                                            event.currentTarget.blur();
+                                                                        }
+                                                                    }}
+                                                                    onFocus={() => {
+                                                                        if (!isEditingContractRow && canManageIspContracts) {
+                                                                            openContractRowEditor(row);
+                                                                        }
+                                                                    }}
+                                                                    className="h-9 w-full"
+                                                                    hideIcon={true}
+                                                                    inputClass="w-full h-full bg-transparent px-2 text-[10px] font-black text-white border-transparent focus:border-gold-accent/40 focus:bg-white/[0.04] hover:bg-white/[0.02] outline-none transition-all text-center uppercase"
+                                                                    disabled={!canManageIspContracts}
+                                                                />
+                                                            </td>
+                                                            <td className="px-3 py-2.5 text-center border-r border-white/10 p-0">
+                                                                <div className="flex items-center justify-center gap-1.5 p-2">
+                                                                    {isEditingContractRow && contractRowEditor.bakUploadedFile ? (
+                                                                        <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-blue-500/10 border border-blue-500/20 max-w-[150px]">
+                                                                            <span className="text-[8px] font-bold text-blue-400 truncate" title={contractRowEditor.bakUploadedFileName}>
+                                                                                {contractRowEditor.bakUploadedFileName}
+                                                                            </span>
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => {
+                                                                                    setContractRowEditor(prev => prev ? { ...prev, bakUploadedFile: null, bakUploadedFileName: "" } : null);
+                                                                                }}
+                                                                                className="text-white/40 hover:text-white flex items-center justify-center"
+                                                                                title="Batal berkas baru"
+                                                                            >
+                                                                                <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>close</span>
+                                                                            </button>
+                                                                        </div>
+                                                                    ) : (isEditingContractRow ? contractRowEditor.bakFileUrl : row.bakFileUrl) ? (
+                                                                        <div className="flex items-center gap-1.5">
+                                                                            <button type="button" onClick={() => openSafeFile(isEditingContractRow ? contractRowEditor.bakFileUrl : row.bakFileUrl, row.bakFileName)} className={`${fileActionButtonClass} ${fileActionSuccessClass}`}>
+                                                                                <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>task_alt</span>Buka BAK
+                                                                            </button>
+                                                                            {canManageIspContracts && (
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => {
+                                                                                        if (!isEditingContractRow) {
+                                                                                            openContractRowEditor(row, null);
+                                                                                            setTimeout(() => {
+                                                                                                setContractRowEditor(prev => prev ? { ...prev, bakFileUrl: "" } : null);
+                                                                                            }, 50);
+                                                                                        } else {
+                                                                                            setContractRowEditor(prev => prev ? { ...prev, bakFileUrl: "" } : null);
+                                                                                        }
+                                                                                    }}
+                                                                                    className="h-6 w-6 rounded-md border border-[#ff2400]/20 bg-[#ff2400]/10 flex items-center justify-center text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all shrink-0"
+                                                                                    title="Hapus berkas"
+                                                                                >
+                                                                                    <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>close</span>
+                                                                                </button>
+                                                                            )}
+                                                                        </div>
+                                                                    ) : !canManageIspContracts ? (
+                                                                        <span className="text-[10px] font-bold text-white/20">Belum diunggah</span>
+                                                                    ) : (
                                                                         <button
                                                                             type="button"
-                                                                            onClick={() => {
-                                                                                if (!isEditingContractRow) {
-                                                                                    openContractRowEditor(row, null);
-                                                                                    setTimeout(() => {
+                                                                            onClick={() => openContractRowEditor(row, "bakFile")}
+                                                                            className="inline-flex h-6 items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all shrink-0"
+                                                                        >
+                                                                            <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>upload_file</span>
+                                                                            Upload
+                                                                        </button>
+                                                                    )}
+                                                                    {isEditingContractRow ? (
+                                                                        <label
+                                                                            className="inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-white/10 bg-white/5 text-white/40 hover:text-white hover:border-white/20 transition-all shrink-0"
+                                                                            onClick={() => { isSelectingFileRef.current = true; }}
+                                                                            title="Ganti berkas"
+                                                                        >
+                                                                            <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>upload_file</span>
+                                                                            <input
+                                                                                type="file"
+                                                                                className="hidden"
+                                                                                disabled={isSavingContractRow}
+                                                                                onChange={async (event) => {
+                                                                                    isSelectingFileRef.current = false;
+                                                                                    const file = event.target.files?.[0] ?? null;
+                                                                                    if (file) {
+                                                                                        setContractRowEditor((previous) => (
+                                                                                            previous ? { ...previous, bakUploadedFile: file, bakUploadedFileName: file.name } : previous
+                                                                                        ));
+                                                                                        await handleSaveContractRow(null, { bakUploadedFile: file });
+                                                                                    }
+                                                                                }}
+                                                                                ref={(el) => {
+                                                                                    if (el && contractRowEditor?.focusField === "bakFile") {
+                                                                                        isSelectingFileRef.current = true;
+                                                                                        el.click();
+                                                                                        setContractRowEditor((prev) => prev ? { ...prev, focusField: null } : null);
+                                                                                    }
+                                                                                }}
+                                                                            />
+                                                                        </label>
+                                                                    ) : canManageIspContracts && row.bakFileUrl && (
+                                                                        <button
+                                                                            type="button"
+                                                                            className="inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-white/10 bg-white/5 text-white/40 hover:text-white hover:border-white/20 transition-all shrink-0"
+                                                                            onClick={() => openContractRowEditor(row, "bakFile")}
+                                                                            title="Ganti berkas"
+                                                                        >
+                                                                            <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>upload_file</span>
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-3 py-2.5 w-[200px] border-r border-white/10 text-center">
+                                                                <div className="flex items-center justify-center gap-2">
+                                                                    {renderRenewalFollowUps(row, "renewal")}
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-3 py-2.5 w-[150px] border-r border-white/10 text-center">{renderRenewalFollowUps(row, "response")}</td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                                {filteredContracts.length === 0 && (
+                                                    <tr>
+                                                        <td colSpan="10" className="py-10 text-center">
+                                                            <div className="flex flex-col items-center justify-center">
+                                                                <div className="h-12 w-12 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 shadow-inner-glass mb-3 animate-pulse">
+                                                                    <span className="material-symbols-outlined text-2xl text-gold-accent/40">history_edu</span>
+                                                                </div>
+                                                                <h4 className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em]">BELUM ADA RINCIAN KONTRAK</h4>
+                                                                <p className="text-[8px] font-bold text-white/20 uppercase tracking-widest mt-1">Rincian kontrak atau adendum belum tersedia</p>
+                                                                {canManageIspContracts && (
+                                                                    <button
+                                                                        className="mt-4 rounded-lg bg-gold-accent px-4 py-2 text-[9px] font-black uppercase tracking-widest text-slate-900 shadow-gold-glow active:scale-95 transition-all inline-flex items-center gap-1.5"
+                                                                        onClick={openContractDraft}
+                                                                        type="button"
+                                                                    >
+                                                                        <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>add</span>
+                                                                        Tambah Kontrak
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    {/* ══════ MOBILE VIEW (CARDS) ══════ */}
+                                    <div className="xl:hidden flex flex-col gap-3 mt-3">
+                                        {filteredContracts.map((row, idx) => {
+                                            const isEditingContractRow = contractRowEditor?.rowId === row.id;
+                                            const statusForBadge = isEditingContractRow ? contractRowEditor.status : getContractRowStatus(row, todayIso);
+                                            const statusLabel = statusForBadge === 'expired'
+                                                ? 'Belum Diperpanjang'
+                                                : statusForBadge === 'berhenti'
+                                                    ? 'Berhenti'
+                                                    : 'Beroperasi';
+                                            const statusClasses = statusForBadge === 'berhenti'
+                                                ? 'bg-white/5 text-white/30 border-white/10'
+                                                : statusForBadge === 'expired'
+                                                    ? 'bg-[#ff2400]/10 text-[#ff2400] border-[#ff2400]/20'
+                                                    : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+                                            const contractStartValue = row.contractStartDate ?? detail?.contractStartDate ?? detail?.contract_start_date ?? isp.contractStartDate ?? isp.contract_start_date;
+
+                                            return (
+                                                <div
+                                                    key={row.id}
+                                                    className={`glass-card rounded-2xl border ${isEditingContractRow ? 'border-gold-accent/40 bg-gold-accent/[0.02]' : 'border-white/10'} p-4 shadow-glass-depth flex flex-col gap-3.5 transition-all`}
+                                                >
+                                                    {/* Row 1: Header (No, Ref, Status Badge) */}
+                                                    <div className="flex items-center justify-between gap-3 pb-2 border-b border-white/[0.06]">
+                                                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                                                            <span className="text-[10px] font-black text-gold-accent/60 tabular-nums shrink-0">#{String(idx + 1).padStart(2, '0')}</span>
+                                                            {isEditingContractRow ? (
+                                                                <div className="flex items-center gap-1.5 px-2 bg-black/45 h-7 rounded-lg border border-gold-accent/40 flex-1 min-w-0">
+                                                                    <input
+                                                                        type="text"
+                                                                        className="flex-1 w-full bg-transparent text-[10px] font-bold uppercase tracking-tight text-white outline-none"
+                                                                        value={contractRowEditor.contractReference || ""}
+                                                                        onChange={(e) => setContractRowEditor((prev) => prev ? { ...prev, contractReference: e.target.value } : prev)}
+                                                                        placeholder="Nomor kontrak..."
+                                                                        autoFocus
+                                                                        onKeyDown={(event) => {
+                                                                            if (event.key === "Enter") {
+                                                                                event.preventDefault();
+                                                                                void triggerAutoSave();
+                                                                            }
+                                                                            if (event.key === "Escape") {
+                                                                                setContractRowEditor(null);
+                                                                            }
+                                                                        }}
+                                                                    />
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => void triggerAutoSave()}
+                                                                        className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all"
+                                                                        title="Simpan"
+                                                                    >
+                                                                        <span className="material-symbols-outlined" style={{ fontSize: '11px' }}>check</span>
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => setContractRowEditor(null)}
+                                                                        className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-[#ff2400]/20 text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all"
+                                                                        title="Batal"
+                                                                    >
+                                                                        <span className="material-symbols-outlined" style={{ fontSize: '11px' }}>close</span>
+                                                                    </button>
+                                                                </div>
+                                                            ) : (
+                                                                <button
+                                                                    className="text-[11px] font-black uppercase tracking-tight text-white hover:text-gold-accent transition-all text-left truncate"
+                                                                    disabled={!canManageIspContracts}
+                                                                    onClick={() => openContractRowEditor(row)}
+                                                                    type="button"
+                                                                >
+                                                                    {row.contractReference || <span className="text-white/20">Isi Nomor Kontrak / BAK</span>}
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                        <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[8px] font-black uppercase tracking-wider shrink-0 ${statusClasses}`}>{statusLabel}</span>
+                                                    </div>
+
+                                                    {/* Row 2: Keterangan (Full Width) */}
+                                                    <div className="flex items-start gap-2.5 bg-white/[0.02] border border-white/[0.05] rounded-xl px-3 py-2.5">
+                                                        <span className="material-symbols-outlined text-white/30 shrink-0 mt-0.5" style={{ fontSize: "14px" }}>notes</span>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-[8px] font-black uppercase tracking-widest text-white/30 mb-0.5">Keterangan</p>
+                                                            {isEditingContractRow ? (
+                                                                <input
+                                                                    type="text"
+                                                                    className="w-full bg-transparent text-[10px] font-bold text-white border-b border-white/10 focus:border-gold-accent/40 outline-none pb-0.5"
+                                                                    value={contractRowEditor.description || ""}
+                                                                    onChange={(e) => setContractRowEditor((prev) => prev ? { ...prev, description: e.target.value } : prev)}
+                                                                    placeholder="Tulis keterangan..."
+                                                                />
+                                                            ) : (
+                                                                <p className="text-[10px] font-medium text-white/70 truncate" title={row.description}>
+                                                                    {row.description || '–'}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Row 3: Dates Info (Vertical Stack with Fixed-Width Inputs to Prevent Overlapping) */}
+                                                    <div className="flex flex-col gap-2 bg-white/[0.02] border border-white/[0.05] rounded-xl p-3">
+                                                        {/* Awal Kontrak */}
+                                                        <div className="flex items-center justify-between gap-3 border-b border-white/[0.03] pb-2">
+                                                            <span className="text-[10px] font-bold text-white/40 flex items-center gap-1.5">
+                                                                <span className="material-symbols-outlined text-[13px] text-white/30" style={{ fontSize: '13px' }}>calendar_today</span>
+                                                                Awal Kontrak
+                                                            </span>
+                                                            <div className="w-[110px] h-7 rounded-lg bg-black/20 border border-white/5 flex items-center justify-center overflow-hidden shrink-0">
+                                                                <DateInput
+                                                                    value={isEditingContractRow ? (contractRowEditor.contractStartDate || contractStartValue || "") : (contractStartValue || "")}
+                                                                    onChange={(val) => setContractRowEditor((prev) => prev ? { ...prev, contractStartDate: val } : prev)}
+                                                                    onFocus={() => {
+                                                                        if (!isEditingContractRow && canManageIspContracts) {
+                                                                            openContractRowEditor(row);
+                                                                        }
+                                                                    }}
+                                                                    className="h-full w-full"
+                                                                    hideIcon={true}
+                                                                    inputClass="w-full h-full bg-transparent px-1 text-[10px] font-bold text-white border-transparent focus:border-gold-accent/40 focus:bg-white/[0.04] outline-none transition-all text-center uppercase"
+                                                                    disabled={!canManageIspContracts}
+                                                                />
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Berjalan (Awal) */}
+                                                        <div className="flex items-center justify-between gap-3 border-b border-white/[0.03] pb-2">
+                                                            <span className="text-[10px] font-bold text-white/40 flex items-center gap-1.5">
+                                                                <span className="material-symbols-outlined text-[13px] text-white/30" style={{ fontSize: '13px' }}>event_repeat</span>
+                                                                Berjalan (Awal)
+                                                            </span>
+                                                            <div className="w-[110px] h-7 rounded-lg bg-black/20 border border-white/5 flex items-center justify-center overflow-hidden shrink-0">
+                                                                <DateInput
+                                                                    value={isEditingContractRow ? (contractRowEditor.periodStart || "") : (row.periodStart || "")}
+                                                                    onChange={(val) => setContractRowEditor((prev) => prev ? { ...prev, periodStart: val } : prev)}
+                                                                    onFocus={() => {
+                                                                        if (!isEditingContractRow && canManageIspContracts) {
+                                                                            openContractRowEditor(row);
+                                                                        }
+                                                                    }}
+                                                                    className="h-full w-full"
+                                                                    hideIcon={true}
+                                                                    inputClass="w-full h-full bg-transparent px-1 text-[10px] font-bold text-white border-transparent focus:border-gold-accent/40 focus:bg-white/[0.04] outline-none transition-all text-center uppercase"
+                                                                    disabled={!canManageIspContracts}
+                                                                />
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Berjalan (Akhir) */}
+                                                        <div className="flex items-center justify-between gap-3">
+                                                            <span className="text-[10px] font-bold text-white/40 flex items-center gap-1.5">
+                                                                <span className="material-symbols-outlined text-[13px] text-white/30" style={{ fontSize: '13px' }}>event_busy</span>
+                                                                Berjalan (Akhir)
+                                                            </span>
+                                                            <div className="w-[110px] h-7 rounded-lg bg-black/20 border border-white/5 flex items-center justify-center overflow-hidden shrink-0">
+                                                                <DateInput
+                                                                    value={isEditingContractRow ? (contractRowEditor.periodEnd || "") : (row.periodEnd || "")}
+                                                                    onChange={(val) => setContractRowEditor((prev) => prev ? { ...prev, periodEnd: val } : prev)}
+                                                                    onFocus={() => {
+                                                                        if (!isEditingContractRow && canManageIspContracts) {
+                                                                            openContractRowEditor(row);
+                                                                        }
+                                                                    }}
+                                                                    className="h-full w-full"
+                                                                    hideIcon={true}
+                                                                    inputClass="w-full h-full bg-transparent px-1 text-[10px] font-bold text-white border-transparent focus:border-gold-accent/40 focus:bg-white/[0.04] outline-none transition-all text-center uppercase"
+                                                                    disabled={!canManageIspContracts}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Row 4: Files Upload List (Vertical Rows) */}
+                                                    <div className="flex flex-col gap-2 bg-black/35 border border-white/[0.04] rounded-xl p-3">
+                                                        <p className="text-[8px] font-black uppercase tracking-widest text-white/40 mb-1 flex items-center gap-1.5">
+                                                            <span className="material-symbols-outlined text-[13px] text-white/30" style={{ fontSize: '13px' }}>folder_open</span>
+                                                            Lampiran Berkas
+                                                        </p>
+
+                                                        {/* File 1: Berkas Kontrak */}
+                                                        <div className="flex items-center justify-between gap-3 bg-white/[0.02] border border-white/[0.05] rounded-xl p-2.5">
+                                                            <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                                                                <span className="material-symbols-outlined text-gold-accent/50 text-[18px] shrink-0">history_edu</span>
+                                                                <div className="flex flex-col min-w-0">
+                                                                    <span className="text-[9px] font-black uppercase tracking-widest text-white/30">Berkas Kontrak</span>
+                                                                    {isEditingContractRow && contractRowEditor.contractUploadedFile ? (
+                                                                        <span className="text-[9px] font-bold text-blue-400 truncate max-w-[120px] sm:max-w-none" title={contractRowEditor.contractUploadedFileName}>
+                                                                            {contractRowEditor.contractUploadedFileName}
+                                                                        </span>
+                                                                    ) : (isEditingContractRow ? contractRowEditor.contractFileUrl : row.contractFileUrl) ? (
+                                                                        <span className="text-[9px] font-bold text-white/60 truncate max-w-[120px] sm:max-w-none" title={row.contractFileName || "Kontrak"}>
+                                                                            {row.contractFileName || "Tersedia"}
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="text-[9px] font-bold text-white/20">Kosong</span>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex items-center gap-1.5 shrink-0">
+                                                                {isEditingContractRow && contractRowEditor.contractUploadedFile ? (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => setContractRowEditor(prev => prev ? { ...prev, contractUploadedFile: null, contractUploadedFileName: "" } : null)}
+                                                                        className="h-6 w-6 rounded-lg bg-[#ff2400]/15 text-[#ff2400] border border-[#ff2400]/25 flex items-center justify-center hover:bg-[#ff2400] hover:text-white transition-all"
+                                                                        title="Batal"
+                                                                    >
+                                                                        <span className="material-symbols-outlined" style={{ fontSize: "11px" }}>close</span>
+                                                                    </button>
+                                                                ) : (isEditingContractRow ? contractRowEditor.contractFileUrl : row.contractFileUrl) ? (
+                                                                    <>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => openSafeFile(isEditingContractRow ? contractRowEditor.contractFileUrl : row.contractFileUrl, row.contractFileName)}
+                                                                            className="h-6 px-1.5 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-400 flex items-center hover:bg-sky-500 hover:text-white transition-all text-[8px] font-black uppercase tracking-wider"
+                                                                        >
+                                                                            Buka
+                                                                        </button>
+                                                                        {canManageIspContracts && (
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => {
+                                                                                    if (!isEditingContractRow) {
+                                                                                        openContractRowEditor(row, null);
+                                                                                        setTimeout(() => {
+                                                                                            setContractRowEditor(prev => prev ? { ...prev, contractFileUrl: "" } : null);
+                                                                                        }, 50);
+                                                                                    } else {
                                                                                         setContractRowEditor(prev => prev ? { ...prev, contractFileUrl: "" } : null);
-                                                                                    }, 50);
-                                                                                } else {
-                                                                                    setContractRowEditor(prev => prev ? { ...prev, contractFileUrl: "" } : null);
-                                                                                }
-                                                                            }}
-                                                                            className="h-5 w-5 rounded border border-[#ff2400]/20 bg-[#ff2400]/10 flex items-center justify-center text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all shrink-0"
-                                                                            title="Hapus berkas"
-                                                                        >
-                                                                            <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>close</span>
-                                                                        </button>
-                                                                    )}
-                                                                </div>
-                                                            ) : !canManageIspContracts ? (
-                                                                <span className="text-[10px] font-bold text-white/20">Belum diunggah</span>
-                                                            ) : (
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => openContractRowEditor(row, "contractFile")}
-                                                                    className="inline-flex h-6 items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all shrink-0"
-                                                                >
-                                                                    <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>upload_file</span>
-                                                                    Upload
-                                                                </button>
-                                                            )}
-                                                            {isEditingContractRow ? (
-                                                                <label
-                                                                    className="inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-white/10 bg-white/5 text-white/40 hover:text-white hover:border-white/20 transition-all shrink-0"
-                                                                    onClick={() => { isSelectingFileRef.current = true; }}
-                                                                    title="Ganti berkas"
-                                                                >
-                                                                    <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>upload_file</span>
-                                                                    <input
-                                                                        type="file"
-                                                                        className="hidden"
-                                                                        disabled={isSavingContractRow}
-                                                                        onChange={async (event) => {
-                                                                            isSelectingFileRef.current = false;
-                                                                            const file = event.target.files?.[0] ?? null;
-                                                                            if (file) {
-                                                                                setContractRowEditor((previous) => (
-                                                                                    previous ? { ...previous, contractUploadedFile: file, contractUploadedFileName: file.name } : previous
-                                                                                ));
-                                                                                await handleSaveContractRow(null, { contractUploadedFile: file });
-                                                                            }
-                                                                        }}
-                                                                        ref={(el) => {
-                                                                            if (el && contractRowEditor?.focusField === "contractFile") {
-                                                                                isSelectingFileRef.current = true;
-                                                                                el.click();
-                                                                                setContractRowEditor((prev) => prev ? { ...prev, focusField: null } : null);
-                                                                            }
-                                                                        }}
-                                                                    />
-                                                                </label>
-                                                            ) : canManageIspContracts && row.contractFileUrl && (
-                                                                <button
-                                                                    type="button"
-                                                                    className="inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-white/10 bg-white/5 text-white/40 hover:text-white hover:border-white/20 transition-all shrink-0"
-                                                                    onClick={() => openContractRowEditor(row, "contractFile")}
-                                                                    title="Ganti berkas"
-                                                                >
-                                                                    <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>upload_file</span>
-                                                                </button>
-                                                            )}
-                                                        </div>
-                                                    </td>
-                                                    <td className="border-r border-white/10 text-center p-0">
-                                                        <DateInput
-                                                            value={isEditingContractRow ? (contractRowEditor.contractStartDate || contractStartValue || "") : (contractStartValue || "")}
-                                                            onChange={(val) => setContractRowEditor((prev) => prev ? { ...prev, contractStartDate: val } : prev)}
-                                                            onKeyDown={(event) => {
-                                                                if (event.key === "Enter") {
-                                                                    event.preventDefault();
-                                                                    event.currentTarget.blur();
-                                                                }
-                                                                if (event.key === "Escape") {
-                                                                    setContractRowEditor(null);
-                                                                    event.currentTarget.blur();
-                                                                }
-                                                            }}
-                                                            onFocus={() => {
-                                                                if (!isEditingContractRow && canManageIspContracts) {
-                                                                    openContractRowEditor(row);
-                                                                }
-                                                            }}
-                                                            className="h-9 w-full"
-                                                            hideIcon={true}
-                                                            inputClass="w-full h-full bg-transparent px-2 text-[10px] font-black text-white border-transparent focus:border-gold-accent/40 focus:bg-white/[0.04] hover:bg-white/[0.02] outline-none transition-all text-center uppercase"
-                                                            disabled={!canManageIspContracts}
-                                                        />
-                                                    </td>
-                                                    <td className="border-r border-white/10 text-center p-0">
-                                                        <DateInput
-                                                            value={isEditingContractRow ? (contractRowEditor.periodStart || "") : (row.periodStart || "")}
-                                                            onChange={(val) => setContractRowEditor((prev) => prev ? { ...prev, periodStart: val } : prev)}
-                                                            onKeyDown={(event) => {
-                                                                if (event.key === "Enter") {
-                                                                    event.preventDefault();
-                                                                    event.currentTarget.blur();
-                                                                }
-                                                                if (event.key === "Escape") {
-                                                                    setContractRowEditor(null);
-                                                                    event.currentTarget.blur();
-                                                                }
-                                                            }}
-                                                            onFocus={() => {
-                                                                if (!isEditingContractRow && canManageIspContracts) {
-                                                                    openContractRowEditor(row);
-                                                                }
-                                                            }}
-                                                            className="h-9 w-full"
-                                                            hideIcon={true}
-                                                            inputClass="w-full h-full bg-transparent px-2 text-[10px] font-black text-white border-transparent focus:border-gold-accent/40 focus:bg-white/[0.04] hover:bg-white/[0.02] outline-none transition-all text-center uppercase"
-                                                            disabled={!canManageIspContracts}
-                                                        />
-                                                    </td>
-                                                    <td className="border-r border-white/10 text-center p-0">
-                                                        <DateInput
-                                                            value={isEditingContractRow ? (contractRowEditor.periodEnd || "") : (row.periodEnd || "")}
-                                                            onChange={(val) => setContractRowEditor((prev) => prev ? { ...prev, periodEnd: val } : prev)}
-                                                            onKeyDown={(event) => {
-                                                                if (event.key === "Enter") {
-                                                                    event.preventDefault();
-                                                                    event.currentTarget.blur();
-                                                                }
-                                                                if (event.key === "Escape") {
-                                                                    setContractRowEditor(null);
-                                                                    event.currentTarget.blur();
-                                                                }
-                                                            }}
-                                                            onFocus={() => {
-                                                                if (!isEditingContractRow && canManageIspContracts) {
-                                                                    openContractRowEditor(row);
-                                                                }
-                                                            }}
-                                                            className="h-9 w-full"
-                                                            hideIcon={true}
-                                                            inputClass="w-full h-full bg-transparent px-2 text-[10px] font-black text-white border-transparent focus:border-gold-accent/40 focus:bg-white/[0.04] hover:bg-white/[0.02] outline-none transition-all text-center uppercase"
-                                                            disabled={!canManageIspContracts}
-                                                        />
-                                                    </td>
-                                                    <td className="px-3 py-2.5 text-center border-r border-white/10 p-0">
-                                                        <div className="flex items-center justify-center gap-1.5 p-2">
-                                                            {isEditingContractRow && contractRowEditor.bakUploadedFile ? (
-                                                                <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-blue-500/10 border border-blue-500/20 max-w-[150px]">
-                                                                    <span className="text-[8px] font-bold text-blue-400 truncate" title={contractRowEditor.bakUploadedFileName}>
-                                                                        {contractRowEditor.bakUploadedFileName}
-                                                                    </span>
+                                                                                    }
+                                                                                }}
+                                                                                className="h-6 w-6 rounded-lg border border-[#ff2400]/20 bg-[#ff2400]/10 flex items-center justify-center text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all"
+                                                                                title="Hapus"
+                                                                            >
+                                                                                <span className="material-symbols-outlined" style={{ fontSize: "11px" }}>delete</span>
+                                                                            </button>
+                                                                        )}
+                                                                    </>
+                                                                ) : canManageIspContracts ? (
                                                                     <button
                                                                         type="button"
-                                                                        onClick={() => {
-                                                                            setContractRowEditor(prev => prev ? { ...prev, bakUploadedFile: null, bakUploadedFileName: "" } : null);
-                                                                        }}
-                                                                        className="text-white/40 hover:text-white flex items-center justify-center"
-                                                                        title="Batal berkas baru"
+                                                                        onClick={() => openContractRowEditor(row, "contractFile")}
+                                                                        className="h-6 px-1.5 rounded-lg bg-white/5 border border-white/10 text-white/40 flex items-center hover:border-white/20 hover:text-white transition-all text-[8px] font-black uppercase tracking-wider"
                                                                     >
-                                                                        <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>close</span>
+                                                                        Upload
                                                                     </button>
-                                                                </div>
-                                                            ) : (isEditingContractRow ? contractRowEditor.bakFileUrl : row.bakFileUrl) ? (
-                                                                <div className="flex items-center gap-1.5">
-                                                                    <button type="button" onClick={() => openSafeFile(isEditingContractRow ? contractRowEditor.bakFileUrl : row.bakFileUrl, row.bakFileName)} className={`${fileActionButtonClass} ${fileActionSuccessClass}`}>
-                                                                        <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>task_alt</span>Buka BAK
-                                                                    </button>
-                                                                    {canManageIspContracts && (
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => {
-                                                                                if (!isEditingContractRow) {
-                                                                                    openContractRowEditor(row, null);
-                                                                                    setTimeout(() => {
-                                                                                        setContractRowEditor(prev => prev ? { ...prev, bakFileUrl: "" } : null);
-                                                                                    }, 50);
-                                                                                } else {
-                                                                                    setContractRowEditor(prev => prev ? { ...prev, bakFileUrl: "" } : null);
+                                                                ) : null}
+                                                                {isEditingContractRow ? (
+                                                                    <label
+                                                                        className="h-6 w-6 rounded-lg bg-white/5 border border-white/10 text-white/40 flex items-center justify-center cursor-pointer hover:text-white hover:border-white/20 transition-all"
+                                                                        onClick={() => { isSelectingFileRef.current = true; }}
+                                                                        title="Ganti berkas"
+                                                                    >
+                                                                        <span className="material-symbols-outlined" style={{ fontSize: "11px" }}>sync</span>
+                                                                        <input
+                                                                            type="file"
+                                                                            className="hidden"
+                                                                            disabled={isSavingContractRow}
+                                                                            onChange={async (event) => {
+                                                                                isSelectingFileRef.current = false;
+                                                                                const file = event.target.files?.[0] ?? null;
+                                                                                if (file) {
+                                                                                    setContractRowEditor((previous) => (
+                                                                                        previous ? { ...previous, contractUploadedFile: file, contractUploadedFileName: file.name } : previous
+                                                                                    ));
+                                                                                    await handleSaveContractRow(null, { contractUploadedFile: file });
                                                                                 }
                                                                             }}
-                                                                            className="h-5 w-5 rounded border border-[#ff2400]/20 bg-[#ff2400]/10 flex items-center justify-center text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all shrink-0"
-                                                                            title="Hapus berkas"
-                                                                        >
-                                                                            <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>close</span>
-                                                                        </button>
+                                                                            ref={(el) => {
+                                                                                if (el && contractRowEditor?.focusField === "contractFile") {
+                                                                                    isSelectingFileRef.current = true;
+                                                                                    el.click();
+                                                                                    setContractRowEditor((prev) => prev ? { ...prev, focusField: null } : null);
+                                                                                }
+                                                                            }}
+                                                                        />
+                                                                    </label>
+                                                                ) : canManageIspContracts && row.contractFileUrl && (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => openContractRowEditor(row, "contractFile")}
+                                                                        className="h-6 w-6 rounded-lg bg-white/5 border border-white/10 text-white/40 flex items-center justify-center hover:text-white hover:border-white/20 transition-all"
+                                                                        title="Ganti berkas"
+                                                                    >
+                                                                        <span className="material-symbols-outlined" style={{ fontSize: "11px" }}>sync</span>
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        </div>
+
+                                                        {/* File 2: Berkas BAK */}
+                                                        <div className="flex items-center justify-between gap-3 bg-white/[0.02] border border-white/[0.05] rounded-xl p-2.5">
+                                                            <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                                                                <span className="material-symbols-outlined text-gold-accent/50 text-[18px] shrink-0">assignment</span>
+                                                                <div className="flex flex-col min-w-0">
+                                                                    <span className="text-[9px] font-black uppercase tracking-widest text-white/30">Berkas BAK</span>
+                                                                    {isEditingContractRow && contractRowEditor.bakUploadedFile ? (
+                                                                        <span className="text-[9px] font-bold text-blue-400 truncate max-w-[120px] sm:max-w-none" title={contractRowEditor.bakUploadedFileName}>
+                                                                            {contractRowEditor.bakUploadedFileName}
+                                                                        </span>
+                                                                    ) : (isEditingContractRow ? contractRowEditor.bakFileUrl : row.bakFileUrl) ? (
+                                                                        <span className="text-[9px] font-bold text-white/60 truncate max-w-[120px] sm:max-w-none" title={row.bakFileName || "BAK"}>
+                                                                            {row.bakFileName || "Tersedia"}
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="text-[9px] font-bold text-white/20">Kosong</span>
                                                                     )}
                                                                 </div>
-                                                            ) : !canManageIspContracts ? (
-                                                                <span className="text-[10px] font-bold text-white/20">Belum diunggah</span>
-                                                            ) : (
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => openContractRowEditor(row, "bakFile")}
-                                                                    className="inline-flex h-6 items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all shrink-0"
-                                                                >
-                                                                    <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>upload_file</span>
-                                                                    Upload
-                                                                </button>
-                                                            )}
-                                                            {isEditingContractRow ? (
-                                                                <label
-                                                                    className="inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-white/10 bg-white/5 text-white/40 hover:text-white hover:border-white/20 transition-all shrink-0"
-                                                                    onClick={() => { isSelectingFileRef.current = true; }}
-                                                                    title="Ganti berkas"
-                                                                >
-                                                                    <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>upload_file</span>
-                                                                    <input
-                                                                        type="file"
-                                                                        className="hidden"
-                                                                        disabled={isSavingContractRow}
-                                                                        onChange={async (event) => {
-                                                                            isSelectingFileRef.current = false;
-                                                                            const file = event.target.files?.[0] ?? null;
-                                                                            if (file) {
-                                                                                setContractRowEditor((previous) => (
-                                                                                    previous ? { ...previous, bakUploadedFile: file, bakUploadedFileName: file.name } : previous
-                                                                                ));
-                                                                                await handleSaveContractRow(null, { bakUploadedFile: file });
-                                                                            }
-                                                                        }}
-                                                                        ref={(el) => {
-                                                                            if (el && contractRowEditor?.focusField === "bakFile") {
-                                                                                isSelectingFileRef.current = true;
-                                                                                el.click();
-                                                                                setContractRowEditor((prev) => prev ? { ...prev, focusField: null } : null);
-                                                                            }
-                                                                        }}
-                                                                    />
-                                                                </label>
-                                                            ) : canManageIspContracts && row.bakFileUrl && (
-                                                                <button
-                                                                    type="button"
-                                                                    className="inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-white/10 bg-white/5 text-white/40 hover:text-white hover:border-white/20 transition-all shrink-0"
-                                                                    onClick={() => openContractRowEditor(row, "bakFile")}
-                                                                    title="Ganti berkas"
-                                                                >
-                                                                    <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>upload_file</span>
-                                                                </button>
-                                                            )}
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-3 py-2.5 min-w-[280px] border-r border-white/10 text-center">
-                                                        <div className="flex items-center justify-center gap-2">
-                                                            {renderRenewalFollowUps(row, "renewal")}
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-3 py-2.5 min-w-[240px] border-r border-white/10 text-center">{renderRenewalFollowUps(row, "response")}</td>
-                                                </tr>
-                                                );
-                                            })}
-                                            {filteredContracts.length === 0 && (
-                                                <tr>
-                                                    <td colSpan="10" className="py-10 text-center">
-                                                        <div className="flex flex-col items-center justify-center">
-                                                            <div className="h-12 w-12 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 shadow-inner-glass mb-3 animate-pulse">
-                                                                <span className="material-symbols-outlined text-2xl text-gold-accent/40">history_edu</span>
                                                             </div>
-                                                            <h4 className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em]">BELUM ADA RINCIAN KONTRAK</h4>
-                                                            <p className="text-[8px] font-bold text-white/20 uppercase tracking-widest mt-1">Rincian kontrak atau adendum belum tersedia</p>
-                                                            {canManageIspContracts && (
-                                                                <button
-                                                                    className="mt-4 rounded-lg bg-gold-accent px-4 py-2 text-[9px] font-black uppercase tracking-widest text-slate-900 shadow-gold-glow active:scale-95 transition-all inline-flex items-center gap-1.5"
-                                                                    onClick={openContractDraft}
-                                                                    type="button"
-                                                                >
-                                                                    <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>add</span>
-                                                                    Tambah Kontrak
-                                                                </button>
-                                                            )}
+                                                            <div className="flex items-center gap-1.5 shrink-0">
+                                                                {isEditingContractRow && contractRowEditor.bakUploadedFile ? (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => setContractRowEditor(prev => prev ? { ...prev, bakUploadedFile: null, bakUploadedFileName: "" } : null)}
+                                                                        className="h-6 w-6 rounded-lg bg-[#ff2400]/15 text-[#ff2400] border border-[#ff2400]/25 flex items-center justify-center hover:bg-[#ff2400] hover:text-white transition-all"
+                                                                        title="Batal"
+                                                                    >
+                                                                        <span className="material-symbols-outlined" style={{ fontSize: "11px" }}>close</span>
+                                                                    </button>
+                                                                ) : (isEditingContractRow ? contractRowEditor.bakFileUrl : row.bakFileUrl) ? (
+                                                                    <>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => openSafeFile(isEditingContractRow ? contractRowEditor.bakFileUrl : row.bakFileUrl, row.bakFileName)}
+                                                                            className="h-6 px-1.5 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-400 flex items-center hover:bg-sky-500 hover:text-white transition-all text-[8px] font-black uppercase tracking-wider"
+                                                                        >
+                                                                            Buka
+                                                                        </button>
+                                                                        {canManageIspContracts && (
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => {
+                                                                                    if (!isEditingContractRow) {
+                                                                                        openContractRowEditor(row, null);
+                                                                                        setTimeout(() => {
+                                                                                            setContractRowEditor(prev => prev ? { ...prev, bakFileUrl: "" } : null);
+                                                                                        }, 50);
+                                                                                    } else {
+                                                                                        setContractRowEditor(prev => prev ? { ...prev, bakFileUrl: "" } : null);
+                                                                                    }
+                                                                                }}
+                                                                                className="h-6 w-6 rounded-lg border border-[#ff2400]/20 bg-[#ff2400]/10 flex items-center justify-center text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all"
+                                                                                title="Hapus"
+                                                                            >
+                                                                                <span className="material-symbols-outlined" style={{ fontSize: "11px" }}>delete</span>
+                                                                            </button>
+                                                                        )}
+                                                                    </>
+                                                                ) : canManageIspContracts ? (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => openContractRowEditor(row, "bakFile")}
+                                                                        className="h-6 px-1.5 rounded-lg bg-white/5 border border-white/10 text-white/40 flex items-center hover:border-white/20 hover:text-white transition-all text-[8px] font-black uppercase tracking-wider"
+                                                                    >
+                                                                        Upload
+                                                                    </button>
+                                                                ) : null}
+                                                                {isEditingContractRow ? (
+                                                                    <label
+                                                                        className="h-6 w-6 rounded-lg bg-white/5 border border-white/10 text-white/40 flex items-center justify-center cursor-pointer hover:text-white hover:border-white/20 transition-all"
+                                                                        onClick={() => { isSelectingFileRef.current = true; }}
+                                                                        title="Ganti berkas"
+                                                                    >
+                                                                        <span className="material-symbols-outlined" style={{ fontSize: "11px" }}>sync</span>
+                                                                        <input
+                                                                            type="file"
+                                                                            className="hidden"
+                                                                            disabled={isSavingContractRow}
+                                                                            onChange={async (event) => {
+                                                                                isSelectingFileRef.current = false;
+                                                                                const file = event.target.files?.[0] ?? null;
+                                                                                if (file) {
+                                                                                    setContractRowEditor((previous) => (
+                                                                                        previous ? { ...previous, bakUploadedFile: file, bakUploadedFileName: file.name } : previous
+                                                                                    ));
+                                                                                    await handleSaveContractRow(null, { bakUploadedFile: file });
+                                                                                }
+                                                                            }}
+                                                                            ref={(el) => {
+                                                                                if (el && contractRowEditor?.focusField === "bakFile") {
+                                                                                    isSelectingFileRef.current = true;
+                                                                                    el.click();
+                                                                                    setContractRowEditor((prev) => prev ? { ...prev, focusField: null } : null);
+                                                                                }
+                                                                            }}
+                                                                        />
+                                                                    </label>
+                                                                ) : canManageIspContracts && row.bakFileUrl && (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => openContractRowEditor(row, "bakFile")}
+                                                                        className="h-6 w-6 rounded-lg bg-white/5 border border-white/10 text-white/40 flex items-center justify-center hover:text-white hover:border-white/20 transition-all"
+                                                                        title="Ganti berkas"
+                                                                    >
+                                                                        <span className="material-symbols-outlined" style={{ fontSize: "11px" }}>sync</span>
+                                                                    </button>
+                                                                )}
+                                                            </div>
                                                         </div>
-                                                    </td>
-                                                </tr>
-                                            )}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </section>
+                                                    </div>
+
+                                                    {/* Row 5: Renewal & Response Action Panel (Vertical Split List) */}
+                                                    <div className="flex flex-col gap-2.5 pt-3 border-t border-white/[0.06]">
+                                                        {/* Split Perpanjangan */}
+                                                        <div className="flex items-center justify-between gap-3 bg-white/[0.01] border border-white/[0.03] rounded-xl p-2.5">
+                                                            <span className="text-[10px] font-bold text-white/40 flex items-center gap-1.5 shrink-0">
+                                                                <span className="material-symbols-outlined text-[13px] text-white/30" style={{ fontSize: '13px' }}>history</span>
+                                                                Perpanjangan
+                                                            </span>
+                                                            <div className="flex items-center justify-end gap-1.5">
+                                                                {renderRenewalFollowUps(row, "renewal")}
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Split Tanggapan */}
+                                                        <div className="flex items-center justify-between gap-3 bg-white/[0.01] border border-white/[0.03] rounded-xl p-2.5">
+                                                            <span className="text-[10px] font-bold text-white/40 flex items-center gap-1.5 shrink-0">
+                                                                <span className="material-symbols-outlined text-[13px] text-white/30" style={{ fontSize: '13px' }}>chat_bubble</span>
+                                                                Tanggapan
+                                                            </span>
+                                                            <div className="flex items-center justify-end">
+                                                                {renderRenewalFollowUps(row, "response")}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                         {filteredContracts.length === 0 && (
+                                             <div className="py-10 text-center glass-card rounded-2xl border border-white/10">
+                                                 <div className="flex flex-col items-center justify-center">
+                                                     <div className="h-12 w-12 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 shadow-inner-glass mb-3 animate-pulse">
+                                                         <span className="material-symbols-outlined text-2xl text-gold-accent/40">history_edu</span>
+                                                     </div>
+                                                     <h4 className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em]">BELUM ADA RINCIAN KONTRAK</h4>
+                                                     <p className="text-[8px] font-bold text-white/20 uppercase tracking-widest mt-1">Rincian kontrak atau adendum belum tersedia</p>
+                                                     {canManageIspContracts && (
+                                                         <button
+                                                             className="mt-4 rounded-lg bg-gold-accent px-4 py-2 text-[9px] font-black uppercase tracking-widest text-slate-900 shadow-gold-glow active:scale-95 transition-all inline-flex items-center gap-1.5"
+                                                             onClick={openContractDraft}
+                                                             type="button"
+                                                         >
+                                                             <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>add</span>
+                                                             Tambah Kontrak
+                                                         </button>
+                                                     )}
+                                                 </div>
+                                             </div>
+                                         )}
+                                     </div>
+                                 </section>
                             </div>
                         )}
 
@@ -2959,7 +3763,7 @@ function IspDetailPage({
 
                                 {/* ══════ CARD 2: FILTER & TABLE ══════ */}
                                 <section className="glass-card backdrop-blur-xl rounded-xl p-5 border-white/10 shadow-glass-depth">
-                                    <div className="mb-3 flex flex-wrap items-center gap-3 w-full relative z-50">
+                                    <div className="mb-1.5 flex flex-wrap items-center gap-1.5 w-full relative z-50">
                                         {/* Search Bar */}
                                         <div className="relative group min-w-[280px] flex-1">
                                             <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold-accent transition-colors" style={{ fontSize: "16px" }}>search</span>
@@ -2998,14 +3802,16 @@ function IspDetailPage({
                                             </span>
                                         </button>
 
-                                        <button
-                                            className="rounded-lg bg-gold-accent px-4 h-8 flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-slate-900 shadow-gold-glow active:scale-95 transition-all shrink-0"
-                                            onClick={handleAddRisalah}
-                                            type="button"
-                                        >
-                                            <span className="material-symbols-outlined text-slate-900" style={{ fontSize: "14px" }}>add_circle</span>
-                                            Tambah
-                                        </button>
+                                        {!isIsp && (
+                                            <button
+                                                className="rounded-lg bg-gold-accent px-4 h-8 flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-slate-900 shadow-gold-glow active:scale-95 transition-all shrink-0"
+                                                onClick={handleAddRisalah}
+                                                type="button"
+                                            >
+                                                <span className="material-symbols-outlined text-slate-900" style={{ fontSize: "14px" }}>add_circle</span>
+                                                Tambah
+                                            </button>
+                                        )}
                                     </div>
 
                                     <div className="overflow-x-auto rounded-lg border border-white/10 bg-black/55 backdrop-blur-3xl shadow-2xl custom-scrollbar">
@@ -3016,7 +3822,7 @@ function IspDetailPage({
                                                     <th className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Tanggal</th>
                                                     <th className="px-3 py-2 text-left text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Nama Dokumen</th>
                                                     <th className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Berkas</th>
-                                                    <th className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40">Aksi</th>
+                                                    {!isIsp && <th className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40">Aksi</th>}
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-white/10">
@@ -3034,29 +3840,31 @@ function IspDetailPage({
                                                                 <button onClick={() => openSafeFile(row.fileUrl, row.fileName)} className="inline-flex items-center gap-1.5 text-emerald-400 hover:text-white font-bold text-[9px] uppercase tracking-wider bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-md transition-all mx-auto"><span className="material-symbols-outlined" style={{ fontSize: "14px" }}>description</span>Buka Berkas</button>
                                                             ) : <span className="text-[9px] font-bold text-white/20 uppercase tracking-widest">Kosong</span>}
                                                         </td>
-                                                        <td className="px-3 py-2.5 text-center">
-                                                            <div className="flex justify-center gap-2">
-                                                                <button
-                                                                    className="w-6 h-6 flex items-center justify-center rounded-md bg-white/5 border border-white/10 text-gold-accent hover:bg-gold-accent hover:text-white transition-all shadow-sm"
-                                                                    onClick={() => handleEditRisalah(row)}
-                                                                    title="Edit Dokumen"
-                                                                >
-                                                                    <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>edit_note</span>
-                                                                </button>
-                                                                <button
-                                                                    className="w-6 h-6 flex items-center justify-center rounded-md bg-white/5 border border-white/10 text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all shadow-sm"
-                                                                    onClick={() => handleDeleteRisalah(row.id)}
-                                                                    title="Hapus Dokumen"
-                                                                >
-                                                                    <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>delete_forever</span>
-                                                                </button>
-                                                            </div>
-                                                        </td>
+                                                        {!isIsp && (
+                                                            <td className="px-3 py-2.5 text-center">
+                                                                <div className="flex justify-center gap-2">
+                                                                    <button
+                                                                        className="w-6 h-6 flex items-center justify-center rounded-md bg-white/5 border border-white/10 text-gold-accent hover:bg-gold-accent hover:text-white transition-all shadow-sm"
+                                                                        onClick={() => handleEditRisalah(row)}
+                                                                        title="Edit Dokumen"
+                                                                    >
+                                                                        <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>edit_note</span>
+                                                                    </button>
+                                                                    <button
+                                                                        className="w-6 h-6 flex items-center justify-center rounded-md bg-white/5 border border-white/10 text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all shadow-sm"
+                                                                        onClick={() => handleDeleteRisalah(row.id)}
+                                                                        title="Hapus Dokumen"
+                                                                    >
+                                                                        <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>delete_forever</span>
+                                                                    </button>
+                                                                </div>
+                                                            </td>
+                                                        )}
                                                     </tr>
                                                 ))}
                                                 {filteredDocs.length === 0 && (
                                                     <tr>
-                                                        <td colSpan="5" className="py-10 text-center">
+                                                        <td colSpan={isIsp ? "4" : "5"} className="py-10 text-center">
                                                             <div className="flex flex-col items-center justify-center">
                                                                 <div className="h-12 w-12 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 shadow-inner-glass mb-3 animate-pulse">
                                                                     <span className="material-symbols-outlined text-2xl text-gold-accent/40">folder_off</span>

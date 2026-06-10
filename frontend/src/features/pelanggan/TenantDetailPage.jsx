@@ -627,6 +627,8 @@ function TenantDetailPage({
   const [documentFeedback, setDocumentFeedback] = useState("");
   const [documentSearch, setDocumentSearch] = useState("");
   const [documentSort, setDocumentSort] = useState("desc");
+  const [contractSearch, setContractSearch] = useState("");
+  const [contractSort, setContractSort] = useState("desc");
   const [isUploadingDocument, setIsUploadingDocument] = useState(false);
   const [versionEditor, setVersionEditor] = useState(null);
   const [renewalConfirmData, setRenewalConfirmData] = useState(null);
@@ -687,9 +689,9 @@ function TenantDetailPage({
   }, [customer.id]);
 
   useEffect(() => {
-    setActiveTab(isStandaloneJalurView ? "jalur" : initialTab);
+    setActiveTab(isStandaloneJalurView || isTeknisi ? "jalur" : initialTab);
     void loadDetail();
-  }, [initialTab, isStandaloneJalurView, loadDetail]);
+  }, [initialTab, isStandaloneJalurView, isTeknisi, loadDetail]);
 
   useEffect(() => {
     const handleWindowFocus = () => {
@@ -2286,6 +2288,24 @@ function TenantDetailPage({
     return [baseRow];
   }).sort((left, right) => getRowPeriodTime(right) - getRowPeriodTime(left))
     .map((row, index) => ({ ...row, number: index + 1 }));
+
+  const filteredContractRowsForTable = useMemo(() => {
+    let result = [...contractRowsForTable];
+    
+    if (contractSearch) {
+      const q = contractSearch.toLowerCase();
+      result = result.filter(r => 
+        (r.contractNumber || "").toLowerCase().includes(q) ||
+        (r.note || "").toLowerCase().includes(q)
+      );
+    }
+    
+    if (contractSort === "asc") {
+      result.reverse();
+    }
+    
+    return result.map((row, idx) => ({ ...row, number: idx + 1 }));
+  }, [contractRowsForTable, contractSearch, contractSort]);
 
   const toggleContractNumberEmptyMark = (rowId) => {
     setEmptyContractNumberRows((previous) => ({
@@ -4297,8 +4317,8 @@ function TenantDetailPage({
     if (followUps.length === 0) {
       if (columnType === "renewal") {
         return (
-          <label className="relative inline-flex h-5 items-center gap-1 rounded-md border border-white/10 bg-white/5 px-1.5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all cursor-pointer shrink-0">
-            <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>upload_file</span>Upload
+          <label className="relative inline-flex h-5 w-full justify-center items-center gap-1 rounded-md border border-white/10 bg-white/5 px-1 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all cursor-pointer">
+            <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>upload_file</span>Upload Perpanjangan
             <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => void handleUploadTenantRenewal(row, e.target.files?.[0] ?? null)} />
           </label>
         );
@@ -4311,7 +4331,7 @@ function TenantDetailPage({
       : followUps;
 
     return (
-      <div className="flex flex-col gap-1.5 items-center justify-center">
+      <div className="flex flex-col gap-1.5 items-center justify-center w-full">
         {itemsToRender.map((followUp, index) => {
           const hasRenewalFile = isOpenableFileUrl(followUp?.renewalFileUrl);
           const hasResponseFile = isOpenableFileUrl(followUp?.responseFileUrl);
@@ -4320,70 +4340,32 @@ function TenantDetailPage({
           const isFirst = index === 0;
 
           return (
-            <div key={followUp.id} className="flex items-center justify-center gap-1.5">
-              <div className="flex items-center gap-1 rounded-lg border border-white/[0.06] bg-white/[0.02] p-1 backdrop-blur-md">
+            <div key={followUp.id} className="flex flex-col gap-0.5 w-fit">
+              <div className="w-[130px]">
+                <span className={`block text-[7px] font-bold uppercase tracking-widest text-center ${columnType === "renewal" ? "text-white/40" : "text-transparent select-none"}`}>
+                  Peringatan {index + 1}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1 rounded-lg border border-white/[0.06] bg-white/[0.02] p-1 backdrop-blur-md w-[130px] shrink-0">
                 {columnType === "renewal" ? (
                   <>
                     {hasRenewalFile ? (
                       <>
-                        <button onClick={() => openSafeFile(followUp.renewalFileUrl, followUp.renewalFileName)} className="inline-flex h-5 items-center gap-1 rounded-md border border-gold-accent/20 bg-gold-accent/10 px-1.5 text-[8px] font-black uppercase tracking-widest text-gold-accent hover:bg-gold-accent hover:text-[#0f141e] transition-all shrink-0">
-                          <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>visibility</span>Lihat
+                        <button onClick={() => openSafeFile(followUp.renewalFileUrl, followUp.renewalFileName)} className="flex-1 w-full justify-center inline-flex h-5 items-center gap-1 rounded-md border border-gold-accent/20 bg-gold-accent/10 px-1 text-[8px] font-black uppercase tracking-widest text-gold-accent hover:bg-gold-accent hover:text-[#0f141e] transition-all">
+                          <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>visibility</span>Lihat
                         </button>
-                        <label className="relative inline-flex h-5 items-center gap-1 rounded-md border border-white/10 bg-white/5 px-1.5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all cursor-pointer shrink-0">
-                          <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>upload_file</span>Ganti
+                        <label className="flex-1 w-full justify-center relative inline-flex h-5 items-center gap-1 rounded-md border border-white/10 bg-white/5 px-1 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all cursor-pointer">
+                          <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>upload_file</span>Ganti
                           <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => void handleUploadTenantRenewal(row, e.target.files?.[0] ?? null, followUp.id)} />
                         </label>
-                        {!isFirst && (
-                          <button 
-                            onClick={async () => {
-                              if (window.confirm("Apakah Anda yakin ingin menghapus split tindak lanjut ini?")) {
-                                try {
-                                  setIsActionLoading(true);
-                                  await api.contractVersionRenewalFollowUps.delete(followUp.id);
-                                  await loadDetail();
-                                  if (onRefreshAll) onRefreshAll();
-                                } catch (err) {
-                                  setError(err instanceof Error ? err.message : "Gagal menghapus split.");
-                                } finally {
-                                  setIsActionLoading(false);
-                                }
-                              }
-                            }}
-                            className="h-5 w-5 shrink-0 rounded-md flex items-center justify-center border border-[#ff2400]/20 bg-[#ff2400]/10 text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all"
-                            title="Hapus split"
-                          >
-                            <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>close</span>
-                          </button>
-                        )}
                       </>
                     ) : (
                       <>
-                        <label className="relative inline-flex h-5 items-center gap-1 rounded-md border border-white/10 bg-white/5 px-1.5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all cursor-pointer shrink-0">
-                          <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>upload_file</span>Upload
+                        <label className="w-full justify-center relative inline-flex h-5 items-center gap-1 rounded-md border border-white/10 bg-white/5 px-1.5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all cursor-pointer shrink-0">
+                          <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>upload_file</span>Upload
                           <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => void handleUploadTenantRenewal(row, e.target.files?.[0] ?? null, followUp.id)} />
                         </label>
-                        {!isFirst && (
-                          <button 
-                            onClick={async () => {
-                              if (window.confirm("Apakah Anda yakin ingin menghapus split tindak lanjut ini?")) {
-                                try {
-                                  setIsActionLoading(true);
-                                  await api.contractVersionRenewalFollowUps.delete(followUp.id);
-                                  await loadDetail();
-                                  if (onRefreshAll) onRefreshAll();
-                                } catch (err) {
-                                  setError(err instanceof Error ? err.message : "Gagal menghapus split.");
-                                } finally {
-                                  setIsActionLoading(false);
-                                }
-                              }
-                            }}
-                            className="h-5 w-5 shrink-0 rounded-md flex items-center justify-center border border-[#ff2400]/20 bg-[#ff2400]/10 text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all"
-                            title="Hapus split"
-                          >
-                            <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>close</span>
-                          </button>
-                        )}
                       </>
                     )}
                   </>
@@ -4391,18 +4373,18 @@ function TenantDetailPage({
                   <>
                     {hasResponseFile ? (
                       <>
-                        <button onClick={() => openSafeFile(followUp.responseFileUrl, followUp.responseFileName)} className="inline-flex h-5 items-center gap-1 rounded-md border border-emerald-500/20 bg-emerald-500/10 px-1.5 text-[8px] font-black uppercase tracking-widest text-emerald-400 hover:bg-emerald-500 hover:text-[#0f141e] transition-all shrink-0">
-                          <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>open_in_new</span>Tanggapan
+                        <button onClick={() => openSafeFile(followUp.responseFileUrl, followUp.responseFileName)} className="flex-1 w-full justify-center inline-flex h-5 items-center gap-1 rounded-md border border-emerald-500/20 bg-emerald-500/10 px-1 text-[8px] font-black uppercase tracking-widest text-emerald-400 hover:bg-emerald-500 hover:text-[#0f141e] transition-all">
+                          <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>visibility</span>Lihat
                         </button>
-                        <label className="relative inline-flex h-5 items-center gap-1 rounded-md border border-white/10 bg-white/5 px-1.5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all cursor-pointer shrink-0">
-                          <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>upload_file</span>Ganti
+                        <label className="flex-1 w-full justify-center relative inline-flex h-5 items-center gap-1 rounded-md border border-white/10 bg-white/5 px-1 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all cursor-pointer">
+                          <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>upload_file</span>Ganti
                           <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => void handleRespondTenantRenewal(row, currentDecision, e.target.files?.[0] ?? null, followUp.id)} />
                         </label>
                       </>
                     ) : (
                       <>
-                        <label className="relative inline-flex h-5 items-center gap-1 rounded-md border border-emerald-500/20 bg-emerald-500/10 px-1.5 text-[8px] font-black uppercase tracking-widest text-emerald-400 hover:bg-emerald-500 hover:text-[#0f141e] transition-all cursor-pointer shrink-0">
-                          <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>check</span>Lanjut
+                        <label className="flex-1 w-full justify-center relative inline-flex h-5 items-center gap-0.5 rounded-md border border-emerald-500/20 bg-emerald-500/10 px-1 text-[8px] font-black uppercase tracking-widest text-emerald-400 hover:bg-emerald-500 hover:text-[#0f141e] transition-all cursor-pointer">
+                          <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>check</span>Lanjut
                           <input
                             type="file"
                             className="absolute inset-0 opacity-0 cursor-pointer"
@@ -4434,8 +4416,8 @@ function TenantDetailPage({
                             }}
                           />
                         </label>
-                        <label className="relative inline-flex h-5 items-center gap-1 rounded-md border border-white/10 bg-white/5 px-1.5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all cursor-pointer shrink-0">
-                          <span className="material-symbols-outlined text-[9px]">close</span>Tidak
+                        <label className="flex-1 w-full justify-center relative inline-flex h-5 items-center gap-0.5 rounded-md border border-white/10 bg-white/5 px-1 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all cursor-pointer">
+                          <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>close</span>Tidak
                           <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => void handleRespondTenantRenewal(row, "tidak", e.target.files?.[0] ?? null, followUp.id)} />
                         </label>
                       </>
@@ -4443,17 +4425,49 @@ function TenantDetailPage({
                   </>
                 )}
               </div>
-              {columnType === "renewal" && isLast && canManageTenantContracts && hasInitialTenantRenewalUpload(row) && (
-                <button
-                  className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-white/10 bg-white/5 text-white/40 hover:bg-white/10 hover:text-white transition-all disabled:opacity-30 shadow-sm"
-                  disabled={!hasInitialTenantRenewalUpload(row)}
-                  onClick={() => handleAddTenantRenewalSplit(row)}
-                  type="button"
-                  title="Tambah split perpanjangan"
-                >
-                  <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
-                </button>
+              {columnType === "renewal" && canManageTenantContracts && (
+                <div className="flex items-center gap-1 w-[44px] shrink-0 justify-start">
+                  {!isFirst ? (
+                    <button 
+                      onClick={async () => {
+                        if (window.confirm("Apakah Anda yakin ingin menghapus split tindak lanjut ini?")) {
+                          try {
+                            setIsActionLoading(true);
+                            await api.contractVersionRenewalFollowUps.delete(followUp.id);
+                            await loadDetail();
+                            if (onRefreshAll) onRefreshAll();
+                          } catch (err) {
+                            setError(err instanceof Error ? err.message : "Gagal menghapus split.");
+                          } finally {
+                            setIsActionLoading(false);
+                          }
+                        }
+                      }}
+                      className="h-5 w-5 shrink-0 rounded-md flex items-center justify-center border border-[#ff2400]/20 bg-[#ff2400]/10 text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all"
+                      title="Hapus split"
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>close</span>
+                    </button>
+                  ) : (
+                    <div className="w-5 h-5 shrink-0" />
+                  )}
+                  
+                  {isLast && hasInitialTenantRenewalUpload(row) ? (
+                    <button
+                      className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-white/10 bg-white/5 text-white/40 hover:bg-white/10 hover:text-white transition-all disabled:opacity-30 shadow-sm"
+                      disabled={!hasInitialTenantRenewalUpload(row)}
+                      onClick={() => handleAddTenantRenewalSplit(row)}
+                      type="button"
+                      title="Tambah split perpanjangan"
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
+                    </button>
+                  ) : (
+                    <div className="w-5 h-5 shrink-0" />
+                  )}
+                </div>
               )}
+              </div>
             </div>
           );
         })}
@@ -4468,11 +4482,11 @@ function TenantDetailPage({
         onNavigate={onNavigate}
         onLogout={onLogout}
         hideSidebar={true}
-        full={true}
+        full={false}
       >
-        <div className="relative h-dvh w-full overflow-hidden bg-slate-950 font-manrope antialiased">
+        <div className="relative z-0 h-auto md:h-[calc(100vh-12rem)] w-full overflow-hidden bg-slate-950/40 rounded-2xl border border-white/10 font-manrope antialiased p-0 flex flex-col">
           {/* Map Container */}
-          <div className="h-full w-full">
+          <div className="w-full aspect-square md:aspect-auto md:h-full">
             <FoRoutePlanner
               disabled={routeBusy || !canManageRoute}
               initialControlPoints={previewRoutePoints}
@@ -4887,32 +4901,32 @@ function TenantDetailPage({
         )}
 
         {/* 2. TABS NAVIGATION */}
-        <section className="glass-card backdrop-blur-xl rounded-2xl p-1 border-white/10 shadow-glass-depth relative overflow-hidden">
-          <div className="absolute inset-0 bg-white/[0.02] pointer-events-none" />
-          <nav className="relative flex flex-wrap gap-1">
-            {[
-              { id: "overview", label: "Ringkasan", icon: "dashboard" },
-              { id: "contracts", label: "Kontrak", icon: "description" },
-              { id: "invoices", label: "Invoice", icon: "receipt_long" },
-              { id: "jalur", label: "Jalur", icon: "map" },
-              { id: "documents", label: "Dokumen", icon: "inventory_2" },
-              { id: "timeline", label: "Timeline", icon: "history" },
-            ]
-              // If teknisi, hide some tabs
-              .filter(tab => !(isTeknisi && (tab.id === "documents" || tab.id === "invoices" || tab.id === "timeline")))
-              .map((tab) => (
-                <button
-                  key={tab.id}
-                  className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-[9px] font-black tracking-[0.1em] transition-all duration-500 relative overflow-hidden ${activeTab === tab.id ? "text-white bg-gold-accent shadow-gold-glow" : "text-white/60 hover:text-white hover:bg-white/5"}`}
-                  onClick={() => setActiveTab(tab.id)}
-                  type="button"
-                >
-                  <span className={`material-symbols-outlined relative z-10 ${activeTab === tab.id ? "scale-110 text-white" : ""}`} style={{ fontSize: "18px" }}>{tab.icon}</span>
-                  <span className="relative z-10">{tab.label}</span>
-                </button>
-              ))}
-          </nav>
-        </section>
+        {!isTeknisi && (
+          <section className="glass-card backdrop-blur-xl rounded-2xl p-1 border-white/10 shadow-glass-depth relative overflow-hidden">
+            <div className="absolute inset-0 bg-white/[0.02] pointer-events-none" />
+            <nav className="relative flex flex-wrap gap-1">
+              {[
+                { id: "overview", label: "Ringkasan", icon: "dashboard" },
+                { id: "contracts", label: "Kontrak", icon: "description" },
+                { id: "invoices", label: "Invoice", icon: "receipt_long" },
+                { id: "jalur", label: "Jalur", icon: "map" },
+                { id: "documents", label: "Dokumen", icon: "inventory_2" },
+                { id: "timeline", label: "Timeline", icon: "history" },
+              ]
+                .map((tab) => (
+                  <button
+                    key={tab.id}
+                    className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-[9px] font-black tracking-[0.1em] transition-all duration-500 relative overflow-hidden ${activeTab === tab.id ? "text-white bg-gold-accent shadow-gold-glow" : "text-white/60 hover:text-white hover:bg-white/5"}`}
+                    onClick={() => setActiveTab(tab.id)}
+                    type="button"
+                  >
+                    <span className={`material-symbols-outlined relative z-10 ${activeTab === tab.id ? "scale-110 text-white" : ""}`} style={{ fontSize: "18px" }}>{tab.icon}</span>
+                    <span className="relative z-10">{tab.label}</span>
+                  </button>
+                ))}
+            </nav>
+          </section>
+        )}
 
         {activeTab === "overview" && (
           <div className="flex flex-col gap-4">
@@ -5017,7 +5031,7 @@ function TenantDetailPage({
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-3 mt-4">
                   {(displayPriorityTodos.length > 0 || displayNeedActionTodos.length > 0) ? (
                     <>
                       {displayPriorityTodos.length > 0 && (
@@ -5114,11 +5128,11 @@ function TenantDetailPage({
                       )}
                     </>
                   ) : (
-                    <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/10 flex items-center gap-3 backdrop-blur-md">
+                    <div className="p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/10 flex items-center gap-2.5 backdrop-blur-md">
                       <div className="h-8 w-8 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 backdrop-blur-md">
                         <span className="material-symbols-outlined text-[16px]">verified</span>
                       </div>
-                      <p className="text-xs font-black text-emerald-400 uppercase tracking-tight leading-tight">Seluruh berkas lengkap & terverifikasi</p>
+                      <p className="text-xs font-black text-emerald-400 tracking-tight leading-tight">Seluruh berkas lengkap & terverifikasi</p>
                     </div>
                   )}
                 </div>
@@ -5189,7 +5203,7 @@ function TenantDetailPage({
         )}
 
         {activeTab === "jalur" && (
-          <div className="flex flex-col gap-4">
+          <div className={`flex flex-col gap-4 ${isTeknisi ? "mt-4" : ""}`}>
             <FoRoutePlanner
               mode="preview"
               onPreviewClick={canManageRoute ? () => onOpenRoutePlanner?.(detail ?? customer) : undefined}
@@ -5289,7 +5303,7 @@ function TenantDetailPage({
                   </div>
                 )}
                 {(routeError || routeFeedback) && (
-                  <div className={`mt-3 rounded-lg border px-3 py-2 text-[9px] font-black uppercase tracking-widest animate-in slide-in-from-top-2 shadow-sm flex items-center gap-2 ${routeError ? "border-rose-500/20 bg-rose-500/10 text-rose-400" : "border-emerald-500/20 bg-emerald-500/10 text-emerald-400"}`}>
+                  <div className={`mt-3 rounded-lg border px-3 py-2 text-[10px] font-bold animate-in slide-in-from-top-2 shadow-sm flex items-center gap-2 ${routeError ? "border-rose-500/20 bg-rose-500/10 text-rose-400" : "border-emerald-500/20 bg-emerald-500/10 text-emerald-400"}`}>
                     <span className="material-symbols-outlined text-[14px]">{routeError ? 'error' : 'check_circle'}</span>
                     {routeError || routeFeedback}
                   </div>
@@ -5592,11 +5606,38 @@ function TenantDetailPage({
               </div>
 
               {documentFeedback && (
-                <div className="mx-4 mt-3 mb-0 p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase tracking-widest flex items-center gap-2 animate-in fade-in zoom-in-95 backdrop-blur-md">
+                <div className="mx-4 mt-3 mb-0 p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold flex items-center gap-2 animate-in fade-in zoom-in-95 backdrop-blur-md">
                   <span className="material-symbols-outlined text-base">verified</span>
                   {documentFeedback}
                 </div>
               )}
+
+              <div className="mb-1.5 px-4 flex flex-wrap items-end gap-1.5 w-full relative z-50 mt-3">
+                <div className="relative group min-w-[280px] flex-1">
+                  <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold-accent transition-colors" style={{ fontSize: "16px" }}>search</span>
+                  <input
+                    type="text"
+                    placeholder="Cari nomor kontrak atau keterangan..."
+                    value={contractSearch}
+                    onChange={(e) => setContractSearch(e.target.value)}
+                    className="w-full h-8 pl-8 pr-3 rounded-lg bg-black/20 border border-white/10 text-[9px] font-bold text-white outline-none focus:border-gold-accent/40 focus:bg-black/40 transition-all shadow-inner-glass"
+                  />
+                </div>
+                <button
+                  className="group relative flex h-8 w-[96px] shrink-0 items-center justify-center gap-1.5 overflow-hidden rounded-lg border border-white/10 bg-black/20 transition-all hover:border-white/20 hover:bg-black/40"
+                  onClick={() => setContractSort((prev) => (prev === "desc" ? "asc" : "desc"))}
+                  title={contractSort === "desc" ? "Urutkan Terlama" : "Urutkan Terbaru"}
+                  type="button"
+                >
+                  <div className="relative flex h-full items-center justify-center">
+                    <span className={`material-symbols-outlined text-white/50 transition-all duration-300 ${contractSort === "desc" ? "rotate-0 opacity-100" : "-rotate-180 opacity-0 absolute"}`} style={{ fontSize: "14px" }}>arrow_downward</span>
+                    <span className={`material-symbols-outlined text-white/50 transition-all duration-300 ${contractSort === "asc" ? "rotate-0 opacity-100" : "rotate-180 opacity-0 absolute"}`} style={{ fontSize: "14px" }}>arrow_upward</span>
+                  </div>
+                  <span className="text-[9px] font-black uppercase tracking-widest text-white/70 transition-colors group-hover:text-white">
+                    {contractSort === "desc" ? "Terbaru" : "Terlama"}
+                  </span>
+                </button>
+              </div>
 
               {(() => {
                 if (!activeContractRenewalMeta?.periodEnd || !Number.isFinite(activeContractRenewalMeta.daysUntilEnd)) return null;
@@ -5625,42 +5666,42 @@ function TenantDetailPage({
                     : "bg-blue-500/10 border-blue-500/20 text-blue-400";
 
                 return (
-                  <div className={`mx-4 mt-3 mb-0 p-2.5 rounded-xl border backdrop-blur-md ${warningStyles} text-[9px] font-black uppercase tracking-widest flex items-center gap-2 animate-in fade-in zoom-in-95`}>
+                  <div className={`mx-4 mt-3 mb-0 p-2.5 rounded-xl border backdrop-blur-md ${warningStyles} text-[10px] font-bold flex items-center gap-2 animate-in fade-in zoom-in-95`}>
                     <span className="material-symbols-outlined text-base">schedule</span>
                     {warningMessage}
                   </div>
                 );
               })()}
 
-              <div className="overflow-x-auto no-scrollbar p-4 pt-3">
-                <table className="w-full text-left min-w-[1200px] border-collapse">
+              <div className="overflow-x-auto rounded-lg border border-white/10 bg-black/55 backdrop-blur-3xl shadow-2xl custom-scrollbar mx-4 mb-4 mt-1.5">
+                <table className="min-w-full border-collapse whitespace-nowrap">
                   <thead>
-                    <tr className="bg-white/[0.02]">
-                      <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5" rowSpan="2">No</th>
-                      <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 min-w-[240px] w-[240px]" rowSpan="2">Nomor Kontrak</th>
-                      <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5" rowSpan="2">Berkas Kontrak</th>
-                      <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5" rowSpan="2">Keterangan</th>
-                      <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center w-[110px] min-w-[110px]" rowSpan="2">Periode Awal Kontrak</th>
-                      <th className="px-4 py-2 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 text-center whitespace-nowrap border border-white/5" colSpan="2">Periode Berjalan</th>
-                      <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5" rowSpan="2">Paket</th>
-                      <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center" rowSpan="2">Jumlah</th>
-                      <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5" rowSpan="2">Nominal/Bulan</th>
-                      <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5" rowSpan="2">BAK</th>
-                      <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5" rowSpan="2">Perpanjangan</th>
-                      <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5" rowSpan="2">Tanggapan</th>
+                    <tr className="bg-white/5 border-b border-white/10">
+                      <th className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10" rowSpan="2">No</th>
+                      <th className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-gold-accent border-r border-white/10 w-[240px]" rowSpan="2">Nomor Kontrak</th>
+                      <th className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10" rowSpan="2">Berkas Kontrak</th>
+                      <th className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10" rowSpan="2">Keterangan</th>
+                      <th className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10 w-[90px]" rowSpan="2">Periode Awal Kontrak</th>
+                      <th className="px-3 py-1.5 text-center text-[8px] font-black tracking-[0.4em] text-white/30 uppercase border-b border-white/10 border-r border-white/10" colSpan="2">Periode Berjalan</th>
+                      <th className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10" rowSpan="2">Paket</th>
+                      <th className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10" rowSpan="2">Jumlah</th>
+                      <th className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10" rowSpan="2">Nominal/Bulan</th>
+                      <th className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-l border-white/10" rowSpan="2">BAK</th>
+                      <th className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-l border-white/10" rowSpan="2">Perpanjangan</th>
+                      <th className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-l border-white/10" rowSpan="2">Tanggapan</th>
                     </tr>
-                    <tr className="bg-white/[0.02]">
-                      <th className="px-4 py-2 text-[8px] font-black uppercase tracking-[0.2em] text-white/20 text-center whitespace-nowrap border border-white/5 w-[110px] min-w-[110px]">Awal</th>
-                      <th className="px-4 py-2 text-[8px] font-black uppercase tracking-[0.2em] text-white/20 text-center whitespace-nowrap border border-white/5 w-[110px] min-w-[110px]">Akhir</th>
+                    <tr className="bg-white/5 border-b border-white/10">
+                      <th className="px-3 py-2 text-[9px] font-bold tracking-[0.3em] text-white/30 text-center border-r border-white/10 w-[90px]">Awal</th>
+                      <th className="px-3 py-2 text-[9px] font-bold tracking-[0.3em] text-white/30 text-center border-r border-white/10 w-[90px]">Akhir</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {contractRowsForTable.length === 0 && (
+                    {filteredContractRowsForTable.length === 0 && (
                       <tr>
                         <td className="px-4 py-8 text-center text-[9px] text-white/20 italic uppercase tracking-[0.2em] border border-white/5" colSpan="13">Belum ada data kontrak.</td>
                       </tr>
                     )}
-                    {contractRowsForTable.map((row) => {
+                    {filteredContractRowsForTable.map((row) => {
                       const isEditingContractRow = contractRowEditor?.rowId === row.id;
                       const contractNumberValue = isEditingContractRow ? (contractRowEditor.contractNumber ?? "") : (row.contractNumber ?? "");
                       const contractNumberTextSizeClass = (() => {
@@ -5702,12 +5743,12 @@ function TenantDetailPage({
                         >
 
                           {/* No */}
-                          <td className="px-4 py-3 text-[10px] font-black text-white/20 whitespace-nowrap border border-white/5 text-center">
-                            {row.number}
+                          <td className="px-3 py-2.5 text-[11px] font-bold text-white/20 whitespace-nowrap border-r border-white/10 text-center">
+                            {String(row.number).padStart(2, '0')}
                           </td>
 
                           {/* Nomor Kontrak */}
-                          <td className="px-4 py-3 border border-white/5 p-0 min-w-[240px] w-[240px]">
+                          <td className="border-r border-white/10 p-0 min-w-[240px] w-[240px]">
                             {isEditingContractRow ? (
                               <div className="flex items-center gap-1.5 px-2 bg-black/40 min-h-9 w-full border border-gold-accent/40">
                                 <input
@@ -5732,20 +5773,20 @@ function TenantDetailPage({
                                 <button
                                   type="button"
                                   onClick={() => void triggerAutoSave()}
-                                  className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all"
+                                  className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all"
                                   title="Simpan"
                                   onMouseDown={(e) => e.preventDefault()}
                                 >
-                                  <span className="material-symbols-outlined text-[10px]">check</span>
+                                  <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>check</span>
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => setContractRowEditor(null)}
-                                  className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-[#ff2400]/20 text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all"
+                                  className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-[#ff2400]/20 text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all"
                                   title="Batal"
                                   onMouseDown={(e) => e.preventDefault()}
                                 >
-                                  <span className="material-symbols-outlined text-[10px]">close</span>
+                                  <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>close</span>
                                 </button>
                               </div>
                             ) : (
@@ -5762,8 +5803,8 @@ function TenantDetailPage({
                           </td>
 
                           {/* Berkas Kontrak */}
-                          <td className="px-4 py-3 whitespace-nowrap border border-white/5 text-center">
-                            <div className="flex items-center justify-center gap-1.5">
+                          <td className="px-3 py-2.5 whitespace-nowrap border-r border-white/10 p-0 text-center">
+                            <div className="flex items-center justify-center gap-1.5 p-2">
                               {isEditingContractRow && contractRowEditor.contractUploadedFile ? (
                                 <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-blue-500/10 border border-blue-500/20 max-w-[150px]">
                                   <span className="text-[8px] font-bold text-blue-400 truncate" title={contractRowEditor.contractUploadedFileName}>
@@ -5787,7 +5828,7 @@ function TenantDetailPage({
                               ) : (isEditingContractRow ? contractRowEditor.contractFileUrl : row.contractFileUrl) ? (
                                 <div className="flex items-center gap-1.5">
                                   <a
-                                    className="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-gold-accent/20 bg-gold-accent/10 text-[7px] font-black text-gold-accent uppercase tracking-widest hover:bg-gold-accent hover:text-[#0f141e] transition-all"
+                                    className="inline-flex h-6 items-center justify-center gap-1 px-2 rounded-md border border-gold-accent/20 bg-gold-accent/10 text-[8px] font-black text-gold-accent uppercase tracking-wider hover:bg-gold-accent hover:text-[#0f141e] transition-all"
                                     href={isEditingContractRow ? contractRowEditor.contractFileUrl : row.contractFileUrl}
                                     target="_blank" rel="noopener noreferrer"
                                   >
@@ -5805,7 +5846,7 @@ function TenantDetailPage({
                                         setContractRowEditor(nextEditorState);
                                         void handleSaveContractRow(null, { __editorState: nextEditorState });
                                       }}
-                                      className="h-5 w-5 rounded border border-[#ff2400]/20 bg-[#ff2400]/10 flex items-center justify-center text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all shrink-0"
+                                      className="h-6 w-6 rounded-md border border-[#ff2400]/20 bg-[#ff2400]/10 flex items-center justify-center text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all shrink-0"
                                       title="Hapus berkas"
                                     >
                                       <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>close</span>
@@ -5873,7 +5914,7 @@ function TenantDetailPage({
                           </td>
 
                           {/* Keterangan */}
-                          <td className="px-4 py-3 whitespace-nowrap border border-white/5 text-center">
+                          <td className="px-3 py-2.5 text-center border-r border-white/10">
                             {row.note ? (
                               <span className={`inline-flex items-center px-2 py-1 rounded-md border text-[8px] font-black uppercase tracking-widest ${noteStyle}`}>
                                 {(() => {
@@ -5887,7 +5928,7 @@ function TenantDetailPage({
                           </td>
 
                           {/* Periode Awal Kontrak */}
-                          <td className="px-4 py-3 whitespace-nowrap border border-white/5 text-center p-0">
+                          <td className="border-r border-white/10 text-center p-0">
                             <DateInput
                               className="h-9 w-full"
                               hideIcon={true}
@@ -5908,7 +5949,7 @@ function TenantDetailPage({
                           </td>
 
                           {/* Periode Berjalan Awal */}
-                          <td className="px-4 py-3 whitespace-nowrap border border-white/5 p-0">
+                          <td className="border-r border-white/10 p-0">
                             <DateInput
                               className="h-9 w-full"
                               hideIcon={true}
@@ -5935,7 +5976,7 @@ function TenantDetailPage({
                           </td>
 
                           {/* Periode Berjalan Akhir */}
-                          <td className="px-4 py-3 whitespace-nowrap border border-white/5 p-0">
+                          <td className="border-r border-white/10 p-0">
                             <DateInput
                               className="h-9 w-full"
                               hideIcon={true}
@@ -5962,19 +6003,19 @@ function TenantDetailPage({
                           </td>
 
                           {/* Paket */}
-                          <td className="px-4 py-3 whitespace-nowrap border border-white/5">
+                          <td className="px-3 py-2.5 border-r border-white/10 text-center">
                             <span className="text-[11px] font-black text-white uppercase tracking-wide">{row.paket}</span>
                           </td>
 
                           {/* Jumlah */}
-                          <td className="px-4 py-3 whitespace-nowrap border border-white/5 text-center">
+                          <td className="px-3 py-2.5 border-r border-white/10 text-center">
                             <span className="text-[11px] font-black text-white/80">{row.jumlahPaket ?? "—"}</span>
                           </td>
 
                           {/* Nominal */}
-                          <td className="px-4 py-3 whitespace-nowrap border border-white/5 p-0">
+                          <td className="border-r border-white/10 p-0">
                             <input
-                              className="h-9 w-full bg-transparent px-4 text-[11px] font-black text-white border-transparent focus:border-gold-accent/40 focus:bg-white/[0.04] hover:bg-white/[0.02] outline-none transition-all text-right disabled:opacity-50"
+                              className="h-9 w-full bg-transparent px-3 py-2.5 text-[11px] font-black text-white border-transparent focus:border-gold-accent/40 focus:bg-white/[0.04] hover:bg-white/[0.02] outline-none transition-all text-right disabled:opacity-50"
                               type="text"
                               placeholder="Nominal / bulan"
                               disabled={isSavingContractRow || !canManageTenantContracts}
@@ -5999,8 +6040,8 @@ function TenantDetailPage({
                           </td>
 
                           {/* BAK */}
-                          <td className="px-4 py-3 whitespace-nowrap border border-white/5 text-center">
-                            <div className="flex items-center justify-center gap-1.5">
+                          <td className="border-r border-white/10 text-center p-0">
+                            <div className="flex items-center justify-center gap-1.5 p-2">
                               {isEditingContractRow && contractRowEditor.bakUploadedFile ? (
                                 <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-blue-500/10 border border-blue-500/20 max-w-[150px]">
                                   <span className="text-[8px] font-bold text-blue-400 truncate" title={contractRowEditor.bakUploadedFileName}>
@@ -6024,7 +6065,7 @@ function TenantDetailPage({
                               ) : (isEditingContractRow ? contractRowEditor.bakFileUrl : row.bakFileUrl) ? (
                                 <div className="flex items-center gap-1.5">
                                   <a
-                                    className="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-gold-accent/20 bg-gold-accent/10 text-[7px] font-black text-gold-accent uppercase tracking-widest hover:bg-gold-accent hover:text-[#0f141e] transition-all"
+                                    className="inline-flex h-6 items-center justify-center gap-1 px-2 rounded-md border border-gold-accent/20 bg-gold-accent/10 text-[8px] font-black text-gold-accent uppercase tracking-wider hover:bg-gold-accent hover:text-[#0f141e] transition-all"
                                     href={isEditingContractRow ? contractRowEditor.bakFileUrl : row.bakFileUrl}
                                     target="_blank" rel="noopener noreferrer"
                                   >
@@ -6042,7 +6083,7 @@ function TenantDetailPage({
                                         setContractRowEditor(nextEditorState);
                                         void handleSaveContractRow(null, { __editorState: nextEditorState });
                                       }}
-                                      className="h-6 w-6 rounded border border-[#ff2400]/20 bg-[#ff2400]/10 flex items-center justify-center text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all"
+                                      className="h-6 w-6 rounded-md border border-[#ff2400]/20 bg-[#ff2400]/10 flex items-center justify-center text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all shrink-0"
                                       title="Hapus berkas"
                                     >
                                       <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>close</span>
@@ -6053,9 +6094,9 @@ function TenantDetailPage({
                                 <button
                                   type="button"
                                   onClick={() => openContractRowEditor(row, "bakFile")}
-                                  className="inline-flex h-7 items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all"
+                                  className="inline-flex h-6 items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 text-[8px] font-black uppercase tracking-wider text-white/40 hover:border-white/20 hover:text-white transition-all shrink-0"
                                 >
-                                  <span className="material-symbols-outlined text-[12px]">upload_file</span>
+                                  <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>upload_file</span>
                                   Upload
                                 </button>
                               ) : (
@@ -6064,7 +6105,7 @@ function TenantDetailPage({
 
                               {isEditingContractRow && canManageTenantContracts ? (
                                     <label
-                                        className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded border border-white/10 bg-white/5 text-white/40 hover:text-white hover:border-white/20 transition-all"
+                                        className="inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-white/10 bg-white/5 text-white/40 hover:text-white hover:border-white/20 transition-all shrink-0"
                                         onClick={() => { isSelectingFileRef.current = true; }}
                                         title="Ganti berkas"
                                     >
@@ -6099,7 +6140,7 @@ function TenantDetailPage({
                                 ) : canManageTenantContracts && row.bakFileUrl && (
                                     <button
                                         type="button"
-                                        className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded border border-white/10 bg-white/5 text-white/40 hover:text-white hover:border-white/20 transition-all"
+                                        className="inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-white/10 bg-white/5 text-white/40 hover:text-white hover:border-white/20 transition-all shrink-0"
                                         onClick={() => openContractRowEditor(row, "bakFile")}
                                         title="Ganti berkas"
                                     >
@@ -6110,14 +6151,14 @@ function TenantDetailPage({
                           </td>
 
                           {/* Perpanjangan */}
-                          <td className="px-4 py-3 whitespace-nowrap border border-white/5">
+                          <td className="px-3 py-2.5 w-[200px] border-r border-white/10 text-center">
                             <div className="flex items-center justify-center gap-2">
                               {renderTenantRenewalFollowUps(row, "renewal")}
                             </div>
                           </td>
 
                           {/* Tanggapan */}
-                          <td className="px-4 py-3 whitespace-nowrap border border-white/5">
+                          <td className="px-3 py-2.5 w-[150px] border-r border-white/10 text-center">
                             {renderTenantRenewalFollowUps(row, "response")}
                           </td>
                         </tr>
@@ -6141,14 +6182,16 @@ function TenantDetailPage({
                   <h2 className="text-[14px] md:text-base font-black text-white tracking-tight uppercase">Manajemen Tagihan Bulanan</h2>
                   <p className="text-[10px] font-bold text-white/50 leading-relaxed">Pemantauan siklus invoice dan rekonsiliasi pembayaran.</p>
                 </div>
-                <button
-                  className="h-10 px-4 inline-flex items-center justify-center gap-2 rounded-xl bg-gold-accent/10 border border-gold-accent/20 text-gold-accent hover:bg-gold-accent hover:text-[#0f141e] transition-all text-[8px] font-black uppercase tracking-widest backdrop-blur-md shadow-gold-glow relative z-10"
-                  onClick={openBillingEditor}
-                  type="button"
-                >
-                  <span className="material-symbols-outlined text-[14px]">tune</span>
-                  Ubah Periode Tagihan
-                </button>
+                {!isIsp && (
+                  <button
+                    className="h-10 px-4 inline-flex items-center justify-center gap-2 rounded-xl bg-gold-accent/10 border border-gold-accent/20 text-gold-accent hover:bg-gold-accent hover:text-[#0f141e] transition-all text-[8px] font-black uppercase tracking-widest backdrop-blur-md shadow-gold-glow relative z-10"
+                    onClick={openBillingEditor}
+                    type="button"
+                  >
+                    <span className="material-symbols-outlined text-[14px]">tune</span>
+                    Ubah Periode Tagihan
+                  </button>
+                )}
               </div>
 
               <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 relative z-10">
@@ -6233,80 +6276,82 @@ function TenantDetailPage({
             </section>
 
             {/* Controls (Card 2) */}
-            <section className="glass-card backdrop-blur-xl rounded-premium border-white/10 shadow-glass-depth overflow-visible p-4 relative z-20">
-              <div className="flex flex-col gap-3">
-                <div className="flex items-center justify-between pb-3 border-b border-white/5">
-                  <div className="flex items-center gap-4">
-                    <div className="h-8 w-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
-                      <span className="material-symbols-outlined text-emerald-400 text-sm">tune</span>
+            {!isIsp && (
+              <section className="glass-card backdrop-blur-xl rounded-premium border-white/10 shadow-glass-depth overflow-visible p-4 relative z-20">
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center justify-between pb-3 border-b border-white/5">
+                    <div className="flex items-center gap-4">
+                      <div className="h-8 w-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                        <span className="material-symbols-outlined text-emerald-400 text-sm">tune</span>
+                      </div>
+                      <div className="flex flex-col gap-0.5">
+                        <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-white">Form Bulk Update</h3>
+                        <span className="text-[9px] font-bold text-white/40 tracking-widest">Ubah Banyak Data Sekaligus</span>
+                      </div>
                     </div>
-                    <div className="flex flex-col gap-0.5">
-                      <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-white">Form Bulk Update</h3>
-                      <span className="text-[9px] font-bold text-white/40 tracking-widest">Ubah Banyak Data Sekaligus</span>
-                    </div>
+                    <span className="text-[8px] font-black uppercase tracking-[0.3em] text-emerald-400/50 hidden sm:inline-block">
+                      {selectedInvoiceIds.size > 0 ? `Mode Terpilih (${selectedInvoiceIds.size})` : "Mode Global (Semua)"}
+                    </span>
                   </div>
-                  <span className="text-[8px] font-black uppercase tracking-[0.3em] text-emerald-400/50 hidden sm:inline-block">
-                    {selectedInvoiceIds.size > 0 ? `Mode Terpilih (${selectedInvoiceIds.size})` : "Mode Global (Semua)"}
-                  </span>
-                </div>
-                
-                <div className="flex flex-wrap items-end gap-3">
-                  <div className="flex flex-col gap-1.5">
-                    <p className="text-[8px] font-black uppercase tracking-[0.3em] text-white/30 px-1">Bulan Jatuh Tempo</p>
-                    <DateInput
-                      value={invoiceBulkForm.dueDate}
-                      onChange={(val) => setInvoiceBulkForm(p => ({ ...p, dueDate: val }))}
-                      className="h-8 w-32 rounded-lg border border-white/10 bg-white/[0.02] transition-all focus-within:border-gold-accent/50 focus-within:bg-white/5"
-                      inputClass="w-full h-full bg-transparent px-2.5 text-[10px] font-bold text-white outline-none disabled:cursor-not-allowed disabled:opacity-40"
-                      disabled={!canManageTenantContracts}
-                    />
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <p className="text-[8px] font-black uppercase tracking-[0.3em] text-white/30 px-1">Nominal (Rp)</p>
-                    <input
-                      className="h-8 w-28 rounded-lg border border-white/10 bg-white/[0.02] px-2.5 text-[10px] font-bold text-white outline-none focus:border-gold-accent/50 transition-all placeholder:text-white/20 disabled:cursor-not-allowed disabled:opacity-40"
-                      onChange={(e) => {
-                        const val = formatRupiahInput(parseRupiahInput(e.target.value));
-                        setInvoiceBulkForm(p => ({ ...p, amount: val }));
-                      }}
-                      disabled={!canManageTenantContracts}
-                      type="text"
-                      value={invoiceBulkForm.amount}
-                      placeholder="Kosongkan..."
-                    />
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <p className="text-[8px] font-black uppercase tracking-[0.3em] text-white/30 px-1">Status Invoice</p>
-                    <div className="w-36 relative z-50">
-                      <GlassSelect
-                        value={invoiceBulkForm.status}
-                        onChange={(value) => setInvoiceBulkForm(p => ({ ...p, status: value }))}
-                        options={[{ value: "", label: "Jangan Ubah" }, ...INVOICE_STATUS_OPTIONS]}
-                        className="h-8"
-                        textClass="text-[10px] font-bold tracking-wide"
-                        optionTextClass="text-[10px] font-bold tracking-wide"
+                  
+                  <div className="flex flex-wrap items-end gap-3">
+                    <div className="flex flex-col gap-1.5">
+                      <p className="text-[8px] font-black uppercase tracking-[0.3em] text-white/30 px-1">Bulan Jatuh Tempo</p>
+                      <DateInput
+                        value={invoiceBulkForm.dueDate}
+                        onChange={(val) => setInvoiceBulkForm(p => ({ ...p, dueDate: val }))}
+                        className="h-8 w-32 rounded-lg border border-white/10 bg-white/[0.02] transition-all focus-within:border-gold-accent/50 focus-within:bg-white/5"
+                        inputClass="w-full h-full bg-transparent px-2.5 text-[10px] font-bold text-white outline-none disabled:cursor-not-allowed disabled:opacity-40"
                         disabled={!canManageTenantContracts}
                       />
                     </div>
-                  </div>
 
-                  <button
-                    className="h-8 w-auto px-4 ml-auto shrink-0 flex items-center justify-center gap-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-[#0f141e] hover:shadow-[0_0_15px_rgba(16,185,129,0.4)] transition-all disabled:opacity-40 backdrop-blur-md"
-                    disabled={isSavingInvoice || invoiceRows.length === 0 || !canManageTenantContracts}
-                    onClick={() => void handleApplyBulkInvoiceUpdates()}
-                    type="button"
-                    title="Terapkan Perubahan"
-                  >
-                    <span className="text-[9px] font-black uppercase tracking-widest">
-                      Terapkan
-                    </span>
-                    <span className="material-symbols-outlined text-[14px]">done_all</span>
-                  </button>
+                    <div className="flex flex-col gap-1.5">
+                      <p className="text-[8px] font-black uppercase tracking-[0.3em] text-white/30 px-1">Nominal (Rp)</p>
+                      <input
+                        className="h-8 w-28 rounded-lg border border-white/10 bg-white/[0.02] px-2.5 text-[10px] font-bold text-white outline-none focus:border-gold-accent/50 transition-all placeholder:text-white/20 disabled:cursor-not-allowed disabled:opacity-40"
+                        onChange={(e) => {
+                          const val = formatRupiahInput(parseRupiahInput(e.target.value));
+                          setInvoiceBulkForm(p => ({ ...p, amount: val }));
+                        }}
+                        disabled={!canManageTenantContracts}
+                        type="text"
+                        value={invoiceBulkForm.amount}
+                        placeholder="Kosongkan..."
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <p className="text-[8px] font-black uppercase tracking-[0.3em] text-white/30 px-1">Status Invoice</p>
+                      <div className="w-36 relative z-50">
+                        <GlassSelect
+                          value={invoiceBulkForm.status}
+                          onChange={(value) => setInvoiceBulkForm(p => ({ ...p, status: value }))}
+                          options={[{ value: "", label: "Tidak Berubah" }, ...INVOICE_STATUS_OPTIONS]}
+                          className="h-8"
+                          textClass="text-[10px] font-bold tracking-wide"
+                          optionTextClass="text-[10px] font-bold tracking-wide"
+                          disabled={!canManageTenantContracts}
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      className="h-8 w-auto px-4 ml-auto shrink-0 flex items-center justify-center gap-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-[#0f141e] hover:shadow-[0_0_15px_rgba(16,185,129,0.4)] transition-all disabled:opacity-40 backdrop-blur-md"
+                      disabled={isSavingInvoice || invoiceRows.length === 0 || !canManageTenantContracts}
+                      onClick={() => void handleApplyBulkInvoiceUpdates()}
+                      type="button"
+                      title="Terapkan Perubahan"
+                    >
+                      <span className="text-[9px] font-black uppercase tracking-widest">
+                        Terapkan
+                      </span>
+                      <span className="material-symbols-outlined text-[14px]">done_all</span>
+                    </button>
+                  </div>
                 </div>
-              </div>
-            </section>
+              </section>
+            )}
 
             {invoiceFeedback && (
               <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-bold tracking-wide flex items-center gap-3 animate-in fade-in zoom-in-95 backdrop-blur-md">
@@ -6351,16 +6396,18 @@ function TenantDetailPage({
                 <table className="w-full text-left min-w-[1200px] border-collapse">
                   <thead>
                     <tr className="bg-white/[0.02]">
-                      <th className="w-10 px-2.5 py-2 text-center border border-white/5">
-                        <input
-                          type="checkbox"
-                          className="cursor-pointer rounded bg-white/[0.05] border-white/20 text-emerald-400 focus:ring-emerald-500/50 outline-none disabled:opacity-30 disabled:cursor-not-allowed"
-                          checked={displayInvoiceRows.length > 0 && selectedInvoiceIds.size === displayInvoiceRows.length}
-                          onChange={handleToggleSelectAllInvoices}
-                          disabled={displayInvoiceRows.length === 0}
-                          title="Pilih Semua"
-                        />
-                      </th>
+                      {!isIsp && (
+                        <th className="w-10 px-2.5 py-2 text-center border border-white/5">
+                          <input
+                            type="checkbox"
+                            className="cursor-pointer rounded bg-white/[0.05] border-white/20 text-emerald-400 focus:ring-emerald-500/50 outline-none disabled:opacity-30 disabled:cursor-not-allowed"
+                            checked={displayInvoiceRows.length > 0 && selectedInvoiceIds.size === displayInvoiceRows.length}
+                            onChange={handleToggleSelectAllInvoices}
+                            disabled={displayInvoiceRows.length === 0 || isIsp}
+                            title="Pilih Semua"
+                          />
+                        </th>
+                      )}
                       <th className="w-12 px-2.5 py-2 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">No</th>
                       <th className="w-16 px-2.5 py-2 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Urutan</th>
                       <th className="min-w-[160px] px-2.5 py-2 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Nomor Invoice</th>
@@ -6388,9 +6435,9 @@ function TenantDetailPage({
                       const hasAnyInvoiceFile = workflowMeta.hasAnyInvoiceFile;
                       const secondWarningDraftKey = String(workflowMeta.secondFollowUp?.id ?? "warning-2");
                       const secondWarningDraft = getInvoiceFollowUpDraft(invoice, workflowMeta.secondFollowUp ?? { id: secondWarningDraftKey, splitOrder: 2 });
-                      const canUploadInvoiceFile = !isSavingInvoice && (workflowMeta.canUploadMainInvoice || workflowMeta.canUploadFirstWarning || hasInvoiceFile);
-                      const canUploadSecondWarning = !isSavingInvoice && workflowMeta.canUploadSecondWarning;
-                      const canUploadPaymentProof = !isSavingInvoice && hasAnyInvoiceFile;
+                      const canUploadInvoiceFile = !isIsp && !isSavingInvoice && (workflowMeta.canUploadMainInvoice || workflowMeta.canUploadFirstWarning || hasInvoiceFile);
+                      const canUploadSecondWarning = !isIsp && !isSavingInvoice && workflowMeta.canUploadSecondWarning;
+                      const canUploadPaymentProof = !isIsp && !isSavingInvoice && hasAnyInvoiceFile;
 
                       const statusStyle = (() => {
                         if (statusMeta.key === "paid") return "bg-emerald-500/10 border-emerald-500/20 text-emerald-400";
@@ -6404,15 +6451,18 @@ function TenantDetailPage({
 
                       return (
                         <tr key={invoice.id} className={`transition-colors group/row ${selectedInvoiceIds.has(invoice.id) ? "bg-emerald-500/5" : "hover:bg-white/[0.02]"}`}>
-                          <td className="px-2.5 py-2 text-center border border-white/5">
-                            <input
-                              type="checkbox"
-                              className="cursor-pointer rounded bg-white/[0.05] border-white/20 text-emerald-400 focus:ring-emerald-500/50 outline-none disabled:opacity-30 disabled:cursor-not-allowed"
-                              checked={selectedInvoiceIds.has(invoice.id)}
-                              onChange={() => handleToggleSelectInvoice(invoice.id)}
-                              title="Pilih Baris"
-                            />
-                          </td>
+                          {!isIsp && (
+                            <td className="px-2.5 py-2 text-center border border-white/5">
+                              <input
+                                type="checkbox"
+                                className="cursor-pointer rounded bg-white/[0.05] border-white/20 text-emerald-400 focus:ring-emerald-500/50 outline-none disabled:opacity-30 disabled:cursor-not-allowed"
+                                checked={selectedInvoiceIds.has(invoice.id)}
+                                onChange={() => handleToggleSelectInvoice(invoice.id)}
+                                disabled={isIsp}
+                                title="Pilih Baris"
+                              />
+                            </td>
+                          )}
                           {/* No */}
                           <td className="px-2.5 py-2 text-[10px] font-black text-white/20 whitespace-nowrap border border-white/5 text-center">{idx + 1}</td>
 
@@ -6423,98 +6473,116 @@ function TenantDetailPage({
 
                           {/* Nomor Invoice */}
                           <td className="px-2.5 py-2 whitespace-nowrap border border-white/5">
-                            <input
-                              className="h-8 w-36 rounded-lg border border-white/10 bg-white/[0.03] px-2.5 text-[10px] font-bold text-white outline-none transition-all placeholder:text-white/15 focus:border-gold-accent/50 focus:bg-white/5 disabled:opacity-50"
-                              disabled={isSavingInvoice}
-                              onBlur={() => handleInvoiceAutoSave(invoice)}
-                              onChange={(e) => updateInvoiceDraftField(invoice.id, "invoiceNumber", e.target.value)}
-                              placeholder="No. Invoice..."
-                              type="text"
-                              value={draft.invoiceNumber}
-                            />
+                            {isIsp ? (
+                              <span className="text-[10px] font-bold text-white">{draft.invoiceNumber || "-"}</span>
+                            ) : (
+                              <input
+                                className="h-8 w-36 rounded-lg border border-white/10 bg-white/[0.03] px-2.5 text-[10px] font-bold text-white outline-none transition-all placeholder:text-white/15 focus:border-gold-accent/50 focus:bg-white/5 disabled:opacity-50"
+                                disabled={isSavingInvoice || isIsp}
+                                onBlur={() => handleInvoiceAutoSave(invoice)}
+                                onChange={(e) => updateInvoiceDraftField(invoice.id, "invoiceNumber", e.target.value)}
+                                placeholder="No. Invoice..."
+                                type="text"
+                                value={draft.invoiceNumber}
+                              />
+                            )}
                           </td>
 
                           {/* Bulan jatuh tempo (due date teknis) */}
                           <td className="px-2.5 py-2 whitespace-nowrap border border-white/5 text-center">
-                            <div className="space-y-1 flex flex-col items-center">
-                              <DateInput
-                                value={draft.dueDate}
-                                onChange={(val) => {
-                                  updateInvoiceDraftField(invoice.id, "dueDate", val);
-                                  handleInvoiceAutoSave(invoice, { dueDate: val });
-                                }}
-                                disabled={isSetDateLockedByGlobal || isSavingInvoice}
-                                hideIcon={true}
-                                className="h-8 w-36 rounded-lg border border-white/10 bg-white/[0.03] transition-all focus-within:border-gold-accent/50 focus-within:bg-white/5"
-                                inputClass="w-full h-full bg-transparent px-2.5 text-[10px] font-bold text-white text-center outline-none"
-                              />
-                              {isSetDateLockedByGlobal && (
-                                <p className="text-[8px] font-black text-white/20 uppercase tracking-widest">Global Locked</p>
-                              )}
-                              {workflowMeta.setupWarnings.some((warning) => warning.code === "missing_due_date") && !draft.dueDate && (
-                                <p className="text-[9px] font-bold text-rose-300 tracking-wide mt-0.5">Atur bulan jatuh tempo</p>
-                              )}
-                            </div>
+                            {isIsp ? (
+                              <span className="text-[10px] font-bold text-white">{draft.dueDate || "-"}</span>
+                            ) : (
+                              <div className="space-y-1 flex flex-col items-center">
+                                <DateInput
+                                  value={draft.dueDate}
+                                  onChange={(val) => {
+                                    updateInvoiceDraftField(invoice.id, "dueDate", val);
+                                    handleInvoiceAutoSave(invoice, { dueDate: val });
+                                  }}
+                                  disabled={isSetDateLockedByGlobal || isSavingInvoice || isIsp}
+                                  hideIcon={true}
+                                  className="h-8 w-36 rounded-lg border border-white/10 bg-white/[0.03] transition-all focus-within:border-gold-accent/50 focus-within:bg-white/5"
+                                  inputClass="w-full h-full bg-transparent px-2.5 text-[10px] font-bold text-white text-center outline-none"
+                                />
+                                {isSetDateLockedByGlobal && (
+                                  <p className="text-[8px] font-black text-white/20 uppercase tracking-widest">Global Locked</p>
+                                )}
+                                {workflowMeta.setupWarnings.some((warning) => warning.code === "missing_due_date") && !draft.dueDate && (
+                                  <p className="text-[9px] font-bold text-rose-300 tracking-wide mt-0.5">Atur bulan jatuh tempo</p>
+                                )}
+                              </div>
+                            )}
                           </td>
 
                           {/* Jumlah Dibayar */}
                           <td className="px-2.5 py-2 whitespace-nowrap border border-white/5 text-right">
-                            <div className="space-y-1">
-                              <div className="flex items-center justify-end gap-1.5 h-8 px-2.5 rounded-lg border border-white/10 bg-white/[0.03] w-32 ml-auto transition-all focus-within:border-gold-accent/50 focus-within:bg-white/5">
-                                <input
-                                  className="bg-transparent text-[10px] font-black text-white outline-none w-full text-right"
-                                  disabled={isSavingInvoice}
-                                  onBlur={() => handleInvoiceAutoSave(invoice)}
-                                  onChange={(e) => handleInvoiceDraftAmountChange(e, invoice.id)}
-                                  placeholder="0"
-                                  type="text"
-                                  value={draft.amount}
-                                />
+                            {isIsp ? (
+                              <span className="text-[10px] font-bold text-white pr-2.5">{draft.amount ? `Rp ${draft.amount}` : "-"}</span>
+                            ) : (
+                              <div className="space-y-1">
+                                <div className="flex items-center justify-end gap-1.5 h-8 px-2.5 rounded-lg border border-white/10 bg-white/[0.03] w-32 ml-auto transition-all focus-within:border-gold-accent/50 focus-within:bg-white/5">
+                                  <input
+                                    className="bg-transparent text-[10px] font-black text-white outline-none w-full text-right"
+                                    disabled={isSavingInvoice || isIsp}
+                                    onBlur={() => handleInvoiceAutoSave(invoice)}
+                                    onChange={(e) => handleInvoiceDraftAmountChange(e, invoice.id)}
+                                    placeholder="0"
+                                    type="text"
+                                    value={draft.amount}
+                                  />
+                                </div>
+                                {workflowMeta.setupWarnings.some((warning) => warning.code === "missing_amount") && parseRupiahInput(draft.amount) <= 0 && (
+                                  <p className="text-[9px] font-bold text-rose-300 tracking-wide text-right mt-0.5">Atur nominal</p>
+                                )}
                               </div>
-                              {workflowMeta.setupWarnings.some((warning) => warning.code === "missing_amount") && parseRupiahInput(draft.amount) <= 0 && (
-                                <p className="text-[9px] font-bold text-rose-300 tracking-wide text-right mt-0.5">Atur nominal</p>
-                              )}
-                            </div>
+                            )}
                           </td>
 
                           <td className="px-2.5 py-2 whitespace-nowrap border border-white/5 text-center">
-                            <div className="relative mx-auto w-36">
-                              <button
-                                className={`flex h-8 w-full items-center justify-between rounded-md border px-2.5 text-[10px] font-bold tracking-wide outline-none transition-all ${statusStyle} hover:border-gold-accent/30 focus:border-gold-accent/50 disabled:opacity-50 shadow-sm backdrop-blur-md`}
-                                disabled={isSavingInvoice}
-                                onClick={() => setOpenInvoiceStatusId(openInvoiceStatusId === invoice.id ? null : invoice.id)}
-                                type="button"
-                              >
-                                <span>{INVOICE_STATUS_OPTIONS.find((opt) => opt.value === draft.status)?.label || draft.status}</span>
-                                <span className={`material-symbols-outlined text-[14px] transition-transform duration-300 ${openInvoiceStatusId === invoice.id ? "rotate-180 text-gold-accent" : "text-white/40"}`}>expand_more</span>
-                              </button>
-                              {openInvoiceStatusId === invoice.id && (
-                                <>
-                                  <div className="fixed inset-0 z-[110]" onClick={() => setOpenInvoiceStatusId(null)} />
-                                  <div className="absolute left-0 top-[calc(100%+4px)] z-[120] w-full rounded-lg border border-white/10 bg-[#0a0f18]/95 p-1 shadow-2xl backdrop-blur-2xl animate-in fade-in zoom-in-95 duration-200">
-                                    <div className="no-scrollbar max-h-40 overflow-y-auto space-y-0.5">
-                                      {INVOICE_STATUS_OPTIONS.map((option) => {
-                                        const isSelected = draft.status === option.value;
-                                        return (
-                                          <button
-                                            key={option.value}
-                                            className={`flex w-full items-center justify-between px-2 py-1.5 text-left text-[10px] font-bold tracking-wide transition-all rounded-md ${isSelected ? "bg-gold-accent/10 text-gold-accent" : "text-white/60 hover:bg-white/10 hover:text-white"}`}
-                                            onClick={() => {
-                                              updateInvoiceDraftField(invoice.id, "status", option.value);
-                                              handleInvoiceAutoSave(invoice, { status: option.value });
-                                              setOpenInvoiceStatusId(null);
-                                            }}
-                                            type="button"
-                                          >
-                                            {option.label}
-                                          </button>
-                                        );
-                                      })}
+                            {isIsp ? (
+                              <div className={`mx-auto w-fit px-3 py-1.5 rounded-md border text-[10px] font-bold tracking-wide ${statusStyle}`}>
+                                {INVOICE_STATUS_OPTIONS.find((opt) => opt.value === draft.status)?.label || draft.status || "-"}
+                              </div>
+                            ) : (
+                              <div className="relative mx-auto w-36">
+                                <button
+                                  className={`flex h-8 w-full items-center justify-between rounded-md border px-2.5 text-[10px] font-bold tracking-wide outline-none transition-all ${statusStyle} hover:border-gold-accent/30 focus:border-gold-accent/50 disabled:opacity-50 shadow-sm backdrop-blur-md`}
+                                  disabled={isSavingInvoice || isIsp}
+                                  onClick={() => setOpenInvoiceStatusId(openInvoiceStatusId === invoice.id ? null : invoice.id)}
+                                  type="button"
+                                >
+                                  <span>{INVOICE_STATUS_OPTIONS.find((opt) => opt.value === draft.status)?.label || draft.status}</span>
+                                  <span className={`material-symbols-outlined text-[14px] transition-transform duration-300 ${openInvoiceStatusId === invoice.id ? "rotate-180 text-gold-accent" : "text-white/40"}`}>expand_more</span>
+                                </button>
+                                {openInvoiceStatusId === invoice.id && (
+                                  <>
+                                    <div className="fixed inset-0 z-[110]" onClick={() => setOpenInvoiceStatusId(null)} />
+                                    <div className="absolute left-0 top-[calc(100%+4px)] z-[120] w-full rounded-lg border border-white/10 bg-[#0a0f18]/95 p-1 shadow-2xl backdrop-blur-2xl animate-in fade-in zoom-in-95 duration-200">
+                                      <div className="no-scrollbar max-h-40 overflow-y-auto space-y-0.5">
+                                        {INVOICE_STATUS_OPTIONS.map((option) => {
+                                          const isSelected = draft.status === option.value;
+                                          return (
+                                            <button
+                                              key={option.value}
+                                              className={`flex w-full items-center justify-between px-2 py-1.5 text-left text-[10px] font-bold tracking-wide transition-all rounded-md ${isSelected ? "bg-gold-accent/10 text-gold-accent" : "text-white/60 hover:bg-white/10 hover:text-white"}`}
+                                              onClick={() => {
+                                                updateInvoiceDraftField(invoice.id, "status", option.value);
+                                                handleInvoiceAutoSave(invoice, { status: option.value });
+                                                setOpenInvoiceStatusId(null);
+                                              }}
+                                              type="button"
+                                            >
+                                              {option.label}
+                                            </button>
+                                          );
+                                        })}
+                                      </div>
                                     </div>
-                                  </div>
-                                </>
-                              )}
-                            </div>
+                                  </>
+                                )}
+                              </div>
+                            )}
                           </td>
 
                           {/* Waktu Terbayar */}
@@ -6526,77 +6594,111 @@ function TenantDetailPage({
 
                           {/* Upload Invoice */}
                           <td className="px-2.5 py-2 whitespace-nowrap border border-white/5 text-center">
-                            <div className="flex flex-col items-center justify-center gap-1.5">
-                              <label className={`relative inline-flex items-center justify-center gap-1.5 h-7 px-2.5 rounded border text-[8px] font-black uppercase tracking-widest transition-all cursor-pointer ${canUploadInvoiceFile ? 'border-white/10 bg-white/5 text-white/40 hover:border-white/20 hover:text-white' : 'border-white/5 bg-white/[0.02] text-white/10 cursor-not-allowed'}`}>
-                                <span className="material-symbols-outlined text-[12px]">upload_file</span>
-                                {hasInvoiceFile ? "Ganti" : "Upload"}
-                                <input
-                                  className="absolute inset-0 opacity-0 cursor-pointer"
-                                  disabled={!canUploadInvoiceFile}
-                                  onChange={(e) => void handleInvoiceFileInputChange(e, invoice, "invoice")}
-                                  type="file"
-                                />
-                              </label>
-                              {hasInvoiceFile && (
-                                <a
-                                  className="inline-flex items-center justify-center gap-1 text-[8px] font-black text-gold-accent uppercase tracking-widest hover:underline underline-offset-2"
-                                  href={invoice.invoiceFileUrl}
-                                  target="_blank" rel="noopener noreferrer"
-                                >
-                                  <span className="material-symbols-outlined text-[10px]">open_in_new</span>
-                                  Lihat
-                                </a>
-                              )}
-                              {canUploadSecondWarning && (
-                                <div className="mt-1 flex flex-col gap-1 w-full max-w-[140px] mx-auto rounded border border-orange-500/20 bg-orange-500/5 p-1.5">
+                            {isIsp ? (
+                              <div className="flex flex-col items-center gap-1.5">
+                                {hasInvoiceFile ? (
+                                  <a
+                                    className="inline-flex items-center justify-center gap-1 text-[9px] font-black text-gold-accent uppercase tracking-widest hover:underline underline-offset-2"
+                                    href={invoice.invoiceFileUrl}
+                                    target="_blank" rel="noopener noreferrer"
+                                  >
+                                    <span className="material-symbols-outlined text-[12px]">open_in_new</span>
+                                    Lihat Invoice
+                                  </a>
+                                ) : (
+                                  <span className="text-[12px] font-black text-white/20">-</span>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="flex flex-col items-center justify-center gap-1.5">
+                                <label className={`relative inline-flex items-center justify-center gap-1.5 h-7 px-2.5 rounded border text-[8px] font-black uppercase tracking-widest transition-all cursor-pointer ${canUploadInvoiceFile ? 'border-white/10 bg-white/5 text-white/40 hover:border-white/20 hover:text-white' : 'border-white/5 bg-white/[0.02] text-white/10 cursor-not-allowed'}`}>
+                                  <span className="material-symbols-outlined text-[12px]">upload_file</span>
+                                  {hasInvoiceFile ? "Ganti" : "Upload"}
                                   <input
-                                    className="h-6 w-full rounded border border-orange-500/20 bg-black/20 px-1.5 text-[8px] font-bold text-white outline-none placeholder:text-white/10 text-center"
-                                    disabled={isSavingInvoice}
-                                    onBlur={() => handleInvoiceAutoSave(invoice)}
-                                    onChange={(e) => updateInvoiceFollowUpDraftField(invoice.id, secondWarningDraftKey, "invoiceNumber", e.target.value)}
-                                    placeholder="No. invoice ke-2"
-                                    type="text"
-                                    value={secondWarningDraft.invoiceNumber}
+                                    className="absolute inset-0 opacity-0 cursor-pointer"
+                                    disabled={!canUploadInvoiceFile}
+                                    onChange={(e) => void handleInvoiceFileInputChange(e, invoice, "invoice")}
+                                    type="file"
                                   />
-                                  <label className="relative inline-flex h-6 w-full cursor-pointer items-center justify-center gap-1.5 rounded border border-orange-500/20 bg-orange-500/10 px-2 text-[7px] font-black uppercase tracking-widest text-orange-200 transition-all hover:border-orange-500/40">
-                                    <span className="material-symbols-outlined" style={{ fontSize: '10px' }}>upload_file</span>
-                                    Upload SP2
+                                </label>
+                                {hasInvoiceFile && (
+                                  <a
+                                    className="inline-flex items-center justify-center gap-1 text-[8px] font-black text-gold-accent uppercase tracking-widest hover:underline underline-offset-2"
+                                    href={invoice.invoiceFileUrl}
+                                    target="_blank" rel="noopener noreferrer"
+                                  >
+                                    <span className="material-symbols-outlined text-[10px]">open_in_new</span>
+                                    Lihat
+                                  </a>
+                                )}
+                                {canUploadSecondWarning && (
+                                  <div className="mt-1 flex flex-col gap-1 w-full max-w-[140px] mx-auto rounded border border-orange-500/20 bg-orange-500/5 p-1.5">
                                     <input
-                                      className="absolute inset-0 cursor-pointer opacity-0"
-                                      disabled={!canUploadSecondWarning}
-                                      onChange={(e) => void handleInvoiceFileInputChange(e, invoice, "invoice", 2)}
-                                      type="file"
+                                      className="h-6 w-full rounded border border-orange-500/20 bg-black/20 px-1.5 text-[8px] font-bold text-white outline-none placeholder:text-white/10 text-center"
+                                      disabled={isSavingInvoice || isIsp}
+                                      onBlur={() => handleInvoiceAutoSave(invoice)}
+                                      onChange={(e) => updateInvoiceFollowUpDraftField(invoice.id, secondWarningDraftKey, "invoiceNumber", e.target.value)}
+                                      placeholder="No. invoice ke-2"
+                                      type="text"
+                                      value={secondWarningDraft.invoiceNumber}
                                     />
-                                  </label>
-                                </div>
-                              )}
-                            </div>
+                                    <label className="relative inline-flex h-6 w-full cursor-pointer items-center justify-center gap-1.5 rounded border border-orange-500/20 bg-orange-500/10 px-2 text-[7px] font-black uppercase tracking-widest text-orange-200 transition-all hover:border-orange-500/40">
+                                      <span className="material-symbols-outlined" style={{ fontSize: '10px' }}>upload_file</span>
+                                      Upload SP2
+                                      <input
+                                        className="absolute inset-0 cursor-pointer opacity-0"
+                                        disabled={!canUploadSecondWarning}
+                                        onChange={(e) => void handleInvoiceFileInputChange(e, invoice, "invoice", 2)}
+                                        type="file"
+                                      />
+                                    </label>
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </td>
 
                           {/* Bukti Bayar */}
                           <td className="px-2.5 py-2 whitespace-nowrap border border-white/5 text-center">
-                            <div className="flex flex-col items-center justify-center gap-1.5">
-                              <label className={`relative inline-flex items-center justify-center gap-1.5 h-7 px-2.5 rounded border text-[8px] font-black uppercase tracking-widest transition-all cursor-pointer ${canUploadPaymentProof ? 'border-white/10 bg-white/5 text-white/40 hover:border-white/20 hover:text-white' : 'border-white/5 bg-white/[0.02] text-white/10 cursor-not-allowed'}`}>
-                                <span className="material-symbols-outlined text-[12px]">receipt_long</span>
-                                {hasPaymentProof ? "Ganti" : "Upload"}
-                                <input
-                                  className="absolute inset-0 opacity-0 cursor-pointer"
-                                  disabled={!canUploadPaymentProof}
-                                  onChange={(e) => void handleInvoiceFileInputChange(e, invoice, "payment-proof")}
-                                  type="file"
-                                />
-                              </label>
-                              {hasPaymentProof && (
-                                <a
-                                  className="inline-flex items-center justify-center gap-1 text-[8px] font-black text-emerald-400 uppercase tracking-widest hover:underline underline-offset-2"
-                                  href={invoice.paymentProofFileUrl}
-                                  target="_blank" rel="noopener noreferrer"
-                                >
-                                  <span className="material-symbols-outlined text-[10px]">open_in_new</span>
-                                  Lihat
-                                </a>
-                              )}
-                            </div>
+                            {isIsp ? (
+                              <div className="flex flex-col items-center gap-1.5">
+                                {hasPaymentProof ? (
+                                  <a
+                                    className="inline-flex items-center justify-center gap-1 text-[9px] font-black text-emerald-400 uppercase tracking-widest hover:underline underline-offset-2"
+                                    href={invoice.paymentProofFileUrl}
+                                    target="_blank" rel="noopener noreferrer"
+                                  >
+                                    <span className="material-symbols-outlined text-[12px]">open_in_new</span>
+                                    Lihat Bukti
+                                  </a>
+                                ) : (
+                                  <span className="text-[12px] font-black text-white/20">-</span>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="flex flex-col items-center justify-center gap-1.5">
+                                <label className={`relative inline-flex items-center justify-center gap-1.5 h-7 px-2.5 rounded border text-[8px] font-black uppercase tracking-widest transition-all cursor-pointer ${canUploadPaymentProof ? 'border-white/10 bg-white/5 text-white/40 hover:border-white/20 hover:text-white' : 'border-white/5 bg-white/[0.02] text-white/10 cursor-not-allowed'}`}>
+                                  <span className="material-symbols-outlined text-[12px]">receipt_long</span>
+                                  {hasPaymentProof ? "Ganti" : "Upload"}
+                                  <input
+                                    className="absolute inset-0 opacity-0 cursor-pointer"
+                                    disabled={!canUploadPaymentProof}
+                                    onChange={(e) => void handleInvoiceFileInputChange(e, invoice, "payment-proof")}
+                                    type="file"
+                                  />
+                                </label>
+                                {hasPaymentProof && (
+                                  <a
+                                    className="inline-flex items-center justify-center gap-1 text-[8px] font-black text-emerald-400 uppercase tracking-widest hover:underline underline-offset-2"
+                                    href={invoice.paymentProofFileUrl}
+                                    target="_blank" rel="noopener noreferrer"
+                                  >
+                                    <span className="material-symbols-outlined text-[10px]">open_in_new</span>
+                                    Lihat
+                                  </a>
+                                )}
+                              </div>
+                            )}
                           </td>
 
                         </tr>
@@ -6753,15 +6855,15 @@ function TenantDetailPage({
         {activeTab === "documents" && (
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
             {/* Document List */}
-            <section className="lg:col-span-7 glass-card backdrop-blur-xl rounded-xl border-white/10 shadow-glass-depth overflow-hidden flex flex-col">
+            <section className={`${isIsp ? 'lg:col-span-12' : 'lg:col-span-7'} glass-card backdrop-blur-xl rounded-xl border-white/10 shadow-glass-depth overflow-hidden flex flex-col`}>
               <div className="px-5 py-4 border-b border-white/5 bg-white/[0.01] flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <span className="material-symbols-outlined text-gold-accent" style={{ fontSize: "18px" }}>folder_open</span>
                   <h3 className="text-[10px] md:text-[11px] font-black uppercase tracking-[0.2em] text-white/60">Repositori Dokumen Lokasi</h3>
                 </div>
               </div>
-              <div className="p-4 space-y-3 flex-1 flex flex-col">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
+              <div className="p-3 space-y-1.5 flex-1 flex flex-col">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-1.5 mb-1.5">
                   <div className="relative flex-1 w-full">
                     <input
                       type="text"
@@ -6784,7 +6886,7 @@ function TenantDetailPage({
                   </button>
                 </div>
 
-                <div className="space-y-2.5 flex-1 flex flex-col">
+                <div className={isIsp ? "grid grid-cols-1 md:grid-cols-2 gap-3 flex-1 content-start" : "space-y-2.5 flex-1 flex flex-col"}>
                   {(() => {
                     const filteredAndSortedDocs = allDocuments
                       .filter(doc => {
@@ -6803,7 +6905,7 @@ function TenantDetailPage({
                     return (
                       <>
                         {filteredAndSortedDocs.length === 0 && (
-                          <div className="flex-1 flex flex-col items-center justify-center gap-2 p-6 text-center border border-dashed border-white/5 rounded-xl bg-white/[0.01] min-h-[160px]">
+                          <div className="col-span-full flex flex-col items-center justify-center gap-2 p-6 text-center border border-dashed border-white/5 rounded-xl bg-white/[0.01] min-h-[160px]">
                             <span className="material-symbols-outlined text-[24px] text-white/10">folder_off</span>
                             <p className="text-[10px] font-black text-white/20 uppercase tracking-widest">
                               {documentSearch ? "Dokumen tidak ditemukan." : "Belum ada dokumen yang diunggah."}
@@ -6811,34 +6913,34 @@ function TenantDetailPage({
                           </div>
                         )}
                         {filteredAndSortedDocs.map((doc) => (
-                          <div key={doc?.id} className="group/doc glass-card backdrop-blur-xl rounded-xl p-3 border-white/5 hover:border-white/10 transition-all">
-                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-                              <div className="flex items-center gap-3">
-                                <div className="h-8 w-8 shrink-0 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/20 group-hover/doc:bg-gold-accent group-hover/doc:text-[#0f141e] transition-all backdrop-blur-md">
-                                  <span className="material-symbols-outlined" style={{ fontSize: "16px" }}>description</span>
-                                </div>
-                                <div className="space-y-0.5">
-                                  <p className="text-[11px] md:text-[12px] font-black text-white uppercase tracking-tight group-hover/doc:text-gold-accent transition-colors">
-                                    {resolveDocumentTypeLabel(doc?.jenisDokumen)}
-                                  </p>
-                                  <p className="text-[8px] font-bold text-white/30 uppercase tracking-widest">
-                                    {doc?.nomorDokumen || "No Ref: —"} • {formatDate(doc?.tanggalDokumen)}
-                                  </p>
-                                </div>
+                          <div key={doc?.id} className="group/doc glass-card backdrop-blur-xl rounded-xl p-3 border-white/5 hover:border-white/10 transition-all flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3 overflow-hidden">
+                              <div className="h-8 w-8 shrink-0 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/20 group-hover/doc:bg-gold-accent group-hover/doc:text-[#0f141e] transition-all backdrop-blur-md">
+                                <span className="material-symbols-outlined" style={{ fontSize: "16px" }}>description</span>
                               </div>
-                              <div className="flex items-center gap-2 self-start md:self-auto mt-2 md:mt-0 pl-11 md:pl-0">
-                                {isOpenableFileUrl(doc?.fileUrl) && (
-                                  <button
-                                    onClick={() => window.open(doc.fileUrl, '_blank')}
-                                    className="h-7 px-3 rounded-lg bg-white/5 border border-white/10 text-[8px] font-black text-white/40 uppercase tracking-widest hover:text-white hover:bg-white/10 transition-all backdrop-blur-md active:scale-95"
-                                  >
-                                    Buka File
-                                  </button>
-                                )}
+                              <div className="space-y-0.5 min-w-0">
+                                <p className="text-[11px] md:text-[12px] font-black text-white uppercase tracking-tight group-hover/doc:text-gold-accent transition-colors truncate">
+                                  {resolveDocumentTypeLabel(doc?.jenisDokumen)}
+                                </p>
+                                <p className="text-[8px] font-bold text-white/30 uppercase tracking-widest truncate">
+                                  {doc?.nomorDokumen || "No Ref: —"} • {formatDate(doc?.tanggalDokumen)}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              {isOpenableFileUrl(doc?.fileUrl) && (
+                                <button
+                                  onClick={() => window.open(doc.fileUrl, '_blank')}
+                                  className="h-7 px-3 rounded-lg bg-white/5 border border-white/10 text-[8px] font-black text-white/40 uppercase tracking-widest hover:text-white hover:bg-white/10 transition-all backdrop-blur-md active:scale-95"
+                                >
+                                  Buka File
+                                </button>
+                              )}
+                              {!isIsp && (
                                 <button className="h-7 w-7 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white/20 hover:text-amber-400 transition-all backdrop-blur-md active:scale-95">
                                   <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>edit</span>
                                 </button>
-                              </div>
+                              )}
                             </div>
                           </div>
                         ))}
@@ -6850,7 +6952,8 @@ function TenantDetailPage({
             </section>
 
             {/* Upload Section */}
-            <section className="lg:col-span-5 space-y-4">
+            {!isIsp && (
+              <section className="lg:col-span-5 space-y-4">
               <div className="glass-card backdrop-blur-xl rounded-xl p-4 border-white/10 shadow-glass-depth relative overflow-hidden">
                 <div className="absolute -right-12 -top-12 h-32 w-32 rounded-full bg-gold-accent/5 blur-2xl backdrop-blur-md" />
                 <div className="flex items-center gap-3 mb-5">
@@ -6922,12 +7025,12 @@ function TenantDetailPage({
                   </div>
 
                   {documentError && (
-                    <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[9px] font-bold uppercase tracking-widest">
+                    <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[10px] font-bold">
                       {documentError}
                     </div>
                   )}
                   {documentFeedback && (
-                    <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-bold uppercase tracking-widest backdrop-blur-md">
+                    <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold backdrop-blur-md">
                       {documentFeedback}
                     </div>
                   )}
@@ -6942,6 +7045,7 @@ function TenantDetailPage({
                 </form>
               </div>
             </section>
+            )}
           </div>
         )}
 

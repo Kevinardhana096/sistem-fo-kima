@@ -19,9 +19,9 @@ const getIspOperationalStatus = (isp, todayIso) => {
         : "";
     return contractPeriodEnd && contractPeriodEnd < todayIso ? "expired" : "beroperasi";
 };
-    const resolveTenantRouteStatus = (tenant, todayIso) => getTenantOperationalStatus(tenant, todayIso) === "berhenti"
-        ? "nonaktif"
-        : String(tenant?.routeStatus || "aktif").trim().toLowerCase();
+const resolveTenantRouteStatus = (tenant, todayIso) => getTenantOperationalStatus(tenant, todayIso) === "berhenti"
+    ? "nonaktif"
+    : String(tenant?.routeStatus || "aktif").trim().toLowerCase();
 const getPeriodStart = (item) => String(item?.startDate ?? item?.start_date ?? "").slice(0, 10);
 const getPeriodEnd = (item) => String(item?.endDate ?? item?.end_date ?? "").slice(0, 10);
 const isInPeriod = (item, todayIso) => {
@@ -390,13 +390,13 @@ function CustomerWorkspacePage({
         try {
             const result = await api.isps.delete(group.id);
             const deletedCount = result?.deletedCustomersCount || 0;
-            
+
             if (deletedCount > 0) {
                 alert(`ISP berhasil dihapus bersama ${deletedCount} pelanggan terkait.`);
             } else {
                 alert("ISP berhasil dihapus.");
             }
-            
+
             onRefresh?.();
         } catch (error) {
             console.error(error);
@@ -743,116 +743,116 @@ function CustomerWorkspacePage({
                                                                     const actionCounts = getTenantActionCounts(tenant, notificationCountsByCustomerId);
                                                                     return (
                                                                         <tr key={`${group.id}-${tenant.id}`} className="hover:bg-white/[0.04] transition-colors group/row">
-                                                                        <td className="px-4 py-2.5">
-                                                                            <p className="text-[11px] font-black text-white group-hover/row:text-gold-accent transition-colors break-words max-w-[250px]">{tenant.name}</p>
-                                                                            <p className="text-[9px] font-black text-white/30 tracking-[0.2em] uppercase mt-0.5">{getCurrentContractNumber(tenant, todayIso)}</p>
-                                                                        </td>
-                                                                        <td className="px-4 py-2.5">
-                                                                            {tenant.paket ? (() => {
-                                                                                const packageDisplay = getPackageDisplay(tenant.paket);
-
-                                                                                return (
-                                                                                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${packageDisplay.isSharingPackage
-                                                                                        ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
-                                                                                        : "bg-indigo-500/10 text-indigo-400 border-indigo-500/20"
-                                                                                        }`}>
-                                                                                        {packageDisplay.label}
-                                                                                    </span>
-                                                                                );
-                                                                            })() : (
-                                                                                <span className="text-[9px] font-bold text-white/20">-</span>
-                                                                            )}
-                                                                        </td>
-                                                                        <td className="px-4 py-2.5">
-                                                                            <span className="text-[11px] font-black text-white/80">
-                                                                                {tenant.jumlah != null && tenant.jumlah !== "" ? tenant.jumlah : "-"}
-                                                                            </span>
-                                                                        </td>
-                                                                        <td className="px-4 py-2.5">
-                                                                            <div className="flex flex-wrap items-center gap-2">
-                                                                                <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${isTenantActive(tenant, todayIso)
-                                                                                    ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                                                                                    : "bg-white/5 text-white/40 border border-white/10"
-                                                                                    }`}>
-                                                                                {getTenantOperationalStatus(tenant, todayIso) === "expired"
-                                                                                    ? "Belum Diperpanjang"
-                                                                                    : getTenantOperationalStatus(tenant, todayIso) === "belum_beroperasi"
-                                                                                        ? "Belum Beroperasi"
-                                                                                        : isTenantActive(tenant, todayIso)
-                                                                                            ? "Beroperasi"
-                                                                                            : "Berhenti"}
-                                                                            </span>
-                                                                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${resolveTenantRouteStatus(tenant, todayIso) === "gangguan"
-                                                                                    ? "bg-red-600/10 text-red-400 border border-red-600/20"
-                                                                                    : resolveTenantRouteStatus(tenant, todayIso) === "perbaikan"
-                                                                                        ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                                                                                        : resolveTenantRouteStatus(tenant, todayIso) === "nonaktif"
-                                                                                            ? "bg-white/5 text-white/40 border border-white/10"
-                                                                                            : "bg-blue-500/10 text-blue-400 border border-blue-500/20"
-                                                                                    }`}>
-                                                                                    Jalur {
-                                                                                        resolveTenantRouteStatus(tenant, todayIso) === "gangguan"
-                                                                                            ? "Gangguan"
-                                                                                            : resolveTenantRouteStatus(tenant, todayIso) === "perbaikan"
-                                                                                                ? "Perbaikan"
-                                                                                                : resolveTenantRouteStatus(tenant, todayIso) === "nonaktif"
-                                                                                                    ? "Nonaktif"
-                                                                                                    : "Aktif"
-                                                                                    }
-                                                                                </span>
-                                                                            </div>
-                                                                        </td>
-                                                                        {!isTeknisi && (
                                                                             <td className="px-4 py-2.5">
-                                                                                <div
-                                                                                    className="flex flex-col justify-center"
-                                                                                    title={`${actionCounts.total} tindakan aktif${actionCounts.priority > 0 ? `, ${actionCounts.priority} prioritas` : ""}${actionCounts.needAction > 0 ? `, ${actionCounts.needAction} perlu tindakan` : ""}`}
-                                                                                >
-                                                                                    <span className={`text-[11px] font-black ${actionCounts.total > 0 ? "text-red-500" : "text-white"}`}>{actionCounts.total}</span>
-                                                                                    <span className="text-[8px] font-black text-white/20 uppercase tracking-widest">Tindakan</span>
+                                                                                <p className="text-[11px] font-black text-white group-hover/row:text-gold-accent transition-colors break-words max-w-[250px]">{tenant.name}</p>
+                                                                                <p className="text-[9px] font-black text-white/30 tracking-[0.2em] uppercase mt-0.5">{getCurrentContractNumber(tenant, todayIso)}</p>
+                                                                            </td>
+                                                                            <td className="px-4 py-2.5">
+                                                                                {tenant.paket ? (() => {
+                                                                                    const packageDisplay = getPackageDisplay(tenant.paket);
+
+                                                                                    return (
+                                                                                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${packageDisplay.isSharingPackage
+                                                                                            ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                                                                                            : "bg-indigo-500/10 text-indigo-400 border-indigo-500/20"
+                                                                                            }`}>
+                                                                                            {packageDisplay.label}
+                                                                                        </span>
+                                                                                    );
+                                                                                })() : (
+                                                                                    <span className="text-[9px] font-bold text-white/20">-</span>
+                                                                                )}
+                                                                            </td>
+                                                                            <td className="px-4 py-2.5">
+                                                                                <span className="text-[11px] font-black text-white/80">
+                                                                                    {tenant.jumlah != null && tenant.jumlah !== "" ? tenant.jumlah : "-"}
+                                                                                </span>
+                                                                            </td>
+                                                                            <td className="px-4 py-2.5">
+                                                                                <div className="flex flex-wrap items-center gap-2">
+                                                                                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${isTenantActive(tenant, todayIso)
+                                                                                        ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                                                                                        : "bg-white/5 text-white/40 border border-white/10"
+                                                                                        }`}>
+                                                                                        {getTenantOperationalStatus(tenant, todayIso) === "expired"
+                                                                                            ? "Belum Diperpanjang"
+                                                                                            : getTenantOperationalStatus(tenant, todayIso) === "belum_beroperasi"
+                                                                                                ? "Belum Beroperasi"
+                                                                                                : isTenantActive(tenant, todayIso)
+                                                                                                    ? "Beroperasi"
+                                                                                                    : "Berhenti"}
+                                                                                    </span>
+                                                                                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${resolveTenantRouteStatus(tenant, todayIso) === "gangguan"
+                                                                                        ? "bg-red-600/10 text-red-400 border border-red-600/20"
+                                                                                        : resolveTenantRouteStatus(tenant, todayIso) === "perbaikan"
+                                                                                            ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                                                                                            : resolveTenantRouteStatus(tenant, todayIso) === "nonaktif"
+                                                                                                ? "bg-white/5 text-white/40 border border-white/10"
+                                                                                                : "bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                                                                                        }`}>
+                                                                                        Jalur {
+                                                                                            resolveTenantRouteStatus(tenant, todayIso) === "gangguan"
+                                                                                                ? "Gangguan"
+                                                                                                : resolveTenantRouteStatus(tenant, todayIso) === "perbaikan"
+                                                                                                    ? "Perbaikan"
+                                                                                                    : resolveTenantRouteStatus(tenant, todayIso) === "nonaktif"
+                                                                                                        ? "Nonaktif"
+                                                                                                        : "Aktif"
+                                                                                        }
+                                                                                    </span>
                                                                                 </div>
                                                                             </td>
-                                                                        )}
-                                                                        <td className="px-4 py-2.5 text-right">
-                                                                            <div className="flex justify-end gap-2">
-                                                                        {!isTeknisi && (
-                                                                            <button
-                                                                                className="h-7 inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-2.5 text-[9px] font-black uppercase tracking-widest text-emerald-400 transition-all hover:bg-emerald-500 hover:text-white active:scale-95 shadow-glass-depth backdrop-blur-md"
-                                                                                onClick={() => onOpenTenant(tenant, "invoices", group)}
-                                                                                type="button"
-                                                                            >
-                                                                                        <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>receipt_long</span>
-                                                                                        Invoice
-                                                                            </button>
-                                                                        )}
-                                                                                <button
-                                                                                    className="h-7 inline-flex items-center gap-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 px-2.5 text-[9px] font-black uppercase tracking-widest text-blue-400 transition-all hover:bg-blue-500 hover:text-white active:scale-95 shadow-glass-depth backdrop-blur-md"
-                                                                                    onClick={() => handleOpenTenantDetail(tenant, group, "jalur")}
-                                                                                    type="button"
-                                                                                >
-                                                                                    <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>route</span>
-                                                                                    Jalur
-                                                                                </button>
-                                                                                <button
-                                                                                    className="h-7 inline-flex items-center gap-1.5 rounded-lg bg-white/5 border border-white/10 px-2.5 text-[9px] font-black uppercase tracking-widest text-white hover:border-gold-accent hover:text-gold-accent transition-all active:scale-95 shadow-glass-depth backdrop-blur-md"
-                                                                                    onClick={() => handleOpenTenantDetail(tenant, group)}
-                                                                                    type="button"
-                                                                                >
-                                                                                        <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>open_in_new</span>
-                                                                                    Detail
-                                                                                </button>
-                                                                                {!isTeknisi && (
+                                                                            {!isTeknisi && (
+                                                                                <td className="px-4 py-2.5">
+                                                                                    <div
+                                                                                        className="flex flex-col justify-center"
+                                                                                        title={`${actionCounts.total} tindakan aktif${actionCounts.priority > 0 ? `, ${actionCounts.priority} prioritas` : ""}${actionCounts.needAction > 0 ? `, ${actionCounts.needAction} perlu tindakan` : ""}`}
+                                                                                    >
+                                                                                        <span className={`text-[11px] font-black ${actionCounts.total > 0 ? "text-red-500" : "text-white"}`}>{actionCounts.total}</span>
+                                                                                        <span className="text-[8px] font-black text-white/20 uppercase tracking-widest">Tindakan</span>
+                                                                                    </div>
+                                                                                </td>
+                                                                            )}
+                                                                            <td className="px-4 py-2.5 text-right">
+                                                                                <div className="flex justify-end gap-2">
+                                                                                    {!isTeknisi && (
+                                                                                        <button
+                                                                                            className="h-7 inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-2.5 text-[9px] font-black uppercase tracking-widest text-emerald-400 transition-all hover:bg-emerald-500 hover:text-white active:scale-95 shadow-glass-depth backdrop-blur-md"
+                                                                                            onClick={() => onOpenTenant(tenant, "invoices", group)}
+                                                                                            type="button"
+                                                                                        >
+                                                                                            <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>receipt_long</span>
+                                                                                            Invoice
+                                                                                        </button>
+                                                                                    )}
                                                                                     <button
-                                                                                        className="h-7 w-7 inline-flex items-center justify-center rounded-lg bg-red-600/10 text-red-500 border border-red-600/20 shadow-glass-depth hover:bg-red-600 hover:text-white transition-all active:scale-95 backdrop-blur-md"
-                                                                                        onClick={() => handleArchiveTenant(tenant)}
-                                                                                        title="Hapus Lokasi"
+                                                                                        className="h-7 inline-flex items-center gap-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 px-2.5 text-[9px] font-black uppercase tracking-widest text-blue-400 transition-all hover:bg-blue-500 hover:text-white active:scale-95 shadow-glass-depth backdrop-blur-md"
+                                                                                        onClick={() => handleOpenTenantDetail(tenant, group, "jalur")}
                                                                                         type="button"
                                                                                     >
-                                                                                        <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>delete</span>
+                                                                                        <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>route</span>
+                                                                                        Jalur
                                                                                     </button>
-                                                                                )}
-                                                                            </div>
-                                                                        </td>
+                                                                                    <button
+                                                                                        className="h-7 inline-flex items-center gap-1.5 rounded-lg bg-white/5 border border-white/10 px-2.5 text-[9px] font-black uppercase tracking-widest text-white hover:border-gold-accent hover:text-gold-accent transition-all active:scale-95 shadow-glass-depth backdrop-blur-md"
+                                                                                        onClick={() => handleOpenTenantDetail(tenant, group)}
+                                                                                        type="button"
+                                                                                    >
+                                                                                        <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>open_in_new</span>
+                                                                                        Detail
+                                                                                    </button>
+                                                                                    {!isTeknisi && (
+                                                                                        <button
+                                                                                            className="h-7 w-7 inline-flex items-center justify-center rounded-lg bg-red-600/10 text-red-500 border border-red-600/20 shadow-glass-depth hover:bg-red-600 hover:text-white transition-all active:scale-95 backdrop-blur-md"
+                                                                                            onClick={() => handleArchiveTenant(tenant)}
+                                                                                            title="Hapus Lokasi"
+                                                                                            type="button"
+                                                                                        >
+                                                                                            <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>delete</span>
+                                                                                        </button>
+                                                                                    )}
+                                                                                </div>
+                                                                            </td>
                                                                         </tr>
                                                                     );
                                                                 })

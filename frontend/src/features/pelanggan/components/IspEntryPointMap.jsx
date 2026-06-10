@@ -171,7 +171,7 @@ function EntryPointMapSurface({
   const mapRef = useRef(null);
 
   return (
-    <div className={`isp-mini-map relative overflow-hidden border border-white/10 ${fullscreen ? "h-dvh w-screen rounded-none" : "h-[320px] rounded-xl"}`}>
+    <div className={`isp-mini-map relative overflow-hidden border border-white/10 ${fullscreen ? "h-dvh w-screen rounded-none" : "z-0 h-[320px] rounded-xl"}`}>
       {!readOnly && (
         <div className={`absolute z-[1000] flex items-center justify-center rounded-lg border border-white/10 bg-slate-900/90 text-[9px] font-bold text-white/60 backdrop-blur-sm shadow-xl transition-all ${fullscreen ? "top-4 left-1/2 -translate-x-1/2 h-9 px-4 w-max max-w-md" : "top-2 left-2 right-2 h-9 px-2.5"}`}>
           <span><span className="text-gold-accent">Klik peta</span> untuk tambah titik • <span className="text-sky-400">Drag marker</span> untuk pindah</span>

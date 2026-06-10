@@ -1,7 +1,8 @@
 export const teknisiMenuItems = [
     { key: "monitoring", label: "Monitoring", icon: "monitor_heart" },
     { key: "customers", label: "Pelanggan", icon: "groups" },
-    { key: "trash", label: "Tempat Sampah", icon: "delete" },
+    { key: "todos", label: "Tindak Lanjut", icon: "task_alt" },
+    { key: "trash", label: "Tempat Sampah", icon: "delete", separated: true },
 ];
 
 export const teknisiRoleConfig = {
@@ -19,7 +20,7 @@ export const teknisiRoleConfig = {
         canEditTenant: false,
         canDeleteTenant: false,
     },
-    allowedSections: ["monitoring", "customers", "trash"],
+    allowedSections: ["monitoring", "customers", "todos", "trash"],
     allowedRouteTypes: [
         "redirect",
         "login",

@@ -222,7 +222,7 @@ export default function FoRouteMultiPreview({ tenants = [], entryPoints = [], is
   return (
     <section className="space-y-4">
       {/* Map */}
-      <div className="relative overflow-hidden rounded-2xl border border-white/10 h-[560px] group hover:border-gold-accent/40 transition-all duration-500 hover:shadow-[0_0_20px_rgba(255,215,0,0.1)]">
+      <div className="relative z-0 overflow-hidden rounded-2xl border border-white/10 w-full aspect-square md:aspect-auto md:h-[560px] group hover:border-gold-accent/40 transition-all duration-500 hover:shadow-[0_0_20px_rgba(255,215,0,0.1)]">
         {/* Tombol Pusatkan KIMA */}
         <button
           className="absolute bottom-6 right-6 z-[1000] w-9 h-9 rounded-xl border border-gold-accent/30 bg-slate-900/80 backdrop-blur-md text-gold-accent hover:bg-gold-accent hover:text-[#0f141e] transition shadow-lg flex items-center justify-center"

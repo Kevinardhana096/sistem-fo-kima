@@ -264,47 +264,49 @@ export default function TrashPage({ activeSection, onNavigate, onLogout: _onLogo
 
                 {/* Stats Section */}
                 <div className="relative overflow-hidden glass-card rounded-2xl p-5 group">
-                    <div className="absolute -right-12 -top-12 h-32 w-32 rounded-full bg-gold-accent/5 blur-2xl transition-all duration-700 group-hover:bg-gold-accent/10 backdrop-blur-md" />
+                        <div className="absolute -right-12 -top-12 h-32 w-32 rounded-full bg-gold-accent/5 blur-2xl transition-all duration-700 group-hover:bg-gold-accent/10 backdrop-blur-md" />
 
-                    <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
-                        <div className="flex items-center gap-4">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gold-accent/10 border border-gold-accent/20 backdrop-blur-md">
-                                <span className="material-symbols-outlined text-xl text-gold-accent animate-pulse">auto_delete</span>
+                        <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
+                            <div className="flex items-center gap-4">
+                                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gold-accent/10 border border-gold-accent/20 backdrop-blur-md">
+                                    <span className="material-symbols-outlined text-xl text-gold-accent animate-pulse">auto_delete</span>
+                                </div>
+                                <div>
+                                    <h2 className="text-sm font-black text-white uppercase tracking-wider">Statistik Pembersihan</h2>
+                                    <p className="text-[9px] font-bold text-white/40 mt-0.5 uppercase tracking-widest leading-relaxed">
+                                        Terakhir: <span className="text-gold-accent">{deletionStats.lastClearedAt ? formatDate(deletionStats.lastClearedAt) : "-"}</span>
+                                    </p>
+                                </div>
                             </div>
-                            <div>
-                                <h2 className="text-sm font-black text-white uppercase tracking-wider">Statistik Pembersihan</h2>
-                                <p className="text-[9px] font-bold text-white/40 mt-0.5 uppercase tracking-widest leading-relaxed">
-                                    Terakhir: <span className="text-gold-accent">{deletionStats.lastClearedAt ? formatDate(deletionStats.lastClearedAt) : "-"}</span>
-                                </p>
+
+                            {!isTeknisi && (
+                                <div className="grid grid-cols-3 lg:grid-cols-6 gap-2 flex-1 max-w-2xl">
+                                    {Object.entries(deletionStats.breakdown).filter(([type]) => type !== 'Versi Kontrak').map(([type, count]) => {
+                                    const config = TYPE_CONFIG[type] || { color: 'text-white/30', bg: 'bg-white/5' };
+                                    const hoverBorderClass = {
+                                        ISP: "hover:border-blue-500/40",
+                                        Jalur: "hover:border-indigo-500/40",
+                                        Lokasi: "hover:border-amber-500/40",
+                                        Kontrak: "hover:border-emerald-500/40",
+                                        "Versi Kontrak": "hover:border-lime-500/40",
+                                        Invoice: "hover:border-[#ff2400]/40",
+                                        Dokumen: "hover:border-white/30",
+                                    }[type] || "hover:border-white/20";
+
+                                    return (
+                                        <div
+                                            key={type}
+                                            className={`rounded-xl bg-white/5 border border-white/10 p-3 transition-all hover:bg-white/10 ${hoverBorderClass} hover:scale-105 hover:shadow-lg active:scale-95 cursor-default group/stat backdrop-blur-md`}
+                                        >
+                                            <p className={`text-[8px] font-black uppercase tracking-widest mb-0.5 transition-colors ${config.color} opacity-70 group-hover/stat:opacity-100`}>{type}</p>
+                                            <p className="text-sm font-black text-white">{count}</p>
+                                        </div>
+                                    );
+                                })}
                             </div>
-                        </div>
-
-                        <div className="grid grid-cols-3 lg:grid-cols-6 gap-2 flex-1 max-w-2xl">
-                            {Object.entries(deletionStats.breakdown).filter(([type]) => type !== 'Versi Kontrak').map(([type, count]) => {
-                                const config = TYPE_CONFIG[type] || { color: 'text-white/30', bg: 'bg-white/5' };
-                                const hoverBorderClass = {
-                                    ISP: "hover:border-blue-500/40",
-                                    Jalur: "hover:border-indigo-500/40",
-                                    Lokasi: "hover:border-amber-500/40",
-                                    Kontrak: "hover:border-emerald-500/40",
-                                    "Versi Kontrak": "hover:border-lime-500/40",
-                                    Invoice: "hover:border-[#ff2400]/40",
-                                    Dokumen: "hover:border-white/30",
-                                }[type] || "hover:border-white/20";
-
-                                return (
-                                    <div
-                                        key={type}
-                                        className={`rounded-xl bg-white/5 border border-white/10 p-3 transition-all hover:bg-white/10 ${hoverBorderClass} hover:scale-105 hover:shadow-lg active:scale-95 cursor-default group/stat backdrop-blur-md`}
-                                    >
-                                        <p className={`text-[8px] font-black uppercase tracking-widest mb-0.5 transition-colors ${config.color} opacity-70 group-hover/stat:opacity-100`}>{type}</p>
-                                        <p className="text-sm font-black text-white">{count}</p>
-                                    </div>
-                                );
-                            })}
+                            )}
                         </div>
                     </div>
-                </div>
 
                 {/* Filter Section */}
                 <div className="glass-card rounded-xl p-2 sm:p-2.5 flex flex-col sm:flex-row gap-2 items-center z-40 relative">
@@ -361,7 +363,8 @@ export default function TrashPage({ activeSection, onNavigate, onLogout: _onLogo
                             )}
                             <button
                                 onClick={toggleAll}
-                                className={`flex h-8 items-center gap-1.5 rounded-lg border px-3 text-[8px] font-black uppercase tracking-widest transition-all backdrop-blur-md ${
+                                disabled={filteredItems.length === 0}
+                                className={`flex h-8 items-center gap-1.5 rounded-lg border px-3 text-[8px] font-black uppercase tracking-widest transition-all backdrop-blur-md disabled:opacity-50 disabled:cursor-not-allowed ${
                                     selectedCount > 0
                                         ? "border-gold-accent/40 bg-gold-accent/20 text-gold-accent hover:bg-gold-accent hover:text-black"
                                         : "border-white/10 bg-white/5 text-white/50 hover:bg-white/10 hover:text-white"
