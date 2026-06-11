@@ -371,6 +371,22 @@ export const getIspContractActionItems = (contractRows) => {
     });
 };
 
+export const getIspContractRowCoverage = (contractRows) => {
+    const rows = Array.isArray(contractRows) ? contractRows : [];
+    const hasValue = (value) => String(value ?? "").trim().length > 0;
+
+    return {
+        hasReference: rows.some((row) => hasValue(row?.contractReference ?? row?.contract_reference)),
+        hasStartDate: rows.some((row) => hasValue(row?.contractStartDate ?? row?.contract_start_date)),
+        hasPeriod: rows.some((row) => (
+            hasValue(row?.periodStart ?? row?.period_start)
+            && hasValue(row?.periodEnd ?? row?.period_end)
+        )),
+        hasBakFile: rows.some((row) => hasValue(row?.bakFileUrl ?? row?.bak_file_url)),
+        hasContractFile: rows.some((row) => hasValue(row?.contractFileUrl ?? row?.contract_file_url)),
+    };
+};
+
 export const isExternalFileUrl = (value) =>
     typeof value === "string" && /^https?:\/\//i.test(value.trim());
 

@@ -227,6 +227,124 @@ describe('IspDetailPage - tab kontrak', () => {
     });
   });
 
+  it('tidak memaksa nomor kontrak saat mengedit tanggal pada baris aktif biasa', async () => {
+    const { default: api } = await import('../../../lib/api');
+    api.isps.getById.mockResolvedValue({
+      ...baseIsp,
+      contractRows: [
+        {
+          id: 26,
+          ispId: 7,
+          contractReference: '',
+          contractStartDate: '2026-01-01',
+          periodStart: '2026-02-01',
+          periodEnd: '2027-01-31',
+          status: 'aktif',
+          renewalStatus: 'active',
+          renewalFollowUps: [],
+        },
+      ],
+      tenants: [],
+      entryPoints: [],
+    });
+    api.ispContractRows.update.mockResolvedValue({ id: 26 });
+
+    renderPage();
+
+    await screen.findAllByText(/nomor kontrak \/ bak/i);
+    const dateInputs = document.querySelectorAll('input[type="date"]');
+    fireEvent.focus(dateInputs[1]);
+    fireEvent.change(dateInputs[1], { target: { value: '2026-03-01' } });
+    fireEvent.blur(dateInputs[1]);
+
+    await waitFor(() => {
+      expect(api.ispContractRows.update).toHaveBeenCalledWith(26, expect.objectContaining({
+        contract_reference: null,
+        period_start: '2026-03-01',
+        period_end: '2027-01-31',
+      }));
+    });
+    expect(screen.queryByText(/nomor kontrak wajib diisi/i)).not.toBeInTheDocument();
+  });
+
+  it('mengunggah berkas kontrak langsung tanpa membuka editor nomor kontrak', async () => {
+    const { default: api } = await import('../../../lib/api');
+    const { uploadFileForRecord } = await import('../../../lib/files');
+    uploadFileForRecord.mockResolvedValue('https://storage.example.com/kontrak-baru.pdf');
+    api.isps.getById.mockResolvedValue({
+      ...baseIsp,
+      contractRows: [
+        {
+          id: 27,
+          ispId: 7,
+          contractReference: '',
+          contractStartDate: '2026-01-01',
+          periodStart: '2026-02-01',
+          periodEnd: '2027-01-31',
+          status: 'aktif',
+          renewalStatus: 'active',
+          renewalFollowUps: [],
+        },
+      ],
+      tenants: [],
+      entryPoints: [],
+    });
+    api.ispContractRows.update.mockResolvedValue({ id: 27 });
+
+    renderPage();
+
+    await screen.findAllByText(/nomor kontrak \/ bak/i);
+    const firstFileInput = document.querySelector('input[type="file"]');
+    await userEvent.upload(firstFileInput, new File(['kontrak'], 'kontrak-baru.pdf', { type: 'application/pdf' }));
+
+    await waitFor(() => {
+      expect(api.ispContractRows.update).toHaveBeenCalledWith(27, expect.objectContaining({
+        contract_file_url: 'https://storage.example.com/kontrak-baru.pdf',
+        contract_file_name: 'kontrak-baru.pdf',
+      }));
+    });
+    expect(screen.queryByPlaceholderText(/nomor kontrak \/ bak/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/nomor kontrak wajib diisi/i)).not.toBeInTheDocument();
+  });
+
+  it('menghapus berkas kontrak langsung tanpa membuka editor nomor kontrak', async () => {
+    const { default: api } = await import('../../../lib/api');
+    api.isps.getById.mockResolvedValue({
+      ...baseIsp,
+      contractRows: [
+        {
+          id: 28,
+          ispId: 7,
+          contractReference: 'KTR-HAPUS-FILE',
+          contractStartDate: '2026-01-01',
+          periodStart: '2026-02-01',
+          periodEnd: '2027-01-31',
+          status: 'aktif',
+          renewalStatus: 'active',
+          contractFileUrl: 'https://storage.example.com/kontrak-lama.pdf',
+          contractFileName: 'kontrak-lama.pdf',
+          renewalFollowUps: [],
+        },
+      ],
+      tenants: [],
+      entryPoints: [],
+    });
+    api.ispContractRows.update.mockResolvedValue({ id: 28 });
+
+    renderPage();
+
+    await screen.findAllByRole('button', { name: /buka kontrak/i });
+    await userEvent.click(screen.getAllByTitle('Hapus berkas')[0]);
+
+    await waitFor(() => {
+      expect(api.ispContractRows.update).toHaveBeenCalledWith(28, expect.objectContaining({
+        contract_file_url: null,
+        contract_file_name: null,
+      }));
+    });
+    expect(screen.queryByPlaceholderText(/nomor kontrak \/ bak/i)).not.toBeInTheDocument();
+  });
+
 
   it('mempertahankan fokus pada kolom tanggal yang diklik saat baris kontrak masuk mode edit', async () => {
     const { default: api } = await import('../../../lib/api');

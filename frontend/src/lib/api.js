@@ -1,4 +1,9 @@
-import { buildInvoiceScheduleRows, resolveCustomerOperationalStatus, resolveInvoiceDueMonthIsoDate } from '../app/utils';
+import {
+  buildInvoiceScheduleRows,
+  getIspContractRowCoverage,
+  resolveCustomerOperationalStatus,
+  resolveInvoiceDueMonthIsoDate,
+} from '../app/utils';
 import { supabase } from './supabase';
 
 /**
@@ -573,8 +578,12 @@ const getIspDerivedNotifications = async () => {
         id,
         isp_id,
         contract_reference,
+        contract_start_date,
+        period_start,
         period_end,
         renewal_status,
+        bak_file_url,
+        contract_file_url,
         renewal_file_url,
         response_file_url,
         renewalFollowUps:isp_renewal_follow_ups(
@@ -611,17 +620,17 @@ const getIspDerivedNotifications = async () => {
     contractRowsByIspId.get(ispId).push(row);
   });
 
-  const hasActiveContractRowReference = (ispId) => (contractRowsByIspId.get(Number(ispId)) || [])
-    .some((row) => String(row?.contract_reference ?? row?.contractReference ?? '').trim().length > 0);
+  const getActiveContractRowCoverage = (ispId) => getIspContractRowCoverage(contractRowsByIspId.get(Number(ispId)) || []);
 
   return (ispsResult.data || []).flatMap((isp) => {
     const ispId = isp.id;
     const ispName = isp.name || `ISP #${ispId}`;
     const ispStatus = String(isp.status || '').trim().toLowerCase();
     if (['berhenti', 'nonaktif'].includes(ispStatus)) return [];
+    const activeContractRowCoverage = getActiveContractRowCoverage(ispId);
 
     const notifications = [];
-    if (!String(isp.contract_reference || '').trim() && !hasActiveContractRowReference(ispId)) {
+    if (!String(isp.contract_reference || '').trim() && !activeContractRowCoverage.hasReference) {
       notifications.push(createIspDerivedNotification({
         code: 'isp_contract_reference_missing',
         type: 'isp_contract',
@@ -633,7 +642,7 @@ const getIspDerivedNotifications = async () => {
         targetTab: 'contracts',
       }));
     }
-    if (!isp.contract_start_date) {
+    if (!isp.contract_start_date && !activeContractRowCoverage.hasStartDate) {
       notifications.push(createIspDerivedNotification({
         code: 'isp_contract_start_missing',
         type: 'isp_contract',
@@ -645,7 +654,7 @@ const getIspDerivedNotifications = async () => {
         targetTab: 'contracts',
       }));
     }
-    if (!isp.contract_period_start || !isp.contract_period_end) {
+    if ((!isp.contract_period_start || !isp.contract_period_end) && !activeContractRowCoverage.hasPeriod) {
       notifications.push(createIspDerivedNotification({
         code: 'isp_contract_period_missing',
         type: 'isp_contract',
@@ -657,7 +666,7 @@ const getIspDerivedNotifications = async () => {
         targetTab: 'contracts',
       }));
     }
-    if (missingBakIds.has(Number(ispId))) {
+    if (missingBakIds.has(Number(ispId)) && !activeContractRowCoverage.hasBakFile) {
       notifications.push(createIspDerivedNotification({
         code: 'isp_bak_missing',
         type: 'isp_document',
@@ -669,7 +678,7 @@ const getIspDerivedNotifications = async () => {
         targetTab: 'contracts',
       }));
     }
-    if (missingContractIds.has(Number(ispId))) {
+    if (missingContractIds.has(Number(ispId)) && !activeContractRowCoverage.hasContractFile) {
       notifications.push(createIspDerivedNotification({
         code: 'isp_contract_file_missing',
         type: 'isp_document',

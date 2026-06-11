@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
     formatMonthYear,
+    getIspContractRowCoverage,
     resolveInvoiceDueMonthIsoDate,
 } from "../utils";
 
@@ -29,5 +30,42 @@ describe("resolveInvoiceDueMonthIsoDate", () => {
 describe("formatMonthYear", () => {
     it("formats a technical due date as only month and year", () => {
         expect(formatMonthYear("2026-01-01")).toBe("Januari 2026");
+    });
+});
+
+describe("getIspContractRowCoverage", () => {
+    it("treats ISP contract row files as uploaded document coverage", () => {
+        expect(getIspContractRowCoverage([
+            {
+                contract_reference: "KTR-ISP-001",
+                contract_start_date: "2026-01-01",
+                period_start: "2026-02-01",
+                period_end: "2027-01-31",
+                bak_file_url: "https://storage.example.com/bak.pdf",
+                contract_file_url: "https://storage.example.com/kontrak.pdf",
+            },
+        ])).toEqual({
+            hasReference: true,
+            hasStartDate: true,
+            hasPeriod: true,
+            hasBakFile: true,
+            hasContractFile: true,
+        });
+    });
+
+    it("keeps incomplete period false unless both start and end exist", () => {
+        expect(getIspContractRowCoverage([
+            {
+                contractReference: "KTR-ISP-002",
+                periodStart: "2026-02-01",
+                bakFileUrl: "",
+            },
+        ])).toEqual({
+            hasReference: true,
+            hasStartDate: false,
+            hasPeriod: false,
+            hasBakFile: false,
+            hasContractFile: false,
+        });
     });
 });

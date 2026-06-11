@@ -327,7 +327,6 @@ function IspDetailPage({
     const [contractRowEditor, setContractRowEditor] = useState(null);
     const [expandedContracts, setExpandedContracts] = useState({});
     const [isSavingContractRow, setIsSavingContractRow] = useState(false);
-    const isSelectingFileRef = useRef(false);
     const [contractDraft, setContractDraft] = useState(null);
     const [contractDraftSaving, setContractDraftSaving] = useState(false);
     const [risalahRows, setRisalahRows] = useState([]);
@@ -1197,6 +1196,16 @@ function IspDetailPage({
         } catch { setError("Gagal memperbarui data baris."); } finally { setIsActionLoading(false); }
     };
 
+    const handleClearContractRowFile = async (rowId, type) => {
+        if (!requireIspContractManageAccess()) return;
+        const updates = type === "bak"
+            ? { bak_file_url: null, bak_file_name: null }
+            : { contract_file_url: null, contract_file_name: null };
+        setError("");
+        await handleUpdateRow(rowId, updates);
+        if (onRefreshAll) onRefreshAll();
+    };
+
     const handleSaveContractRow = async (event = null, overrides = {}) => {
         if (event) event.preventDefault();
         if (!contractRowEditor) return;
@@ -1206,33 +1215,34 @@ function IspDetailPage({
         const contractStartDate = String(currentEditor.contractStartDate ?? "").slice(0, 10);
         const periodStart = String(currentEditor.periodStart ?? "").slice(0, 10);
         const periodEnd = String(currentEditor.periodEnd ?? "").slice(0, 10);
+        const requiresCompletedContractData = String(currentEditor.renewalStatus ?? "").trim() === "needs_completion";
 
-        if (!contractReference) {
+        if (requiresCompletedContractData && !contractReference) {
             setError("Nomor kontrak wajib diisi.");
             return false;
         }
-        if (!periodStart) {
+        if (requiresCompletedContractData && !periodStart) {
             setError("Periode berjalan awal wajib diisi.");
             return false;
         }
-        if (!periodEnd) {
+        if (requiresCompletedContractData && !periodEnd) {
             setError("Periode berjalan akhir wajib diisi.");
             return false;
         }
-        if (periodStart > periodEnd) {
+        if (periodStart && periodEnd && periodStart > periodEnd) {
             setError("Periode awal tidak boleh lebih besar dari periode akhir.");
             return false;
         }
 
         const updates = {
-            contract_reference: contractReference,
+            contract_reference: contractReference || null,
             contract_start_date: contractStartDate || null,
-            period_start: periodStart,
-            period_end: periodEnd,
+            period_start: periodStart || null,
+            period_end: periodEnd || null,
             status: currentEditor.status ?? "aktif",
         };
 
-        if (String(currentEditor.renewalStatus ?? "").trim() === "needs_completion") {
+        if (requiresCompletedContractData) {
             updates.renewal_status = "active";
         }
         const pendingReplacementLabels = [
@@ -1279,7 +1289,6 @@ function IspDetailPage({
 
     const triggerAutoSave = async () => {
         if (!contractRowEditor) return;
-        if (isSelectingFileRef.current) return;
 
         const originalRow = contractRows.find(r => r.id === contractRowEditor.rowId);
         if (!originalRow) return;
@@ -3118,16 +3127,13 @@ function IspDetailPage({
                                                                             </button>
                                                                             {canManageIspContracts && (
                                                                                 <button
-                                                                                    type="button"
-                                                                                    onClick={() => {
-                                                                                        if (!isEditingContractRow) {
-                                                                                            openContractRowEditor(row, null);
-                                                                                            setTimeout(() => {
+                                                                                        type="button"
+                                                                                        onClick={() => {
+                                                                                            if (!isEditingContractRow) {
+                                                                                                void handleClearContractRowFile(row.id, "contract");
+                                                                                            } else {
                                                                                                 setContractRowEditor(prev => prev ? { ...prev, contractFileUrl: "" } : null);
-                                                                                            }, 50);
-                                                                                        } else {
-                                                                                            setContractRowEditor(prev => prev ? { ...prev, contractFileUrl: "" } : null);
-                                                                                        }
+                                                                                            }
                                                                                     }}
                                                                                     className="h-6 w-6 rounded-md border border-[#ff2400]/20 bg-[#ff2400]/10 flex items-center justify-center text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all shrink-0"
                                                                                     title="Hapus berkas"
@@ -3139,54 +3145,33 @@ function IspDetailPage({
                                                                     ) : !canManageIspContracts ? (
                                                                         <span className="text-[10px] font-bold text-white/20">Belum diunggah</span>
                                                                     ) : (
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => openContractRowEditor(row, "contractFile")}
+                                                                        <FilePickerButton
+                                                                            label="Upload"
                                                                             className="inline-flex h-6 items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all shrink-0"
-                                                                        >
-                                                                            <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>upload_file</span>
-                                                                            Upload
-                                                                        </button>
+                                                                            icon={<span className="material-symbols-outlined" style={{ fontSize: "14px" }}>upload_file</span>}
+                                                                            onPickFile={(file) => void handleFileUpload(row.id, "contract", file)}
+                                                                        />
                                                                     )}
                                                                     {isEditingContractRow ? (
-                                                                        <label
+                                                                        <FilePickerButton
+                                                                            label=""
                                                                             className="inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-white/10 bg-white/5 text-white/40 hover:text-white hover:border-white/20 transition-all shrink-0"
-                                                                            onClick={() => { isSelectingFileRef.current = true; }}
-                                                                            title="Ganti berkas"
-                                                                        >
-                                                                            <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>upload_file</span>
-                                                                            <input
-                                                                                type="file"
-                                                                                className="hidden"
-                                                                                disabled={isSavingContractRow}
-                                                                                onChange={async (event) => {
-                                                                                    isSelectingFileRef.current = false;
-                                                                                    const file = event.target.files?.[0] ?? null;
-                                                                                    if (file) {
-                                                                                        setContractRowEditor((previous) => (
-                                                                                            previous ? { ...previous, contractUploadedFile: file, contractUploadedFileName: file.name } : previous
-                                                                                        ));
-                                                                                        await handleSaveContractRow(null, { contractUploadedFile: file });
-                                                                                    }
-                                                                                }}
-                                                                                ref={(el) => {
-                                                                                    if (el && contractRowEditor?.focusField === "contractFile") {
-                                                                                        isSelectingFileRef.current = true;
-                                                                                        el.click();
-                                                                                        setContractRowEditor((prev) => prev ? { ...prev, focusField: null } : null);
-                                                                                    }
-                                                                                }}
-                                                                            />
-                                                                        </label>
+                                                                            disabled={isSavingContractRow}
+                                                                            icon={<span className="material-symbols-outlined" style={{ fontSize: "14px" }}>upload_file</span>}
+                                                                            onPickFile={async (file) => {
+                                                                                setContractRowEditor((previous) => (
+                                                                                    previous ? { ...previous, contractUploadedFile: file, contractUploadedFileName: file.name } : previous
+                                                                                ));
+                                                                                await handleSaveContractRow(null, { contractUploadedFile: file });
+                                                                            }}
+                                                                        />
                                                                     ) : canManageIspContracts && row.contractFileUrl && (
-                                                                        <button
-                                                                            type="button"
+                                                                        <FilePickerButton
+                                                                            label=""
                                                                             className="inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-white/10 bg-white/5 text-white/40 hover:text-white hover:border-white/20 transition-all shrink-0"
-                                                                            onClick={() => openContractRowEditor(row, "contractFile")}
-                                                                            title="Ganti berkas"
-                                                                        >
-                                                                            <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>upload_file</span>
-                                                                        </button>
+                                                                            icon={<span className="material-symbols-outlined" style={{ fontSize: "14px" }}>upload_file</span>}
+                                                                            onPickFile={(file) => void handleFileUpload(row.id, "contract", file)}
+                                                                        />
                                                                     )}
                                                                 </div>
                                                             </td>
@@ -3293,16 +3278,13 @@ function IspDetailPage({
                                                                             </button>
                                                                             {canManageIspContracts && (
                                                                                 <button
-                                                                                    type="button"
-                                                                                    onClick={() => {
-                                                                                        if (!isEditingContractRow) {
-                                                                                            openContractRowEditor(row, null);
-                                                                                            setTimeout(() => {
+                                                                                        type="button"
+                                                                                        onClick={() => {
+                                                                                            if (!isEditingContractRow) {
+                                                                                                void handleClearContractRowFile(row.id, "bak");
+                                                                                            } else {
                                                                                                 setContractRowEditor(prev => prev ? { ...prev, bakFileUrl: "" } : null);
-                                                                                            }, 50);
-                                                                                        } else {
-                                                                                            setContractRowEditor(prev => prev ? { ...prev, bakFileUrl: "" } : null);
-                                                                                        }
+                                                                                            }
                                                                                     }}
                                                                                     className="h-6 w-6 rounded-md border border-[#ff2400]/20 bg-[#ff2400]/10 flex items-center justify-center text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all shrink-0"
                                                                                     title="Hapus berkas"
@@ -3314,54 +3296,33 @@ function IspDetailPage({
                                                                     ) : !canManageIspContracts ? (
                                                                         <span className="text-[10px] font-bold text-white/20">Belum diunggah</span>
                                                                     ) : (
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => openContractRowEditor(row, "bakFile")}
+                                                                        <FilePickerButton
+                                                                            label="Upload"
                                                                             className="inline-flex h-6 items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all shrink-0"
-                                                                        >
-                                                                            <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>upload_file</span>
-                                                                            Upload
-                                                                        </button>
+                                                                            icon={<span className="material-symbols-outlined" style={{ fontSize: "14px" }}>upload_file</span>}
+                                                                            onPickFile={(file) => void handleFileUpload(row.id, "bak", file)}
+                                                                        />
                                                                     )}
                                                                     {isEditingContractRow ? (
-                                                                        <label
+                                                                        <FilePickerButton
+                                                                            label=""
                                                                             className="inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-white/10 bg-white/5 text-white/40 hover:text-white hover:border-white/20 transition-all shrink-0"
-                                                                            onClick={() => { isSelectingFileRef.current = true; }}
-                                                                            title="Ganti berkas"
-                                                                        >
-                                                                            <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>upload_file</span>
-                                                                            <input
-                                                                                type="file"
-                                                                                className="hidden"
-                                                                                disabled={isSavingContractRow}
-                                                                                onChange={async (event) => {
-                                                                                    isSelectingFileRef.current = false;
-                                                                                    const file = event.target.files?.[0] ?? null;
-                                                                                    if (file) {
-                                                                                        setContractRowEditor((previous) => (
-                                                                                            previous ? { ...previous, bakUploadedFile: file, bakUploadedFileName: file.name } : previous
-                                                                                        ));
-                                                                                        await handleSaveContractRow(null, { bakUploadedFile: file });
-                                                                                    }
-                                                                                }}
-                                                                                ref={(el) => {
-                                                                                    if (el && contractRowEditor?.focusField === "bakFile") {
-                                                                                        isSelectingFileRef.current = true;
-                                                                                        el.click();
-                                                                                        setContractRowEditor((prev) => prev ? { ...prev, focusField: null } : null);
-                                                                                    }
-                                                                                }}
-                                                                            />
-                                                                        </label>
+                                                                            disabled={isSavingContractRow}
+                                                                            icon={<span className="material-symbols-outlined" style={{ fontSize: "14px" }}>upload_file</span>}
+                                                                            onPickFile={async (file) => {
+                                                                                setContractRowEditor((previous) => (
+                                                                                    previous ? { ...previous, bakUploadedFile: file, bakUploadedFileName: file.name } : previous
+                                                                                ));
+                                                                                await handleSaveContractRow(null, { bakUploadedFile: file });
+                                                                            }}
+                                                                        />
                                                                     ) : canManageIspContracts && row.bakFileUrl && (
-                                                                        <button
-                                                                            type="button"
+                                                                        <FilePickerButton
+                                                                            label=""
                                                                             className="inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-white/10 bg-white/5 text-white/40 hover:text-white hover:border-white/20 transition-all shrink-0"
-                                                                            onClick={() => openContractRowEditor(row, "bakFile")}
-                                                                            title="Ganti berkas"
-                                                                        >
-                                                                            <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>upload_file</span>
-                                                                        </button>
+                                                                            icon={<span className="material-symbols-outlined" style={{ fontSize: "14px" }}>upload_file</span>}
+                                                                            onPickFile={(file) => void handleFileUpload(row.id, "bak", file)}
+                                                                        />
                                                                     )}
                                                                 </div>
                                                             </td>
@@ -3602,16 +3563,13 @@ function IspDetailPage({
                                                                                 </button>
                                                                                 {canManageIspContracts && (
                                                                                     <button
-                                                                                        type="button"
-                                                                                        onClick={() => {
-                                                                                            if (!isEditingContractRow) {
-                                                                                                openContractRowEditor(row, null);
-                                                                                                setTimeout(() => {
+                                                                                            type="button"
+                                                                                            onClick={() => {
+                                                                                                if (!isEditingContractRow) {
+                                                                                                    void handleClearContractRowFile(row.id, "contract");
+                                                                                                } else {
                                                                                                     setContractRowEditor(prev => prev ? { ...prev, contractFileUrl: "" } : null);
-                                                                                                }, 50);
-                                                                                            } else {
-                                                                                                setContractRowEditor(prev => prev ? { ...prev, contractFileUrl: "" } : null);
-                                                                                            }
+                                                                                                }
                                                                                         }}
                                                                                         className="h-6 w-6 rounded-lg border border-[#ff2400]/20 bg-[#ff2400]/10 flex items-center justify-center text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all"
                                                                                         title="Hapus"
@@ -3621,53 +3579,32 @@ function IspDetailPage({
                                                                                 )}
                                                                             </>
                                                                         ) : canManageIspContracts ? (
-                                                                            <button
-                                                                                type="button"
-                                                                                onClick={() => openContractRowEditor(row, "contractFile")}
+                                                                            <FilePickerButton
+                                                                                label="Upload"
                                                                                 className="h-6 px-1.5 rounded-lg bg-white/5 border border-white/10 text-white/40 flex items-center hover:border-white/20 hover:text-white transition-all text-[8px] font-black uppercase tracking-wider"
-                                                                            >
-                                                                                Upload
-                                                                            </button>
+                                                                                onPickFile={(file) => void handleFileUpload(row.id, "contract", file)}
+                                                                            />
                                                                         ) : null}
                                                                         {isEditingContractRow ? (
-                                                                            <label
+                                                                            <FilePickerButton
+                                                                                label=""
                                                                                 className="h-6 w-6 rounded-lg bg-white/5 border border-white/10 text-white/40 flex items-center justify-center cursor-pointer hover:text-white hover:border-white/20 transition-all"
-                                                                                onClick={() => { isSelectingFileRef.current = true; }}
-                                                                                title="Ganti berkas"
-                                                                            >
-                                                                                <span className="material-symbols-outlined" style={{ fontSize: "11px" }}>sync</span>
-                                                                                <input
-                                                                                    type="file"
-                                                                                    className="hidden"
-                                                                                    disabled={isSavingContractRow}
-                                                                                    onChange={async (event) => {
-                                                                                        isSelectingFileRef.current = false;
-                                                                                        const file = event.target.files?.[0] ?? null;
-                                                                                        if (file) {
-                                                                                            setContractRowEditor((previous) => (
-                                                                                                previous ? { ...previous, contractUploadedFile: file, contractUploadedFileName: file.name } : previous
-                                                                                            ));
-                                                                                            await handleSaveContractRow(null, { contractUploadedFile: file });
-                                                                                        }
-                                                                                    }}
-                                                                                    ref={(el) => {
-                                                                                        if (el && contractRowEditor?.focusField === "contractFile") {
-                                                                                            isSelectingFileRef.current = true;
-                                                                                            el.click();
-                                                                                            setContractRowEditor((prev) => prev ? { ...prev, focusField: null } : null);
-                                                                                        }
-                                                                                    }}
-                                                                                />
-                                                                            </label>
+                                                                                disabled={isSavingContractRow}
+                                                                                icon={<span className="material-symbols-outlined" style={{ fontSize: "11px" }}>sync</span>}
+                                                                                onPickFile={async (file) => {
+                                                                                    setContractRowEditor((previous) => (
+                                                                                        previous ? { ...previous, contractUploadedFile: file, contractUploadedFileName: file.name } : previous
+                                                                                    ));
+                                                                                    await handleSaveContractRow(null, { contractUploadedFile: file });
+                                                                                }}
+                                                                            />
                                                                         ) : canManageIspContracts && row.contractFileUrl && (
-                                                                            <button
-                                                                                type="button"
-                                                                                onClick={() => openContractRowEditor(row, "contractFile")}
+                                                                            <FilePickerButton
+                                                                                label=""
                                                                                 className="h-6 w-6 rounded-lg bg-white/5 border border-white/10 text-white/40 flex items-center justify-center hover:text-white hover:border-white/20 transition-all"
-                                                                                title="Ganti berkas"
-                                                                            >
-                                                                                <span className="material-symbols-outlined" style={{ fontSize: "11px" }}>sync</span>
-                                                                            </button>
+                                                                                icon={<span className="material-symbols-outlined" style={{ fontSize: "11px" }}>sync</span>}
+                                                                                onPickFile={(file) => void handleFileUpload(row.id, "contract", file)}
+                                                                            />
                                                                         )}
                                                                     </div>
                                                                 </div>
@@ -3712,16 +3649,13 @@ function IspDetailPage({
                                                                                 </button>
                                                                                 {canManageIspContracts && (
                                                                                     <button
-                                                                                        type="button"
-                                                                                        onClick={() => {
-                                                                                            if (!isEditingContractRow) {
-                                                                                                openContractRowEditor(row, null);
-                                                                                                setTimeout(() => {
+                                                                                            type="button"
+                                                                                            onClick={() => {
+                                                                                                if (!isEditingContractRow) {
+                                                                                                    void handleClearContractRowFile(row.id, "bak");
+                                                                                                } else {
                                                                                                     setContractRowEditor(prev => prev ? { ...prev, bakFileUrl: "" } : null);
-                                                                                                }, 50);
-                                                                                            } else {
-                                                                                                setContractRowEditor(prev => prev ? { ...prev, bakFileUrl: "" } : null);
-                                                                                            }
+                                                                                                }
                                                                                         }}
                                                                                         className="h-6 w-6 rounded-lg border border-[#ff2400]/20 bg-[#ff2400]/10 flex items-center justify-center text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all"
                                                                                         title="Hapus"
@@ -3731,53 +3665,32 @@ function IspDetailPage({
                                                                                 )}
                                                                             </>
                                                                         ) : canManageIspContracts ? (
-                                                                            <button
-                                                                                type="button"
-                                                                                onClick={() => openContractRowEditor(row, "bakFile")}
+                                                                            <FilePickerButton
+                                                                                label="Upload"
                                                                                 className="h-6 px-1.5 rounded-lg bg-white/5 border border-white/10 text-white/40 flex items-center hover:border-white/20 hover:text-white transition-all text-[8px] font-black uppercase tracking-wider"
-                                                                            >
-                                                                                Upload
-                                                                            </button>
+                                                                                onPickFile={(file) => void handleFileUpload(row.id, "bak", file)}
+                                                                            />
                                                                         ) : null}
                                                                         {isEditingContractRow ? (
-                                                                            <label
+                                                                            <FilePickerButton
+                                                                                label=""
                                                                                 className="h-6 w-6 rounded-lg bg-white/5 border border-white/10 text-white/40 flex items-center justify-center cursor-pointer hover:text-white hover:border-white/20 transition-all"
-                                                                                onClick={() => { isSelectingFileRef.current = true; }}
-                                                                                title="Ganti berkas"
-                                                                            >
-                                                                                <span className="material-symbols-outlined" style={{ fontSize: "11px" }}>sync</span>
-                                                                                <input
-                                                                                    type="file"
-                                                                                    className="hidden"
-                                                                                    disabled={isSavingContractRow}
-                                                                                    onChange={async (event) => {
-                                                                                        isSelectingFileRef.current = false;
-                                                                                        const file = event.target.files?.[0] ?? null;
-                                                                                        if (file) {
-                                                                                            setContractRowEditor((previous) => (
-                                                                                                previous ? { ...previous, bakUploadedFile: file, bakUploadedFileName: file.name } : previous
-                                                                                            ));
-                                                                                            await handleSaveContractRow(null, { bakUploadedFile: file });
-                                                                                        }
-                                                                                    }}
-                                                                                    ref={(el) => {
-                                                                                        if (el && contractRowEditor?.focusField === "bakFile") {
-                                                                                            isSelectingFileRef.current = true;
-                                                                                            el.click();
-                                                                                            setContractRowEditor((prev) => prev ? { ...prev, focusField: null } : null);
-                                                                                        }
-                                                                                    }}
-                                                                                />
-                                                                            </label>
+                                                                                disabled={isSavingContractRow}
+                                                                                icon={<span className="material-symbols-outlined" style={{ fontSize: "11px" }}>sync</span>}
+                                                                                onPickFile={async (file) => {
+                                                                                    setContractRowEditor((previous) => (
+                                                                                        previous ? { ...previous, bakUploadedFile: file, bakUploadedFileName: file.name } : previous
+                                                                                    ));
+                                                                                    await handleSaveContractRow(null, { bakUploadedFile: file });
+                                                                                }}
+                                                                            />
                                                                         ) : canManageIspContracts && row.bakFileUrl && (
-                                                                            <button
-                                                                                type="button"
-                                                                                onClick={() => openContractRowEditor(row, "bakFile")}
+                                                                            <FilePickerButton
+                                                                                label=""
                                                                                 className="h-6 w-6 rounded-lg bg-white/5 border border-white/10 text-white/40 flex items-center justify-center hover:text-white hover:border-white/20 transition-all"
-                                                                                title="Ganti berkas"
-                                                                            >
-                                                                                <span className="material-symbols-outlined" style={{ fontSize: "11px" }}>sync</span>
-                                                                            </button>
+                                                                                icon={<span className="material-symbols-outlined" style={{ fontSize: "11px" }}>sync</span>}
+                                                                                onPickFile={(file) => void handleFileUpload(row.id, "bak", file)}
+                                                                            />
                                                                         )}
                                                                     </div>
                                                                 </div>
