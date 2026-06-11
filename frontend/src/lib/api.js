@@ -515,8 +515,21 @@ const getIspNotificationTargetPath = (ispId, tab = 'overview') => (
   ispId ? `/isps/${ispId}${tab && tab !== 'overview' ? `?tab=${tab}` : ''}` : null
 );
 
-const createIspDerivedNotification = ({ code, type, severity = 'warning', title, message, ispId, ispName, actionLabel = 'Buka ISP', targetTab = 'overview' }) => ({
-  id: `${code}-${ispId ?? 'general'}`,
+const createIspDerivedNotification = ({
+  code,
+  type,
+  severity = 'warning',
+  title,
+  message,
+  ispId,
+  ispName,
+  actionLabel = 'Buka ISP',
+  targetTab = 'overview',
+  rowId = null,
+  followUpId = null,
+  actionType = null,
+}) => ({
+  id: [code, ispId ?? 'general', rowId, followUpId].filter((part) => part !== null && part !== undefined && part !== '').join('-'),
   source: 'derived',
   type,
   code,
@@ -526,6 +539,9 @@ const createIspDerivedNotification = ({ code, type, severity = 'warning', title,
   customerId: null,
   ispId: ispId ?? null,
   customerName: ispName ?? null,
+  rowId,
+  followUpId,
+  actionType,
   actionLabel,
   targetPath: getIspNotificationTargetPath(ispId, targetTab),
   dueDate: null,
@@ -553,7 +569,26 @@ const getIspDerivedNotifications = async () => {
       .or('contract_file_url.is.null,contract_file_url.eq.'),
     supabase
       .from('isp_contract_rows')
-      .select('id,isp_id,contract_reference,period_end,renewal_status,renewal_file_url,response_file_url')
+      .select(`
+        id,
+        isp_id,
+        contract_reference,
+        period_end,
+        renewal_status,
+        renewal_file_url,
+        response_file_url,
+        renewalFollowUps:isp_renewal_follow_ups(
+          id,
+          row_id,
+          split_order,
+          status,
+          renewal_file_url,
+          response_file_url,
+          response_decision,
+          created_at,
+          updated_at
+        )
+      `)
       .is('deleted_at', null)
       .eq('renewal_status', 'active'),
   ]);
@@ -653,53 +688,28 @@ const getIspDerivedNotifications = async () => {
       const threeMonthsBefore = addDaysToIsoDate(periodEnd, -90);
       const twoMonthsBefore = addDaysToIsoDate(periodEnd, -60);
       const oneMonthBefore = addDaysToIsoDate(periodEnd, -30);
-      const hasRenewalFile = !!(row.renewal_file_url && String(row.renewal_file_url).trim());
-      const hasResponseFile = !!(row.response_file_url && String(row.response_file_url).trim());
+      const followUps = Array.isArray(row.renewalFollowUps) ? row.renewalFollowUps : [];
+      const sortedFollowUps = [...followUps].sort((left, right) => {
+        const splitDiff = Number(right?.split_order ?? 0) - Number(left?.split_order ?? 0);
+        if (splitDiff !== 0) return splitDiff;
+        return String(right?.updated_at ?? right?.created_at ?? '').localeCompare(String(left?.updated_at ?? left?.created_at ?? ''));
+      });
+      const pendingResponseFollowUp = sortedFollowUps.find((followUp) => (
+        followUp?.status !== 'completed'
+        && followUp?.renewal_file_url
+        && String(followUp.renewal_file_url).trim()
+        && !(followUp?.response_file_url && String(followUp.response_file_url).trim())
+      )) ?? null;
+      const latestFollowUp = pendingResponseFollowUp ?? sortedFollowUps[0] ?? null;
+      const hasRenewalFile = !!(
+        (row.renewal_file_url && String(row.renewal_file_url).trim())
+        || sortedFollowUps.some((followUp) => followUp?.renewal_file_url && String(followUp.renewal_file_url).trim())
+      );
+      const hasResponseFile = !!(
+        (row.response_file_url && String(row.response_file_url).trim())
+        || sortedFollowUps.some((followUp) => followUp?.response_file_url && String(followUp.response_file_url).trim())
+      );
 
-      // Peringatan 3 bulan sebelum masa berakhir - belum ada surat perpanjangan
-      if (todayIso >= threeMonthsBefore && todayIso < periodEnd && !hasRenewalFile) {
-        notifications.push(createIspDerivedNotification({
-          code: 'isp_renewal_warning_3m',
-          type: 'isp_renewal',
-          title: 'Kontrak ISP akan berakhir dalam 3 bulan',
-          message: `Kontrak ${row.contract_reference || 'ISP'} untuk ${ispName} akan berakhir pada ${periodEnd}. Segera buat surat perpanjangan.`,
-          ispId,
-          ispName,
-          actionLabel: 'Buka Kontrak',
-          targetTab: 'contracts',
-        }));
-      }
-
-      // Peringatan 2 bulan - surat sudah ada tapi belum ada tanggapan
-      if (todayIso >= twoMonthsBefore && todayIso < periodEnd && hasRenewalFile && !hasResponseFile) {
-        notifications.push(createIspDerivedNotification({
-          code: 'isp_renewal_warning_2m',
-          type: 'isp_renewal',
-          title: 'Peringatan ke-2: Menunggu tanggapan perpanjangan',
-          message: `Kontrak ${row.contract_reference || 'ISP'} untuk ${ispName} akan berakhir pada ${periodEnd}. Surat perpanjangan sudah dikirim, menunggu tanggapan ISP.`,
-          ispId,
-          ispName,
-          actionLabel: 'Buka Kontrak',
-          targetTab: 'contracts',
-        }));
-      }
-
-      // Peringatan 1 bulan - surat sudah ada tapi belum ada tanggapan
-      if (todayIso >= oneMonthBefore && todayIso < periodEnd && hasRenewalFile && !hasResponseFile) {
-        notifications.push(createIspDerivedNotification({
-          code: 'isp_renewal_warning_1m',
-          type: 'isp_renewal',
-          severity: 'critical',
-          title: 'Peringatan ke-3: Kontrak akan berakhir dalam 1 bulan',
-          message: `Kontrak ${row.contract_reference || 'ISP'} untuk ${ispName} akan berakhir pada ${periodEnd}. Belum ada tanggapan dari ISP.`,
-          ispId,
-          ispName,
-          actionLabel: 'Buka Kontrak',
-          targetTab: 'contracts',
-        }));
-      }
-
-      // Sudah lewat masa berakhir - belum ada tanggapan
       if (todayIso > periodEnd && !hasResponseFile) {
         notifications.push(createIspDerivedNotification({
           code: 'isp_renewal_overdue',
@@ -709,6 +719,52 @@ const getIspDerivedNotifications = async () => {
           message: `Kontrak ${row.contract_reference || 'ISP'} untuk ${ispName} telah berakhir pada ${periodEnd}. Status: Belum Diperpanjang.`,
           ispId,
           ispName,
+          rowId: row.id,
+          followUpId: latestFollowUp?.id ?? null,
+          actionType: hasRenewalFile ? 'response' : 'renewal',
+          actionLabel: 'Buka Kontrak',
+          targetTab: 'contracts',
+        }));
+      } else if (todayIso >= oneMonthBefore && todayIso < periodEnd && hasRenewalFile && !hasResponseFile) {
+        notifications.push(createIspDerivedNotification({
+          code: 'isp_renewal_warning_1m',
+          type: 'isp_renewal',
+          severity: 'critical',
+          title: 'Peringatan ke-3: Kontrak akan berakhir dalam 1 bulan',
+          message: `Kontrak ${row.contract_reference || 'ISP'} untuk ${ispName} akan berakhir pada ${periodEnd}. Belum ada tanggapan dari ISP.`,
+          ispId,
+          ispName,
+          rowId: row.id,
+          followUpId: pendingResponseFollowUp?.id ?? latestFollowUp?.id ?? null,
+          actionType: 'response',
+          actionLabel: 'Buka Kontrak',
+          targetTab: 'contracts',
+        }));
+      } else if (todayIso >= twoMonthsBefore && todayIso < periodEnd && hasRenewalFile && !hasResponseFile) {
+        notifications.push(createIspDerivedNotification({
+          code: 'isp_renewal_warning_2m',
+          type: 'isp_renewal',
+          title: 'Peringatan ke-2: Menunggu tanggapan perpanjangan',
+          message: `Kontrak ${row.contract_reference || 'ISP'} untuk ${ispName} akan berakhir pada ${periodEnd}. Surat perpanjangan sudah dikirim, menunggu tanggapan ISP.`,
+          ispId,
+          ispName,
+          rowId: row.id,
+          followUpId: pendingResponseFollowUp?.id ?? latestFollowUp?.id ?? null,
+          actionType: 'response',
+          actionLabel: 'Buka Kontrak',
+          targetTab: 'contracts',
+        }));
+      } else if (todayIso >= threeMonthsBefore && todayIso < periodEnd && !hasRenewalFile) {
+        notifications.push(createIspDerivedNotification({
+          code: 'isp_renewal_warning_3m',
+          type: 'isp_renewal',
+          title: 'Kontrak ISP akan berakhir dalam 3 bulan',
+          message: `Kontrak ${row.contract_reference || 'ISP'} untuk ${ispName} akan berakhir pada ${periodEnd}. Segera buat surat perpanjangan.`,
+          ispId,
+          ispName,
+          rowId: row.id,
+          followUpId: latestFollowUp?.id ?? null,
+          actionType: 'renewal',
           actionLabel: 'Buka Kontrak',
           targetTab: 'contracts',
         }));
@@ -5199,6 +5255,20 @@ export const ispRenewalFollowUpsApi = {
     }
 
     return data;
+  },
+
+  async submitResponse(id, followUpData) {
+    const decision = followUpData.response_status ?? followUpData.responseStatus ?? followUpData.response_decision ?? followUpData.responseDecision;
+    const { data, error } = await supabase.rpc('submit_isp_renewal_response', {
+      p_follow_up_id: id,
+      p_response_file_url: followUpData.response_file_url ?? followUpData.responseFileUrl ?? null,
+      p_response_file_name: followUpData.response_file_name ?? followUpData.responseFileName ?? null,
+      p_response_decision: decision,
+    });
+
+    if (error) throw error;
+    clearNotificationListCache();
+    return mapIspRenewalFollowUp(data);
   },
 };
 

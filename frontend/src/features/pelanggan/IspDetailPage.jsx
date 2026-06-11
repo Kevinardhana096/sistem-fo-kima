@@ -260,6 +260,7 @@ function IspDetailPage({
     const isTeknisi = currentRole === "teknisi";
     const isIsp = currentRole === "isp";
     const canManageIspContracts = currentRole === "admin";
+    const canRespondToIspRenewals = currentRole === "admin" || currentRole === "isp";
     const canManageEntryPoints = currentRole === "admin" || currentRole === "teknisi";
     const canOpenTenantDetail = typeof onOpenTenant === "function";
     const todayIso = new Date().toISOString().slice(0, 10);
@@ -335,6 +336,12 @@ function IspDetailPage({
     const requireIspContractManageAccess = () => {
         if (canManageIspContracts) return true;
         setError("Hanya admin yang dapat mengubah rincian kontrak dan adendum ISP.");
+        return false;
+    };
+
+    const requireIspRenewalResponseAccess = () => {
+        if (canRespondToIspRenewals) return true;
+        setError("Hanya admin atau akun ISP terkait yang dapat mengirim tanggapan perpanjangan.");
         return false;
     };
 
@@ -680,7 +687,18 @@ function IspDetailPage({
         ? notifications.filter((notification) => !notification.resolvedAt)
         : [];
     const fallbackIspActionItems = getIspContractActionItems(contractRows);
-    const ispActionItems = centralizedIspActionItems.length > 0 ? centralizedIspActionItems : fallbackIspActionItems;
+    const seenIspActionKeys = new Set();
+    const ispActionItems = [...centralizedIspActionItems, ...fallbackIspActionItems].filter((item) => {
+        const rowId = item?.rowId ?? "";
+        const followUpId = item?.followUpId ?? "";
+        const actionType = item?.actionType ?? item?.code ?? item?.type ?? "";
+        const dedupeKey = rowId || followUpId || actionType
+            ? `${rowId}:${followUpId}:${actionType}`
+            : String(item?.id ?? item?.key ?? item?.title ?? "");
+        if (seenIspActionKeys.has(dedupeKey)) return false;
+        seenIspActionKeys.add(dedupeKey);
+        return true;
+    });
     const tenantActionRows = allTenants
         .filter((tenant) => tenant.status === "aktif")
         .map((tenant) => ({
@@ -833,7 +851,7 @@ function IspDetailPage({
 
     const handleRespondRenewal = async (rowId, decision, file, followUpId = null) => {
         if (!file) { setError("Harap pilih berkas tanggapan."); return; }
-        if (!requireIspContractManageAccess()) return;
+        if (!requireIspRenewalResponseAccess()) return;
         if (!followUpId) {
             setError("Berkas tanggapan harus menempel pada baris perpanjangan.");
             return;
@@ -853,6 +871,9 @@ function IspDetailPage({
 
             const fileDataUrl = await uploadFileForRecord(file, ["isps", isp.id, "responses"]);
             if (isPendingPrimaryRenewalFollowUpId(followUpId)) {
+                if (!canManageIspContracts) {
+                    throw new Error("Baris perpanjangan utama belum tersimpan. Minta admin menyiapkan baris perpanjangan sebelum ISP mengirim tanggapan.");
+                }
                 if (!targetRow?.isPrimaryIspContract) {
                     throw new Error("Berkas perpanjangan belum siap untuk ditanggapi.");
                 }
@@ -879,7 +900,10 @@ function IspDetailPage({
                     return next;
                 });
             } else {
-                await api.ispRenewalFollowUps.update(followUpId, {
+                const submitResponse = canManageIspContracts
+                    ? api.ispRenewalFollowUps.update
+                    : api.ispRenewalFollowUps.submitResponse;
+                await submitResponse.call(api.ispRenewalFollowUps, followUpId, {
                     status: 'completed',
                     response_file_url: fileDataUrl,
                     response_file_name: file.name,
@@ -1010,7 +1034,7 @@ function IspDetailPage({
                                                     <button onClick={() => openSafeFile(followUp.responseFileUrl, followUp.responseFileName)} className="flex-1 w-full justify-center inline-flex h-5 items-center gap-1 rounded-md border border-emerald-500/20 bg-emerald-500/10 px-1 text-[8px] font-black uppercase tracking-widest text-emerald-400 hover:bg-emerald-500 hover:text-[#0f141e] transition-all">
                                                         <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>visibility</span>Lihat
                                                     </button>
-                                                    {canManageIspContracts && (
+                                                    {canRespondToIspRenewals && (
                                                         <FilePickerButton
                                                             label="Ganti"
                                                             className="flex-1 w-full justify-center inline-flex h-5 items-center gap-1 rounded-md border border-white/10 bg-white/5 px-1 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all"
@@ -1019,7 +1043,7 @@ function IspDetailPage({
                                                         />
                                                     )}
                                                 </>
-                                            ) : canManageIspContracts && hasRenewalFile ? (
+                                            ) : canRespondToIspRenewals && hasRenewalFile ? (
                                                 <>
                                                     <FilePickerButton
                                                         label="Lanjut"

@@ -8,6 +8,8 @@ import {
 } from "../../components/shared/AppShared";
 import FoRoutePlanner from "./components/FoRoutePlanner";
 import DateInput from "../../components/shared/DateInput";
+import { resolveTenantDetailAccess } from "./tenantDetailAccess";
+import { tenantDetailData } from "./tenantDetailData";
 import {
   documentTypeLabelMap,
   timelineIconMap,
@@ -29,7 +31,6 @@ import {
   resolveInvoiceDueMonthIsoDate,
   toTitleCase,
 } from "../../app/utils";
-import api from "../../lib/api";
 import { uploadFileForRecord } from "../../lib/files";
 
 const ROUTE_OPERATION_LABEL_MAP = {
@@ -605,10 +606,12 @@ function TenantDetailPage({
   canDeleteTenant = true,
   currentRole = "admin",
 }) {
-  const isTeknisi = currentRole === "teknisi";
-  const isIsp = currentRole === "isp";
-  const canManageRoute = currentRole === "admin" || currentRole === "teknisi";
-  const canManageTenantContracts = currentRole === "admin";
+  const {
+    isTeknisi,
+    isIsp,
+    canManageRoute,
+    canManageTenantContracts,
+  } = resolveTenantDetailAccess(currentRole);
   const [activeTab, setActiveTab] = useState(initialTab);
   const [detail, setDetail] = useState(null);
   const [timeline, setTimeline] = useState([]);
@@ -678,7 +681,7 @@ function TenantDetailPage({
   const loadDetail = useCallback(async () => {
     setError("");
     try {
-      const detailResult = await api.customers.getById(customer.id);
+      const detailResult = await tenantDetailData.customers.getById(customer.id);
       setDetail(detailResult ?? null);
       // TODO: Implement timeline API
       setTimeline([]);
@@ -1198,18 +1201,18 @@ function TenantDetailPage({
   }), []);
   const persistActiveInvoice = useCallback(async (invoice, payload) => {
     if (!isSchedulePlaceholder(invoice)) {
-      return api.invoices.update(invoice.id, payload);
+      return tenantDetailData.invoices.update(invoice.id, payload);
     }
 
     const reusableHistoryInvoice = findReusableActivePeriodHistoryInvoice(invoice);
     if (reusableHistoryInvoice) {
-      return api.invoices.update(reusableHistoryInvoice.id, {
+      return tenantDetailData.invoices.update(reusableHistoryInvoice.id, {
         ...payload,
         scheduleStatus: "active",
       });
     }
 
-    return api.invoices.create(buildActiveInvoicePayload(invoice, payload));
+    return tenantDetailData.invoices.create(buildActiveInvoicePayload(invoice, payload));
   }, [buildActiveInvoicePayload, findReusableActivePeriodHistoryInvoice, isSchedulePlaceholder]);
   const todoSummary = detail?.todoSummary ?? {
     priority: [],
@@ -2384,7 +2387,7 @@ function TenantDetailPage({
           const key = `${String(invoice?.periodStartDate ?? invoice?.period_start_date ?? "").slice(0, 10)}-${String(invoice?.periodEndDate ?? invoice?.period_end_date ?? "").slice(0, 10)}`;
           return !activePeriodKeys.has(key);
         })
-        .map((invoice) => api.invoices.update(invoice.id, { scheduleStatus: "history" })),
+        .map((invoice) => tenantDetailData.invoices.update(invoice.id, { scheduleStatus: "history" })),
     );
 
     const availableScheduleRows = scheduleRows.filter(
@@ -2417,10 +2420,10 @@ function TenantDetailPage({
         };
 
         if (existingInvoice) {
-          return api.invoices.update(existingInvoice.id, payload);
+          return tenantDetailData.invoices.update(existingInvoice.id, payload);
         }
 
-        return api.invoices.create({
+        return tenantDetailData.invoices.create({
           ...payload,
           status: "belum_ditagih",
         });
@@ -2468,7 +2471,7 @@ function TenantDetailPage({
 
     await Promise.all(
       activePersistedInvoices.map((invoice) =>
-        api.invoices.update(invoice.id, { scheduleStatus: "history" }),
+        tenantDetailData.invoices.update(invoice.id, { scheduleStatus: "history" }),
       ),
     );
   };
@@ -2498,7 +2501,7 @@ function TenantDetailPage({
     setInvoiceFeedback("");
 
     try {
-      await api.contracts.update(contract.id, {
+      await tenantDetailData.contracts.update(contract.id, {
         billingEvery,
         billingUnit: billingEditor.billingUnit,
       });
@@ -2529,7 +2532,7 @@ function TenantDetailPage({
     setDocumentFeedback("");
 
     try {
-      await api.customers.update(customer.id, {
+      await tenantDetailData.customers.update(customer.id, {
         activationFeePaidAt: new Date().toISOString(),
       });
       setDocumentFeedback("Biaya aktivasi berhasil ditandai sudah dibayar.");
@@ -2555,7 +2558,7 @@ function TenantDetailPage({
     setDocumentFeedback("");
 
     try {
-      await api.customers.update(customer.id, {
+      await tenantDetailData.customers.update(customer.id, {
         activationFeePaidAt: null,
       });
       setDocumentFeedback("Status biaya aktivasi dikembalikan menjadi belum dibayar.");
@@ -2583,11 +2586,11 @@ function TenantDetailPage({
 
     try {
       if (row.versionId) {
-        await api.contractVersions.update(row.versionId, {
+        await tenantDetailData.contractVersions.update(row.versionId, {
           contractNumber: normalizedContractNumber,
         });
       } else if (row.contractId) {
-        await api.contracts.update(row.contractId, {
+        await tenantDetailData.contracts.update(row.contractId, {
           contractNumber: normalizedContractNumber,
         });
       } else {
@@ -2783,7 +2786,7 @@ function TenantDetailPage({
     setVersionError("");
     setDocumentFeedback("");
     try {
-      const result = await api.contractVersions.changePackageMidPeriod({
+      const result = await tenantDetailData.contractVersions.changePackageMidPeriod({
         contractId: contract.id,
         requestedDate: versionEditor.requestedDate,
         contractNumber: String(versionEditor.contractNumber ?? "").trim() || undefined,
@@ -2900,7 +2903,7 @@ function TenantDetailPage({
           if (targetVersionId) {
             invoicePayload.contractVersionId = Number(targetVersionId);
           }
-          return api.invoices.update(invoice.id, invoicePayload);
+          return tenantDetailData.invoices.update(invoice.id, invoicePayload);
         }));
       };
 
@@ -2918,7 +2921,7 @@ function TenantDetailPage({
         ));
 
         if (matchingVersion?.id) {
-          await api.contractVersions.update(matchingVersion.id, {
+          await tenantDetailData.contractVersions.update(matchingVersion.id, {
             monthlyAmount: normalizedMonthlyAmount,
             yearlyAmount: normalizedMonthlyAmount * 12,
           });
@@ -2927,7 +2930,7 @@ function TenantDetailPage({
         }
 
         if (contractVersions.length === 0 && startDate && endDate) {
-          const createdVersion = await api.contractVersions.create({
+          const createdVersion = await tenantDetailData.contractVersions.create({
             contractId: editorState.contractId,
             customerId: customer.id,
             contractNumber: contractNumber || null,
@@ -2985,12 +2988,12 @@ function TenantDetailPage({
       let hasDataChanges = Object.keys(payload).length > 0;
       if (hasDataChanges) {
         if (editorState.versionId) {
-          await api.contractVersions.update(editorState.versionId, payload);
+          await tenantDetailData.contractVersions.update(editorState.versionId, payload);
           if (hasMonthlyAmountChange) {
             await updateUnpaidInvoiceAmounts(editorState.versionId);
           }
         } else {
-          await api.contracts.update(editorState.contractId, payload);
+          await tenantDetailData.contracts.update(editorState.contractId, payload);
         }
       }
       const hasMainMonthlyAmountChange = await persistMainContractMonthlyAmount();
@@ -3002,7 +3005,7 @@ function TenantDetailPage({
         }
 
         const fileUrl = await uploadFileForRecord(file, ["customers", customer.id, "documents"]);
-        await api.documents.create({
+        await tenantDetailData.documents.create({
           customer_id: customer.id,
           contract_id: editorState.contractId,
           contract_version_id: editorState.versionId ? Number(editorState.versionId) : null,
@@ -3025,12 +3028,12 @@ function TenantDetailPage({
       // agar kegagalan upload tidak membuat arsip legal kehilangan berkas lama.
       await Promise.all([
         shouldDeletePreviousContractDocument
-          ? api.documents.delete(editorState.contractDocId).catch((deleteError) => {
+          ? tenantDetailData.documents.delete(editorState.contractDocId).catch((deleteError) => {
             console.warn("Failed to delete previous contract document:", deleteError);
           })
           : Promise.resolve(),
         shouldDeletePreviousBakDocument
-          ? api.documents.delete(editorState.bakDocId).catch((deleteError) => {
+          ? tenantDetailData.documents.delete(editorState.bakDocId).catch((deleteError) => {
             console.warn("Failed to delete previous BAK document:", deleteError);
           })
           : Promise.resolve(),
@@ -3091,7 +3094,7 @@ function TenantDetailPage({
     setDocumentFeedback("");
     try {
       const fileUrl = await uploadFileForRecord(documentDraft.uploadedFile, ["customers", customer.id, "documents"]);
-      await api.documents.create({
+      await tenantDetailData.documents.create({
         customer_id: customer.id,
         contract_id: contract?.id ?? null,
         contract_version_id: documentDraft.contractVersionId ? Number(documentDraft.contractVersionId) : null,
@@ -3128,7 +3131,7 @@ function TenantDetailPage({
     setIsDeletingTenant(true);
     setDeleteError("");
     try {
-      await api.customers.delete(customer.id);
+      await tenantDetailData.customers.delete(customer.id);
       setDeleteModalOpen(false);
       onBack?.();
       await onRefreshAll?.();
@@ -3260,7 +3263,7 @@ function TenantDetailPage({
         nextPoints = body.points;
       }
 
-      await api.customerRoutes.replace(customer.id, {
+      await tenantDetailData.customerRoutes.replace(customer.id, {
         flowStatus: body.flowStatus ?? activeRouteStatus,
         changeNote: routeChangeNote.trim() || "Perubahan struktur jalur dari halaman tenant.",
         points: nextPoints.map((point, index) => ({
@@ -3271,7 +3274,7 @@ function TenantDetailPage({
         })),
       });
 
-      await api.customerRoutes.addHistory(customer.id, {
+      await tenantDetailData.customerRoutes.addHistory(customer.id, {
         operation: body.operation || "update",
         note: routeChangeNote.trim() || "Perubahan struktur jalur dari halaman tenant.",
         snapshotBefore: {
@@ -3311,7 +3314,7 @@ function TenantDetailPage({
     setRouteBusy(true);
     setRouteError("");
     try {
-      await api.customerRoutes.replace(customer.id, {
+      await tenantDetailData.customerRoutes.replace(customer.id, {
         flowStatus,
         changeNote,
         points: points.map((p, idx) => ({
@@ -3322,7 +3325,7 @@ function TenantDetailPage({
         })),
       });
 
-      await api.customerRoutes.addHistory(customer.id, {
+      await tenantDetailData.customerRoutes.addHistory(customer.id, {
         operation: "commit",
         note: changeNote,
         snapshotBefore: {
@@ -3762,7 +3765,7 @@ function TenantDetailPage({
           scheduleStatus: "active",
         });
       } else {
-        persistedInvoice = await api.invoices.update(invoice.id, {
+        persistedInvoice = await tenantDetailData.invoices.update(invoice.id, {
           invoice_number: String(draft.invoiceNumber ?? "").trim() || null,
           due_date: draft.dueDate || null,
           amount,
@@ -3773,7 +3776,7 @@ function TenantDetailPage({
 
       await Promise.all(
         followUpPayload.map((followUp) =>
-          api.invoiceFollowUps.update(followUp.id, {
+          tenantDetailData.invoiceFollowUps.update(followUp.id, {
             invoice_number: followUp.invoiceNumber,
           }),
         ),
@@ -3820,7 +3823,7 @@ function TenantDetailPage({
       return existingFollowUp;
     }
 
-    return api.invoiceFollowUps.create({
+    return tenantDetailData.invoiceFollowUps.create({
       invoiceId: invoice.id,
       splitOrder,
       source: "manual",
@@ -3886,12 +3889,12 @@ function TenantDetailPage({
       const invoiceFileUrl = await uploadFileForRecord(file, ["customers", customer.id, "invoices"]);
       if (splitOrder) {
         const followUp = await getOrCreateInvoiceFollowUp(persistedInvoice, splitOrder);
-        await api.invoiceFollowUps.update(followUp.id, {
+        await tenantDetailData.invoiceFollowUps.update(followUp.id, {
           invoiceNumber: followUpDraft.invoiceNumber.trim(),
           invoiceFileUrl,
         });
       } else {
-        await api.invoices.update(persistedInvoice.id, {
+        await tenantDetailData.invoices.update(persistedInvoice.id, {
           invoiceNumber: followUpDraft.invoiceNumber.trim(),
           dueDate: draft.dueDate,
           amount,
@@ -3933,7 +3936,7 @@ function TenantDetailPage({
     setInvoiceFeedback("");
     try {
       const paymentProofFileUrl = await uploadFileForRecord(file, ["customers", customer.id, "payment-proofs"]);
-      await api.invoices.update(invoice.id, {
+      await tenantDetailData.invoices.update(invoice.id, {
         paymentProofFileUrl,
         paidAt: new Date().toISOString(),
         status: "lunas",
@@ -4033,7 +4036,7 @@ function TenantDetailPage({
             status: hasStatus ? status : String(invoice.status ?? "belum_ditagih"),
             scheduleStatus: "active",
           })
-          : api.invoices.update(invoice.id, updatePayload);
+          : tenantDetailData.invoices.update(invoice.id, updatePayload);
 
         return { invoice, promise };
       });
@@ -4112,7 +4115,7 @@ function TenantDetailPage({
 
     setError("");
     try {
-      await api.contractVersionRenewalFollowUps.create(row.versionId);
+      await tenantDetailData.contractVersionRenewalFollowUps.create(row.versionId);
       await Promise.all([loadDetail(), onRefreshAll?.()]);
     } catch (requestError) {
       setError(
@@ -4149,7 +4152,7 @@ function TenantDetailPage({
       ?? (latestVersion ? fallbackYearlyAmount : (monthlyAmt * 12))
     );
 
-    const createdVersion = await api.contractVersions.create({
+    const createdVersion = await tenantDetailData.contractVersions.create({
       contractId: row.contractId,
       customerId: customer.id,
       contractNumber: contract?.contractNumber ?? contract?.contract_number ?? null,
@@ -4185,14 +4188,14 @@ function TenantDetailPage({
       const versionId = await ensureContractRenewalVersionId(row);
       const renewalFileUrl = await uploadFileForRecord(file, ["customers", customer.id, "renewals"]);
       if (followUpId) {
-        await api.contractVersionRenewalFollowUps.update(followUpId, {
+        await tenantDetailData.contractVersionRenewalFollowUps.update(followUpId, {
           renewal_file_url: renewalFileUrl,
           renewal_file_name: file.name,
           status: "pending_response",
         });
       } else {
-        const followUp = await api.contractVersionRenewalFollowUps.create(versionId);
-        await api.contractVersionRenewalFollowUps.update(followUp.id, {
+        const followUp = await tenantDetailData.contractVersionRenewalFollowUps.create(versionId);
+        await tenantDetailData.contractVersionRenewalFollowUps.update(followUp.id, {
           renewal_file_url: renewalFileUrl,
           renewal_file_name: file.name,
           status: "pending_response",
@@ -4245,14 +4248,14 @@ function TenantDetailPage({
         updatePayload.billingCycle = billingCycle;
       }
       if (followUpId) {
-        await api.contractVersionRenewalFollowUps.update(followUpId, updatePayload);
+        await tenantDetailData.contractVersionRenewalFollowUps.update(followUpId, updatePayload);
       } else {
-        const followUp = await api.contractVersionRenewalFollowUps.create(versionId);
-        await api.contractVersionRenewalFollowUps.update(followUp.id, updatePayload);
+        const followUp = await tenantDetailData.contractVersionRenewalFollowUps.create(versionId);
+        await tenantDetailData.contractVersionRenewalFollowUps.update(followUp.id, updatePayload);
       }
 
       if (billingCycle) {
-        await api.contracts.update(row.contractId, {
+        await tenantDetailData.contracts.update(row.contractId, {
           billingEvery: billingCycle.every,
           billingUnit: billingCycle.unit,
         });
@@ -4436,7 +4439,7 @@ function TenantDetailPage({
                         if (window.confirm("Apakah Anda yakin ingin menghapus split tindak lanjut ini?")) {
                           try {
                             setIsActionLoading(true);
-                            await api.contractVersionRenewalFollowUps.delete(followUp.id);
+                            await tenantDetailData.contractVersionRenewalFollowUps.delete(followUp.id);
                             await loadDetail();
                             if (onRefreshAll) onRefreshAll();
                           } catch (err) {
