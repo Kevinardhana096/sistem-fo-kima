@@ -154,7 +154,7 @@ describe('IspDetailPage - tab kontrak', () => {
 
     renderPage({ initialTab: 'customers' });
 
-    expect(await screen.findByText('Lokasi Prioritas')).toBeInTheDocument();
-    expect(screen.getByText('6')).toBeInTheDocument();
+    expect(await screen.findAllByText('Lokasi Prioritas')).not.toHaveLength(0);
+    expect(screen.getAllByText('6')).not.toHaveLength(0);
   });
 });

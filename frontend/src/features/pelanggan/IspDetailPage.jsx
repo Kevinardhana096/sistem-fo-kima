@@ -296,8 +296,6 @@ function IspDetailPage({
     // Filtering & Sorting State for Dokumen Table
     const [docSearch, setDocSearch] = useState("");
     const [docSortMethod, setDocSortMethod] = useState("newest");
-    const [expandedDocs, setExpandedDocs] = useState({});
-
     // Filtering & Sorting State for Kontrak Table
     const [contractSearch, setContractSearch] = useState("");
     const [contractSortMethod, setContractSortMethod] = useState("newest");
@@ -3903,7 +3901,7 @@ function IspDetailPage({
 
                                     {/* Mobile View List */}
                                     <div className="xl:hidden flex flex-col gap-2 mt-2">
-                                        {filteredDocs.map((row, idx) => (
+                                        {filteredDocs.map((row) => (
                                             <div
                                                 key={row.id}
                                                 className="glass-card rounded-xl border border-white/10 px-3 py-2 flex items-center justify-between gap-3 shadow-glass-depth transition-all"

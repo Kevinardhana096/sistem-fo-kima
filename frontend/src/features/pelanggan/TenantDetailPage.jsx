@@ -6990,13 +6990,15 @@ function TenantDetailPage({
                   {displayInvoiceRows.length === 0 && (
                     <div className="px-4 py-6 text-center text-[10px] text-white/30 italic tracking-wider border border-white/5 rounded-xl bg-white/[0.02]">Belum ada invoice aktif.</div>
                   )}
-                  {displayInvoiceRows.map((invoice, idx) => {
+                  {displayInvoiceRows.map((invoice) => {
                     const draft = getInvoiceDraft(invoice);
-                    const isSetDateLockedByGlobal = false;
                     const workflowMeta = invoice.workflowMeta ?? getInvoiceWorkflowMeta(invoice, workflowInvoiceRows);
                     const statusMeta = invoice.statusMeta ?? resolveInvoiceStatusMeta({ ...invoice, workflowMeta });
                     const hasInvoiceFile = isOpenableFileUrl(invoice?.invoiceFileUrl);
                     const hasPaymentProof = isOpenableFileUrl(invoice?.paymentProofFileUrl);
+                    const hasAnyInvoiceFile = workflowMeta.hasAnyInvoiceFile;
+                    const canUploadInvoiceFile = !isIsp && !isSavingInvoice && (workflowMeta.canUploadMainInvoice || workflowMeta.canUploadFirstWarning || hasInvoiceFile);
+                    const canUploadPaymentProof = !isIsp && !isSavingInvoice && hasAnyInvoiceFile;
                     
                     const statusStyle = (() => {
                       if (statusMeta.key === "paid") return "bg-emerald-500/10 border-emerald-500/20 text-emerald-400";

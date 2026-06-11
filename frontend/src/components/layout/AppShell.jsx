@@ -203,16 +203,6 @@ export default function AppShell({
                 isTransitioningAuth={isTransitioningAuth}
             />
 
-            {false && !hideSidebar && (
-                <MobileDropdownMenu
-                    activeSection={activeSection}
-                    onClose={() => setIsMobileMenuOpen(false)}
-                    onNavigate={handleMobileNavigate}
-                    onLogout={onLogout}
-                    roleConfig={roleConfig}
-                />
-            )}
-
             {!hideSidebar && (
                 <Sidebar
                     isCollapsed={isSidebarCollapsed}
@@ -701,65 +691,5 @@ function Sidebar({ isCollapsed, onToggle, activeSection, onNavigate, roleConfig 
                 })}
             </nav>
         </aside>
-    );
-}
-
-function MobileDropdownMenu({ activeSection, onNavigate, onClose, roleConfig }) {
-    return (
-        <div className="fixed inset-0 z-[2030] p-4 lg:hidden flex items-start justify-center">
-            {/* Dark glass backdrop overlay */}
-            <div className="fixed inset-0 bg-black/40 backdrop-blur-md transition-all duration-300" onClick={onClose}></div>
-            
-            {/* Popover container */}
-            <div className="relative w-full max-w-sm rounded-2xl glass-premium border border-white/10 p-5 shadow-glass-depth animate-in fade-in zoom-in-95 duration-200">
-                {/* Header: Logo & Close Button */}
-                <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-2.5">
-                        <div className="h-8 w-8 flex items-center justify-center rounded-xl bg-gold-accent shadow-gold-glow">
-                            <img alt="Kima Logo" className="h-5 w-5 object-contain" src="/logo-kima.png" />
-                        </div>
-                        <div className="text-left">
-                            <p className="text-sm font-black text-on-surface tracking-tight leading-none">KIMA</p>
-                            <p className="text-[7px] font-bold text-gold-accent uppercase tracking-[0.2em] mt-0.5">ARCHIVE</p>
-                        </div>
-                    </div>
-                    <button 
-                        onClick={onClose} 
-                        className="group h-8 w-8 flex items-center justify-center rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all duration-200"
-                        title="Tutup Menu"
-                        type="button"
-                    >
-                        <span className="material-symbols-outlined text-[16px] text-on-surface-variant group-hover:text-gold-accent transition-colors">close</span>
-                    </button>
-                </div>
-
-                {/* Navigation Menu */}
-                <nav className="space-y-1.5">
-                    {roleConfig.menuItems.map((item) => {
-                        const isActive = activeSection === item.key;
-                        return (
-                            <button
-                                key={item.key}
-                                className={`flex w-full items-center gap-3 rounded-lg px-3.5 py-2.5 anim-surface transition-all duration-200 ${
-                                    isActive 
-                                        ? "active-glow-gold text-on-surface font-black" 
-                                        : "text-on-surface-variant hover:text-on-surface hover:bg-white/5"
-                                }`}
-                                onClick={() => { onNavigate(item.key); onClose(); }}
-                            >
-                                <span className={`material-symbols-outlined text-lg transition-transform duration-200 ${
-                                    isActive ? "text-gold-accent" : "text-on-surface-variant"
-                                }`}>
-                                    {item.icon}
-                                </span>
-                                <span className="text-[10px] font-bold uppercase tracking-widest">
-                                    {item.label}
-                                </span>
-                            </button>
-                        );
-                    })}
-                </nav>
-            </div>
-        </div>
     );
 }
