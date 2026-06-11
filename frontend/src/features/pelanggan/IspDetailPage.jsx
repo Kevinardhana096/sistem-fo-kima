@@ -35,6 +35,22 @@ const getContractRowStatus = (row, todayIso) => {
     return periodEnd && periodEnd < todayIso ? "expired" : "beroperasi";
 };
 
+const getTrimmedContractReference = (value) => {
+    const reference = String(value ?? "").trim();
+    return reference.length > 0 ? reference : null;
+};
+
+const getDisplayIspContractReference = ({ detail, isp, contractRows = [], todayIso }) => {
+    const directReference = getTrimmedContractReference(detail?.contractReference ?? detail?.contract_reference)
+        ?? getTrimmedContractReference(isp?.contractReference ?? isp?.contract_reference);
+    if (directReference) return directReference;
+
+    const activeRowReference = (Array.isArray(contractRows) ? contractRows : [])
+        .find((row) => getContractRowStatus(row, todayIso) === "beroperasi" && getTrimmedContractReference(row?.contractReference ?? row?.contract_reference));
+
+    return getTrimmedContractReference(activeRowReference?.contractReference ?? activeRowReference?.contract_reference) ?? "-";
+};
+
 const buildPrimaryIspContractRow = (ispDetail, fallbackIsp) => {
     const source = ispDetail ?? fallbackIsp ?? {};
     const hasPrimaryContractData = [
@@ -319,6 +335,7 @@ function IspDetailPage({
             rowId: row.id,
             contractReference: row.contractReference ?? "",
             status: getIspContractRowEditStatus(row),
+            renewalStatus: row.renewalStatus ?? row.renewal_status ?? null,
             contractStartDate: row.contractStartDate ?? detail?.contractStartDate ?? detail?.contract_start_date ?? isp.contractStartDate ?? isp.contract_start_date ?? "",
             periodStart: row.periodStart ?? "",
             periodEnd: row.periodEnd ?? "",
@@ -709,7 +726,7 @@ function IspDetailPage({
     const totalTenantActionCount = tenantActionRows.reduce((sum, tenant) => sum + tenant.totalActions, 0);
 
     const ispName = detail?.name ?? isp.name;
-    const contractRef = detail?.contractReference ?? isp.contractReference ?? "-";
+    const contractRef = getDisplayIspContractReference({ detail, isp, contractRows, todayIso });
 
     useEffect(() => {
         if (!canManageEntryPoints) {
@@ -1176,6 +1193,10 @@ function IspDetailPage({
             period_end: periodEnd,
             status: currentEditor.status ?? "aktif",
         };
+
+        if (String(currentEditor.renewalStatus ?? "").trim() === "needs_completion") {
+            updates.renewal_status = "active";
+        }
         const pendingReplacementLabels = [
             currentEditor.contractUploadedFile instanceof File && isOpenableFileUrl(currentEditor.contractFileUrl) ? "Kontrak" : null,
             currentEditor.bakUploadedFile instanceof File && isOpenableFileUrl(currentEditor.bakFileUrl) ? "BAK" : null,
@@ -1756,7 +1777,7 @@ function IspDetailPage({
                                         <p className="text-[8px] font-black uppercase tracking-[0.35em] text-white/20">Nomor Kontrak</p>
                                         <div className="flex items-center gap-1 sm:gap-2">
                                             <span className="material-symbols-outlined text-[10px] sm:text-[12px] scale-[0.75] sm:scale-100 origin-center text-gold-accent/60">description</span>
-                                            <p className="text-[11px] font-black text-gold-accent uppercase tracking-wide italic">{contractRef}</p>
+                                            <p aria-label="Nomor kontrak ISP utama" className="text-[11px] font-black text-gold-accent uppercase tracking-wide italic">{contractRef}</p>
                                         </div>
                                     </div>
 
