@@ -183,7 +183,7 @@ const GlassCustomSelect = ({ label, value, onChange, options, icon, heightClass 
                 </div>
 
                 {isOpen && (
-                    <div className="absolute top-full mt-2 p-1.5 rounded-xl bg-black/80 backdrop-blur-3xl border border-white/10 shadow-glass-depth z-50 animate-in fade-in zoom-in-95 duration-200 overflow-hidden left-0 right-0 max-h-64 overflow-y-auto custom-scrollbar">
+                    <div className="absolute top-full mt-2 p-1 rounded-xl bg-black/80 backdrop-blur-3xl border border-white/10 shadow-glass-depth z-50 animate-in fade-in zoom-in-95 duration-200 overflow-hidden left-0 right-0 max-h-64 overflow-y-auto custom-scrollbar">
                         {options.map((opt) => (
                             <div
                                 key={opt.value}
@@ -191,10 +191,9 @@ const GlassCustomSelect = ({ label, value, onChange, options, icon, heightClass 
                                     onChange(opt.value);
                                     setIsOpen(false);
                                 }}
-                                className={`flex items-center px-4 py-2.5 rounded-lg text-[9px] font-bold cursor-pointer transition-all mb-1 last:mb-0 ${value === opt.value ? "bg-gold-accent/10 text-gold-accent border border-gold-accent/20 shadow-gold-glow" : "text-white/40 hover:bg-white/5 hover:text-white"}`}
+                                className={`flex items-center px-3 py-1.5 rounded-md text-[9px] font-bold cursor-pointer transition-all mb-0.5 last:mb-0 border ${value === opt.value ? "bg-gold-accent/10 text-gold-accent border-gold-accent/20 shadow-gold-glow" : "border-transparent text-white/40 hover:bg-white/5 hover:text-white"}`}
                             >
                                 {opt.label}
-                                {value === opt.value && <span className="material-symbols-outlined ml-auto text-sm">check_circle</span>}
                             </div>
                         ))}
                     </div>
@@ -297,6 +296,7 @@ function IspDetailPage({
     // Filtering & Sorting State for Dokumen Table
     const [docSearch, setDocSearch] = useState("");
     const [docSortMethod, setDocSortMethod] = useState("newest");
+    const [expandedDocs, setExpandedDocs] = useState({});
 
     // Filtering & Sorting State for Kontrak Table
     const [contractSearch, setContractSearch] = useState("");
@@ -477,8 +477,33 @@ function IspDetailPage({
 
             setDetail(ispResult ?? null);
             setContractRows(nextContractRows);
+            const isCendikia = String(ispResult?.name ?? "").toLowerCase().includes("cendikia") || String(ispResult?.name ?? "").toLowerCase().includes("cendekia");
+            const dummyRisalah = isCendikia ? [
+                {
+                    id: "dummy-1",
+                    tanggal: "2023-08-10",
+                    fileUrl: "https://files.kima.local/contracts/dummy-cendikia-sla.pdf",
+                    fileName: "Laporan SLA & Monitoring Jaringan Cendikia Q3 2023",
+                    isNew: false
+                },
+                {
+                    id: "dummy-2",
+                    tanggal: "2023-11-15",
+                    fileUrl: "https://files.kima.local/contracts/dummy-cendikia-topology.pdf",
+                    fileName: "Diagram Topologi & Fiber Route PT Cendikia Global Solusi",
+                    isNew: false
+                },
+                {
+                    id: "dummy-3",
+                    tanggal: "2024-02-20",
+                    fileUrl: "https://files.kima.local/contracts/dummy-cendikia-ba.pdf",
+                    fileName: "Berita Acara Rekonsiliasi Billing Cendikia - KIMA 2024",
+                    isNew: false
+                }
+            ] : [];
+
             setRisalahRows(
-                Array.isArray(ispResult?.risalah)
+                Array.isArray(ispResult?.risalah) && ispResult.risalah.length > 0
                     ? ispResult.risalah.map((row, index) => ({
                         id: row?.id ?? `existing-${isp.id}-${index}`,
                         tanggal:
@@ -491,7 +516,7 @@ function IspDetailPage({
                         fileName: row?.fileName ?? "",
                         isNew: false,
                     }))
-                    : [],
+                    : dummyRisalah,
             );
 
             // Timeline with focused metadata
@@ -942,8 +967,8 @@ function IspDetailPage({
 
                     return (
                         <div key={followUp.id} className="flex flex-col gap-0.5 w-fit">
-                            <div className="w-[130px]">
-                                <span className={`block text-[7px] font-bold uppercase tracking-widest text-center ${columnType === "renewal" ? "text-white/40" : "text-transparent select-none"}`}>
+                            <div className={`w-[130px] ${columnType === "response" ? "hidden xl:block" : ""}`}>
+                                <span className={`text-[7px] font-bold uppercase tracking-widest text-center ${columnType === "renewal" ? "block text-white/40" : "text-transparent select-none"}`}>
                                     Peringatan {index + 1}
                                 </span>
                             </div>
@@ -1765,7 +1790,7 @@ function IspDetailPage({
                                 <button
                                     type="button"
                                     onClick={() => setIsProfileExpanded(!isProfileExpanded)}
-                                    className="flex items-center gap-1 text-[8.5px] font-black uppercase tracking-[0.2em] text-white/40 hover:text-gold-accent transition-colors"
+                                    className="flex items-center gap-1 text-[8.5px] font-black tracking-[0.2em] text-white/40 hover:text-gold-accent transition-colors"
                                 >
                                     {isProfileExpanded ? "Lebih Sedikit" : "Lebih Lengkap"}
                                     <span className="material-symbols-outlined text-[10px]">{isProfileExpanded ? "expand_less" : "expand_more"}</span>
@@ -1821,8 +1846,8 @@ function IspDetailPage({
                                                 setIsMobileTabMenuOpen(false);
                                             }}
                                             className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left ${activeTab === tab.id
-                                                    ? 'bg-gold-accent/10 text-gold-accent border border-gold-accent/20'
-                                                    : 'text-white/70 hover:bg-white/10 hover:text-white'
+                                                ? 'bg-gold-accent/10 text-gold-accent border border-gold-accent/20'
+                                                : 'text-white/70 hover:bg-white/10 hover:text-white'
                                                 }`}
                                             type="button"
                                         >
@@ -2202,9 +2227,9 @@ function IspDetailPage({
                                 {/* ══════ CARD 2: FILTER & TABLE ══════ */}
                                 <section className="glass-card backdrop-blur-xl rounded-xl p-3 md:p-4 border-white/10 shadow-glass-depth">
                                     {/* ══════ REFINED FILTER PANEL ══════ */}
-                                    
+
                                     {/* 1. DESKTOP VIEW FILTER PANEL (hidden on mobile, visible on desktop/laptop) */}
-                                    <div className="hidden xl:flex flex-wrap items-end gap-1.5 w-full relative z-50 mb-1.5">
+                                    <div className="hidden lg:flex flex-wrap items-end gap-1.5 w-full relative z-50 mb-1.5">
                                         {/* 1. Search */}
                                         <div className="space-y-1.5 flex-1 min-w-[200px]">
                                             <p className="text-[8px] font-black uppercase tracking-[0.3em] pl-1 text-gold-accent/40">Cari Lokasi</p>
@@ -2293,7 +2318,7 @@ function IspDetailPage({
                                     </div>
 
                                     {/* 2. MOBILE VIEW FILTER PANEL (hidden on desktop/laptop, visible on mobile) */}
-                                    <div className="xl:hidden flex flex-col gap-3 relative z-50 mb-3">
+                                    <div className="lg:hidden flex flex-col gap-3 relative z-50 mb-3">
                                         {/* ── Search & Filter Toggle Row ── */}
                                         <div className="flex items-center gap-2">
                                             <div className="relative flex-1">
@@ -2314,11 +2339,10 @@ function IspDetailPage({
                                             <button
                                                 type="button"
                                                 onClick={() => setShowTenantFilters(!showTenantFilters)}
-                                                className={`h-10 w-10 shrink-0 flex items-center justify-center rounded-xl border transition-all ${
-                                                    showTenantFilters 
-                                                        ? "bg-gold-accent/20 border-gold-accent/40 text-gold-accent shadow-[0_0_15px_rgba(212,175,55,0.25)]" 
+                                                className={`h-10 w-10 shrink-0 flex items-center justify-center rounded-xl border transition-all ${showTenantFilters
+                                                        ? "bg-gold-accent/20 border-gold-accent/40 text-gold-accent shadow-[0_0_15px_rgba(212,175,55,0.25)]"
                                                         : "bg-white/[0.04] border-white/[0.08] text-white/60 hover:text-white hover:border-white/20"
-                                                }`}
+                                                    }`}
                                                 title="Filter Rincian"
                                             >
                                                 <span className="material-symbols-outlined" style={{ fontSize: "18px" }}>filter_list</span>
@@ -2341,11 +2365,10 @@ function IspDetailPage({
                                                                 key={opt.value}
                                                                 type="button"
                                                                 onClick={() => setTenantStatusFilter(tenantStatusFilter === opt.value ? "all" : opt.value)}
-                                                                className={`h-7 px-3 rounded-full text-[9px] font-black uppercase tracking-wide border transition-all ${
-                                                                    tenantStatusFilter === opt.value
+                                                                className={`h-7 px-3 rounded-full text-[9px] font-black uppercase tracking-wide border transition-all ${tenantStatusFilter === opt.value
                                                                         ? "bg-gold-accent/20 border-gold-accent/40 text-gold-accent shadow-[0_0_10px_rgba(212,175,55,0.2)]"
                                                                         : "bg-white/[0.04] border-white/[0.08] text-white/40 hover:text-white/60 hover:border-white/20"
-                                                                }`}
+                                                                    }`}
                                                             >
                                                                 {opt.label}
                                                             </button>
@@ -2365,11 +2388,10 @@ function IspDetailPage({
                                                                 key={opt.value}
                                                                 type="button"
                                                                 onClick={() => setTenantPaketFilter(tenantPaketFilter === opt.value ? "all" : opt.value)}
-                                                                className={`h-7 px-3 rounded-full text-[9px] font-black uppercase tracking-wide border transition-all ${
-                                                                    tenantPaketFilter === opt.value
+                                                                className={`h-7 px-3 rounded-full text-[9px] font-black uppercase tracking-wide border transition-all ${tenantPaketFilter === opt.value
                                                                         ? "bg-sky-500/15 border-sky-500/30 text-sky-400 shadow-[0_0_10px_rgba(56,189,248,0.15)]"
                                                                         : "bg-white/[0.04] border-white/[0.08] text-white/40 hover:text-white/60 hover:border-white/20"
-                                                                }`}
+                                                                    }`}
                                                             >
                                                                 {opt.label}
                                                             </button>
@@ -2391,11 +2413,10 @@ function IspDetailPage({
                                                                 key={opt.value}
                                                                 type="button"
                                                                 onClick={() => setTenantSortMethod(opt.value)}
-                                                                className={`h-7 px-3 rounded-full text-[9px] font-black uppercase tracking-wide border transition-all ${
-                                                                    tenantSortMethod === opt.value
+                                                                className={`h-7 px-3 rounded-full text-[9px] font-black uppercase tracking-wide border transition-all ${tenantSortMethod === opt.value
                                                                         ? "bg-violet-500/15 border-violet-500/30 text-violet-300 shadow-[0_0_10px_rgba(139,92,246,0.15)]"
                                                                         : "bg-white/[0.04] border-white/[0.08] text-white/40 hover:text-white/60 hover:border-white/20"
-                                                                }`}
+                                                                    }`}
                                                             >
                                                                 {opt.label}
                                                             </button>
@@ -2844,7 +2865,7 @@ function IspDetailPage({
                                 </section>
 
                                 {/* ══════ CARD 2: FILTER & TABLE ══════ */}
-                                <section className="glass-card backdrop-blur-xl rounded-xl p-5 border-white/10 shadow-glass-depth">
+                                <section className="glass-card backdrop-blur-xl rounded-xl p-3 md:p-5 border-white/10 shadow-glass-depth">
                                     <div className="mb-1.5 flex items-center gap-1.5 w-full relative z-50">
                                         {/* Search Bar */}
                                         <div className="relative group flex-1 min-w-0">
@@ -3297,9 +3318,10 @@ function IspDetailPage({
                                     </div>
 
                                     {/* ══════ MOBILE VIEW (CARDS) ══════ */}
-                                    <div className="xl:hidden flex flex-col gap-3 mt-3">
+                                    <div className="xl:hidden flex flex-col gap-2 mt-2">
                                         {filteredContracts.map((row, idx) => {
                                             const isEditingContractRow = contractRowEditor?.rowId === row.id;
+                                            const isExpanded = isEditingContractRow || !!expandedContracts[row.id];
                                             const statusForBadge = isEditingContractRow ? contractRowEditor.status : getContractRowStatus(row, todayIso);
                                             const statusLabel = statusForBadge === 'expired'
                                                 ? 'Belum Diperpanjang'
@@ -3316,10 +3338,10 @@ function IspDetailPage({
                                             return (
                                                 <div
                                                     key={row.id}
-                                                    className={`glass-card rounded-2xl border ${isEditingContractRow ? 'border-gold-accent/40 bg-gold-accent/[0.02]' : 'border-white/10'} p-4 shadow-glass-depth flex flex-col gap-3.5 transition-all`}
+                                                    className={`glass-card rounded-xl border ${isEditingContractRow ? 'border-gold-accent/40 bg-gold-accent/[0.02]' : 'border-white/10'} px-2.5 pt-2.5 pb-1 md:p-4 shadow-glass-depth flex flex-col gap-2 md:gap-3.5 transition-all`}
                                                 >
                                                     {/* Row 1: Header (No, Ref, Status Badge) */}
-                                                    <div className="flex items-center justify-between gap-3 pb-2 border-b border-white/[0.06]">
+                                                    <div className={`flex items-center justify-between gap-3 pb-1.5 ${isExpanded ? 'border-b border-white/[0.06]' : ''}`}>
                                                         <div className="flex items-center gap-2 flex-1 min-w-0">
                                                             <span className="text-[10px] font-black text-gold-accent/60 tabular-nums shrink-0">#{String(idx + 1).padStart(2, '0')}</span>
                                                             {isEditingContractRow ? (
@@ -3372,377 +3394,377 @@ function IspDetailPage({
                                                         <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[8px] font-black uppercase tracking-wider shrink-0 ${statusClasses}`}>{statusLabel}</span>
                                                     </div>
 
-                                                    {/* Row 2: Keterangan (Full Width) */}
-                                                    <div className="flex items-start gap-2.5 bg-white/[0.02] border border-white/[0.05] rounded-xl px-3 py-2.5">
-                                                        <span className="material-symbols-outlined text-white/30 shrink-0 mt-0.5" style={{ fontSize: "14px" }}>notes</span>
-                                                        <div className="flex-1 min-w-0">
-                                                            <p className="text-[8px] font-black uppercase tracking-widest text-white/30 mb-0.5">Keterangan</p>
-                                                            {isEditingContractRow ? (
-                                                                <input
-                                                                    type="text"
-                                                                    className="w-full bg-transparent text-[10px] font-bold text-white border-b border-white/10 focus:border-gold-accent/40 outline-none pb-0.5"
-                                                                    value={contractRowEditor.description || ""}
-                                                                    onChange={(e) => setContractRowEditor((prev) => prev ? { ...prev, description: e.target.value } : prev)}
-                                                                    placeholder="Tulis keterangan..."
-                                                                />
-                                                            ) : (
-                                                                <p className="text-[10px] font-medium text-white/70 truncate" title={row.description}>
-                                                                    {row.description || '–'}
+                                                    {isExpanded && (
+                                                        <>
+                                                            {/* Row 3: Dates Info (Vertical Stack with Fixed-Width Inputs to Prevent Overlapping) */}
+                                                            <div className="flex flex-col gap-1.5 bg-white/[0.02] border border-white/[0.05] rounded-xl p-2.5">
+                                                                {/* Awal Kontrak */}
+                                                                <div className="flex items-center justify-between gap-3 border-b border-white/[0.03] pb-1.5">
+                                                                    <span className="text-[10px] font-bold text-white/40 flex items-center gap-1.5">
+                                                                        <span className="material-symbols-outlined text-[13px] text-white/30" style={{ fontSize: '13px' }}>calendar_today</span>
+                                                                        Awal Kontrak
+                                                                    </span>
+                                                                    <div className="w-[110px] h-7 rounded-lg bg-black/20 border border-white/5 flex items-center justify-center overflow-hidden shrink-0">
+                                                                        <DateInput
+                                                                            value={isEditingContractRow ? (contractRowEditor.contractStartDate || contractStartValue || "") : (contractStartValue || "")}
+                                                                            onChange={(val) => setContractRowEditor((prev) => prev ? { ...prev, contractStartDate: val } : prev)}
+                                                                            onFocus={() => {
+                                                                                if (!isEditingContractRow && canManageIspContracts) {
+                                                                                    openContractRowEditor(row);
+                                                                                }
+                                                                            }}
+                                                                            className="h-full w-full"
+                                                                            hideIcon={true}
+                                                                            inputClass="w-full h-full bg-transparent px-1 text-[10px] font-bold text-white border-transparent focus:border-gold-accent/40 focus:bg-white/[0.04] outline-none transition-all text-center uppercase"
+                                                                            disabled={!canManageIspContracts}
+                                                                        />
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Berjalan (Awal) */}
+                                                                <div className="flex items-center justify-between gap-3 border-b border-white/[0.03] pb-1.5">
+                                                                    <span className="text-[10px] font-bold text-white/40 flex items-center gap-1.5">
+                                                                        <span className="material-symbols-outlined text-[13px] text-white/30" style={{ fontSize: '13px' }}>event_repeat</span>
+                                                                        Berjalan (Awal)
+                                                                    </span>
+                                                                    <div className="w-[110px] h-7 rounded-lg bg-black/20 border border-white/5 flex items-center justify-center overflow-hidden shrink-0">
+                                                                        <DateInput
+                                                                            value={isEditingContractRow ? (contractRowEditor.periodStart || "") : (row.periodStart || "")}
+                                                                            onChange={(val) => setContractRowEditor((prev) => prev ? { ...prev, periodStart: val } : prev)}
+                                                                            onFocus={() => {
+                                                                                if (!isEditingContractRow && canManageIspContracts) {
+                                                                                    openContractRowEditor(row);
+                                                                                }
+                                                                            }}
+                                                                            className="h-full w-full"
+                                                                            hideIcon={true}
+                                                                            inputClass="w-full h-full bg-transparent px-1 text-[10px] font-bold text-white border-transparent focus:border-gold-accent/40 focus:bg-white/[0.04] outline-none transition-all text-center uppercase"
+                                                                            disabled={!canManageIspContracts}
+                                                                        />
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Berjalan (Akhir) */}
+                                                                <div className="flex items-center justify-between gap-3">
+                                                                    <span className="text-[10px] font-bold text-white/40 flex items-center gap-1.5">
+                                                                        <span className="material-symbols-outlined text-[13px] text-white/30" style={{ fontSize: '13px' }}>event_busy</span>
+                                                                        Berjalan (Akhir)
+                                                                    </span>
+                                                                    <div className="w-[110px] h-7 rounded-lg bg-black/20 border border-white/5 flex items-center justify-center overflow-hidden shrink-0">
+                                                                        <DateInput
+                                                                            value={isEditingContractRow ? (contractRowEditor.periodEnd || "") : (row.periodEnd || "")}
+                                                                            onChange={(val) => setContractRowEditor((prev) => prev ? { ...prev, periodEnd: val } : prev)}
+                                                                            onFocus={() => {
+                                                                                if (!isEditingContractRow && canManageIspContracts) {
+                                                                                    openContractRowEditor(row);
+                                                                                }
+                                                                            }}
+                                                                            className="h-full w-full"
+                                                                            hideIcon={true}
+                                                                            inputClass="w-full h-full bg-transparent px-1 text-[10px] font-bold text-white border-transparent focus:border-gold-accent/40 focus:bg-white/[0.04] outline-none transition-all text-center uppercase"
+                                                                            disabled={!canManageIspContracts}
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Row 4: Files Upload List (Vertical Rows) */}
+                                                            <div className="flex flex-col gap-1.5 bg-black/35 border border-white/[0.04] rounded-xl p-2.5">
+                                                                <p className="text-[8px] font-black uppercase tracking-widest text-white/40 mb-1 flex items-center gap-1.5">
+                                                                    <span className="material-symbols-outlined text-[13px] text-white/30" style={{ fontSize: '13px' }}>folder_open</span>
+                                                                    Lampiran Berkas
                                                                 </p>
-                                                            )}
-                                                        </div>
-                                                    </div>
 
-                                                    {/* Row 3: Dates Info (Vertical Stack with Fixed-Width Inputs to Prevent Overlapping) */}
-                                                    <div className="flex flex-col gap-2 bg-white/[0.02] border border-white/[0.05] rounded-xl p-3">
-                                                        {/* Awal Kontrak */}
-                                                        <div className="flex items-center justify-between gap-3 border-b border-white/[0.03] pb-2">
-                                                            <span className="text-[10px] font-bold text-white/40 flex items-center gap-1.5">
-                                                                <span className="material-symbols-outlined text-[13px] text-white/30" style={{ fontSize: '13px' }}>calendar_today</span>
-                                                                Awal Kontrak
-                                                            </span>
-                                                            <div className="w-[110px] h-7 rounded-lg bg-black/20 border border-white/5 flex items-center justify-center overflow-hidden shrink-0">
-                                                                <DateInput
-                                                                    value={isEditingContractRow ? (contractRowEditor.contractStartDate || contractStartValue || "") : (contractStartValue || "")}
-                                                                    onChange={(val) => setContractRowEditor((prev) => prev ? { ...prev, contractStartDate: val } : prev)}
-                                                                    onFocus={() => {
-                                                                        if (!isEditingContractRow && canManageIspContracts) {
-                                                                            openContractRowEditor(row);
-                                                                        }
-                                                                    }}
-                                                                    className="h-full w-full"
-                                                                    hideIcon={true}
-                                                                    inputClass="w-full h-full bg-transparent px-1 text-[10px] font-bold text-white border-transparent focus:border-gold-accent/40 focus:bg-white/[0.04] outline-none transition-all text-center uppercase"
-                                                                    disabled={!canManageIspContracts}
-                                                                />
-                                                            </div>
-                                                        </div>
-
-                                                        {/* Berjalan (Awal) */}
-                                                        <div className="flex items-center justify-between gap-3 border-b border-white/[0.03] pb-2">
-                                                            <span className="text-[10px] font-bold text-white/40 flex items-center gap-1.5">
-                                                                <span className="material-symbols-outlined text-[13px] text-white/30" style={{ fontSize: '13px' }}>event_repeat</span>
-                                                                Berjalan (Awal)
-                                                            </span>
-                                                            <div className="w-[110px] h-7 rounded-lg bg-black/20 border border-white/5 flex items-center justify-center overflow-hidden shrink-0">
-                                                                <DateInput
-                                                                    value={isEditingContractRow ? (contractRowEditor.periodStart || "") : (row.periodStart || "")}
-                                                                    onChange={(val) => setContractRowEditor((prev) => prev ? { ...prev, periodStart: val } : prev)}
-                                                                    onFocus={() => {
-                                                                        if (!isEditingContractRow && canManageIspContracts) {
-                                                                            openContractRowEditor(row);
-                                                                        }
-                                                                    }}
-                                                                    className="h-full w-full"
-                                                                    hideIcon={true}
-                                                                    inputClass="w-full h-full bg-transparent px-1 text-[10px] font-bold text-white border-transparent focus:border-gold-accent/40 focus:bg-white/[0.04] outline-none transition-all text-center uppercase"
-                                                                    disabled={!canManageIspContracts}
-                                                                />
-                                                            </div>
-                                                        </div>
-
-                                                        {/* Berjalan (Akhir) */}
-                                                        <div className="flex items-center justify-between gap-3">
-                                                            <span className="text-[10px] font-bold text-white/40 flex items-center gap-1.5">
-                                                                <span className="material-symbols-outlined text-[13px] text-white/30" style={{ fontSize: '13px' }}>event_busy</span>
-                                                                Berjalan (Akhir)
-                                                            </span>
-                                                            <div className="w-[110px] h-7 rounded-lg bg-black/20 border border-white/5 flex items-center justify-center overflow-hidden shrink-0">
-                                                                <DateInput
-                                                                    value={isEditingContractRow ? (contractRowEditor.periodEnd || "") : (row.periodEnd || "")}
-                                                                    onChange={(val) => setContractRowEditor((prev) => prev ? { ...prev, periodEnd: val } : prev)}
-                                                                    onFocus={() => {
-                                                                        if (!isEditingContractRow && canManageIspContracts) {
-                                                                            openContractRowEditor(row);
-                                                                        }
-                                                                    }}
-                                                                    className="h-full w-full"
-                                                                    hideIcon={true}
-                                                                    inputClass="w-full h-full bg-transparent px-1 text-[10px] font-bold text-white border-transparent focus:border-gold-accent/40 focus:bg-white/[0.04] outline-none transition-all text-center uppercase"
-                                                                    disabled={!canManageIspContracts}
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Row 4: Files Upload List (Vertical Rows) */}
-                                                    <div className="flex flex-col gap-2 bg-black/35 border border-white/[0.04] rounded-xl p-3">
-                                                        <p className="text-[8px] font-black uppercase tracking-widest text-white/40 mb-1 flex items-center gap-1.5">
-                                                            <span className="material-symbols-outlined text-[13px] text-white/30" style={{ fontSize: '13px' }}>folder_open</span>
-                                                            Lampiran Berkas
-                                                        </p>
-
-                                                        {/* File 1: Berkas Kontrak */}
-                                                        <div className="flex items-center justify-between gap-3 bg-white/[0.02] border border-white/[0.05] rounded-xl p-2.5">
-                                                            <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                                                                <span className="material-symbols-outlined text-gold-accent/50 text-[18px] shrink-0">history_edu</span>
-                                                                <div className="flex flex-col min-w-0">
-                                                                    <span className="text-[9px] font-black uppercase tracking-widest text-white/30">Berkas Kontrak</span>
-                                                                    {isEditingContractRow && contractRowEditor.contractUploadedFile ? (
-                                                                        <span className="text-[9px] font-bold text-blue-400 truncate max-w-[120px] sm:max-w-none" title={contractRowEditor.contractUploadedFileName}>
-                                                                            {contractRowEditor.contractUploadedFileName}
-                                                                        </span>
-                                                                    ) : (isEditingContractRow ? contractRowEditor.contractFileUrl : row.contractFileUrl) ? (
-                                                                        <span className="text-[9px] font-bold text-white/60 truncate max-w-[120px] sm:max-w-none" title={row.contractFileName || "Kontrak"}>
-                                                                            {row.contractFileName || "Tersedia"}
-                                                                        </span>
-                                                                    ) : (
-                                                                        <span className="text-[9px] font-bold text-white/20">Kosong</span>
-                                                                    )}
-                                                                </div>
-                                                            </div>
-                                                            <div className="flex items-center gap-1.5 shrink-0">
-                                                                {isEditingContractRow && contractRowEditor.contractUploadedFile ? (
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => setContractRowEditor(prev => prev ? { ...prev, contractUploadedFile: null, contractUploadedFileName: "" } : null)}
-                                                                        className="h-6 w-6 rounded-lg bg-[#ff2400]/15 text-[#ff2400] border border-[#ff2400]/25 flex items-center justify-center hover:bg-[#ff2400] hover:text-white transition-all"
-                                                                        title="Batal"
-                                                                    >
-                                                                        <span className="material-symbols-outlined" style={{ fontSize: "11px" }}>close</span>
-                                                                    </button>
-                                                                ) : (isEditingContractRow ? contractRowEditor.contractFileUrl : row.contractFileUrl) ? (
-                                                                    <>
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => openSafeFile(isEditingContractRow ? contractRowEditor.contractFileUrl : row.contractFileUrl, row.contractFileName)}
-                                                                            className="h-6 px-1.5 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-400 flex items-center hover:bg-sky-500 hover:text-white transition-all text-[8px] font-black uppercase tracking-wider"
-                                                                        >
-                                                                            Buka
-                                                                        </button>
-                                                                        {canManageIspContracts && (
+                                                                {/* File 1: Berkas Kontrak */}
+                                                                <div className="flex items-center justify-between gap-3 bg-white/[0.02] border border-white/[0.05] rounded-xl p-2">
+                                                                    <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                                                                        <span className="material-symbols-outlined text-gold-accent/50 text-[18px] shrink-0">history_edu</span>
+                                                                        <div className="flex flex-col min-w-0">
+                                                                            <span className="text-[9px] font-black uppercase tracking-widest text-white/30">Berkas Kontrak</span>
+                                                                            {isEditingContractRow && contractRowEditor.contractUploadedFile ? (
+                                                                                <span className="text-[9px] font-bold text-blue-400 truncate max-w-[120px] sm:max-w-none" title={contractRowEditor.contractUploadedFileName}>
+                                                                                    {contractRowEditor.contractUploadedFileName}
+                                                                                </span>
+                                                                            ) : (isEditingContractRow ? contractRowEditor.contractFileUrl : row.contractFileUrl) ? (
+                                                                                <span className="text-[9px] font-bold text-white/60 truncate max-w-[120px] sm:max-w-none" title={row.contractFileName || "Kontrak"}>
+                                                                                    {row.contractFileName || "Tersedia"}
+                                                                                </span>
+                                                                            ) : (
+                                                                                <span className="text-[9px] font-bold text-white/20">Kosong</span>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-1.5 shrink-0">
+                                                                        {isEditingContractRow && contractRowEditor.contractUploadedFile ? (
                                                                             <button
                                                                                 type="button"
-                                                                                onClick={() => {
-                                                                                    if (!isEditingContractRow) {
-                                                                                        openContractRowEditor(row, null);
-                                                                                        setTimeout(() => {
-                                                                                            setContractRowEditor(prev => prev ? { ...prev, contractFileUrl: "" } : null);
-                                                                                        }, 50);
-                                                                                    } else {
-                                                                                        setContractRowEditor(prev => prev ? { ...prev, contractFileUrl: "" } : null);
-                                                                                    }
-                                                                                }}
-                                                                                className="h-6 w-6 rounded-lg border border-[#ff2400]/20 bg-[#ff2400]/10 flex items-center justify-center text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all"
-                                                                                title="Hapus"
+                                                                                onClick={() => setContractRowEditor(prev => prev ? { ...prev, contractUploadedFile: null, contractUploadedFileName: "" } : null)}
+                                                                                className="h-6 w-6 rounded-lg bg-[#ff2400]/15 text-[#ff2400] border border-[#ff2400]/25 flex items-center justify-center hover:bg-[#ff2400] hover:text-white transition-all"
+                                                                                title="Batal"
                                                                             >
-                                                                                <span className="material-symbols-outlined" style={{ fontSize: "11px" }}>delete</span>
+                                                                                <span className="material-symbols-outlined" style={{ fontSize: "11px" }}>close</span>
                                                                             </button>
-                                                                        )}
-                                                                    </>
-                                                                ) : canManageIspContracts ? (
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => openContractRowEditor(row, "contractFile")}
-                                                                        className="h-6 px-1.5 rounded-lg bg-white/5 border border-white/10 text-white/40 flex items-center hover:border-white/20 hover:text-white transition-all text-[8px] font-black uppercase tracking-wider"
-                                                                    >
-                                                                        Upload
-                                                                    </button>
-                                                                ) : null}
-                                                                {isEditingContractRow ? (
-                                                                    <label
-                                                                        className="h-6 w-6 rounded-lg bg-white/5 border border-white/10 text-white/40 flex items-center justify-center cursor-pointer hover:text-white hover:border-white/20 transition-all"
-                                                                        onClick={() => { isSelectingFileRef.current = true; }}
-                                                                        title="Ganti berkas"
-                                                                    >
-                                                                        <span className="material-symbols-outlined" style={{ fontSize: "11px" }}>sync</span>
-                                                                        <input
-                                                                            type="file"
-                                                                            className="hidden"
-                                                                            disabled={isSavingContractRow}
-                                                                            onChange={async (event) => {
-                                                                                isSelectingFileRef.current = false;
-                                                                                const file = event.target.files?.[0] ?? null;
-                                                                                if (file) {
-                                                                                    setContractRowEditor((previous) => (
-                                                                                        previous ? { ...previous, contractUploadedFile: file, contractUploadedFileName: file.name } : previous
-                                                                                    ));
-                                                                                    await handleSaveContractRow(null, { contractUploadedFile: file });
-                                                                                }
-                                                                            }}
-                                                                            ref={(el) => {
-                                                                                if (el && contractRowEditor?.focusField === "contractFile") {
-                                                                                    isSelectingFileRef.current = true;
-                                                                                    el.click();
-                                                                                    setContractRowEditor((prev) => prev ? { ...prev, focusField: null } : null);
-                                                                                }
-                                                                            }}
-                                                                        />
-                                                                    </label>
-                                                                ) : canManageIspContracts && row.contractFileUrl && (
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => openContractRowEditor(row, "contractFile")}
-                                                                        className="h-6 w-6 rounded-lg bg-white/5 border border-white/10 text-white/40 flex items-center justify-center hover:text-white hover:border-white/20 transition-all"
-                                                                        title="Ganti berkas"
-                                                                    >
-                                                                        <span className="material-symbols-outlined" style={{ fontSize: "11px" }}>sync</span>
-                                                                    </button>
-                                                                )}
-                                                            </div>
-                                                        </div>
-
-                                                        {/* File 2: Berkas BAK */}
-                                                        <div className="flex items-center justify-between gap-3 bg-white/[0.02] border border-white/[0.05] rounded-xl p-2.5">
-                                                            <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                                                                <span className="material-symbols-outlined text-gold-accent/50 text-[18px] shrink-0">assignment</span>
-                                                                <div className="flex flex-col min-w-0">
-                                                                    <span className="text-[9px] font-black uppercase tracking-widest text-white/30">Berkas BAK</span>
-                                                                    {isEditingContractRow && contractRowEditor.bakUploadedFile ? (
-                                                                        <span className="text-[9px] font-bold text-blue-400 truncate max-w-[120px] sm:max-w-none" title={contractRowEditor.bakUploadedFileName}>
-                                                                            {contractRowEditor.bakUploadedFileName}
-                                                                        </span>
-                                                                    ) : (isEditingContractRow ? contractRowEditor.bakFileUrl : row.bakFileUrl) ? (
-                                                                        <span className="text-[9px] font-bold text-white/60 truncate max-w-[120px] sm:max-w-none" title={row.bakFileName || "BAK"}>
-                                                                            {row.bakFileName || "Tersedia"}
-                                                                        </span>
-                                                                    ) : (
-                                                                        <span className="text-[9px] font-bold text-white/20">Kosong</span>
-                                                                    )}
-                                                                </div>
-                                                            </div>
-                                                            <div className="flex items-center gap-1.5 shrink-0">
-                                                                {isEditingContractRow && contractRowEditor.bakUploadedFile ? (
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => setContractRowEditor(prev => prev ? { ...prev, bakUploadedFile: null, bakUploadedFileName: "" } : null)}
-                                                                        className="h-6 w-6 rounded-lg bg-[#ff2400]/15 text-[#ff2400] border border-[#ff2400]/25 flex items-center justify-center hover:bg-[#ff2400] hover:text-white transition-all"
-                                                                        title="Batal"
-                                                                    >
-                                                                        <span className="material-symbols-outlined" style={{ fontSize: "11px" }}>close</span>
-                                                                    </button>
-                                                                ) : (isEditingContractRow ? contractRowEditor.bakFileUrl : row.bakFileUrl) ? (
-                                                                    <>
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => openSafeFile(isEditingContractRow ? contractRowEditor.bakFileUrl : row.bakFileUrl, row.bakFileName)}
-                                                                            className="h-6 px-1.5 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-400 flex items-center hover:bg-sky-500 hover:text-white transition-all text-[8px] font-black uppercase tracking-wider"
-                                                                        >
-                                                                            Buka
-                                                                        </button>
-                                                                        {canManageIspContracts && (
+                                                                        ) : (isEditingContractRow ? contractRowEditor.contractFileUrl : row.contractFileUrl) ? (
+                                                                            <>
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => openSafeFile(isEditingContractRow ? contractRowEditor.contractFileUrl : row.contractFileUrl, row.contractFileName)}
+                                                                                    className="h-6 px-1.5 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-400 flex items-center hover:bg-sky-500 hover:text-white transition-all text-[8px] font-black uppercase tracking-wider"
+                                                                                >
+                                                                                    Buka
+                                                                                </button>
+                                                                                {canManageIspContracts && (
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        onClick={() => {
+                                                                                            if (!isEditingContractRow) {
+                                                                                                openContractRowEditor(row, null);
+                                                                                                setTimeout(() => {
+                                                                                                    setContractRowEditor(prev => prev ? { ...prev, contractFileUrl: "" } : null);
+                                                                                                }, 50);
+                                                                                            } else {
+                                                                                                setContractRowEditor(prev => prev ? { ...prev, contractFileUrl: "" } : null);
+                                                                                            }
+                                                                                        }}
+                                                                                        className="h-6 w-6 rounded-lg border border-[#ff2400]/20 bg-[#ff2400]/10 flex items-center justify-center text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all"
+                                                                                        title="Hapus"
+                                                                                    >
+                                                                                        <span className="material-symbols-outlined" style={{ fontSize: "11px" }}>delete</span>
+                                                                                    </button>
+                                                                                )}
+                                                                            </>
+                                                                        ) : canManageIspContracts ? (
                                                                             <button
                                                                                 type="button"
-                                                                                onClick={() => {
-                                                                                    if (!isEditingContractRow) {
-                                                                                        openContractRowEditor(row, null);
-                                                                                        setTimeout(() => {
-                                                                                            setContractRowEditor(prev => prev ? { ...prev, bakFileUrl: "" } : null);
-                                                                                        }, 50);
-                                                                                    } else {
-                                                                                        setContractRowEditor(prev => prev ? { ...prev, bakFileUrl: "" } : null);
-                                                                                    }
-                                                                                }}
-                                                                                className="h-6 w-6 rounded-lg border border-[#ff2400]/20 bg-[#ff2400]/10 flex items-center justify-center text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all"
-                                                                                title="Hapus"
+                                                                                onClick={() => openContractRowEditor(row, "contractFile")}
+                                                                                className="h-6 px-1.5 rounded-lg bg-white/5 border border-white/10 text-white/40 flex items-center hover:border-white/20 hover:text-white transition-all text-[8px] font-black uppercase tracking-wider"
                                                                             >
-                                                                                <span className="material-symbols-outlined" style={{ fontSize: "11px" }}>delete</span>
+                                                                                Upload
+                                                                            </button>
+                                                                        ) : null}
+                                                                        {isEditingContractRow ? (
+                                                                            <label
+                                                                                className="h-6 w-6 rounded-lg bg-white/5 border border-white/10 text-white/40 flex items-center justify-center cursor-pointer hover:text-white hover:border-white/20 transition-all"
+                                                                                onClick={() => { isSelectingFileRef.current = true; }}
+                                                                                title="Ganti berkas"
+                                                                            >
+                                                                                <span className="material-symbols-outlined" style={{ fontSize: "11px" }}>sync</span>
+                                                                                <input
+                                                                                    type="file"
+                                                                                    className="hidden"
+                                                                                    disabled={isSavingContractRow}
+                                                                                    onChange={async (event) => {
+                                                                                        isSelectingFileRef.current = false;
+                                                                                        const file = event.target.files?.[0] ?? null;
+                                                                                        if (file) {
+                                                                                            setContractRowEditor((previous) => (
+                                                                                                previous ? { ...previous, contractUploadedFile: file, contractUploadedFileName: file.name } : previous
+                                                                                            ));
+                                                                                            await handleSaveContractRow(null, { contractUploadedFile: file });
+                                                                                        }
+                                                                                    }}
+                                                                                    ref={(el) => {
+                                                                                        if (el && contractRowEditor?.focusField === "contractFile") {
+                                                                                            isSelectingFileRef.current = true;
+                                                                                            el.click();
+                                                                                            setContractRowEditor((prev) => prev ? { ...prev, focusField: null } : null);
+                                                                                        }
+                                                                                    }}
+                                                                                />
+                                                                            </label>
+                                                                        ) : canManageIspContracts && row.contractFileUrl && (
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => openContractRowEditor(row, "contractFile")}
+                                                                                className="h-6 w-6 rounded-lg bg-white/5 border border-white/10 text-white/40 flex items-center justify-center hover:text-white hover:border-white/20 transition-all"
+                                                                                title="Ganti berkas"
+                                                                            >
+                                                                                <span className="material-symbols-outlined" style={{ fontSize: "11px" }}>sync</span>
                                                                             </button>
                                                                         )}
-                                                                    </>
-                                                                ) : canManageIspContracts ? (
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => openContractRowEditor(row, "bakFile")}
-                                                                        className="h-6 px-1.5 rounded-lg bg-white/5 border border-white/10 text-white/40 flex items-center hover:border-white/20 hover:text-white transition-all text-[8px] font-black uppercase tracking-wider"
-                                                                    >
-                                                                        Upload
-                                                                    </button>
-                                                                ) : null}
-                                                                {isEditingContractRow ? (
-                                                                    <label
-                                                                        className="h-6 w-6 rounded-lg bg-white/5 border border-white/10 text-white/40 flex items-center justify-center cursor-pointer hover:text-white hover:border-white/20 transition-all"
-                                                                        onClick={() => { isSelectingFileRef.current = true; }}
-                                                                        title="Ganti berkas"
-                                                                    >
-                                                                        <span className="material-symbols-outlined" style={{ fontSize: "11px" }}>sync</span>
-                                                                        <input
-                                                                            type="file"
-                                                                            className="hidden"
-                                                                            disabled={isSavingContractRow}
-                                                                            onChange={async (event) => {
-                                                                                isSelectingFileRef.current = false;
-                                                                                const file = event.target.files?.[0] ?? null;
-                                                                                if (file) {
-                                                                                    setContractRowEditor((previous) => (
-                                                                                        previous ? { ...previous, bakUploadedFile: file, bakUploadedFileName: file.name } : previous
-                                                                                    ));
-                                                                                    await handleSaveContractRow(null, { bakUploadedFile: file });
-                                                                                }
-                                                                            }}
-                                                                            ref={(el) => {
-                                                                                if (el && contractRowEditor?.focusField === "bakFile") {
-                                                                                    isSelectingFileRef.current = true;
-                                                                                    el.click();
-                                                                                    setContractRowEditor((prev) => prev ? { ...prev, focusField: null } : null);
-                                                                                }
-                                                                            }}
-                                                                        />
-                                                                    </label>
-                                                                ) : canManageIspContracts && row.bakFileUrl && (
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => openContractRowEditor(row, "bakFile")}
-                                                                        className="h-6 w-6 rounded-lg bg-white/5 border border-white/10 text-white/40 flex items-center justify-center hover:text-white hover:border-white/20 transition-all"
-                                                                        title="Ganti berkas"
-                                                                    >
-                                                                        <span className="material-symbols-outlined" style={{ fontSize: "11px" }}>sync</span>
-                                                                    </button>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    </div>
+                                                                    </div>
+                                                                </div>
 
-                                                    {/* Row 5: Renewal & Response Action Panel (Vertical Split List) */}
-                                                    <div className="flex flex-col gap-2.5 pt-3 border-t border-white/[0.06]">
-                                                        {/* Split Perpanjangan */}
-                                                        <div className="flex items-center justify-between gap-3 bg-white/[0.01] border border-white/[0.03] rounded-xl p-2.5">
-                                                            <span className="text-[10px] font-bold text-white/40 flex items-center gap-1.5 shrink-0">
-                                                                <span className="material-symbols-outlined text-[13px] text-white/30" style={{ fontSize: '13px' }}>history</span>
-                                                                Perpanjangan
-                                                            </span>
-                                                            <div className="flex items-center justify-end gap-1.5">
-                                                                {renderRenewalFollowUps(row, "renewal")}
+                                                                {/* File 2: Berkas BAK */}
+                                                                <div className="flex items-center justify-between gap-3 bg-white/[0.02] border border-white/[0.05] rounded-xl p-2">
+                                                                    <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                                                                        <span className="material-symbols-outlined text-gold-accent/50 text-[18px] shrink-0">assignment</span>
+                                                                        <div className="flex flex-col min-w-0">
+                                                                            <span className="text-[9px] font-black uppercase tracking-widest text-white/30">Berkas BAK</span>
+                                                                            {isEditingContractRow && contractRowEditor.bakUploadedFile ? (
+                                                                                <span className="text-[9px] font-bold text-blue-400 truncate max-w-[120px] sm:max-w-none" title={contractRowEditor.bakUploadedFileName}>
+                                                                                    {contractRowEditor.bakUploadedFileName}
+                                                                                </span>
+                                                                            ) : (isEditingContractRow ? contractRowEditor.bakFileUrl : row.bakFileUrl) ? (
+                                                                                <span className="text-[9px] font-bold text-white/60 truncate max-w-[120px] sm:max-w-none" title={row.bakFileName || "BAK"}>
+                                                                                    {row.bakFileName || "Tersedia"}
+                                                                                </span>
+                                                                            ) : (
+                                                                                <span className="text-[9px] font-bold text-white/20">Kosong</span>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-1.5 shrink-0">
+                                                                        {isEditingContractRow && contractRowEditor.bakUploadedFile ? (
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => setContractRowEditor(prev => prev ? { ...prev, bakUploadedFile: null, bakUploadedFileName: "" } : null)}
+                                                                                className="h-6 w-6 rounded-lg bg-[#ff2400]/15 text-[#ff2400] border border-[#ff2400]/25 flex items-center justify-center hover:bg-[#ff2400] hover:text-white transition-all"
+                                                                                title="Batal"
+                                                                            >
+                                                                                <span className="material-symbols-outlined" style={{ fontSize: "11px" }}>close</span>
+                                                                            </button>
+                                                                        ) : (isEditingContractRow ? contractRowEditor.bakFileUrl : row.bakFileUrl) ? (
+                                                                            <>
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => openSafeFile(isEditingContractRow ? contractRowEditor.bakFileUrl : row.bakFileUrl, row.bakFileName)}
+                                                                                    className="h-6 px-1.5 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-400 flex items-center hover:bg-sky-500 hover:text-white transition-all text-[8px] font-black uppercase tracking-wider"
+                                                                                >
+                                                                                    Buka
+                                                                                </button>
+                                                                                {canManageIspContracts && (
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        onClick={() => {
+                                                                                            if (!isEditingContractRow) {
+                                                                                                openContractRowEditor(row, null);
+                                                                                                setTimeout(() => {
+                                                                                                    setContractRowEditor(prev => prev ? { ...prev, bakFileUrl: "" } : null);
+                                                                                                }, 50);
+                                                                                            } else {
+                                                                                                setContractRowEditor(prev => prev ? { ...prev, bakFileUrl: "" } : null);
+                                                                                            }
+                                                                                        }}
+                                                                                        className="h-6 w-6 rounded-lg border border-[#ff2400]/20 bg-[#ff2400]/10 flex items-center justify-center text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all"
+                                                                                        title="Hapus"
+                                                                                    >
+                                                                                        <span className="material-symbols-outlined" style={{ fontSize: "11px" }}>delete</span>
+                                                                                    </button>
+                                                                                )}
+                                                                            </>
+                                                                        ) : canManageIspContracts ? (
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => openContractRowEditor(row, "bakFile")}
+                                                                                className="h-6 px-1.5 rounded-lg bg-white/5 border border-white/10 text-white/40 flex items-center hover:border-white/20 hover:text-white transition-all text-[8px] font-black uppercase tracking-wider"
+                                                                            >
+                                                                                Upload
+                                                                            </button>
+                                                                        ) : null}
+                                                                        {isEditingContractRow ? (
+                                                                            <label
+                                                                                className="h-6 w-6 rounded-lg bg-white/5 border border-white/10 text-white/40 flex items-center justify-center cursor-pointer hover:text-white hover:border-white/20 transition-all"
+                                                                                onClick={() => { isSelectingFileRef.current = true; }}
+                                                                                title="Ganti berkas"
+                                                                            >
+                                                                                <span className="material-symbols-outlined" style={{ fontSize: "11px" }}>sync</span>
+                                                                                <input
+                                                                                    type="file"
+                                                                                    className="hidden"
+                                                                                    disabled={isSavingContractRow}
+                                                                                    onChange={async (event) => {
+                                                                                        isSelectingFileRef.current = false;
+                                                                                        const file = event.target.files?.[0] ?? null;
+                                                                                        if (file) {
+                                                                                            setContractRowEditor((previous) => (
+                                                                                                previous ? { ...previous, bakUploadedFile: file, bakUploadedFileName: file.name } : previous
+                                                                                            ));
+                                                                                            await handleSaveContractRow(null, { bakUploadedFile: file });
+                                                                                        }
+                                                                                    }}
+                                                                                    ref={(el) => {
+                                                                                        if (el && contractRowEditor?.focusField === "bakFile") {
+                                                                                            isSelectingFileRef.current = true;
+                                                                                            el.click();
+                                                                                            setContractRowEditor((prev) => prev ? { ...prev, focusField: null } : null);
+                                                                                        }
+                                                                                    }}
+                                                                                />
+                                                                            </label>
+                                                                        ) : canManageIspContracts && row.bakFileUrl && (
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => openContractRowEditor(row, "bakFile")}
+                                                                                className="h-6 w-6 rounded-lg bg-white/5 border border-white/10 text-white/40 flex items-center justify-center hover:text-white hover:border-white/20 transition-all"
+                                                                                title="Ganti berkas"
+                                                                            >
+                                                                                <span className="material-symbols-outlined" style={{ fontSize: "11px" }}>sync</span>
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
                                                             </div>
-                                                        </div>
 
-                                                        {/* Split Tanggapan */}
-                                                        <div className="flex items-center justify-between gap-3 bg-white/[0.01] border border-white/[0.03] rounded-xl p-2.5">
-                                                            <span className="text-[10px] font-bold text-white/40 flex items-center gap-1.5 shrink-0">
-                                                                <span className="material-symbols-outlined text-[13px] text-white/30" style={{ fontSize: '13px' }}>chat_bubble</span>
-                                                                Tanggapan
-                                                            </span>
-                                                            <div className="flex items-center justify-end">
-                                                                {renderRenewalFollowUps(row, "response")}
+                                                            {/* Row 5: Renewal & Response Action Panel (Vertical Split List) */}
+                                                            <div className="flex flex-col gap-2 pt-2 border-t border-white/[0.06]">
+                                                                {/* Split Perpanjangan */}
+                                                                <div className="flex items-center justify-between gap-3 bg-white/[0.01] border border-white/[0.03] rounded-xl p-2">
+                                                                    <span className="text-[10px] font-bold text-white/40 flex items-center gap-1.5 shrink-0">
+                                                                        <span className="material-symbols-outlined text-[13px] text-white/30" style={{ fontSize: '13px' }}>history</span>
+                                                                        Perpanjangan
+                                                                    </span>
+                                                                    <div className="flex items-center justify-end gap-1.5">
+                                                                        {renderRenewalFollowUps(row, "renewal")}
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Split Tanggapan */}
+                                                                <div className="flex items-center justify-between gap-3 bg-white/[0.01] border border-white/[0.03] rounded-xl p-2">
+                                                                    <span className="text-[10px] font-bold text-white/40 flex items-center gap-1.5 shrink-0">
+                                                                        <span className="material-symbols-outlined text-[13px] text-white/30" style={{ fontSize: '13px' }}>chat_bubble</span>
+                                                                        Tanggapan
+                                                                    </span>
+                                                                    <div className="flex items-center justify-end">
+                                                                        {renderRenewalFollowUps(row, "response")}
+                                                                    </div>
+                                                                </div>
                                                             </div>
-                                                        </div>
+                                                        </>
+                                                    )}
+
+                                                    {/* Bottom Divider & Expand Toggle Button */}
+                                                    <div className="flex justify-end pt-1 md:pt-1.5 border-t border-white/[0.06]">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setExpandedContracts((prev) => ({
+                                                                    ...prev,
+                                                                    [row.id]: !prev[row.id],
+                                                                }));
+                                                            }}
+                                                            className="flex items-center gap-1 text-[8.5px] font-black tracking-[0.1em] leading-none text-white/40 hover:text-gold-accent transition-colors"
+                                                        >
+                                                            {isExpanded ? "Lebih Sedikit" : "Lebih Lengkap"}
+                                                            <span className="material-symbols-outlined text-[10px]">{isExpanded ? "expand_less" : "expand_more"}</span>
+                                                        </button>
                                                     </div>
                                                 </div>
                                             );
                                         })}
-                                         {filteredContracts.length === 0 && (
-                                             <div className="py-10 text-center glass-card rounded-2xl border border-white/10">
-                                                 <div className="flex flex-col items-center justify-center">
-                                                     <div className="h-12 w-12 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 shadow-inner-glass mb-3 animate-pulse">
-                                                         <span className="material-symbols-outlined text-2xl text-gold-accent/40">history_edu</span>
-                                                     </div>
-                                                     <h4 className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em]">BELUM ADA RINCIAN KONTRAK</h4>
-                                                     <p className="text-[8px] font-bold text-white/20 uppercase tracking-widest mt-1">Rincian kontrak atau adendum belum tersedia</p>
-                                                     {canManageIspContracts && (
-                                                         <button
-                                                             className="mt-4 rounded-lg bg-gold-accent px-4 py-2 text-[9px] font-black uppercase tracking-widest text-slate-900 shadow-gold-glow active:scale-95 transition-all inline-flex items-center gap-1.5"
-                                                             onClick={openContractDraft}
-                                                             type="button"
-                                                         >
-                                                             <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>add</span>
-                                                             Tambah Kontrak
-                                                         </button>
-                                                     )}
-                                                 </div>
-                                             </div>
-                                         )}
-                                     </div>
-                                 </section>
+                                        {filteredContracts.length === 0 && (
+                                            <div className="py-10 text-center glass-card rounded-2xl border border-white/10">
+                                                <div className="flex flex-col items-center justify-center">
+                                                    <div className="h-12 w-12 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 shadow-inner-glass mb-3 animate-pulse">
+                                                        <span className="material-symbols-outlined text-2xl text-gold-accent/40">history_edu</span>
+                                                    </div>
+                                                    <h4 className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em]">BELUM ADA RINCIAN KONTRAK</h4>
+                                                    <p className="text-[8px] font-bold text-white/20 uppercase tracking-widest mt-1">Rincian kontrak atau adendum belum tersedia</p>
+                                                    {canManageIspContracts && (
+                                                        <button
+                                                            className="mt-4 rounded-lg bg-gold-accent px-4 py-2 text-[9px] font-black uppercase tracking-widest text-slate-900 shadow-gold-glow active:scale-95 transition-all inline-flex items-center gap-1.5"
+                                                            onClick={openContractDraft}
+                                                            type="button"
+                                                        >
+                                                            <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>add</span>
+                                                            Tambah Kontrak
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </section>
                             </div>
                         )}
 
@@ -3762,10 +3784,10 @@ function IspDetailPage({
                                 </section>
 
                                 {/* ══════ CARD 2: FILTER & TABLE ══════ */}
-                                <section className="glass-card backdrop-blur-xl rounded-xl p-5 border-white/10 shadow-glass-depth">
-                                    <div className="mb-1.5 flex flex-wrap items-center gap-1.5 w-full relative z-50">
+                                <section className="glass-card backdrop-blur-xl rounded-xl p-3 md:p-5 border-white/10 shadow-glass-depth">
+                                    <div className="mb-1.5 flex items-center gap-1.5 w-full relative z-50">
                                         {/* Search Bar */}
-                                        <div className="relative group min-w-[280px] flex-1">
+                                        <div className="relative group flex-1 min-w-0">
                                             <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold-accent transition-colors" style={{ fontSize: "16px" }}>search</span>
                                             <input
                                                 type="text"
@@ -3778,26 +3800,26 @@ function IspDetailPage({
 
                                         {/* Sort Toggle */}
                                         <button
-                                            className="group relative flex h-8 w-[96px] shrink-0 items-center justify-center gap-1.5 overflow-hidden rounded-lg border border-white/10 bg-black/20 transition-all hover:border-white/20 hover:bg-black/40"
+                                            className="group relative flex h-8 w-8 xl:w-[96px] shrink-0 items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-black/20 text-white/60 transition-all hover:border-white/20 hover:bg-black/40 hover:text-white"
                                             onClick={() => setDocSortMethod((prev) => (prev === "newest" ? "oldest" : "newest"))}
                                             title={docSortMethod === "newest" ? "Urutkan Terlama" : "Urutkan Terbaru"}
                                             type="button"
                                         >
                                             <div className="relative flex h-full items-center justify-center">
                                                 <span
-                                                    className={`material-symbols-outlined text-white/50 transition-all duration-300 ${docSortMethod === "newest" ? "rotate-0 opacity-100" : "-rotate-180 opacity-0 absolute"}`}
-                                                    style={{ fontSize: "14px" }}
+                                                    className={`material-symbols-outlined transition-all duration-300 ${docSortMethod === "newest" ? "rotate-0 opacity-100 scale-100" : "-rotate-180 opacity-0 scale-75 absolute"}`}
+                                                    style={{ fontSize: "15px" }}
                                                 >
                                                     arrow_downward
                                                 </span>
                                                 <span
-                                                    className={`material-symbols-outlined text-white/50 transition-all duration-300 ${docSortMethod === "oldest" ? "rotate-0 opacity-100" : "rotate-180 opacity-0 absolute"}`}
-                                                    style={{ fontSize: "14px" }}
+                                                    className={`material-symbols-outlined transition-all duration-300 ${docSortMethod === "oldest" ? "rotate-0 opacity-100 scale-100" : "rotate-180 opacity-0 scale-75 absolute"}`}
+                                                    style={{ fontSize: "15px" }}
                                                 >
                                                     arrow_upward
                                                 </span>
                                             </div>
-                                            <span className="text-[9px] font-black uppercase tracking-widest text-white/70 transition-colors group-hover:text-white">
+                                            <span className="hidden xl:inline text-[9px] font-black uppercase tracking-widest text-white/70 transition-colors group-hover:text-white">
                                                 {docSortMethod === "newest" ? "Terbaru" : "Terlama"}
                                             </span>
                                         </button>
@@ -3814,7 +3836,7 @@ function IspDetailPage({
                                         )}
                                     </div>
 
-                                    <div className="overflow-x-auto rounded-lg border border-white/10 bg-black/55 backdrop-blur-3xl shadow-2xl custom-scrollbar">
+                                    <div className="hidden xl:block overflow-x-auto rounded-lg border border-white/10 bg-black/55 backdrop-blur-3xl shadow-2xl custom-scrollbar">
                                         <table className="min-w-full border-collapse whitespace-nowrap">
                                             <thead>
                                                 <tr className="bg-white/5 border-b border-white/10">
@@ -3877,6 +3899,75 @@ function IspDetailPage({
                                                 )}
                                             </tbody>
                                         </table>
+                                    </div>
+
+                                    {/* Mobile View List */}
+                                    <div className="xl:hidden flex flex-col gap-2 mt-2">
+                                        {filteredDocs.map((row, idx) => (
+                                            <div
+                                                key={row.id}
+                                                className="glass-card rounded-xl border border-white/10 px-3 py-2 flex items-center justify-between gap-3 shadow-glass-depth transition-all"
+                                            >
+                                                {/* Left: Icon & Info */}
+                                                <div className="flex items-center gap-2.5 min-w-0">
+                                                    <div className="h-[25px] w-[25px] flex items-center justify-center rounded-lg bg-white/5 border border-white/10 text-gold-accent shrink-0">
+                                                        <span className="material-symbols-outlined text-[13px]" style={{ fontSize: '13px' }}>description</span>
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <p className="text-[10.5px] font-bold text-white/95 truncate" title={row.fileName}>
+                                                            {row.fileName || "N/A"}
+                                                        </p>
+                                                        <p className="text-[8.5px] font-medium text-white/45 mt-0.5">
+                                                            {formatDate(row.tanggal)}
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                {/* Right: Actions */}
+                                                <div className="flex items-center gap-2 shrink-0">
+                                                    {isOpenableFileUrl(row.fileUrl) ? (
+                                                        <button
+                                                            onClick={() => openSafeFile(row.fileUrl, row.fileName)}
+                                                            className="inline-flex items-center gap-1 text-emerald-400 hover:text-white font-bold text-[8.5px] leading-none uppercase tracking-wider bg-emerald-500/10 border border-emerald-500/20 px-2 py-1.5 rounded-md transition-all active:scale-95"
+                                                        >
+                                                            <span className="material-symbols-outlined text-[11px]" style={{ fontSize: "11px" }}>description</span>
+                                                            Buka
+                                                        </button>
+                                                    ) : (
+                                                        <span className="text-[8.5px] font-black uppercase tracking-widest text-white/20">Kosong</span>
+                                                    )}
+
+                                                    {!isIsp && (
+                                                        <div className="flex items-center gap-1 border-l border-white/10 pl-2">
+                                                            <button
+                                                                className="w-6.5 h-6.5 flex items-center justify-center rounded-md bg-white/5 border border-white/10 text-gold-accent hover:bg-gold-accent hover:text-white transition-all shadow-sm"
+                                                                onClick={() => handleEditRisalah(row)}
+                                                                title="Edit"
+                                                            >
+                                                                <span className="material-symbols-outlined" style={{ fontSize: "12px" }}>edit_note</span>
+                                                            </button>
+                                                            <button
+                                                                className="w-6.5 h-6.5 flex items-center justify-center rounded-md bg-white/5 border border-white/10 text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all shadow-sm"
+                                                                onClick={() => handleDeleteRisalah(row.id)}
+                                                                title="Hapus"
+                                                            >
+                                                                <span className="material-symbols-outlined" style={{ fontSize: "12px" }}>delete_forever</span>
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {filteredDocs.length === 0 && (
+                                            <div className="py-10 text-center glass-card rounded-xl border border-white/10">
+                                                <div className="flex flex-col items-center justify-center">
+                                                    <div className="h-12 w-12 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 shadow-inner-glass mb-3 animate-pulse">
+                                                        <span className="material-symbols-outlined text-2xl text-gold-accent/40">folder_off</span>
+                                                    </div>
+                                                    <h4 className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em]">BELUM ADA DOKUMEN</h4>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </section>
                             </div>
@@ -3969,7 +4060,7 @@ function IspDetailPage({
                         {activeTab === "timeline" && (
                             <div className="space-y-2.5">
                                 {/* ══════ CARD 1: HEADER ══════ */}
-                                <section className="glass-card backdrop-blur-xl rounded-xl p-5 border-white/10 shadow-glass-depth relative overflow-hidden">
+                                <section className="glass-card backdrop-blur-xl rounded-xl p-3 sm:p-5 border-white/10 shadow-glass-depth relative overflow-hidden">
                                     <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-3">
                                         <div className="space-y-1">
                                             <div className="flex items-center gap-2">
@@ -3986,48 +4077,95 @@ function IspDetailPage({
                                 </section>
 
                                 {/* ══════ CARD 2: TIMELINE ══════ */}
-                                <section className="glass-card backdrop-blur-xl rounded-xl p-5 border-white/10 shadow-glass-depth relative overflow-hidden">
+                                <section className="glass-card backdrop-blur-xl rounded-xl p-3 sm:p-5 border-white/10 shadow-glass-depth relative overflow-hidden">
                                     {timeline.length === 0 ? renderEmptyState("Belum ada aktivitas terekam.") : (
-                                        <div className="relative pt-2">
-                                            {/* Vertical line - High Glow Gradient */}
-                                            <div className="absolute left-[19px] top-6 bottom-6 w-[2px] bg-gradient-to-b from-gold-accent/40 via-white/10 to-transparent rounded-full shadow-gold-glow" />
+                                        <div className="relative sm:pt-2 pt-0">
+                                            {/* DESKTOP VIEW */}
+                                            <div className="hidden sm:block">
+                                                {/* Vertical line - High Glow Gradient */}
+                                                <div className="absolute left-[19px] top-6 bottom-6 w-[2px] bg-gradient-to-b from-gold-accent/40 via-white/10 to-transparent rounded-full shadow-gold-glow" />
 
-                                            <div className="space-y-6 relative z-10">
-                                                {timeline.map((e) => (
-                                                    <div key={e.id} className="flex gap-4 group/t-item">
-                                                        {/* Glowing Marker */}
-                                                        <div className="relative shrink-0 mt-1">
-                                                            <div className={`w-10 h-10 rounded-xl ${e.bg} border border-white/10 flex items-center justify-center ${e.color} shadow-sm group-hover/t-item:scale-110 group-hover/t-item:shadow-gold-glow transition-all duration-300`}>
-                                                                <span className="material-symbols-outlined" style={{ fontSize: "18px" }}>{e.icon}</span>
+                                                <div className="space-y-6 relative z-10">
+                                                    {timeline.map((e) => (
+                                                        <div key={e.id} className="flex gap-4 group/t-item">
+                                                            {/* Glowing Marker */}
+                                                            <div className="relative shrink-0 mt-1">
+                                                                <div className={`w-10 h-10 rounded-xl ${e.bg} border border-white/10 flex items-center justify-center ${e.color} shadow-sm group-hover/t-item:scale-110 group-hover/t-item:shadow-gold-glow transition-all duration-300`}>
+                                                                    <span className="material-symbols-outlined" style={{ fontSize: "18px" }}>{e.icon}</span>
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Compact Content */}
+                                                            <div className="flex-1 space-y-2">
+                                                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pr-1">
+                                                                    <div className="space-y-0.5">
+                                                                        <h4 className="text-[11px] font-black text-white group-hover/t-item:text-gold-accent transition-colors duration-300 tracking-wider uppercase">{e.title}</h4>
+                                                                        <span className={`inline-block text-[7px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-white/5 border border-white/10 ${e.color}`}>{e.type}</span>
+                                                                    </div>
+
+                                                                    {/* Compact Right Aligned Date/Time */}
+                                                                    <div className="flex items-center gap-1.5 text-[8px] font-black tracking-widest bg-white/5 border border-white/10 px-2.5 py-1 rounded-lg">
+                                                                        <span className="text-white/40 uppercase">{new Date(e.date).toLocaleDateString("id-ID", { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                                                                        <div className="w-1 h-1 rounded-full bg-white/10 animate-pulse" />
+                                                                        <span className="text-gold-accent">{new Date(e.date).toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' })} WITA</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* ULTRA DARK GLASS - Monitoring Table Style Depth */}
+                                                                <div className="p-4 border border-white/5 bg-black/40 backdrop-blur-3xl rounded-xl transition-all duration-300 shadow-sm relative overflow-hidden group-hover/t-item:bg-black/60 group-hover/t-item:border-white/10">
+                                                                    <div className={`absolute left-0 top-0 bottom-0 w-1 ${e.bg.replace('bg-', 'bg-').replace('/10', '/80')}`} />
+                                                                    <p className="text-[10px] font-bold text-white/50 leading-relaxed tracking-wide group-hover/t-item:text-white/90 transition-colors">
+                                                                        {e.description}
+                                                                    </p>
+                                                                </div>
                                                             </div>
                                                         </div>
+                                                    ))}
+                                                </div>
+                                            </div>
 
-                                                        {/* Compact Content */}
-                                                        <div className="flex-1 space-y-2">
-                                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pr-1">
-                                                                <div className="space-y-0.5">
-                                                                    <h4 className="text-[11px] font-black text-white group-hover/t-item:text-gold-accent transition-colors duration-300 tracking-wider uppercase">{e.title}</h4>
-                                                                    <span className={`inline-block text-[7px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-white/5 border border-white/10 ${e.color}`}>{e.type}</span>
-                                                                </div>
+                                            {/* MOBILE VIEW */}
+                                            <div className="sm:hidden">
+                                                {/* Vertical line - High Glow Gradient */}
+                                                <div className="absolute left-[15px] top-4 bottom-4 w-[2px] bg-gradient-to-b from-gold-accent/40 via-white/10 to-transparent rounded-full shadow-gold-glow" />
 
-                                                                {/* Compact Right Aligned Date/Time */}
-                                                                <div className="flex items-center gap-1.5 text-[8px] font-black tracking-widest bg-white/5 border border-white/10 px-2.5 py-1 rounded-lg">
-                                                                    <span className="text-white/40 uppercase">{new Date(e.date).toLocaleDateString("id-ID", { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                                                                    <div className="w-1 h-1 rounded-full bg-white/10 animate-pulse" />
-                                                                    <span className="text-gold-accent">{new Date(e.date).toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' })} WITA</span>
+                                                <div className="space-y-3 relative z-10">
+                                                    {timeline.map((e) => (
+                                                        <div key={e.id} className="flex items-center gap-3 group/t-item">
+                                                            {/* Glowing Marker */}
+                                                            <div className="relative shrink-0">
+                                                                <div className={`w-8 h-8 rounded-lg ${e.bg} border border-white/10 flex items-center justify-center ${e.color} shadow-sm group-hover/t-item:scale-110 group-hover/t-item:shadow-gold-glow transition-all duration-300`}>
+                                                                    <span className="material-symbols-outlined text-[14px]" style={{ fontSize: "inherit" }}>{e.icon}</span>
                                                                 </div>
                                                             </div>
 
-                                                            {/* ULTRA DARK GLASS - Monitoring Table Style Depth */}
-                                                            <div className="p-4 border border-white/5 bg-black/40 backdrop-blur-3xl rounded-xl transition-all duration-300 shadow-sm relative overflow-hidden group-hover/t-item:bg-black/60 group-hover/t-item:border-white/10">
-                                                                <div className={`absolute left-0 top-0 bottom-0 w-1 ${e.bg.replace('bg-', 'bg-').replace('/10', '/80')}`} />
-                                                                <p className="text-[10px] font-bold text-white/50 leading-relaxed tracking-wide group-hover/t-item:text-white/90 transition-colors">
+                                                            {/* Compact Content */}
+                                                            <div className="flex-1 min-w-0 flex flex-col gap-[3px]">
+                                                                {/* Row 1: Title & Actor Badge */}
+                                                                <div className="flex items-center justify-between gap-2 leading-tight">
+                                                                    <h4 className="text-[10.5px] font-black text-white group-hover/t-item:text-gold-accent transition-colors duration-300 tracking-wider uppercase truncate leading-tight">
+                                                                        {e.title}
+                                                                    </h4>
+                                                                    <span className={`inline-flex items-center justify-center text-[6.5px] font-black uppercase tracking-widest px-1.5 h-[14px] rounded bg-white/5 border border-white/10 ${e.color} shrink-0`}>
+                                                                        {e.type}
+                                                                    </span>
+                                                                </div>
+
+                                                                {/* Row 2: Date & Time */}
+                                                                <div className="flex items-center gap-1.5 text-[8px] font-black tracking-widest text-white/40 uppercase leading-tight">
+                                                                    <span>{new Date(e.date).toLocaleDateString("id-ID", { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                                                                    <span className="text-white/20">•</span>
+                                                                    <span className="text-gold-accent/80">{new Date(e.date).toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' })} WITA</span>
+                                                                </div>
+
+                                                                {/* Row 3: Description Text (No nested card to prevent spacing misalignment) */}
+                                                                <p className="text-[9.5px] font-bold text-white/50 leading-snug tracking-wide group-hover/t-item:text-white/90 transition-colors">
                                                                     {e.description}
                                                                 </p>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                ))}
+                                                    ))}
+                                                </div>
                                             </div>
                                         </div>
                                     )}

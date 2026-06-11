@@ -1603,7 +1603,7 @@ export default function FoRoutePlanner({
               </p>
             </div>
           </div>
-          <span className="h-8 px-4 rounded-lg bg-white/5 border border-white/10 flex items-center text-[9px] font-black uppercase tracking-widest text-white/40 shadow-sm self-start sm:self-auto">
+          <span className="hidden sm:flex h-8 px-4 rounded-lg bg-white/5 border border-white/10 items-center text-[9px] font-black uppercase tracking-widest text-white/40 shadow-sm self-start sm:self-auto">
             View Only
           </span>
         </div>

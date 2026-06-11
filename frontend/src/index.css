@@ -106,6 +106,24 @@
     z-index: 1;
   }
 
+  @media (max-width: 1023px) {
+    nav .glass-premium,
+    .lg\:hidden .glass-premium,
+    .md\:hidden .glass-premium {
+      background: rgba(255, 255, 255, 0.08) !important;
+      backdrop-filter: blur(24px) !important;
+      -webkit-backdrop-filter: blur(24px) !important;
+      border: 1px solid rgba(255, 255, 255, 0.15) !important;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3) !important;
+    }
+
+    nav .glass-premium::before,
+    .lg\:hidden .glass-premium::before,
+    .md\:hidden .glass-premium::before {
+      display: none !important;
+    }
+  }
+
   .glass-card {
     background: rgba(15, 20, 30, 0.42);
     backdrop-filter: blur(24px);

@@ -629,6 +629,7 @@ function TenantDetailPage({
   const [documentSort, setDocumentSort] = useState("desc");
   const [contractSearch, setContractSearch] = useState("");
   const [contractSort, setContractSort] = useState("desc");
+  const [expandedContracts, setExpandedContracts] = useState({});
   const [isUploadingDocument, setIsUploadingDocument] = useState(false);
   const [versionEditor, setVersionEditor] = useState(null);
   const [renewalConfirmData, setRenewalConfirmData] = useState(null);
@@ -667,6 +668,8 @@ function TenantDetailPage({
   const [draftRoutePoints, setDraftRoutePoints] = useState([]);
   const [draftRouteStatus, setDraftRouteStatus] = useState("aktif");
   const [selectedEntryPointIds, setSelectedEntryPointIds] = useState([]);
+  const [isMobileTabMenuOpen, setIsMobileTabMenuOpen] = useState(false);
+  const [isProfileExpanded, setIsProfileExpanded] = useState(false);
   const emptyStateStorageKey = `tenant-contract-empty-state-${customer.id}`;
   const routeDraftStorageKey = `tenant-route-draft-${customer.id}`;
   const isStandaloneJalurView = routeViewMode !== "embedded";
@@ -4543,7 +4546,64 @@ function TenantDetailPage({
       hideSidebar={hideSidebar || isIsp}
       currentRole={currentRole}
     >
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2 pb-24">
+        {/* ══════ MOBILE STICKY HEADER (TABS) ══════ */}
+        {!isTeknisi && (
+          <div className="md:hidden fixed top-4 left-4 z-[45]">
+            <div className="relative">
+              <button
+                onClick={() => setIsMobileTabMenuOpen(!isMobileTabMenuOpen)}
+                className="flex h-11 shrink-0 items-center gap-2 rounded-xl bg-white/10 backdrop-blur-md border border-white/15 shadow-sm p-1.5 pl-3 pr-4 anim-surface hover:bg-white/20"
+                type="button"
+              >
+                <span className="material-symbols-outlined text-base text-gold-accent">menu</span>
+                <span className="text-[10px] font-black tracking-widest uppercase text-white">
+                  {[
+                    { id: "overview", label: "Ringkasan" },
+                    { id: "contracts", label: "Kontrak" },
+                    { id: "invoices", label: "Invoice" },
+                    { id: "jalur", label: "Jalur" },
+                    { id: "documents", label: "Dokumen" },
+                    { id: "timeline", label: "Timeline" }
+                  ].find(t => t.id === activeTab)?.label || "Menu"}
+                </span>
+              </button>
+
+              {isMobileTabMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setIsMobileTabMenuOpen(false)}></div>
+                  <div className="absolute top-full left-0 mt-3 w-52 origin-top-left p-2 rounded-2xl glass-premium border border-white/10 shadow-glass-depth z-50 flex flex-col gap-1 animate-in fade-in zoom-in duration-300">
+                    {[
+                      { id: "overview", label: "Ringkasan", icon: "dashboard" },
+                      { id: "contracts", label: "Kontrak", icon: "description" },
+                      { id: "invoices", label: "Invoice", icon: "receipt_long" },
+                      { id: "jalur", label: "Jalur", icon: "map" },
+                      { id: "documents", label: "Dokumen", icon: "inventory_2" },
+                      { id: "timeline", label: "Timeline", icon: "history" }
+                    ].map(tab => (
+                      <button
+                        key={tab.id}
+                        onClick={() => {
+                          setActiveTab(tab.id);
+                          setIsMobileTabMenuOpen(false);
+                        }}
+                        className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left ${activeTab === tab.id
+                            ? 'bg-gold-accent/10 text-gold-accent border border-gold-accent/20'
+                            : 'text-white/70 hover:bg-white/10 hover:text-white'
+                          }`}
+                        type="button"
+                      >
+                        <span className="material-symbols-outlined text-base">{tab.icon}</span>
+                        <span className="text-[10px] font-bold uppercase tracking-widest">{tab.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Top Bar: Back & Status */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -4561,7 +4621,7 @@ function TenantDetailPage({
             <div className="flex items-center gap-2">
 
               <button
-                className="h-7 px-3 flex items-center gap-1.5 rounded-lg bg-white/5 border border-white/10 text-white/60 hover:bg-white/10 hover:text-white transition-all shadow-sm group text-[8px] font-black uppercase tracking-widest backdrop-blur-md"
+                className="hidden md:flex h-7 px-3 items-center gap-1.5 rounded-lg bg-white/5 border border-white/10 text-white/60 hover:bg-white/10 hover:text-white transition-all shadow-sm group text-[8px] font-black uppercase tracking-widest backdrop-blur-md"
                 onClick={() => void Promise.all([loadDetail(), onRefreshAll?.()])}
                 title="Refresh Data"
               >
@@ -4778,34 +4838,32 @@ function TenantDetailPage({
               {/* Top accent line */}
               <div className="h-px w-full bg-gradient-to-r from-transparent via-gold-accent/30 to-transparent" />
 
-              <div className="relative p-4 md:p-5 space-y-4">
+              <div className="relative p-4 md:p-5 pb-1 md:pb-1 space-y-3">
 
                 {/* ── Row 1: Identity + Status ── */}
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                   {/* Left: icon + label + name + ISP info */}
                   <div className="min-w-0 flex-1 space-y-1">
-                    <div className="flex items-center gap-2.5 pb-1">
-                      <div>
-                        <p className="text-[8px] font-black uppercase tracking-[0.4em] text-white/20">Lokasi Operasional</p>
-                      </div>
-                    </div>
+                    <p className="text-[8px] font-black uppercase tracking-[0.4em] text-white/20">Lokasi Operasional</p>
                     <h1 className="text-lg md:text-xl font-black tracking-tight text-white uppercase leading-tight">
                       {tenantName}
                     </h1>
-                    <p className="text-[11px] font-black text-white/40 tracking-widest uppercase">
+                    <p className="text-[9px] font-black text-white/40 tracking-widest uppercase">
                       {formatDisplayContractNumber(versions?.[0]?.contractNumber ?? versions?.[0]?.contract_number ?? contract?.contractNumber ?? contract?.contract_number)}
                     </p>
                     {/* ISP info row */}
-                    <div className="flex items-center gap-3 pt-4">
-                      <span className="material-symbols-outlined text-[15px] text-gold-accent/50">corporate_fare</span>
-                      <span className="text-[10px] font-black uppercase tracking-widest text-white/50">
-                        {isps.length > 0 ? isps.map((i) => i.name).join(", ") : "Provider Mandiri"}
-                      </span>
-                    </div>
+                    {!isIsp && (
+                      <div className="flex items-center gap-3 pt-3">
+                        <span className="material-symbols-outlined text-[15px] text-gold-accent/50">corporate_fare</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-white/50">
+                          {isps.length > 0 ? isps.map((i) => i.name).join(", ") : "Provider Mandiri"}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Right: status pills */}
-                  <div className="flex shrink-0 flex-wrap items-start gap-2">
+                  {/* Right: status pills (Desktop Only) */}
+                  <div className="hidden md:flex shrink-0 flex-wrap items-start gap-2">
                     {/* Contract status pill */}
                     <div className={`inline-flex items-center gap-2 rounded-xl border px-3.5 py-2 ${cBg} ${cBorder}`}>
                       <span className={`material-symbols-outlined text-[12px] ${cText}`}>{cIcon}</span>
@@ -4826,65 +4884,95 @@ function TenantDetailPage({
                   </div>
                 </div>
 
-                {/* ── Divider ── */}
-                <div className="h-px bg-white/[0.05]" />
+                {/* Collapsible Container (Desktop always visible, Mobile is toggleable) */}
+                <div className={`mt-2 md:mt-3 md:block space-y-2.5 md:space-y-3 ${isProfileExpanded ? 'block' : 'hidden'}`}>
+                  {/* Divider */}
+                  <div className="h-px bg-white/[0.05]" />
 
-                {/* ── Row 2: Metadata grid ── */}
-                <div className="grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-4 lg:grid-cols-4">
-                  {/* Paket */}
-                  <div className="space-y-1.5">
-                    <p className="text-[8px] font-black uppercase tracking-[0.35em] text-white/20">Paket</p>
-                    <div className="flex items-center gap-2">
-                      <span className="material-symbols-outlined text-[12px] text-gold-accent/60">package_2</span>
-                      <p className="text-[11px] font-black text-white uppercase tracking-wide">{paketVal}</p>
+                  {/* ── Row 2: Metadata grid ── */}
+                  <div className="grid grid-cols-1 gap-x-6 gap-y-2.5 sm:gap-y-3.5 sm:grid-cols-4 lg:grid-cols-4">
+                    {/* Paket */}
+                    <div className="space-y-0.5 sm:space-y-1">
+                      <p className="text-[8px] font-black uppercase tracking-[0.35em] text-white/20">Paket</p>
+                      <div className="flex items-center gap-1 sm:gap-2">
+                        <span className="material-symbols-outlined text-[10px] sm:text-[12px] scale-[0.75] sm:scale-100 origin-center text-gold-accent/60">package_2</span>
+                        <p className="text-[11px] font-black text-white uppercase tracking-wide">{paketVal}</p>
+                      </div>
+                    </div>
+
+                    {/* Jumlah */}
+                    <div className="space-y-0.5 sm:space-y-1">
+                      <p className="text-[8px] font-black uppercase tracking-[0.35em] text-white/20">Jumlah</p>
+                      <div className="flex items-center gap-1 sm:gap-2">
+                        <span className="material-symbols-outlined text-[10px] sm:text-[12px] scale-[0.75] sm:scale-100 origin-center text-blue-400/60">speed</span>
+                        <p className="text-[11px] font-black text-white uppercase tracking-wide">{jumlahVal}</p>
+                      </div>
+                    </div>
+
+                    {/* Periode Awal Kontrak */}
+                    <div className="space-y-0.5 sm:space-y-1">
+                      <p className="text-[8px] font-black uppercase tracking-[0.35em] text-white/20">Periode Awal Kontrak</p>
+                      <div className="flex items-center gap-1 sm:gap-2">
+                        <span className="material-symbols-outlined text-[10px] sm:text-[12px] scale-[0.75] sm:scale-100 origin-center text-emerald-400/60">event_available</span>
+                        <p className="text-[11px] font-black text-white tracking-wide">
+                          {contractPeriodInfo.contractStartDate ? formatDate(contractPeriodInfo.contractStartDate) : "—"}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Periode Berjalan */}
+                    <div className="space-y-0.5 sm:space-y-1">
+                      <p className="text-[8px] font-black uppercase tracking-[0.35em] text-white/20">Periode Berjalan</p>
+                      <div className="flex items-center gap-1 sm:gap-2">
+                        <span className="material-symbols-outlined text-[10px] sm:text-[12px] scale-[0.75] sm:scale-100 origin-center text-sky-400/60">date_range</span>
+                        <p className="text-[11px] font-black text-white tracking-wide font-mono">
+                          {periodStart || periodEnd
+                            ? <>{periodStart ? formatDate(periodStart) : "—"}<span className="mx-1.5 text-white/20 font-normal">—</span>{periodEnd ? formatDate(periodEnd) : "—"}</>
+                            : "—"
+                          }
+                        </p>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Jumlah */}
-                  <div className="space-y-1.5">
-                    <p className="text-[8px] font-black uppercase tracking-[0.35em] text-white/20">Jumlah</p>
-                    <div className="flex items-center gap-2">
-                      <span className="material-symbols-outlined text-[12px] text-blue-400/60">speed</span>
-                      <p className="text-[11px] font-black text-white uppercase tracking-wide">{jumlahVal}</p>
+                  {/* ── Row 3: Alamat (full width, only if exists) ── */}
+                  {alamatVal && (
+                    <div className="flex items-start gap-3 rounded-xl border border-white/[0.05] bg-white/[0.02] px-4 py-3">
+                      <span className="material-symbols-outlined mt-0.5 shrink-0 text-[15px] text-gold-accent/40">pin_drop</span>
+                      <div>
+                        <p className="mb-0.5 text-[8px] font-black uppercase tracking-[0.35em] text-white/20">Alamat Fisik</p>
+                        <p className="text-[11px] font-medium leading-relaxed text-white/50">{alamatVal}</p>
+                      </div>
                     </div>
-                  </div>
-
-                  {/* Periode Awal Kontrak */}
-                  <div className="space-y-1.5">
-                    <p className="text-[8px] font-black uppercase tracking-[0.35em] text-white/20">Periode Awal Kontrak</p>
-                    <div className="flex items-center gap-2">
-                      <span className="material-symbols-outlined text-[12px] text-emerald-400/60">event_available</span>
-                      <p className="text-[11px] font-black text-white tracking-wide">
-                        {contractPeriodInfo.contractStartDate ? formatDate(contractPeriodInfo.contractStartDate) : "—"}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Periode Berjalan */}
-                  <div className="space-y-1.5">
-                    <p className="text-[8px] font-black uppercase tracking-[0.35em] text-white/20">Periode Berjalan</p>
-                    <div className="flex items-center gap-2">
-                      <span className="material-symbols-outlined text-[12px] text-sky-400/60">date_range</span>
-                      <p className="text-[11px] font-black text-white tracking-wide">
-                        {periodStart || periodEnd
-                          ? <>{periodStart ? formatDate(periodStart) : "—"}<span className="mx-1.5 text-white/20 font-normal">—</span>{periodEnd ? formatDate(periodEnd) : "—"}</>
-                          : "—"
-                        }
-                      </p>
-                    </div>
-                  </div>
+                  )}
                 </div>
 
-                {/* ── Row 3: Alamat (full width, only if exists) ── */}
-                {alamatVal && (
-                  <div className="flex items-start gap-3 rounded-xl border border-white/[0.05] bg-white/[0.02] px-4 py-3">
-                    <span className="material-symbols-outlined mt-0.5 shrink-0 text-[15px] text-gold-accent/40">pin_drop</span>
-                    <div>
-                      <p className="mb-0.5 text-[8px] font-black uppercase tracking-[0.35em] text-white/20">Alamat Fisik</p>
-                      <p className="text-[11px] font-medium leading-relaxed text-white/50">{alamatVal}</p>
+                {/* ── Footer: Status + Toggle (Mobile Only) ── */}
+                <div className="md:hidden mt-3 pt-2 pb-1 border-t border-white/[0.05] flex items-center justify-between">
+                  {/* Left: Status Badge */}
+                  <div className="flex items-center gap-1.5">
+                    {/* Contract status Badge */}
+                    <div className={`flex items-center px-2 py-0.5 rounded-full border shadow-sm backdrop-blur-sm ${cBg} ${cBorder} ${cText}`}>
+                      <span className="text-[7px] font-black uppercase tracking-[0.2em]">{cLabel}</span>
+                    </div>
+
+                    {/* Route status Badge */}
+                    <div className={`flex items-center px-2 py-0.5 rounded-full border shadow-sm backdrop-blur-sm ${rBg} ${rBorder} ${rText}`}>
+                      <span className="text-[7px] font-black uppercase tracking-[0.2em]">{rLabel}</span>
                     </div>
                   </div>
-                )}
+
+                  {/* Right: Toggle Button */}
+                  <button
+                    type="button"
+                    onClick={() => setIsProfileExpanded(!isProfileExpanded)}
+                    className="flex items-center gap-1 text-[8.5px] font-black tracking-[0.2em] text-white/40 hover:text-gold-accent transition-colors"
+                  >
+                    {isProfileExpanded ? "Lebih Sedikit" : "Lebih Lengkap"}
+                    <span className="material-symbols-outlined text-[10px]">{isProfileExpanded ? "expand_less" : "expand_more"}</span>
+                  </button>
+                </div>
+
               </div>
 
               {/* Bottom accent line */}
@@ -4902,7 +4990,7 @@ function TenantDetailPage({
 
         {/* 2. TABS NAVIGATION */}
         {!isTeknisi && (
-          <section className="glass-card backdrop-blur-xl rounded-2xl p-1 border-white/10 shadow-glass-depth relative overflow-hidden">
+          <section className="hidden md:block glass-card backdrop-blur-xl rounded-2xl p-1 border-white/10 shadow-glass-depth relative overflow-hidden">
             <div className="absolute inset-0 bg-white/[0.02] pointer-events-none" />
             <nav className="relative flex flex-wrap gap-1">
               {[
@@ -4929,96 +5017,82 @@ function TenantDetailPage({
         )}
 
         {activeTab === "overview" && (
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3 md:gap-4">
             {/* ── Row 1: Stats strip ─────────────────────────────────── */}
-            <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-              {/* Invoice Bulanan */}
-              <div className="glass-card backdrop-blur-xl rounded-2xl p-2.5 border-white/10 shadow-glass-depth group relative overflow-hidden">
-                <div className="pointer-events-none absolute -right-6 -top-6 h-20 w-20 rounded-full bg-gold-accent/5 blur-2xl group-hover:bg-gold-accent/10 transition-all duration-700 backdrop-blur-md" />
-                <p className="mb-2 text-[8px] font-black uppercase tracking-[0.3em] text-white/30">Invoice Bulanan</p>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-black text-white tracking-tighter">{invoiceRows.length}</span>
-                  <span className="text-[8px] font-bold text-white/20 uppercase tracking-widest">Total</span>
+            <section className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+
+              {/* Card 1: Invoice Bulanan */}
+              <div className="glass-card rounded-xl px-3 py-2.5 border-white/10 shadow-glass-depth overflow-hidden relative">
+                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-gold-accent/50 via-gold-accent/20 to-transparent" />
+                <p className="text-[7px] font-black uppercase tracking-[0.3em] text-white/30 mb-1.5">Invoice Bulanan</p>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[22px] font-black text-white leading-none">{invoiceRows.length}</span>
+                  <div className="text-right">
+                    <p className="text-[8px] font-black text-emerald-400">{paidInvoiceCount}<span className="text-white/20">/{invoiceRows.length}</span></p>
+                    <p className="text-[7px] text-white/30 font-bold uppercase tracking-widest">Lunas</p>
+                  </div>
                 </div>
-                <div className="mt-3 space-y-1.5">
-                  <div className="flex items-center justify-between text-[8px] font-black uppercase tracking-widest">
-                    <span className="text-emerald-400">Selesai</span>
-                    <span className="text-white">{paidInvoiceCount}</span>
+                {!isIsp && !isTeknisi && (
+                  <div className="mt-2 h-[2px] w-full rounded-full bg-white/5 overflow-hidden">
+                    <div className="h-full rounded-full bg-emerald-400 transition-all duration-700" style={{ width: `${(paidInvoiceCount / (invoiceRows.length || 1)) * 100}%` }} />
                   </div>
-                  <div className="h-1 w-full rounded-full bg-white/5 overflow-hidden backdrop-blur-md">
-                    <div
-                      className="h-full bg-emerald-400 shadow-emerald-glow transition-all duration-1000"
-                      style={{ width: `${(paidInvoiceCount / (invoiceRows.length || 1)) * 100}%` }}
-                    />
-                  </div>
+                )}
+              </div>
+
+              {/* Card 2: Butuh Perhatian */}
+              <div className={`glass-card rounded-xl px-3 py-2.5 border-white/10 shadow-glass-depth overflow-hidden relative`}>
+                <div className={`absolute inset-x-0 top-0 h-px bg-gradient-to-r ${totalActionItems > 0 ? 'from-amber-400/60 via-amber-400/20 to-transparent' : 'from-emerald-400/40 via-emerald-400/10 to-transparent'}`} />
+                <p className="text-[7px] font-black uppercase tracking-[0.3em] text-white/30 mb-1.5">Perhatian</p>
+                <div className="flex items-center justify-between gap-2">
+                  <span className={`text-[22px] font-black leading-none ${totalActionItems > 0 ? 'text-amber-400' : 'text-white/20'}`}>{totalActionItems}</span>
+                  <p className={`text-right text-[7.5px] font-black uppercase tracking-wide leading-tight whitespace-pre-line ${totalActionItems > 0 ? 'text-amber-400/80' : 'text-emerald-400/60'}`}>
+                    {totalActionItems > 0 ? 'Perlu\nditindaklanjuti' : 'Semua\naman'}
+                  </p>
                 </div>
               </div>
 
-              {/* Butuh Perhatian */}
-              <div className="glass-card backdrop-blur-xl rounded-2xl p-2.5 border-white/10 shadow-glass-depth relative overflow-hidden flex flex-col h-full">
-                <p className="text-[8px] font-black uppercase tracking-[0.3em] text-white/30">Butuh Perhatian</p>
-                <div className="flex-1 flex items-center gap-3 mt-2">
-                  <div className={`h-8 w-8 rounded-xl flex items-center justify-center shrink-0 ${totalActionItems > 0 ? 'bg-amber-500/20 text-amber-400 animate-pulse' : 'bg-white/5 text-white/20'}`}>
-                    <span className="material-symbols-outlined text-[16px]">{totalActionItems > 0 ? 'warning' : 'check_circle'}</span>
-                  </div>
+              {/* Card 3: Biaya Aktivasi */}
+              <div className="glass-card rounded-xl px-3 py-2.5 border-white/10 shadow-glass-depth overflow-hidden relative">
+                <div className={`absolute inset-x-0 top-0 h-px bg-gradient-to-r ${detail?.activationFeePaidAt ? 'from-emerald-400/60 via-emerald-400/20 to-transparent' : 'from-red-400/60 via-red-400/20 to-transparent'}`} />
+                <p className="text-[7px] font-black uppercase tracking-[0.3em] text-white/30 mb-1.5">Biaya Aktivasi</p>
+                <div className="flex items-end justify-between gap-1 mb-1.5">
+                  <span className={`text-[12px] font-black leading-none min-w-0 overflow-hidden ${detail?.activationFeePaidAt ? 'text-emerald-400' : 'text-red-400/80'}`} style={{fontSize: 'clamp(9px, 2.5vw, 12px)'}}>
+                    {formatCurrency(detail?.activationFeeAmount ?? customer?.activationFeeAmount)}
+                  </span>
+                  <span className={`shrink-0 text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border ${detail?.activationFeePaidAt ? 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10' : 'text-red-400 border-red-500/30 bg-red-500/10'}`}>
+                    {detail?.activationFeePaidAt ? 'Lunas' : 'Belum'}
+                  </span>
+                </div>
+                {canEditTenant && (
+                  <button
+                    className={`h-5 w-full rounded flex items-center justify-center gap-1 text-[6.5px] font-black uppercase tracking-widest transition-all disabled:opacity-50 ${detail?.activationFeePaidAt ? 'bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500 hover:text-white' : 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-[#0f141e]'}`}
+                    disabled={isMarkingActivationFeePaid}
+                    onClick={() => detail?.activationFeePaidAt ? void handleRevertActivationFeePaid() : void handleMarkActivationFeePaid()}
+                    type="button"
+                  >
+                    <span className="material-symbols-outlined text-[9px]">{detail?.activationFeePaidAt ? 'undo' : 'check'}</span>
+                    {detail?.activationFeePaidAt ? 'Batalkan' : 'Tandai Lunas'}
+                  </button>
+                )}
+              </div>
+
+              {/* Card 4: Periode Tagihan */}
+              <div className="glass-card rounded-xl px-3 py-2.5 border-white/10 shadow-glass-depth overflow-hidden relative">
+                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-blue-400/50 via-blue-400/20 to-transparent" />
+                <p className="text-[7px] font-black uppercase tracking-[0.3em] text-white/30 mb-1.5">Periode Tagihan</p>
+                <div className="flex items-center justify-between gap-2">
                   <div>
-                    <span className="text-3xl font-black text-white">{totalActionItems}</span>
-                    <p className="text-[9px] font-black text-white/30 tracking-wide mt-0.5">Item pending</p>
+                    <span className="text-[22px] font-black text-white leading-none">{billingEvery}</span>
+                    <span className="text-[10px] font-black text-blue-400 uppercase ml-1">{billingUnitLabel}</span>
                   </div>
+                  <span className="material-symbols-outlined text-[14px] text-blue-400/30">autorenew</span>
                 </div>
               </div>
 
-              {/* Biaya Aktivasi */}
-              <div className="glass-card backdrop-blur-xl rounded-2xl p-2.5 border-white/10 shadow-glass-depth flex flex-col justify-between h-full group">
-                <p className="text-[8px] font-black uppercase tracking-[0.3em] text-white/30">Biaya Aktivasi</p>
-                <div className="flex items-center gap-3 mt-2">
-                  <div className={`h-8 w-8 rounded-xl flex items-center justify-center shrink-0 ${detail?.activationFeePaidAt ? 'bg-emerald-500/20 text-emerald-400' : 'bg-[#ff2400]/20 text-[#ff2400]'}`}>
-                    <span className="material-symbols-outlined text-[16px]">{detail?.activationFeePaidAt ? 'verified' : 'pending'}</span>
-                  </div>
-                  <div className="flex-1 flex flex-col gap-0.5">
-                    <span className="text-xs font-black text-white uppercase tracking-widest">{detail?.activationFeePaidAt ? "Lunas" : "Belum Lunas"}</span>
-                    {detail?.activationFeePaidAt ? (
-                      <div className="flex items-center gap-1.5">
-                        <p className="text-[11px] font-black text-emerald-400">{formatCurrency(detail?.activationFeeAmount ?? customer?.activationFeeAmount)}</p>
-                        <p className="text-[8px] font-bold text-white/30">{formatDate(detail.activationFeePaidAt)}</p>
-                      </div>
-                    ) : (
-                      <p className="text-[11px] font-black text-[#ff2400]/70">{formatCurrency(detail?.activationFeeAmount ?? customer?.activationFeeAmount)}</p>
-                    )}
-
-                    {canEditTenant && (
-                      <div className="mt-1.5">
-                        <button
-                          className={`h-5 px-2 rounded flex items-center justify-center gap-1 text-[8px] font-black uppercase tracking-widest transition-all disabled:opacity-50 ${detail?.activationFeePaidAt ? 'bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500 hover:text-white' : 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-[#0f141e]'}`}
-                          disabled={isMarkingActivationFeePaid}
-                          onClick={() => detail?.activationFeePaidAt ? void handleRevertActivationFeePaid() : void handleMarkActivationFeePaid()}
-                          type="button"
-                        >
-                          <span className="material-symbols-outlined text-[10px]">{detail?.activationFeePaidAt ? "undo" : "check"}</span>
-                          {detail?.activationFeePaidAt ? "Batalkan Lunas" : "Tandai Lunas"}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Periode Tagihan */}
-              <div className="glass-card backdrop-blur-xl rounded-2xl p-2.5 border-white/10 shadow-glass-depth flex flex-col h-full">
-                <p className="text-[8px] font-black uppercase tracking-[0.3em] text-white/30">Periode Tagihan</p>
-                <div className="flex-1 flex items-center gap-3 mt-2">
-                  <div className="h-8 w-8 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0 text-blue-400 backdrop-blur-md">
-                    <span className="material-symbols-outlined text-[16px]">calendar_today</span>
-                  </div>
-                  <div>
-                    <span className="text-[13px] font-black text-white">Setiap {billingEvery} {billingUnitLabel}</span>
-                    <p className="text-[9px] font-bold text-white/30 tracking-wide mt-0.5">Auto-generate reminder bulan</p>
-                  </div>
-                </div>
-              </div>
             </section>
 
-            <section className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_380px]">
+
+            <section className="grid grid-cols-1 gap-3 md:gap-4 xl:grid-cols-[1fr_380px]">
               {/* Status Kelengkapan Berkas */}
               <div className="glass-card backdrop-blur-xl rounded-xl p-4 border-white/10 shadow-glass-depth relative overflow-hidden">
                 <div className="flex items-center gap-3">
@@ -5031,7 +5105,7 @@ function TenantDetailPage({
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-3 mt-4">
+                <div className="flex flex-col gap-2.5 mt-1.5">
                   {(displayPriorityTodos.length > 0 || displayNeedActionTodos.length > 0) ? (
                     <>
                       {displayPriorityTodos.length > 0 && (
@@ -5139,7 +5213,7 @@ function TenantDetailPage({
               </div>
 
               {/* Kanan: Biaya Aktivasi + Jejak Aktivitas */}
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-3 md:gap-4">
                 {/* Nominal Bulanan & Tahunan */}
                 <div className="glass-card backdrop-blur-xl rounded-xl p-4 border-white/10 shadow-glass-depth">
                   <div className="flex items-center gap-3 mb-4">
@@ -5176,17 +5250,16 @@ function TenantDetailPage({
                     </div>
                   </div>
                   {displayTimeline.length > 0 ? (
-                    <div className="relative pl-4 space-y-0">
-                      <div className="absolute left-[7px] top-1 bottom-4 w-px bg-white/5 backdrop-blur-md" />
+                    <div className="space-y-2">
                       {displayTimeline.slice(0, 6).map((event, idx) => (
-                        <div key={event.id} className="flex gap-4 group/item relative pb-5 last:pb-0">
-                          <div className="shrink-0 pt-1">
-                            <div className={`w-3 h-3 rounded-full border-2 border-[#0f141e] transition-all duration-300 group-hover/item:scale-125 ${idx === 0 ? 'bg-emerald-400 shadow-emerald-glow' : 'bg-white/10'}`} />
-                          </div>
+                        <div key={event.id} className="p-2.5 rounded-xl border border-white/[0.03] bg-white/[0.01] hover:bg-white/[0.03] transition-all flex items-start gap-2.5 group/item">
+                          <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${idx === 0 ? 'bg-emerald-400 shadow-[0_0_8px_#34d399]' : 'bg-white/20'}`} />
                           <div className="flex-1 min-w-0">
-                            <p className="text-[8px] font-black text-white/20 uppercase tracking-widest">{formatDate(event.date)}</p>
-                            <h4 className="text-[11px] font-black text-white uppercase tracking-tight mt-0.5 group-hover/item:text-emerald-400 transition-colors">{event.title}</h4>
-                            <p className="text-[10px] font-medium text-white/30 leading-relaxed mt-0.5 line-clamp-2">{event.description}</p>
+                            <div className="flex items-center justify-between gap-2">
+                              <h4 className="text-[10px] font-black text-white uppercase tracking-tight truncate group-hover/item:text-emerald-400 transition-colors">{event.title}</h4>
+                              <p className="text-[7.5px] font-black text-white/30 uppercase tracking-widest shrink-0">{formatDate(event.date)}</p>
+                            </div>
+                            <p className="text-[9.5px] font-medium text-white/40 leading-normal mt-0.5 line-clamp-2">{event.description}</p>
                           </div>
                         </div>
                       ))}
@@ -5221,8 +5294,8 @@ function TenantDetailPage({
               <div className="absolute -right-24 -top-24 h-64 w-64 rounded-full bg-blue-500/5 blur-3xl pointer-events-none" />
 
               {/* Header Section */}
-              <div className="px-5 py-4 border-b border-white/5 bg-white/[0.02]">
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div className="px-4 py-2.5 lg:px-5 lg:py-3 border-b border-white/5 bg-white/[0.02]">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 lg:gap-4">
                   <div className="flex items-center gap-3">
                     <span className="material-symbols-outlined text-lg text-blue-400 drop-shadow-md">conversion_path</span>
                     <div className="space-y-0.5">
@@ -5230,8 +5303,8 @@ function TenantDetailPage({
                       <p className="text-[9px] font-bold text-white/40 tracking-wide">Konfigurasi infrastruktur fiber optik</p>
                     </div>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2.5">
-                    <div className="flex items-center gap-2 mr-2">
+                  <div className="flex flex-wrap items-center justify-end gap-2.5 w-full lg:w-auto border-t border-white/5 pt-2.5 mt-1 lg:border-none lg:pt-0 lg:mt-0">
+                    <div className="flex items-center justify-end gap-2 w-full lg:w-auto mr-0 lg:mr-2">
                       <span className="text-[8px] font-black text-white/40 bg-white/5 px-3 py-1 rounded-md uppercase tracking-widest border border-white/10">
                         {(isRouteDrafting ? draftRoutePoints : routePoints).filter((point) => point.pointType !== "transit").length} Titik
                       </span>
@@ -5279,7 +5352,7 @@ function TenantDetailPage({
                 </div>
 
                 {!canManageRoute && (
-                  <div className="mt-3 rounded-lg border border-sky-500/20 bg-sky-500/5 p-3 text-[9px] font-black uppercase tracking-widest text-sky-200 shadow-inner">
+                  <div className="mt-3 hidden md:block rounded-lg border border-sky-500/20 bg-sky-500/5 p-3 text-[9px] font-black uppercase tracking-widest text-sky-200 shadow-inner">
                     Mode lihat saja: role ini tidak dapat mengubah titik maupun jalur peta.
                   </div>
                 )}
@@ -5337,133 +5410,190 @@ function TenantDetailPage({
                     }
 
                     return (
-                      <table className="w-full text-left">
-                        <thead className="bg-white/[0.03] border-b border-white/5">
-                          <tr>
-                            <th className="pl-5 py-3 text-[11px] font-black uppercase tracking-[0.1em] text-white/50 w-40">Status</th>
-                            <th className="px-4 py-3 text-[11px] font-black uppercase tracking-[0.1em] text-white/50">Nama Lokasi</th>
-                            <th className="px-4 py-3 text-[11px] font-black uppercase tracking-[0.1em] text-white/50">Panduan</th>
-                            <th className="px-4 py-3 text-[11px] font-black uppercase tracking-[0.1em] text-white/50 w-28">Jarak</th>
-                            <th className="pr-5 py-3 text-[11px] font-black uppercase tracking-[0.1em] text-white/50 text-right w-24">Aksi</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-white/[0.02]">
+                      <>
+                        <div className="hidden xl:block w-full">
+                          <table className="w-full text-left">
+                            <thead className="bg-white/[0.03] border-b border-white/5">
+                              <tr>
+                                <th className="pl-5 py-3 text-[11px] font-black uppercase tracking-[0.1em] text-white/50 w-40">Status</th>
+                                <th className="px-4 py-3 text-[11px] font-black uppercase tracking-[0.1em] text-white/50">Nama Lokasi</th>
+                                <th className="px-4 py-3 text-[11px] font-black uppercase tracking-[0.1em] text-white/50">Panduan</th>
+                                <th className="px-4 py-3 text-[11px] font-black uppercase tracking-[0.1em] text-white/50 w-28">Jarak</th>
+                                <th className="pr-5 py-3 text-[11px] font-black uppercase tracking-[0.1em] text-white/50 text-right w-24">Aksi</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-white/[0.02]">
+                              {combinedItems.map((item, index) => {
+                                if (item._rowType === 'point') {
+                                  const point = item;
+                                  return (
+                                    <tr key={`point-${point.id}`} className="hover:bg-white/[0.03] transition-colors group/row relative">
+                                      <td className="pl-5 py-3 align-middle">
+                                        <div className="flex items-center gap-2">
+                                          <div className={`w-7 h-7 shrink-0 rounded border flex items-center justify-center shadow-sm ${point.pointType === 'awal' ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' :
+                                            point.pointType === 'tujuan' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-white/5 border-white/10 text-white/40'
+                                            }`}>
+                                            <span className="material-symbols-outlined text-[14px]">{routePointTypeMeta[point.pointType]?.icon}</span>
+                                          </div>
+                                          <span className={`text-[10px] font-black uppercase tracking-widest ${point.pointType === "awal" ? "text-blue-400" :
+                                            point.pointType === "tujuan" ? "text-emerald-400" :
+                                              "text-white/50"
+                                            }`}>
+                                            {routePointTypeLabelMap[point.pointType]}
+                                          </span>
+                                        </div>
+                                      </td>
+                                      <td className="px-4 py-3 min-w-[200px] align-middle">
+                                        <p className="text-[11px] font-black text-white tracking-tight">
+                                          {point.pointType === 'tujuan' ? (tenantName || point.pathName) :
+                                            point.pointType === 'awal' ? (isps.length > 0 ? `ISP: ${isps.map(i => i.name).join(', ')}` : point.pathName) :
+                                              point.pathName}
+                                        </p>
+                                      </td>
+                                      <td className="px-4 py-3 align-middle">
+                                        <p className="text-[10px] font-bold text-white/40 italic group-hover/row:text-white/70 transition-colors max-w-[200px] truncate">
+                                          {splitRoutePointNote(point.note).displayNote || "—"}
+                                        </p>
+                                      </td>
+                                      <td className="px-4 py-3 align-middle">
+                                        <span className="text-[11px] font-bold text-white/20">—</span>
+                                      </td>
+                                      <td className="pr-5 py-3 text-right align-middle">
+                                        <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover/row:opacity-100 transition-opacity">
+                                          <button
+                                            className="w-7 h-7 rounded bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-all disabled:opacity-10 backdrop-blur-md"
+                                            disabled={!canManageRoute || routeBusy || point.pointType !== "transit"}
+                                            onClick={() => handleMoveRoutePoint(point.id, "up")}
+                                            title="Geser ke atas"
+                                          >
+                                            <span className="material-symbols-outlined text-[15px]">expand_less</span>
+                                          </button>
+                                          <button
+                                            className="w-7 h-7 rounded bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-all disabled:opacity-10 backdrop-blur-md"
+                                            disabled={!canManageRoute || routeBusy || point.pointType !== "transit"}
+                                            onClick={() => handleMoveRoutePoint(point.id, "down")}
+                                            title="Geser ke bawah"
+                                          >
+                                            <span className="material-symbols-outlined text-[15px]">expand_more</span>
+                                          </button>
+                                          <div className="w-px h-4 bg-white/10 mx-0.5" />
+                                          <button
+                                            className="w-7 h-7 rounded bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 hover:bg-rose-500 hover:text-white transition-all disabled:opacity-10"
+                                            disabled={!canManageRoute || routeBusy || point.pointType !== "transit"}
+                                            onClick={() => void handleDeleteRoutePoint(point.id)}
+                                            title="Hapus titik"
+                                          >
+                                            <span className="material-symbols-outlined text-[14px]">delete</span>
+                                          </button>
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  );
+                                } else {
+                                  const road = item;
+                                  return (
+                                    <tr key={`road-${road.id || index}`} className="hover:bg-white/[0.03] transition-colors group/row bg-blue-500/[0.02]">
+                                      <td className="pl-5 py-2.5 align-middle">
+                                        <div className="flex items-center gap-2 pl-2">
+                                          <div className="flex flex-col items-center justify-center gap-1 w-3 opacity-40 group-hover/row:opacity-100 transition-opacity">
+                                            <div className="w-[1.5px] h-1.5 bg-blue-400/30 rounded-full" />
+                                            <div className="w-2 h-2 rounded-full bg-blue-400 shadow-[0_0_6px_rgba(96,165,250,0.6)]" />
+                                            <div className="w-[1.5px] h-1.5 bg-blue-400/30 rounded-full" />
+                                          </div>
+                                          <span className="text-[10px] font-black text-blue-400/60 uppercase tracking-widest opacity-60 group-hover/row:opacity-100 transition-opacity ml-1.5">
+                                            Ruas Jalan
+                                          </span>
+                                        </div>
+                                      </td>
+                                      <td className="px-4 py-2.5 min-w-[200px] align-middle">
+                                        <div className="flex items-center gap-2 opacity-80 group-hover/row:opacity-100 transition-opacity">
+                                          <span className="text-[11px] font-black text-blue-200 tracking-tight">{road.name}</span>
+                                        </div>
+                                      </td>
+                                      <td className="px-4 py-2.5 align-middle">
+                                        <span className="text-[10px] font-bold text-white/40 italic group-hover/row:text-white/70 transition-colors uppercase tracking-widest max-w-[250px] truncate block">
+                                          {road?.instruction || "—"}
+                                        </span>
+                                      </td>
+                                      <td className="px-4 py-2.5 align-middle">
+                                        <span className="text-[11px] font-mono font-black text-blue-400/70 group-hover/row:text-blue-400 transition-colors">
+                                          {Number.isFinite(Number(road?.distance)) && Number(road.distance) > 0 ? `${(Number(road.distance) / 1000).toFixed(2)} km` : "—"}
+                                        </span>
+                                      </td>
+                                      <td className="pr-5 py-2.5 text-right align-middle">
+                                        <div className="flex items-center justify-end opacity-0 group-hover/row:opacity-100 transition-opacity">
+                                          <button
+                                            className="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 hover:bg-blue-500 hover:text-white transition-all disabled:opacity-10 backdrop-blur-md"
+                                            onClick={() => {
+                                              alert(`Fitur ubah penamaan ruas jalan (${road.name}) tanpa mengubah titik koordinat akan segera tersedia.`);
+                                            }}
+                                            title="Ubah Nama Jalan"
+                                          >
+                                            <span className="material-symbols-outlined text-[14px]">edit</span>
+                                          </button>
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  );
+                                }
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* MOBILE CARDS VIEW */}
+                        <div className="xl:hidden flex flex-col gap-1.5 relative z-10 px-2.5 mt-0 pb-2.5">
                           {combinedItems.map((item, index) => {
                             if (item._rowType === 'point') {
                               const point = item;
                               return (
-                                <tr key={`point-${point.id}`} className="hover:bg-white/[0.03] transition-colors group/row relative">
-                                  <td className="pl-5 py-3 align-middle">
-                                    <div className="flex items-center gap-2">
-                                      <div className={`w-7 h-7 shrink-0 rounded border flex items-center justify-center shadow-sm ${point.pointType === 'awal' ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' :
-                                        point.pointType === 'tujuan' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-white/5 border-white/10 text-white/40'
-                                        }`}>
-                                        <span className="material-symbols-outlined text-[14px]">{routePointTypeMeta[point.pointType]?.icon}</span>
-                                      </div>
-                                      <span className={`text-[10px] font-black uppercase tracking-widest ${point.pointType === "awal" ? "text-blue-400" :
-                                        point.pointType === "tujuan" ? "text-emerald-400" :
-                                          "text-white/50"
-                                        }`}>
-                                        {routePointTypeLabelMap[point.pointType]}
-                                      </span>
+                                <div key={`point-mobile-${point.id}`} className="glass-card rounded-xl border border-white/10 p-2 shadow-glass-depth transition-all flex flex-col gap-1.5">
+                                  <div className="flex items-center gap-2">
+                                    <div className={`w-7 h-7 shrink-0 rounded-lg border flex items-center justify-center shadow-sm ${point.pointType === 'awal' ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' : point.pointType === 'tujuan' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-white/5 border-white/10 text-white/40'}`}>
+                                      <span className="material-symbols-outlined text-[14px]">{routePointTypeMeta[point.pointType]?.icon}</span>
                                     </div>
-                                  </td>
-                                  <td className="px-4 py-3 min-w-[200px] align-middle">
-                                    <p className="text-[11px] font-black text-white tracking-tight">
-                                      {point.pointType === 'tujuan' ? (tenantName || point.pathName) :
-                                        point.pointType === 'awal' ? (isps.length > 0 ? `ISP: ${isps.map(i => i.name).join(', ')}` : point.pathName) :
-                                          point.pathName}
-                                    </p>
-                                  </td>
-                                  <td className="px-4 py-3 align-middle">
-                                    <p className="text-[10px] font-bold text-white/40 italic group-hover/row:text-white/70 transition-colors max-w-[200px] truncate">
-                                      {splitRoutePointNote(point.note).displayNote || "—"}
-                                    </p>
-                                  </td>
-                                  <td className="px-4 py-3 align-middle">
-                                    <span className="text-[11px] font-bold text-white/20">—</span>
-                                  </td>
-                                  <td className="pr-5 py-3 text-right align-middle">
-                                    <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover/row:opacity-100 transition-opacity">
-                                      <button
-                                        className="w-7 h-7 rounded bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-all disabled:opacity-10 backdrop-blur-md"
-                                        disabled={!canManageRoute || routeBusy || point.pointType !== "transit"}
-                                        onClick={() => handleMoveRoutePoint(point.id, "up")}
-                                        title="Geser ke atas"
-                                      >
-                                        <span className="material-symbols-outlined text-[15px]">expand_less</span>
-                                      </button>
-                                      <button
-                                        className="w-7 h-7 rounded bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-all disabled:opacity-10 backdrop-blur-md"
-                                        disabled={!canManageRoute || routeBusy || point.pointType !== "transit"}
-                                        onClick={() => handleMoveRoutePoint(point.id, "down")}
-                                        title="Geser ke bawah"
-                                      >
-                                        <span className="material-symbols-outlined text-[15px]">expand_more</span>
-                                      </button>
-                                      <div className="w-px h-4 bg-white/10 mx-0.5" />
-                                      <button
-                                        className="w-7 h-7 rounded bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 hover:bg-rose-500 hover:text-white transition-all disabled:opacity-10"
-                                        disabled={!canManageRoute || routeBusy || point.pointType !== "transit"}
-                                        onClick={() => void handleDeleteRoutePoint(point.id)}
-                                        title="Hapus titik"
-                                      >
-                                        <span className="material-symbols-outlined text-[14px]">delete</span>
-                                      </button>
+                                    <div className="flex-1 min-w-0 flex flex-col justify-center">
+                                      <span className={`text-[8.5px] font-black uppercase tracking-widest ${point.pointType === "awal" ? "text-blue-400" : point.pointType === "tujuan" ? "text-emerald-400" : "text-white/50"}`}>{routePointTypeLabelMap[point.pointType]}</span>
+                                      <p className="text-[12px] font-black text-white tracking-tight truncate mt-0.5">
+                                        {point.pointType === 'tujuan' ? (tenantName || point.pathName) : point.pointType === 'awal' ? (isps.length > 0 ? `ISP: ${isps.map(i => i.name).join(', ')}` : point.pathName) : point.pathName}
+                                      </p>
                                     </div>
-                                  </td>
-                                </tr>
+                                  </div>
+                                  <div className="bg-white/[0.02] rounded-lg border border-white/5 px-2 py-1">
+                                    <p className="text-[7.5px] font-black text-white/30 uppercase tracking-widest mb-1">Panduan Lokasi</p>
+                                    <p className="text-[9.5px] font-bold text-white/70 leading-relaxed italic">
+                                      {splitRoutePointNote(point.note).displayNote || "Tidak ada panduan khusus."}
+                                    </p>
+                                  </div>
+                                </div>
                               );
                             } else {
                               const road = item;
                               return (
-                                <tr key={`road-${road.id || index}`} className="hover:bg-white/[0.03] transition-colors group/row bg-blue-500/[0.02]">
-                                  <td className="pl-5 py-2.5 align-middle">
-                                    <div className="flex items-center gap-2 pl-2">
-                                      <div className="flex flex-col items-center justify-center gap-1 w-3 opacity-40 group-hover/row:opacity-100 transition-opacity">
-                                        <div className="w-[1.5px] h-1.5 bg-blue-400/30 rounded-full" />
-                                        <div className="w-2 h-2 rounded-full bg-blue-400 shadow-[0_0_6px_rgba(96,165,250,0.6)]" />
-                                        <div className="w-[1.5px] h-1.5 bg-blue-400/30 rounded-full" />
-                                      </div>
-                                      <span className="text-[10px] font-black text-blue-400/60 uppercase tracking-widest opacity-60 group-hover/row:opacity-100 transition-opacity ml-1.5">
-                                        Ruas Jalan
-                                      </span>
-                                    </div>
-                                  </td>
-                                  <td className="px-4 py-2.5 min-w-[200px] align-middle">
-                                    <div className="flex items-center gap-2 opacity-80 group-hover/row:opacity-100 transition-opacity">
-                                      <span className="text-[11px] font-black text-blue-200 tracking-tight">{road.name}</span>
-                                    </div>
-                                  </td>
-                                  <td className="px-4 py-2.5 align-middle">
-                                    <span className="text-[10px] font-bold text-white/40 italic group-hover/row:text-white/70 transition-colors uppercase tracking-widest max-w-[250px] truncate block">
-                                      {road?.instruction || "—"}
-                                    </span>
-                                  </td>
-                                  <td className="px-4 py-2.5 align-middle">
-                                    <span className="text-[11px] font-mono font-black text-blue-400/70 group-hover/row:text-blue-400 transition-colors">
+                                <div key={`road-mobile-${road.id || index}`} className="glass-card rounded-xl border border-blue-500/20 bg-blue-500/[0.02] p-2 shadow-glass-depth flex items-center gap-2">
+                                  <div className="flex flex-col items-center justify-center gap-0.5 w-7 shrink-0">
+                                    <div className="w-[1.5px] h-1.5 bg-blue-400/30 rounded-full" />
+                                    <div className="w-2.5 h-2.5 rounded-full bg-blue-400 shadow-[0_0_8px_rgba(96,165,250,0.6)]" />
+                                    <div className="w-[1.5px] h-1.5 bg-blue-400/30 rounded-full" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <span className="text-[8.5px] font-black text-blue-400/60 uppercase tracking-widest block mb-0.5">Ruas Jalan</span>
+                                    <p className="text-[11.5px] font-black text-blue-200 tracking-tight truncate">{road.name}</p>
+                                    {road?.instruction && (
+                                      <p className="text-[9.5px] font-bold text-white/50 italic mt-0.5 truncate">{road.instruction}</p>
+                                    )}
+                                  </div>
+                                  <div className="shrink-0 text-right bg-blue-500/10 border border-blue-500/20 px-2.5 py-1.5 rounded-lg">
+                                    <span className="text-[10px] font-mono font-black text-blue-400 block">
                                       {Number.isFinite(Number(road?.distance)) && Number(road.distance) > 0 ? `${(Number(road.distance) / 1000).toFixed(2)} km` : "—"}
                                     </span>
-                                  </td>
-                                  <td className="pr-5 py-2.5 text-right align-middle">
-                                    <div className="flex items-center justify-end opacity-0 group-hover/row:opacity-100 transition-opacity">
-                                      <button
-                                        className="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 hover:bg-blue-500 hover:text-white transition-all disabled:opacity-10 backdrop-blur-md"
-                                        onClick={() => {
-                                          alert(`Fitur ubah penamaan ruas jalan (${road.name}) tanpa mengubah titik koordinat akan segera tersedia.`);
-                                        }}
-                                        title="Ubah Nama Jalan"
-                                      >
-                                        <span className="material-symbols-outlined text-[14px]">edit</span>
-                                      </button>
-                                    </div>
-                                  </td>
-                                </tr>
+                                  </div>
+                                </div>
                               );
                             }
                           })}
-                        </tbody>
-                      </table>
+                        </div>
+                      </>
                     );
                   })()}
                 </div>
@@ -5473,7 +5603,7 @@ function TenantDetailPage({
             <section className="glass-card backdrop-blur-xl rounded-xl border border-white/10 shadow-glass-depth overflow-hidden relative">
               <div className="absolute -right-24 -top-24 h-64 w-64 rounded-full bg-amber-500/5 blur-3xl pointer-events-none" />
 
-              <div className="px-5 py-4 border-b border-white/5 bg-white/[0.02] flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-10">
+              <div className="px-4 py-2.5 lg:px-5 lg:py-4 border-b border-white/5 bg-white/[0.02] flex flex-col lg:flex-row lg:items-center justify-between gap-3 lg:gap-4 relative z-10">
                 <div className="flex items-center gap-3">
                   <span className="material-symbols-outlined text-lg text-amber-400 drop-shadow-md">history_edu</span>
                   <div className="space-y-0.5">
@@ -5481,13 +5611,13 @@ function TenantDetailPage({
                     <p className="text-[9px] font-bold text-white/40 tracking-wide">Jejak audit & histori topologi</p>
                   </div>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-center justify-end gap-1.5 md:gap-2 w-full lg:w-auto border-t border-white/5 pt-2.5 mt-1 lg:border-none lg:pt-0 lg:mt-0">
                   <div className="flex -space-x-px shadow-sm">
-                    <div className="h-8 px-3 rounded-l-lg bg-white/5 border border-white/10 flex items-center text-[9px] font-black text-white/40 uppercase tracking-widest backdrop-blur-md z-10 relative">{routeHistoryRows.length} Log</div>
-                    <div className="h-8 px-3 rounded-r-lg bg-amber-500/10 border border-amber-500/20 flex items-center text-[9px] font-black text-amber-400 uppercase tracking-widest relative">{routeVersions.length} Versi</div>
+                    <div className="h-6 md:h-8 px-2 md:px-3 rounded-l-lg bg-white/5 border border-white/10 flex items-center text-[8px] md:text-[9px] font-black text-white/40 uppercase tracking-widest backdrop-blur-md z-10 relative">{routeHistoryRows.length} Log</div>
+                    <div className="h-6 md:h-8 px-2 md:px-3 rounded-r-lg bg-amber-500/10 border border-amber-500/20 flex items-center text-[8px] md:text-[9px] font-black text-amber-400 uppercase tracking-widest relative">{routeVersions.length} Versi</div>
                   </div>
                   <button
-                    className="h-8 px-4 rounded-lg border border-rose-500/20 bg-rose-500/5 text-rose-400 text-[9px] font-black uppercase tracking-widest hover:bg-rose-500 hover:text-white transition-all disabled:opacity-30 disabled:hover:bg-rose-500/5 disabled:hover:text-rose-400 backdrop-blur-md shadow-sm"
+                    className="h-6 md:h-8 px-2.5 md:px-4 rounded-lg border border-rose-500/20 bg-rose-500/5 text-rose-400 text-[8px] md:text-[9px] font-black uppercase tracking-widest hover:bg-rose-500 hover:text-white transition-all disabled:opacity-30 disabled:hover:bg-rose-500/5 disabled:hover:text-rose-400 backdrop-blur-md shadow-sm"
                     disabled={routeBusy || routeHistoryRows.length === 0}
                     onClick={() => void handleDeleteAllHistory()}
                     type="button"
@@ -5497,7 +5627,7 @@ function TenantDetailPage({
                 </div>
               </div>
 
-              <div className="max-h-[500px] overflow-y-auto custom-scrollbar relative z-10 p-4 bg-black/40">
+              <div className="max-h-[500px] overflow-y-auto custom-scrollbar relative z-10 p-2.5 lg:p-4 bg-black/40">
                 <div className="absolute inset-0 bg-gradient-to-b from-white/[0.02] to-transparent pointer-events-none" />
                 {routeHistoryRows.length === 0 ? (
                   <div className="flex flex-col items-center justify-center min-h-[160px] gap-3 text-center px-4">
@@ -5507,51 +5637,58 @@ function TenantDetailPage({
                     <p className="text-[10px] font-bold text-white/30 tracking-widest">Arsip riwayat masih kosong.</p>
                   </div>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-1.5">
                     {routeHistoryRows.map((item) => {
                       const isExpanded = expandedHistoryIds.includes(item.id);
                       return (
                         <div key={item.id} className={`rounded-xl transition-all duration-300 border ${isExpanded ? 'bg-white/[0.03] border-white/10 shadow-sm' : 'bg-white/[0.01] border-white/5 hover:border-white/10'}`}>
                           <div
-                            className="px-4 py-3 flex flex-wrap items-center justify-between gap-4 cursor-pointer group/header"
+                            className="px-2.5 py-2 flex flex-col md:flex-row md:items-center justify-between gap-1.5 cursor-pointer group/header"
                             onClick={() => toggleHistoryExpand(item.id)}
                           >
-                            <div className="flex items-center gap-3.5">
-                              <div className={`h-8 w-8 shrink-0 rounded-lg flex items-center justify-center transition-all ${isExpanded ? 'bg-amber-500 text-[#0f141e] shadow-sm' : 'bg-white/5 border border-white/10 text-white/40 group-hover/header:text-white group-hover/header:border-white/20'}`}>
-                                <span className="text-[10px] font-black uppercase tracking-tight">V{item.changeNumber}</span>
+                            <div className="flex items-start md:items-center gap-2 md:gap-3">
+                              <div className={`h-6 w-6 md:h-8 md:w-8 shrink-0 rounded-lg flex items-center justify-center transition-all ${isExpanded ? 'bg-amber-500 text-[#0f141e] shadow-sm' : 'bg-white/5 border border-white/10 text-white/40 group-hover/header:text-white group-hover/header:border-white/20'}`}>
+                                <span className="text-[9px] md:text-[10px] font-black uppercase tracking-tight">V{item.changeNumber}</span>
                               </div>
-                              <div>
-                                <h4 className={`text-[11px] font-black uppercase tracking-tight transition-colors ${isExpanded ? 'text-amber-400' : 'text-white group-hover/header:text-amber-400'}`}>
+                              <div className="min-w-0">
+                                <h4 className={`text-[11px] font-black uppercase tracking-tight transition-colors truncate ${isExpanded ? 'text-amber-400' : 'text-white group-hover/header:text-amber-400'}`}>
                                   {item.changeReason || "Pemutakhiran Jalur Rutin"}
                                 </h4>
-                                <p className="text-[8px] font-black text-white/30 uppercase tracking-[0.2em] mt-0.5">{formatDateTime(item.createdAt)}</p>
+                                <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                                  <span className="text-[8px] font-black text-white/30 uppercase tracking-[0.2em]">{formatDateTime(item.createdAt)}</span>
+                                  {/* Operator inline on mobile */}
+                                  <span className="md:hidden inline-flex items-center gap-1 text-[8px] font-bold text-white/40 uppercase bg-white/5 px-1.5 py-0.5 rounded">
+                                    <span className="material-symbols-outlined" style={{ fontSize: '10px' }}>person</span>
+                                    {item.actorName || "SYSTEM"}
+                                  </span>
+                                </div>
                               </div>
                             </div>
-                            <div className="flex items-center gap-3">
-                              <div className="text-right hidden sm:block">
+                            <div className="flex items-center justify-end gap-3 w-full md:w-auto mt-1 md:mt-0">
+                              <div className="text-right hidden md:block">
                                 <p className="text-[8px] font-black text-white/20 uppercase tracking-widest">Operator</p>
                                 <p className="text-[9px] font-bold text-white/60 uppercase tracking-tight mt-0.5">{item.actorName || "SYSTEM"}</p>
                               </div>
-                              <div className={`w-7 h-7 rounded-md flex items-center justify-center border transition-all ${isExpanded ? 'bg-white/10 border-white/20 text-white rotate-180' : 'bg-white/5 border-white/10 text-white/30 group-hover/header:text-white group-hover/header:border-white/20'}`}>
+                              <div className={`w-7 h-7 rounded-md flex items-center justify-center border transition-all shrink-0 ${isExpanded ? 'bg-white/10 border-white/20 text-white rotate-180' : 'bg-white/5 border-white/10 text-white/30 group-hover/header:text-white group-hover/header:border-white/20'}`}>
                                 <span className="material-symbols-outlined text-[14px]">expand_more</span>
                               </div>
                             </div>
                           </div>
 
                           {isExpanded && (
-                            <div className="px-4 pb-4 animate-in slide-in-from-top-2 duration-300">
-                              <div className="h-px bg-white/5 mb-4 w-full" />
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                <div className="space-y-2.5">
+                            <div className="px-2.5 pb-2.5 animate-in slide-in-from-top-2 duration-300">
+                              <div className="h-px bg-white/5 mb-2 w-full" />
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 md:gap-4">
+                                <div className="space-y-1.5">
                                   <div className="flex items-center gap-2 mb-2">
                                     <span className="material-symbols-outlined text-gold-accent text-[12px]">alt_route</span>
                                     <p className="text-[8px] font-black text-gold-accent uppercase tracking-widest">Topologi Lintasan</p>
                                   </div>
-                                  <div className="relative pl-3 ml-1.5 space-y-2 border-l-2 border-white/5">
+                                  <div className="relative pl-3 ml-1.5 space-y-1.5 border-l-2 border-white/5">
                                     {item.points.map((p, idx) => (
-                                      <div key={p.id} className="relative flex items-center gap-2.5 group/p">
+                                      <div key={p.id} className="relative flex items-center gap-2 group/p">
                                         <div className={`absolute -left-[16px] w-1.5 h-1.5 rounded-full border border-[#0f141e] ${idx === 0 ? 'bg-blue-400 shadow-[0_0_8px_rgba(96,165,250,0.6)]' : idx === item.points.length - 1 ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]' : 'bg-white/30'}`} />
-                                        <div className="flex-1 px-2.5 py-1.5 rounded-md bg-white/[0.02] border border-white/5 group-hover/p:bg-white/[0.04] transition-colors">
+                                        <div className="flex-1 px-2 py-1 rounded-md bg-white/[0.02] border border-white/5 group-hover/p:bg-white/[0.04] transition-colors">
                                           <div className="flex items-center justify-between gap-2">
                                             <span className="text-[9px] font-black text-white/60 uppercase tracking-tight truncate">{p.pathName}</span>
                                             <span className="text-[7px] font-bold text-white/20 uppercase tracking-widest shrink-0">{routePointTypeLabelMap[p.pointType]}</span>
@@ -5566,7 +5703,7 @@ function TenantDetailPage({
                                     <span className="material-symbols-outlined text-blue-400 text-[12px]">info</span>
                                     <p className="text-[8px] font-black text-blue-400 uppercase tracking-widest">Informasi Tambahan</p>
                                   </div>
-                                  <div className="p-3 rounded-lg bg-white/[0.02] border border-white/5">
+                                  <div className="p-2 rounded-lg bg-white/[0.02] border border-white/5">
                                     <p className="text-[7px] font-black text-white/20 uppercase tracking-widest mb-1.5">Metadata Perubahan</p>
                                     <p className="text-[9px] font-bold text-white/50 leading-relaxed italic">
                                       {item.changeDescription || "Tidak ada catatan untuk revisi rute ini."}
@@ -5612,8 +5749,8 @@ function TenantDetailPage({
                 </div>
               )}
 
-              <div className="mb-1.5 px-4 flex flex-wrap items-end gap-1.5 w-full relative z-50 mt-3">
-                <div className="relative group min-w-[280px] flex-1">
+              <div className="mb-1.5 px-4 flex items-center gap-1.5 w-full relative z-50 mt-3">
+                <div className="relative group flex-1 min-w-0">
                   <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold-accent transition-colors" style={{ fontSize: "16px" }}>search</span>
                   <input
                     type="text"
@@ -5624,16 +5761,16 @@ function TenantDetailPage({
                   />
                 </div>
                 <button
-                  className="group relative flex h-8 w-[96px] shrink-0 items-center justify-center gap-1.5 overflow-hidden rounded-lg border border-white/10 bg-black/20 transition-all hover:border-white/20 hover:bg-black/40"
+                  className="group relative flex h-8 w-8 xl:w-[96px] shrink-0 items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-black/20 text-white/60 transition-all hover:border-white/20 hover:bg-black/40 hover:text-white"
                   onClick={() => setContractSort((prev) => (prev === "desc" ? "asc" : "desc"))}
                   title={contractSort === "desc" ? "Urutkan Terlama" : "Urutkan Terbaru"}
                   type="button"
                 >
                   <div className="relative flex h-full items-center justify-center">
-                    <span className={`material-symbols-outlined text-white/50 transition-all duration-300 ${contractSort === "desc" ? "rotate-0 opacity-100" : "-rotate-180 opacity-0 absolute"}`} style={{ fontSize: "14px" }}>arrow_downward</span>
-                    <span className={`material-symbols-outlined text-white/50 transition-all duration-300 ${contractSort === "asc" ? "rotate-0 opacity-100" : "rotate-180 opacity-0 absolute"}`} style={{ fontSize: "14px" }}>arrow_upward</span>
+                    <span className={`material-symbols-outlined transition-all duration-300 ${contractSort === "desc" ? "rotate-0 opacity-100 scale-100" : "-rotate-180 opacity-0 scale-75 absolute"}`} style={{ fontSize: "15px" }}>arrow_downward</span>
+                    <span className={`material-symbols-outlined transition-all duration-300 ${contractSort === "asc" ? "rotate-0 opacity-100 scale-100" : "rotate-180 opacity-0 scale-75 absolute"}`} style={{ fontSize: "15px" }}>arrow_upward</span>
                   </div>
-                  <span className="text-[9px] font-black uppercase tracking-widest text-white/70 transition-colors group-hover:text-white">
+                  <span className="hidden xl:inline text-[9px] font-black uppercase tracking-widest text-white/70 transition-colors group-hover:text-white">
                     {contractSort === "desc" ? "Terbaru" : "Terlama"}
                   </span>
                 </button>
@@ -5673,7 +5810,148 @@ function TenantDetailPage({
                 );
               })()}
 
-              <div className="overflow-x-auto rounded-lg border border-white/10 bg-black/55 backdrop-blur-3xl shadow-2xl custom-scrollbar mx-4 mb-4 mt-1.5">
+              {/* ── Mobile Cards (hidden on desktop) ── */}
+              <div className="xl:hidden flex flex-col gap-2 px-4 mt-2 mb-4">
+                {filteredContractRowsForTable.length === 0 ? (
+                  <p className="text-center text-[9px] text-white/20 italic uppercase tracking-[0.2em] py-6">Belum ada data kontrak.</p>
+                ) : filteredContractRowsForTable.map((row, idx) => {
+                  const statusForBadge = (() => {
+                    const n = (row.note ?? "").toLowerCase();
+                    if (n.includes("berhenti")) return "berhenti";
+                    if (n.includes("belum diperpanjang") || n.includes("expired")) return "expired";
+                    return "beroperasi";
+                  })();
+                  const statusLabel = statusForBadge === 'expired' ? 'Belum Diperpanjang' : statusForBadge === 'berhenti' ? 'Berhenti' : 'Beroperasi';
+                  const statusClasses = statusForBadge === 'berhenti'
+                    ? 'bg-white/5 text-white/30 border-white/10'
+                    : statusForBadge === 'expired'
+                      ? 'bg-[#ff2400]/10 text-[#ff2400] border-[#ff2400]/20'
+                      : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+                  const isExpanded = !!expandedContracts[row.id];
+
+                  return (
+                    <div
+                      key={row.id}
+                      className={`glass-card rounded-xl border shadow-glass-depth flex flex-col transition-all ${
+                        row.isHistory ? 'border-white/5 opacity-60' : row.isFuture ? 'border-blue-500/20' : 'border-white/10'
+                      }`}
+                    >
+                      {/* Header — always visible, tap to expand */}
+                      <button
+                        type="button"
+                        className="flex items-center justify-between gap-2 w-full text-left px-3 py-2.5"
+                        onClick={() => setExpandedContracts(prev => ({ ...prev, [row.id]: !prev[row.id] }))}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-[9px] font-black text-gold-accent/50 shrink-0">#{String(idx + 1).padStart(2, '0')}</span>
+                          <span className="text-[10px] font-black uppercase tracking-tight text-white truncate">
+                            {row.contractNumber || <span className="text-white/20">Nomor kontrak / BAK</span>}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[7.5px] font-black uppercase tracking-wider ${statusClasses}`}>{statusLabel}</span>
+                          <span className={`material-symbols-outlined text-[14px] text-white/30 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>expand_more</span>
+                        </div>
+                      </button>
+
+                      {/* Expanded detail */}
+                      {isExpanded && (
+                        <div className="flex flex-col gap-1.5 border-t border-white/[0.06] px-3 pb-3 pt-2">
+
+                          {/* Tanggal */}
+                          <div className="flex flex-col divide-y divide-white/[0.04] bg-white/[0.02] border border-white/[0.05] rounded-xl px-2.5 py-1">
+                            {[
+                              { icon: 'calendar_today', label: 'Awal Kontrak', value: formatDate(contractPeriodInfo?.contractStartDate) },
+                              { icon: 'event_repeat', label: 'Berjalan Awal', value: formatDate(row.periodStart) },
+                              { icon: 'event_busy', label: 'Berjalan Akhir', value: formatDate(row.periodEnd) },
+                            ].map(({ icon, label, value }) => (
+                              <div key={label} className="flex items-center justify-between gap-3 py-1.5">
+                                <span className="flex items-center gap-1.5 text-[9px] font-bold text-white/40">
+                                  <span className="material-symbols-outlined text-white/25" style={{ fontSize: '11px' }}>{icon}</span>
+                                  {label}
+                                </span>
+                                <span className="text-[9px] font-black text-white">{value || <span className="text-white/20">—</span>}</span>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Paket + Jumlah + Nominal */}
+                          <div className="flex flex-col gap-1 bg-white/[0.02] border border-white/[0.05] rounded-xl px-2.5 py-2">
+                            {/* Paket + Jumlah dalam satu baris */}
+                            <div className="flex items-center gap-2">
+                              <span className="material-symbols-outlined text-white/30" style={{ fontSize: '13px' }}>package_2</span>
+                              <span className="text-[10px] font-black text-white/80">{row.jumlahPaket || '—'}</span>
+                              <span className="text-[9px] font-black text-white uppercase tracking-tight">{row.paket || <span className="text-white/20">—</span>}</span>
+                            </div>
+                            {/* Nominal */}
+                            <div className="flex items-center justify-between">
+                              <span className="text-[7.5px] font-black uppercase tracking-widest text-white/30">Nominal/Bulan</span>
+                              <span className="text-[9px] font-black text-emerald-400">{formatRupiahInput(row.monthlyAmount) || <span className="text-white/20">—</span>}</span>
+                            </div>
+                          </div>
+
+
+                          {/* Berkas: Kontrak + BAK */}
+                          <div className="flex flex-col gap-1 bg-black/30 border border-white/[0.04] rounded-xl p-2">
+                            <p className="text-[7px] font-black uppercase tracking-widest text-white/30 mb-0.5 flex items-center gap-1">
+                              <span className="material-symbols-outlined text-white/25" style={{ fontSize: '10px' }}>folder_open</span>
+                              Lampiran Berkas
+                            </p>
+                            {/* Berkas Kontrak */}
+                            <div className="flex items-center justify-between gap-2 bg-white/[0.02] rounded-lg px-2 py-1.5">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span className="material-symbols-outlined text-gold-accent/40" style={{ fontSize: '13px' }}>history_edu</span>
+                                <div className="min-w-0">
+                                  <p className="text-[7px] font-black uppercase tracking-widest text-white/30">Berkas Kontrak</p>
+                                  <p className="text-[8px] font-bold text-white/50 truncate max-w-[130px]">{row.contractFileName || <span className="text-white/20">Belum ada</span>}</p>
+                                </div>
+                              </div>
+                              {row.contractFileUrl ? (
+                                <a href={row.contractFileUrl} target="_blank" rel="noopener noreferrer"
+                                  className="h-6 px-2 rounded-lg bg-gold-accent/10 border border-gold-accent/20 text-gold-accent text-[7.5px] font-black uppercase tracking-wider hover:bg-gold-accent hover:text-[#0f141e] transition-all shrink-0 flex items-center">
+                                  Lihat
+                                </a>
+                              ) : <span className="text-[9px] text-white/20">—</span>}
+                            </div>
+                            {/* BAK */}
+                            <div className="flex items-center justify-between gap-2 bg-white/[0.02] rounded-lg px-2 py-1.5">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span className="material-symbols-outlined text-blue-400/40" style={{ fontSize: '13px' }}>gavel</span>
+                                <div className="min-w-0">
+                                  <p className="text-[7px] font-black uppercase tracking-widest text-white/30">BAK</p>
+                                  <p className="text-[8px] font-bold text-white/50 truncate max-w-[130px]">{row.bakFileName || <span className="text-white/20">Belum ada</span>}</p>
+                                </div>
+                              </div>
+                              {row.bakFileUrl ? (
+                                <a href={row.bakFileUrl} target="_blank" rel="noopener noreferrer"
+                                  className="h-6 px-2 rounded-lg bg-gold-accent/10 border border-gold-accent/20 text-gold-accent text-[7.5px] font-black uppercase tracking-wider hover:bg-gold-accent hover:text-[#0f141e] transition-all shrink-0 flex items-center">
+                                  Lihat
+                                </a>
+                              ) : <span className="text-[9px] text-white/20">—</span>}
+                            </div>
+                          </div>
+
+                          {/* Perpanjangan + Tanggapan */}
+                          <div className="grid grid-cols-2 gap-1.5">
+                            <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-2">
+                              <p className="text-[7px] font-black uppercase tracking-widest text-white/30 mb-1">Perpanjangan</p>
+                              <div className="flex flex-wrap gap-1">{renderTenantRenewalFollowUps(row, "renewal")}</div>
+                            </div>
+                            <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-2">
+                              <p className="text-[7px] font-black uppercase tracking-widest text-white/30 mb-1">Tanggapan</p>
+                              <div className="flex flex-wrap gap-1">{renderTenantRenewalFollowUps(row, "response")}</div>
+                            </div>
+                          </div>
+
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* ── Desktop Table ── */}
+              <div className="hidden xl:block overflow-x-auto rounded-lg border border-white/10 bg-black/55 backdrop-blur-3xl shadow-2xl custom-scrollbar mx-4 mb-4 mt-1.5">
                 <table className="min-w-full border-collapse whitespace-nowrap">
                   <thead>
                     <tr className="bg-white/5 border-b border-white/10">
@@ -6177,14 +6455,14 @@ function TenantDetailPage({
             <section className="glass-card backdrop-blur-xl rounded-premium border-white/10 shadow-glass-depth relative overflow-hidden">
               <div className="absolute -right-24 -top-24 h-64 w-64 rounded-full bg-blue-500/5 blur-3xl backdrop-blur-md" />
 
-              <div className="px-6 py-5 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/5 bg-white/[0.01]">
+              <div className="px-4 py-4 md:px-5 md:py-4 flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4 border-b border-white/5 bg-white/[0.01]">
                 <div className="space-y-1 relative z-10">
                   <h2 className="text-[14px] md:text-base font-black text-white tracking-tight uppercase">Manajemen Tagihan Bulanan</h2>
                   <p className="text-[10px] font-bold text-white/50 leading-relaxed">Pemantauan siklus invoice dan rekonsiliasi pembayaran.</p>
                 </div>
                 {!isIsp && (
                   <button
-                    className="h-10 px-4 inline-flex items-center justify-center gap-2 rounded-xl bg-gold-accent/10 border border-gold-accent/20 text-gold-accent hover:bg-gold-accent hover:text-[#0f141e] transition-all text-[8px] font-black uppercase tracking-widest backdrop-blur-md shadow-gold-glow relative z-10"
+                    className="h-9 md:h-10 px-3 md:px-4 inline-flex items-center justify-center gap-2 rounded-xl bg-gold-accent/10 border border-gold-accent/20 text-gold-accent hover:bg-gold-accent hover:text-[#0f141e] transition-all text-[8px] font-black uppercase tracking-widest backdrop-blur-md shadow-gold-glow relative z-10"
                     onClick={openBillingEditor}
                     type="button"
                   >
@@ -6194,17 +6472,17 @@ function TenantDetailPage({
                 )}
               </div>
 
-              <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 relative z-10">
-                <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/5 flex flex-col justify-center gap-1.5">
-                  <span className="text-[8px] font-black uppercase tracking-widest opacity-50 text-white">Total Tagihan</span>
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-xl md:text-2xl font-black text-white">{paidInvoiceCount} / {invoiceRows.length}</span>
-                    <span className="text-[9px] font-bold text-white/40 uppercase tracking-widest">Tagihan</span>
+              <div className="p-4 md:p-4 grid grid-cols-2 lg:grid-cols-4 gap-2.5 md:gap-3 relative z-10">
+                <div className="p-3 md:p-4 rounded-xl md:rounded-2xl bg-white/[0.02] border border-white/5 flex flex-col justify-center gap-1">
+                  <span className="text-[7px] md:text-[8px] font-black uppercase tracking-widest opacity-50 text-white truncate">Total Tagihan</span>
+                  <div className="flex items-baseline gap-1 md:gap-1.5 mt-0.5">
+                    <span className="text-lg md:text-xl font-black text-white">{paidInvoiceCount} / {invoiceRows.length}</span>
+                    <span className="text-[7px] md:text-[8px] font-bold text-white/40 uppercase tracking-widest hidden sm:inline">Tagihan</span>
                   </div>
                 </div>
-                <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/5 flex flex-col justify-center gap-1.5">
-                  <span className="text-[8px] font-black uppercase tracking-widest opacity-50 text-white">Periode Tagihan</span>
-                  <span className="text-sm md:text-base font-black text-white tracking-tight">
+                <div className="p-3 md:p-4 rounded-xl md:rounded-2xl bg-white/[0.02] border border-white/5 flex flex-col justify-center gap-1">
+                  <span className="text-[7px] md:text-[8px] font-black uppercase tracking-widest opacity-50 text-white truncate">Periode</span>
+                  <span className="text-[10px] sm:text-sm md:text-sm font-black text-white tracking-tight leading-tight mt-0.5">
                     {(() => {
                       if (invoiceRows.length === 0) return "—";
                       if (invoiceRows.length === 1) return "Siklus Tunggal";
@@ -6251,25 +6529,25 @@ function TenantDetailPage({
                     })()}
                   </span>
                 </div>
-                <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/5 flex flex-col justify-center gap-1">
-                  <span className="text-[8px] font-black uppercase tracking-widest opacity-50 text-white">Nominal Bulanan / Tahunan</span>
-                  <div className="flex items-center justify-between mt-1">
-                    <span className="text-[9px] font-black uppercase tracking-widest text-white/40">Bulanan</span>
-                    <span className="text-sm md:text-base font-black text-white tracking-tight">
+                <div className="p-3 md:p-4 rounded-xl md:rounded-2xl bg-white/[0.02] border border-white/5 flex flex-col justify-center gap-1">
+                  <span className="text-[7px] md:text-[8px] font-black uppercase tracking-widest opacity-50 text-white truncate">Estimasi Biaya</span>
+                  <div className="flex items-center justify-between mt-0.5 md:mt-1">
+                    <span className="text-[7px] md:text-[8px] font-black uppercase tracking-widest text-white/40">Bulan</span>
+                    <span className="text-[9px] sm:text-sm md:text-sm font-black text-white tracking-tight">
                       {invoiceRows.length > 0 && Number(invoiceRows.find(i => Number(i.amount) > 0)?.amount || 0) > 0 ? formatCurrency(Number(invoiceRows.find(i => Number(i.amount) > 0).amount)) : "—"}
                     </span>
                   </div>
                   <div className="flex items-center justify-between mt-0.5">
-                    <span className="text-[9px] font-black uppercase tracking-widest text-white/40">Tahunan</span>
-                    <span className="text-xs font-black text-white/70 tracking-tight">
+                    <span className="text-[7px] md:text-[8px] font-black uppercase tracking-widest text-white/40">Tahun</span>
+                    <span className="text-[8px] sm:text-xs font-black text-white/70 tracking-tight">
                       {invoiceRows.length > 0 && Number(invoiceRows.find(i => Number(i.amount) > 0)?.amount || 0) > 0 ? formatCurrency(Number(invoiceRows.find(i => Number(i.amount) > 0).amount) * 12) : "—"}
                     </span>
                   </div>
                 </div>
-                <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/5 flex flex-col justify-center gap-1.5">
-                  <span className="text-[8px] font-black uppercase tracking-widest opacity-50 text-white">Status Keseluruhan</span>
-                  <span className={`text-lg md:text-xl font-black ${unpaidInvoiceCount === 0 && invoiceRows.length > 0 ? "text-emerald-400" : unpaidInvoiceCount > 0 && unpaidInvoiceCount < 3 ? "text-orange-400" : unpaidInvoiceCount >= 3 ? "text-[#ff2400]" : "text-white/40"}`}>
-                    {unpaidInvoiceCount === 0 && invoiceRows.length > 0 ? "Aman" : unpaidInvoiceCount > 0 && unpaidInvoiceCount < 3 ? "Peringatan" : unpaidInvoiceCount >= 3 ? "Belum Bayar" : "—"}
+                <div className="p-3 md:p-4 rounded-xl md:rounded-2xl bg-white/[0.02] border border-white/5 flex flex-col justify-center gap-1">
+                  <span className="text-[7px] md:text-[8px] font-black uppercase tracking-widest opacity-50 text-white truncate">Status Global</span>
+                  <span className={`text-[12px] sm:text-lg md:text-lg font-black truncate mt-0.5 ${unpaidInvoiceCount === 0 && invoiceRows.length > 0 ? "text-emerald-400" : unpaidInvoiceCount > 0 && unpaidInvoiceCount < 3 ? "text-orange-400" : unpaidInvoiceCount >= 3 ? "text-[#ff2400]" : "text-white/40"}`}>
+                    {unpaidInvoiceCount === 0 && invoiceRows.length > 0 ? "Aman" : unpaidInvoiceCount > 0 && unpaidInvoiceCount < 3 ? "Peringatan" : unpaidInvoiceCount >= 3 ? "Tertunggak" : "—"}
                   </span>
                 </div>
               </div>
@@ -6362,8 +6640,8 @@ function TenantDetailPage({
 
             {/* Active Invoice Table */}
             <section className="glass-card backdrop-blur-xl rounded-premium border-white/10 shadow-glass-depth overflow-hidden">
-              <div className="px-8 py-5 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
-                <div className="flex items-center gap-4">
+              <div className="px-4 pt-4 pb-2.5 md:px-8 md:py-5 border-b border-white/5 bg-white/[0.02] flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0">
+                <div className="flex items-center gap-3 md:gap-4">
                   <div className="h-8 w-8 rounded-lg bg-gold-accent/10 border border-gold-accent/20 flex items-center justify-center shrink-0">
                     <span className="material-symbols-outlined text-gold-accent text-sm">payments</span>
                   </div>
@@ -6372,7 +6650,7 @@ function TenantDetailPage({
                     <span className="text-[9px] font-bold text-white/40 tracking-widest">{invoiceRows.length} Siklus Terjadwal</span>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
                   <span className="text-[8px] font-black uppercase tracking-[0.3em] text-white/30 hidden sm:inline-block">Urutan</span>
                   <div className="flex items-center gap-1 p-1 rounded-xl border border-white/10 bg-white/[0.02]">
                     {[
@@ -6381,19 +6659,19 @@ function TenantDetailPage({
                     ].map((opt) => (
                       <button
                         key={opt.value}
-                        className={`inline-flex items-center gap-1.5 h-7 px-3 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all ${invoicePaymentOrderSort === opt.value ? 'bg-gold-accent text-[#0f141e] shadow-gold-glow' : 'text-white/30 hover:text-white hover:bg-white/5'}`}
+                        className={`inline-flex items-center gap-1 md:gap-1.5 h-6 md:h-7 px-2 md:px-3 rounded-lg text-[8px] md:text-[9px] font-black uppercase tracking-widest transition-all ${invoicePaymentOrderSort === opt.value ? 'bg-gold-accent text-[#0f141e] shadow-gold-glow' : 'text-white/30 hover:text-white hover:bg-white/5'}`}
                         onClick={() => setInvoicePaymentOrderSort(opt.value)}
                         type="button"
                       >
-                        <span className="material-symbols-outlined text-[12px]">{opt.icon}</span>
+                        <span className="material-symbols-outlined text-[9px] md:text-[11px]">{opt.icon}</span>
                         {opt.label}
                       </button>
                     ))}
                   </div>
                 </div>
               </div>
-              <div className="overflow-x-auto no-scrollbar pb-4 md:pb-5 px-4 md:px-5 pt-4 md:pt-5">
-                <table className="w-full text-left min-w-[1200px] border-collapse">
+              <div className="overflow-x-auto no-scrollbar pb-3 md:pb-4 px-3 md:px-5 pt-3 md:pt-4">
+                <table className="w-full text-left min-w-[1200px] border-collapse hidden xl:table">
                   <thead>
                     <tr className="bg-white/[0.02]">
                       {!isIsp && (
@@ -6409,13 +6687,13 @@ function TenantDetailPage({
                         </th>
                       )}
                       <th className="w-12 px-2.5 py-2 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">No</th>
-                      <th className="w-16 px-2.5 py-2 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Urutan</th>
+                      <th className="w-16 px-2.5 py-2 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Pembayaran Ke-</th>
                       <th className="min-w-[160px] px-2.5 py-2 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Nomor Invoice</th>
                       <th className="min-w-[160px] px-2.5 py-2 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Bulan Jatuh Tempo</th>
                       <th className="min-w-[140px] px-2.5 py-2 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Jumlah (Rp)</th>
                       <th className="min-w-[160px] px-2.5 py-2 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Status</th>
                       <th className="min-w-[120px] px-2.5 py-2 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Waktu Bayar</th>
-                      <th className="min-w-[180px] px-2.5 py-2 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Invoice</th>
+                      <th className="min-w-[180px] px-2.5 py-2 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Berkas Invoice</th>
                       <th className="min-w-[120px] px-2.5 py-2 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Bukti Bayar</th>
                     </tr>
                   </thead>
@@ -6706,29 +6984,235 @@ function TenantDetailPage({
                     })}
                   </tbody>
                 </table>
+
+                {/* MOBILE CARDS VIEW */}
+                <div className="xl:hidden flex flex-col gap-2 relative z-10 pt-0">
+                  {displayInvoiceRows.length === 0 && (
+                    <div className="px-4 py-6 text-center text-[10px] text-white/30 italic tracking-wider border border-white/5 rounded-xl bg-white/[0.02]">Belum ada invoice aktif.</div>
+                  )}
+                  {displayInvoiceRows.map((invoice, idx) => {
+                    const draft = getInvoiceDraft(invoice);
+                    const isSetDateLockedByGlobal = false;
+                    const workflowMeta = invoice.workflowMeta ?? getInvoiceWorkflowMeta(invoice, workflowInvoiceRows);
+                    const statusMeta = invoice.statusMeta ?? resolveInvoiceStatusMeta({ ...invoice, workflowMeta });
+                    const hasInvoiceFile = isOpenableFileUrl(invoice?.invoiceFileUrl);
+                    const hasPaymentProof = isOpenableFileUrl(invoice?.paymentProofFileUrl);
+                    
+                    const statusStyle = (() => {
+                      if (statusMeta.key === "paid") return "bg-emerald-500/10 border-emerald-500/20 text-emerald-400";
+                      if (statusMeta.key === "warning_unpaid") return "bg-[#ff2400]/10 border-[#ff2400]/30 text-[#ff2400]";
+                      if (statusMeta.key === "warning_required_h3") return "bg-orange-500/10 border-orange-500/20 text-orange-300";
+                      if (statusMeta.key === "warning_required_h7") return "bg-amber-500/10 border-amber-500/20 text-amber-300";
+                      if (statusMeta.key === "waiting_payment_confirmation") return "bg-blue-500/10 border-blue-500/20 text-blue-300";
+                      if (statusMeta.key === "pending_setup") return "bg-rose-500/10 border-rose-500/20 text-rose-300";
+                      return "bg-white/5 border-white/10 text-white/30";
+                    })();
+
+                    return (
+                      <details key={`mob-inv-${invoice.id}`} className={`glass-card rounded-xl border shadow-glass-depth transition-all group ${selectedInvoiceIds.has(invoice.id) ? "border-emerald-500/30 bg-emerald-500/5" : "border-white/10"}`}>
+                        {/* Header of card (Summary) */}
+                        <summary className="flex items-center justify-between gap-3 p-3.5 cursor-pointer list-none [&::-webkit-details-marker]:hidden outline-none">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            {!isIsp && (
+                              <div onClick={(e) => e.stopPropagation()}>
+                                <input
+                                  type="checkbox"
+                                  className="cursor-pointer rounded bg-white/[0.05] border-white/20 text-emerald-400 focus:ring-emerald-500/50 outline-none shrink-0"
+                                  checked={selectedInvoiceIds.has(invoice.id)}
+                                  onChange={() => handleToggleSelectInvoice(invoice.id)}
+                                />
+                              </div>
+                            )}
+                            <div className="flex flex-col gap-0.5 min-w-0">
+                              <span className="text-[7px] font-black uppercase tracking-widest text-white/30">Pembayaran Ke-</span>
+                              <span className="text-[12px] font-black text-white truncate">#{invoice.paymentOrder}</span>
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                <span className="text-[8px] font-bold text-white/50">Jatuh Tempo:</span>
+                                {isIsp ? (
+                                  <span className="text-[9px] font-bold text-white truncate">{draft.dueDate || "-"}</span>
+                                ) : (
+                                  <div onClick={(e) => e.stopPropagation()}>
+                                    <DateInput
+                                      value={draft.dueDate}
+                                      onChange={(val) => {
+                                        updateInvoiceDraftField(invoice.id, "dueDate", val);
+                                        handleInvoiceAutoSave(invoice, { dueDate: val });
+                                      }}
+                                      hideIcon={true}
+                                      className="h-5 w-24 rounded border border-white/10 bg-white/[0.03]"
+                                      inputClass="w-full h-full bg-transparent px-1.5 text-[8px] font-bold text-white text-left outline-none"
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2.5 shrink-0">
+                            <div className="flex flex-col items-end gap-1">
+                              <span className="text-[7px] font-black uppercase tracking-widest text-white/30">Status</span>
+                              <div className={`shrink-0 px-2 py-1 rounded border text-[8px] font-bold tracking-widest uppercase ${statusStyle}`}>
+                                {INVOICE_STATUS_OPTIONS.find((opt) => opt.value === draft.status)?.label || draft.status || "-"}
+                              </div>
+                            </div>
+                            <span className="material-symbols-outlined text-white/40 text-[18px] transition-transform duration-300 group-open:-rotate-180">expand_more</span>
+                          </div>
+                        </summary>
+                        
+                        {/* Body of card grid (Collapsible Content) */}
+                        <div className="flex flex-col gap-3 px-3.5 pb-3.5 pt-0 mt-0 border-t border-white/5 animate-in fade-in slide-in-from-top-2 duration-300">
+                          <div className="grid grid-cols-2 gap-2.5 mt-3">
+                            <div className="col-span-2 bg-white/[0.02] rounded-lg border border-white/5 p-2 flex flex-col gap-1">
+                              <span className="text-[7.5px] font-black uppercase tracking-widest text-white/30">Nomor Invoice</span>
+                              {isIsp ? (
+                                <span className="text-[10px] font-bold text-white truncate">{draft.invoiceNumber || <span className="text-white/20 italic">Belum Ada</span>}</span>
+                              ) : (
+                                <input
+                                  className="h-6 w-full rounded border border-white/10 bg-white/[0.03] px-2 text-[9px] font-bold text-white outline-none placeholder:text-white/20 focus:border-gold-accent/50"
+                                  disabled={isSavingInvoice}
+                                  onBlur={() => handleInvoiceAutoSave(invoice)}
+                                  onChange={(e) => updateInvoiceDraftField(invoice.id, "invoiceNumber", e.target.value)}
+                                  placeholder="No. Invoice..."
+                                  type="text"
+                                  value={draft.invoiceNumber}
+                                />
+                              )}
+                            </div>
+                          <div className="bg-white/[0.02] rounded-lg border border-white/5 p-2 flex flex-col gap-1">
+                            <span className="text-[7.5px] font-black uppercase tracking-widest text-white/30">Jumlah (Rp)</span>
+                            {isIsp ? (
+                              <span className="text-[10px] font-bold text-emerald-400 truncate">{draft.amount ? `Rp ${draft.amount}` : "-"}</span>
+                            ) : (
+                              <input
+                                className="h-6 w-full rounded border border-white/10 bg-white/[0.03] px-2 text-[9px] font-black text-white outline-none focus:border-gold-accent/50"
+                                onBlur={() => handleInvoiceAutoSave(invoice)}
+                                onChange={(e) => handleInvoiceDraftAmountChange(e, invoice.id)}
+                                placeholder="0"
+                                type="text"
+                                value={draft.amount}
+                              />
+                            )}
+                          </div>
+                          <div className="bg-white/[0.02] rounded-lg border border-white/5 p-2 flex flex-col gap-1">
+                            <span className="text-[7.5px] font-black uppercase tracking-widest text-white/30">Waktu Bayar</span>
+                            <span className="text-[9px] font-bold text-white/50 truncate">
+                              {invoice.paidAt ? formatDate(invoice.paidAt) : <span className="text-white/20 italic font-normal">—</span>}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2 mt-0.5">
+                          {/* Invoice File Column */}
+                          <div className="flex-1 bg-white/[0.02] rounded-lg border border-white/5 p-2 flex flex-col items-center justify-center gap-1.5 min-h-[50px]">
+                            <span className="text-[7px] font-black uppercase tracking-widest text-white/30 text-center">Berkas Invoice</span>
+                            {isIsp ? (
+                              hasInvoiceFile ? (
+                                <a
+                                  className="w-full inline-flex items-center justify-center gap-1.5 py-1.5 rounded-md border border-gold-accent/20 bg-gold-accent/5 text-[8px] font-black text-gold-accent uppercase tracking-widest hover:bg-gold-accent hover:text-[#0f141e] transition-colors"
+                                  href={invoice.invoiceFileUrl}
+                                  target="_blank" rel="noopener noreferrer"
+                                >
+                                  <span className="material-symbols-outlined text-[11px]">receipt</span>
+                                  Buka
+                                </a>
+                              ) : (
+                                <span className="text-[9px] font-bold text-white/20 italic">—</span>
+                              )
+                            ) : (
+                              <div className="flex flex-col items-center w-full gap-1.5">
+                                <label className={`relative w-full inline-flex items-center justify-center gap-1.5 h-6 rounded border text-[7.5px] font-black uppercase tracking-widest transition-all cursor-pointer ${canUploadInvoiceFile ? 'border-white/10 bg-white/5 text-white/40 hover:border-white/20 hover:text-white' : 'border-white/5 bg-white/[0.02] text-white/10 cursor-not-allowed'}`}>
+                                  <span className="material-symbols-outlined text-[10px]">upload_file</span>
+                                  {hasInvoiceFile ? "Ganti" : "Upload"}
+                                  <input
+                                    className="absolute inset-0 opacity-0 cursor-pointer"
+                                    disabled={!canUploadInvoiceFile}
+                                    onChange={(e) => void handleInvoiceFileInputChange(e, invoice, "invoice")}
+                                    type="file"
+                                  />
+                                </label>
+                                {hasInvoiceFile && (
+                                  <a
+                                    className="w-full inline-flex items-center justify-center gap-1 py-1 rounded border border-gold-accent/10 text-[7px] font-black text-gold-accent uppercase tracking-widest hover:bg-gold-accent/10"
+                                    href={invoice.invoiceFileUrl}
+                                    target="_blank" rel="noopener noreferrer"
+                                  >
+                                    <span className="material-symbols-outlined text-[9px]">open_in_new</span>
+                                    Lihat
+                                  </a>
+                                )}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Payment Proof Column */}
+                          <div className="flex-1 bg-white/[0.02] rounded-lg border border-white/5 p-2 flex flex-col items-center justify-center gap-1.5 min-h-[50px]">
+                            <span className="text-[7px] font-black uppercase tracking-widest text-white/30 text-center">Bukti Bayar</span>
+                            {isIsp ? (
+                              hasPaymentProof ? (
+                                <a
+                                  className="w-full inline-flex items-center justify-center gap-1.5 py-1.5 rounded-md border border-emerald-500/20 bg-emerald-500/5 text-[8px] font-black text-emerald-400 uppercase tracking-widest hover:bg-emerald-500 hover:text-white transition-colors"
+                                  href={invoice.paymentProofFileUrl}
+                                  target="_blank" rel="noopener noreferrer"
+                                >
+                                  <span className="material-symbols-outlined text-[11px]">verified</span>
+                                  Buka
+                                </a>
+                              ) : (
+                                <span className="text-[9px] font-bold text-white/20 italic">—</span>
+                              )
+                            ) : (
+                              <div className="flex flex-col items-center w-full gap-1.5">
+                                <label className={`relative w-full inline-flex items-center justify-center gap-1.5 h-6 rounded border text-[7.5px] font-black uppercase tracking-widest transition-all cursor-pointer ${canUploadPaymentProof ? 'border-white/10 bg-white/5 text-white/40 hover:border-white/20 hover:text-white' : 'border-white/5 bg-white/[0.02] text-white/10 cursor-not-allowed'}`}>
+                                  <span className="material-symbols-outlined text-[10px]">receipt_long</span>
+                                  {hasPaymentProof ? "Ganti" : "Upload"}
+                                  <input
+                                    className="absolute inset-0 opacity-0 cursor-pointer"
+                                    disabled={!canUploadPaymentProof}
+                                    onChange={(e) => void handleInvoiceFileInputChange(e, invoice, "payment-proof")}
+                                    type="file"
+                                  />
+                                </label>
+                                {hasPaymentProof && (
+                                  <a
+                                    className="w-full inline-flex items-center justify-center gap-1 py-1 rounded border border-emerald-500/10 text-[7px] font-black text-emerald-400 uppercase tracking-widest hover:bg-emerald-500/10"
+                                    href={invoice.paymentProofFileUrl}
+                                    target="_blank" rel="noopener noreferrer"
+                                  >
+                                    <span className="material-symbols-outlined text-[9px]">open_in_new</span>
+                                    Lihat
+                                  </a>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        </div>
+                      </details>
+                    );
+                  })}
+                </div>
               </div>
             </section>
 
             <section className="glass-card backdrop-blur-xl rounded-premium border-white/10 shadow-glass-depth overflow-hidden">
-              <div className="px-6 md:px-8 py-5 border-b border-white/5 bg-white/[0.01] flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div className="px-4 py-3 md:px-6 md:py-4 border-b border-white/5 bg-white/[0.01] flex flex-col md:flex-row md:items-center justify-between gap-1.5 md:gap-3">
                 <div className="flex flex-col gap-1">
                   <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-white/60">Arsip Riwayat Settlement</h3>
                   <p className="text-[10px] font-bold text-white/30 tracking-wider">
                     Invoice nonaktif digroup berdasarkan periode kontrak atau versi perpanjangan.
                   </p>
                 </div>
-                <span className="self-start md:self-auto px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[9px] font-black text-white/25 uppercase tracking-widest backdrop-blur-md">
+                <span className="self-end md:self-auto px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[9px] font-black text-white/25 uppercase tracking-widest backdrop-blur-md">
                   {settlementPeriodGroups.length} Periode
                 </span>
               </div>
 
               {settlementPeriodGroups.length === 0 ? (
-                <div className="flex flex-col items-center justify-center p-12 text-center bg-white/[0.01]">
-                  <div className="h-16 w-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-4 shadow-glass-depth">
-                    <span className="material-symbols-outlined text-white/30 text-3xl">history</span>
+                <div className="flex flex-col items-center justify-center p-8 md:p-12 text-center bg-white/[0.01]">
+                  <div className="h-14 w-14 md:h-16 md:w-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-3 md:mb-4 shadow-glass-depth">
+                    <span className="material-symbols-outlined text-white/30 text-2xl md:text-3xl">history</span>
                   </div>
-                  <h4 className="text-[12px] font-black uppercase tracking-[0.2em] text-white/60 mb-2">Belum Ada Arsip</h4>
-                  <p className="text-[10px] font-bold text-white/30 tracking-widest">Arsip riwayat settlement kosong.</p>
+                  <h4 className="text-[11px] md:text-[12px] font-black uppercase tracking-[0.2em] text-white/60 mb-1.5 md:mb-2">Belum Ada Arsip</h4>
+                  <p className="text-[9px] md:text-[10px] font-bold text-white/30 tracking-widest">Arsip riwayat settlement kosong.</p>
                 </div>
               ) : (
                 <div className="divide-y divide-white/5">
@@ -6742,45 +7226,45 @@ function TenantDetailPage({
                     return (
                       <div key={group.key} className="bg-white/[0.005]">
                         <button
-                          className="w-full px-4 md:px-6 py-4 flex flex-col gap-3 text-left transition-all hover:bg-white/[0.025] md:flex-row md:items-center md:justify-between"
+                          className="w-full px-3 py-3 md:px-5 md:py-4 flex flex-col gap-2.5 md:gap-3 text-left transition-all hover:bg-white/[0.025] md:flex-row md:items-center md:justify-between"
                           onClick={() => toggleSettlementPeriod(group.key)}
                           type="button"
                         >
-                          <div className="flex min-w-0 items-start gap-3">
-                            <div className={`mt-0.5 h-8 w-8 shrink-0 rounded-xl border flex items-center justify-center transition-all ${isExpanded ? "border-gold-accent/30 bg-gold-accent/15 text-gold-accent" : "border-white/10 bg-white/5 text-white/25"}`}>
-                              <span className={`material-symbols-outlined text-[16px] transition-transform ${isExpanded ? "rotate-180" : ""}`}>expand_more</span>
+                          <div className="flex min-w-0 items-start gap-2.5 md:gap-3">
+                            <div className={`mt-0.5 h-7 w-7 md:h-8 md:w-8 shrink-0 rounded-lg md:rounded-xl border flex items-center justify-center transition-all ${isExpanded ? "border-gold-accent/30 bg-gold-accent/15 text-gold-accent" : "border-white/10 bg-white/5 text-white/25"}`}>
+                              <span className={`material-symbols-outlined text-[14px] md:text-[16px] transition-transform ${isExpanded ? "rotate-180" : ""}`}>expand_more</span>
                             </div>
-                            <div className="min-w-0 space-y-1">
-                              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-gold-accent/70">
+                            <div className="min-w-0 space-y-0.5 md:space-y-1">
+                              <p className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.2em] text-gold-accent/70">
                                 {periodLabel}
                               </p>
-                              <p className="truncate text-[13px] font-black text-white">
+                              <p className="truncate text-[11px] md:text-[13px] font-black text-white">
                                 {contractLabel}
                               </p>
-                              <p className="text-[8px] font-bold uppercase tracking-widest text-white/25">
+                              <p className="text-[7.5px] md:text-[8px] font-bold uppercase tracking-widest text-white/25">
                                 {group.versionId ? `Versi Kontrak #${group.versionId}` : "Periode Kontrak Utama"}
                               </p>
                             </div>
                           </div>
 
-                          <div className="grid grid-cols-3 gap-2 md:min-w-[360px]">
-                            <div className="rounded-xl border border-white/5 bg-white/[0.02] px-3 py-2">
-                              <p className="text-[7px] font-black uppercase tracking-widest text-white/20">Invoice</p>
-                              <p className="text-[12px] font-black text-white">{group.rows.length}</p>
+                          <div className="grid grid-cols-3 gap-1.5 md:gap-2 md:min-w-[360px]">
+                            <div className="rounded-lg md:rounded-xl border border-white/5 bg-white/[0.02] px-2.5 py-1.5 md:px-3 md:py-2">
+                              <p className="text-[6.5px] md:text-[7px] font-black uppercase tracking-widest text-white/20">Invoice</p>
+                              <p className="text-[10px] md:text-[12px] font-black text-white">{group.rows.length}</p>
                             </div>
-                            <div className="rounded-xl border border-white/5 bg-white/[0.02] px-3 py-2">
-                              <p className="text-[7px] font-black uppercase tracking-widest text-white/20">Lunas</p>
-                              <p className="text-[12px] font-black text-emerald-400">{group.paidCount}/{group.rows.length}</p>
+                            <div className="rounded-lg md:rounded-xl border border-white/5 bg-white/[0.02] px-2.5 py-1.5 md:px-3 md:py-2">
+                              <p className="text-[6.5px] md:text-[7px] font-black uppercase tracking-widest text-white/20">Lunas</p>
+                              <p className="text-[10px] md:text-[12px] font-black text-emerald-400">{group.paidCount}/{group.rows.length}</p>
                             </div>
-                            <div className="rounded-xl border border-white/5 bg-white/[0.02] px-3 py-2">
-                              <p className="text-[7px] font-black uppercase tracking-widest text-white/20">Total</p>
-                              <p className="text-[12px] font-black text-white">{formatCurrency(group.totalAmount).replace("Rp", "").trim()}</p>
+                            <div className="rounded-lg md:rounded-xl border border-white/5 bg-white/[0.02] px-2.5 py-1.5 md:px-3 md:py-2">
+                              <p className="text-[6.5px] md:text-[7px] font-black uppercase tracking-widest text-white/20">Total</p>
+                              <p className="text-[10px] md:text-[12px] font-black text-white">{formatCurrency(group.totalAmount).replace("Rp", "").trim()}</p>
                             </div>
                           </div>
                         </button>
 
                         {isExpanded && (
-                          <div className="overflow-x-auto no-scrollbar border-t border-white/5 px-4 md:px-5 py-4">
+                          <div className="overflow-x-auto no-scrollbar border-t border-white/5 px-3 py-3 md:px-5 md:py-4">
                             <table className="w-full text-left min-w-[1100px] border-collapse">
                               <thead>
                                 <tr className="bg-white/[0.02]">
@@ -6863,26 +7347,29 @@ function TenantDetailPage({
                 </div>
               </div>
               <div className="p-3 space-y-1.5 flex-1 flex flex-col">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-1.5 mb-1.5">
-                  <div className="relative flex-1 w-full">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <div className="relative group flex-1 min-w-0">
+                    <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold-accent transition-colors" style={{ fontSize: "16px" }}>search</span>
                     <input
                       type="text"
-                      placeholder="CARI DOKUMEN..."
+                      placeholder="Cari dokumen..."
                       value={documentSearch}
                       onChange={(e) => setDocumentSearch(e.target.value)}
-                      className="h-8 w-full rounded-lg border border-white/10 bg-white/5 pl-8 pr-3 text-[9px] font-bold text-white uppercase tracking-widest placeholder:text-white/20 outline-none transition-all focus:border-gold-accent/50 focus:bg-white/10"
+                      className="w-full h-8 pl-8 pr-3 rounded-lg bg-black/20 border border-white/10 text-[9px] font-bold text-white outline-none focus:border-gold-accent/40 focus:bg-black/40 transition-all shadow-inner-glass"
                     />
-                    <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-white/30" style={{ fontSize: "14px" }}>search</span>
                   </div>
                   <button
                     onClick={() => setDocumentSort(prev => prev === "desc" ? "asc" : "desc")}
-                    className="h-8 w-[96px] shrink-0 flex items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/5 text-[9px] font-bold text-white/60 uppercase tracking-widest hover:text-white hover:bg-white/10 transition-all"
+                    className="group relative flex h-8 w-8 xl:w-[96px] shrink-0 items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-black/20 text-white/60 transition-all hover:border-white/20 hover:bg-black/40 hover:text-white"
                     title={documentSort === "desc" ? "Urutkan Terlama" : "Urutkan Terbaru"}
                   >
-                    <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>
-                      {documentSort === "desc" ? "arrow_downward" : "arrow_upward"}
+                    <div className="relative flex h-full items-center justify-center">
+                      <span className={`material-symbols-outlined transition-all duration-300 ${documentSort === "desc" ? "rotate-0 opacity-100 scale-100" : "-rotate-180 opacity-0 scale-75 absolute"}`} style={{ fontSize: "15px" }}>arrow_downward</span>
+                      <span className={`material-symbols-outlined transition-all duration-300 ${documentSort === "asc" ? "rotate-0 opacity-100 scale-100" : "rotate-180 opacity-0 scale-75 absolute"}`} style={{ fontSize: "15px" }}>arrow_upward</span>
+                    </div>
+                    <span className="hidden xl:inline text-[9px] font-black uppercase tracking-widest text-white/70 transition-colors group-hover:text-white">
+                      {documentSort === "desc" ? "Terbaru" : "Terlama"}
                     </span>
-                    {documentSort === "desc" ? "Terbaru" : "Terlama"}
                   </button>
                 </div>
 
@@ -6913,33 +7400,43 @@ function TenantDetailPage({
                           </div>
                         )}
                         {filteredAndSortedDocs.map((doc) => (
-                          <div key={doc?.id} className="group/doc glass-card backdrop-blur-xl rounded-xl p-3 border-white/5 hover:border-white/10 transition-all flex items-center justify-between gap-3">
-                            <div className="flex items-center gap-3 overflow-hidden">
-                              <div className="h-8 w-8 shrink-0 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/20 group-hover/doc:bg-gold-accent group-hover/doc:text-[#0f141e] transition-all backdrop-blur-md">
-                                <span className="material-symbols-outlined" style={{ fontSize: "16px" }}>description</span>
+                          <div
+                            key={doc?.id}
+                            className="glass-card rounded-xl border border-white/10 px-3 py-2 flex items-center justify-between gap-3 shadow-glass-depth transition-all hover:border-white/15"
+                          >
+                            {/* Left: Icon & Info */}
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div className="h-[28px] w-[28px] flex items-center justify-center rounded-lg bg-white/5 border border-white/10 text-gold-accent shrink-0">
+                                <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>description</span>
                               </div>
-                              <div className="space-y-0.5 min-w-0">
-                                <p className="text-[11px] md:text-[12px] font-black text-white uppercase tracking-tight group-hover/doc:text-gold-accent transition-colors truncate">
+                              <div className="min-w-0">
+                                <p className="text-[10.5px] font-bold text-white/95 truncate" title={resolveDocumentTypeLabel(doc?.jenisDokumen)}>
                                   {resolveDocumentTypeLabel(doc?.jenisDokumen)}
                                 </p>
-                                <p className="text-[8px] font-bold text-white/30 uppercase tracking-widest truncate">
-                                  {doc?.nomorDokumen || "No Ref: —"} • {formatDate(doc?.tanggalDokumen)}
+                                <p className="text-[8px] font-medium text-white/40 mt-0.5 truncate">
+                                  {doc?.nomorDokumen ? `${doc.nomorDokumen} · ` : ''}{formatDate(doc?.tanggalDokumen)}
                                 </p>
                               </div>
                             </div>
+                            {/* Right: Actions */}
                             <div className="flex items-center gap-2 shrink-0">
-                              {isOpenableFileUrl(doc?.fileUrl) && (
+                              {isOpenableFileUrl(doc?.fileUrl) ? (
                                 <button
                                   onClick={() => window.open(doc.fileUrl, '_blank')}
-                                  className="h-7 px-3 rounded-lg bg-white/5 border border-white/10 text-[8px] font-black text-white/40 uppercase tracking-widest hover:text-white hover:bg-white/10 transition-all backdrop-blur-md active:scale-95"
+                                  className="inline-flex items-center gap-1 text-emerald-400 hover:text-white font-bold text-[8.5px] leading-none uppercase tracking-wider bg-emerald-500/10 border border-emerald-500/20 px-2 py-1.5 rounded-md transition-all active:scale-95"
                                 >
-                                  Buka File
+                                  <span className="material-symbols-outlined" style={{ fontSize: '11px' }}>description</span>
+                                  Buka
                                 </button>
+                              ) : (
+                                <span className="text-[8.5px] font-black uppercase tracking-widest text-white/20">Kosong</span>
                               )}
                               {!isIsp && (
-                                <button className="h-7 w-7 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white/20 hover:text-amber-400 transition-all backdrop-blur-md active:scale-95">
-                                  <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>edit</span>
-                                </button>
+                                <div className="flex items-center gap-1 border-l border-white/10 pl-2">
+                                  <button className="w-6 h-6 flex items-center justify-center rounded-md bg-white/5 border border-white/10 text-gold-accent hover:bg-gold-accent hover:text-white transition-all">
+                                    <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>edit_note</span>
+                                  </button>
+                                </div>
                               )}
                             </div>
                           </div>
@@ -7050,78 +7547,131 @@ function TenantDetailPage({
         )}
 
         {activeTab === "timeline" && (
-          <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            {/* Timeline Header */}
-            <section className="glass-card backdrop-blur-xl rounded-xl p-4 border-white/10 shadow-glass-depth relative overflow-hidden">
-              <div className="flex items-center gap-4">
-                <div className="h-10 w-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 backdrop-blur-md">
-                  <span className="material-symbols-outlined text-xl">history</span>
-                </div>
-                <div className="space-y-0.5">
-                  <h2 className="text-base md:text-lg font-black text-white tracking-tight uppercase">Jejak Aktifitas Lokasi</h2>
-                  <p className="text-[10px] font-medium text-white/30 tracking-wide">Audit trail komprehensif seluruh operasional tenant.</p>
+          <div className="space-y-2.5 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            {/* Header Card */}
+            <section className="glass-card backdrop-blur-xl rounded-xl p-3 sm:p-5 border-white/10 shadow-glass-depth relative overflow-hidden">
+              <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="h-4 w-1 bg-gold-accent rounded-full"></span>
+                    <h2 className="text-base font-black text-white tracking-widest uppercase">Timeline Aktivitas</h2>
+                    <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-gold-accent/10 border border-gold-accent/20 ml-2">
+                      <span className="w-1 h-1 rounded-full bg-gold-accent animate-pulse shadow-gold-glow" />
+                      <span className="text-[7px] font-black uppercase tracking-widest text-gold-accent">Sistem Log</span>
+                    </div>
+                  </div>
+                  <p className="text-[9px] font-bold text-white/20 tracking-wider">Jejak audit digital dan riwayat perubahan repositori lokasi tenant.</p>
                 </div>
               </div>
             </section>
 
-            {/* Timeline Lineage */}
-            <section className="relative px-4">
-              <div className="absolute left-[30px] top-4 bottom-4 w-px bg-white/5 backdrop-blur-md" />
-
-              <div className="space-y-2.5">
-                {displayTimeline.length === 0 && (
-                  <div className="glass-card backdrop-blur-xl rounded-xl p-6 border-white/5 text-center">
-                    <p className="text-[10px] font-bold text-white/10 uppercase tracking-widest">Belum ada aktifitas yang tercatat di sistem ini.</p>
-                  </div>
-                )}
-                {displayTimeline.map((event, idx) => {
-                  const icon = timelineIconMap[event.type] ?? "history";
-
-                  return (
-                    <div key={event.id} className="flex gap-4 group/item relative">
-                      {/* Dot & Icon */}
-                      <div className="relative shrink-0 pt-1.5">
-                        <div className={`h-7 w-7 rounded-xl flex items-center justify-center border transition-all duration-500 z-10 relative ${idx === 0 ? 'bg-emerald-500 border-emerald-400 text-[#0f141e]' : 'bg-[#0f141e] border-white/10 text-white/40 group-hover/item:border-white/30 group-hover/item:text-white'}`}>
-                          <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>{icon}</span>
-                        </div>
-                      </div>
-
-                      {/* Content Card */}
-                      <div className="flex-1 glass-card backdrop-blur-xl rounded-xl p-3 border-white/5 group-hover/item:border-white/10 transition-all duration-300 group-hover/item:translate-x-1">
-                        <div className="flex flex-col md:flex-row md:items-start justify-between gap-2.5 mb-2.5">
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                              <span className={`px-1.5 py-0.5 rounded text-[7px] font-black uppercase tracking-widest ${idx === 0 ? 'bg-emerald-500 text-[#0f141e]' : 'bg-white/5 text-white/30'}`}>
-                                {event.type.replace(/_/g, ' ')}
-                              </span>
-                              <h4 className="text-[11px] md:text-[12px] font-black text-white uppercase tracking-tight group-hover/item:text-emerald-400 transition-colors">
-                                {event.title}
-                              </h4>
+            {/* Timeline Card */}
+            <section className="glass-card backdrop-blur-xl rounded-xl p-3 sm:p-5 border-white/10 shadow-glass-depth relative overflow-hidden">
+              {displayTimeline.length === 0 ? (
+                <div className="flex flex-col items-center justify-center gap-2 p-8 text-center">
+                  <span className="material-symbols-outlined text-[32px] text-white/10">history_toggle_off</span>
+                  <p className="text-[10px] font-black text-white/20 uppercase tracking-widest">Belum ada aktivitas terekam.</p>
+                </div>
+              ) : (
+                <div className="relative sm:pt-2 pt-0">
+                  {/* ── DESKTOP VIEW ── */}
+                  <div className="hidden sm:block">
+                    <div className="absolute left-[19px] top-6 bottom-6 w-[2px] bg-gradient-to-b from-gold-accent/40 via-white/10 to-transparent rounded-full shadow-gold-glow" />
+                    <div className="space-y-6 relative z-10">
+                      {displayTimeline.map((event, idx) => {
+                        const icon = timelineIconMap[event.type] ?? "history";
+                        const isFirst = idx === 0;
+                        return (
+                          <div key={event.id} className="flex gap-4 group/item">
+                            <div className="relative shrink-0 mt-1">
+                              <div className={`w-10 h-10 rounded-xl border flex items-center justify-center shadow-sm group-hover/item:scale-110 transition-all duration-300 ${isFirst ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 group-hover/item:shadow-gold-glow' : 'bg-white/5 border-white/10 text-white/40 group-hover/item:border-white/20 group-hover/item:text-white'}`}>
+                                <span className="material-symbols-outlined" style={{ fontSize: "18px" }}>{icon}</span>
+                              </div>
                             </div>
-                            <p className="text-[9px] md:text-[10px] font-medium text-white/40 leading-relaxed max-w-2xl">
-                              {event.description}
-                            </p>
-                          </div>
-                          <div className="text-left md:text-right shrink-0 mt-1 md:mt-0">
-                            <p className="text-[8px] font-black text-white/60 uppercase tracking-widest">{formatDateTime(event.date)}</p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-3 pt-2.5 border-t border-white/5">
-                          <div className="flex items-center gap-1.5">
-                            <div className="h-4 w-4 rounded-full bg-white/5 flex items-center justify-center text-white/20 backdrop-blur-md">
-                              <span className="material-symbols-outlined" style={{ fontSize: "10px" }}>person</span>
+                            <div className="flex-1 space-y-2">
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pr-1">
+                                <div className="space-y-0.5">
+                                  <h4 className="text-[11px] font-black text-white group-hover/item:text-gold-accent transition-colors duration-300 tracking-wider uppercase">{event.title}</h4>
+                                  <span className={`inline-block text-[7px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${isFirst ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-white/5 border border-white/10 text-white/30'}`}>
+                                    {event.type?.replace(/_/g, ' ')}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-1.5 text-[8px] font-black tracking-widest bg-white/5 border border-white/10 px-2.5 py-1 rounded-lg">
+                                  <span className="text-white/40 uppercase">{new Date(event.date).toLocaleDateString("id-ID", { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                                  <div className="w-1 h-1 rounded-full bg-white/10 animate-pulse" />
+                                  <span className="text-gold-accent">{new Date(event.date).toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' })} WITA</span>
+                                </div>
+                              </div>
+                              <div className="p-4 border border-white/5 bg-black/40 backdrop-blur-3xl rounded-xl transition-all duration-300 shadow-sm relative overflow-hidden group-hover/item:bg-black/60 group-hover/item:border-white/10">
+                                <div className={`absolute left-0 top-0 bottom-0 w-1 ${isFirst ? 'bg-emerald-500/80' : 'bg-white/10'}`} />
+                                <p className="text-[10px] font-bold text-white/50 leading-relaxed tracking-wide group-hover/item:text-white/90 transition-colors">
+                                  {event.description}
+                                </p>
+                                {event.actor && (
+                                  <div className="mt-2 pt-2 border-t border-white/5 flex items-center gap-1.5">
+                                    <span className="material-symbols-outlined text-white/20" style={{ fontSize: '10px' }}>person</span>
+                                    <span className="text-[7.5px] font-black text-white/20 uppercase tracking-widest">Actor: <span className="text-white/40">{event.actor}</span></span>
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                            <span className="text-[7px] font-black text-white/20 uppercase tracking-widest">
-                              Actor: <span className="text-white/40">{event.actor || "System Automated"}</span>
-                            </span>
                           </div>
-                        </div>
-                      </div>
+                        );
+                      })}
                     </div>
-                  );
-                })}
-              </div>
+                  </div>
+
+                  {/* ── MOBILE VIEW ── */}
+                  <div className="sm:hidden">
+                    <div className="absolute left-[15px] top-4 bottom-4 w-[2px] bg-gradient-to-b from-gold-accent/40 via-white/10 to-transparent rounded-full shadow-gold-glow" />
+                    <div className="space-y-3 relative z-10">
+                      {displayTimeline.map((event, idx) => {
+                        const icon = timelineIconMap[event.type] ?? "history";
+                        const isFirst = idx === 0;
+                        return (
+                          <div key={event.id} className="flex items-start gap-3 group/item">
+                            {/* Icon marker */}
+                            <div className="relative shrink-0 mt-0.5">
+                              <div className={`w-8 h-8 rounded-lg border flex items-center justify-center shadow-sm transition-all duration-300 group-hover/item:scale-110 ${isFirst ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-white/5 border-white/10 text-white/40 group-hover/item:border-white/20 group-hover/item:text-white'}`}>
+                                <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>{icon}</span>
+                              </div>
+                            </div>
+                            {/* Content */}
+                            <div className="flex-1 min-w-0 flex flex-col gap-[3px]">
+                              {/* Row 1: Title + type badge */}
+                              <div className="flex items-center justify-between gap-2 leading-tight">
+                                <h4 className="text-[10.5px] font-black text-white group-hover/item:text-gold-accent transition-colors duration-300 tracking-wider uppercase truncate leading-tight">
+                                  {event.title}
+                                </h4>
+                                <span className={`inline-flex items-center justify-center text-[6.5px] font-black uppercase tracking-widest px-1.5 h-[14px] rounded shrink-0 ${isFirst ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-white/5 border border-white/10 text-white/30'}`}>
+                                  {event.type?.replace(/_/g, ' ')}
+                                </span>
+                              </div>
+                              {/* Row 2: Date & Time */}
+                              <div className="flex items-center gap-1.5 text-[8px] font-black tracking-widest text-white/40 uppercase leading-tight">
+                                <span>{new Date(event.date).toLocaleDateString("id-ID", { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                                <span className="text-white/20">•</span>
+                                <span className="text-gold-accent/80">{new Date(event.date).toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' })} WITA</span>
+                              </div>
+                              {/* Row 3: Description */}
+                              <p className="text-[9.5px] font-bold text-white/50 leading-snug tracking-wide group-hover/item:text-white/90 transition-colors">
+                                {event.description}
+                              </p>
+                              {/* Row 4: Actor (jika ada) */}
+                              {event.actor && (
+                                <div className="flex items-center gap-1 mt-0.5">
+                                  <span className="material-symbols-outlined text-white/20" style={{ fontSize: '9px' }}>person</span>
+                                  <span className="text-[7.5px] font-black text-white/20 uppercase tracking-widest">{event.actor}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
             </section>
           </div>
         )}

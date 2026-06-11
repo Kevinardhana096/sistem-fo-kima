@@ -142,7 +142,7 @@ export default function IspEntryPointMap({
     <>
       {renderMap()}
       {isFullscreen && createPortal(
-        <div className="fixed inset-0 z-[220] bg-slate-950">
+        <div className="fixed inset-0 z-[2050] bg-slate-950">
           <div className="absolute left-4 top-4 z-[1200] flex h-9 items-center rounded-xl border border-white/10 bg-slate-900/90 px-4 text-[10px] font-black uppercase tracking-widest text-white shadow-2xl backdrop-blur-md">
             Peta Titik Masuk ISP
           </div>
