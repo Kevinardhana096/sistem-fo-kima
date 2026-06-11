@@ -8,11 +8,14 @@ vi.mock('../../../components/layout/AppShell', () => ({
 }));
 
 vi.mock('../../../components/shared/DateInput', () => ({
-  default: ({ value = '', onChange, onBlur, className = '', inputClass = '' }) => (
+  default: ({ value = '', onChange, onBlur, onFocus, onKeyDown, autoFocus, className = '', inputClass = '' }) => (
     <input
+      autoFocus={autoFocus}
       className={`${className} ${inputClass}`}
       onBlur={onBlur}
       onChange={(event) => onChange?.(event.target.value)}
+      onFocus={onFocus}
+      onKeyDown={onKeyDown}
       type="date"
       value={value}
     />
@@ -177,6 +180,40 @@ describe('IspDetailPage - tab kontrak', () => {
         period_end: '2027-01-31',
         renewal_status: 'active',
       }));
+    });
+  });
+
+
+  it('mempertahankan fokus pada kolom tanggal yang diklik saat baris kontrak masuk mode edit', async () => {
+    const { default: api } = await import('../../../lib/api');
+    api.isps.getById.mockResolvedValue({
+      ...baseIsp,
+      contractRows: [
+        {
+          id: 23,
+          ispId: 7,
+          contractReference: 'KTR-FOCUS-001',
+          contractStartDate: '2026-01-01',
+          periodStart: '2026-02-01',
+          periodEnd: '2027-01-31',
+          status: 'aktif',
+          renewalStatus: 'active',
+          renewalFollowUps: [],
+        },
+      ],
+      tenants: [],
+      entryPoints: [],
+    });
+
+    renderPage();
+
+    await screen.findAllByRole('button', { name: /ktr-focus-001/i });
+    const dateInputs = document.querySelectorAll('input[type="date"]');
+    fireEvent.focus(dateInputs[1]);
+
+    await waitFor(() => {
+      expect(document.activeElement).toHaveAttribute('type', 'date');
+      expect(document.activeElement).toHaveValue('2026-02-01');
     });
   });
 

@@ -3008,7 +3008,7 @@ function IspDetailPage({
                                                                             value={contractRowEditor.contractReference || ""}
                                                                             onChange={(e) => setContractRowEditor((prev) => prev ? { ...prev, contractReference: e.target.value } : prev)}
                                                                             placeholder="Nomor kontrak / BAK"
-                                                                            autoFocus
+                                                                            autoFocus={!contractRowEditor.focusField || contractRowEditor.focusField === "contractReference"}
                                                                             onKeyDown={(event) => {
                                                                                 if (event.key === "Enter") {
                                                                                     event.preventDefault();
@@ -3042,9 +3042,9 @@ function IspDetailPage({
                                                                     <button
                                                                         className="min-h-9 w-full px-4 py-2 text-left text-[11px] font-black uppercase tracking-tight leading-snug text-white whitespace-normal break-words hover:bg-white/[0.02] focus:bg-white/[0.04] focus:outline-none focus:ring-1 focus:ring-gold-accent/40 transition-all"
                                                                         disabled={!canManageIspContracts}
-                                                                        onClick={() => openContractRowEditor(row)}
+                                                                        onClick={() => openContractRowEditor(row, "contractReference")}
                                                                         type="button"
-                                                                        title={canManageIspContracts ? "Edit baris kontrak" : undefined}
+                                                                        title={canManageIspContracts ? "Edit nomor kontrak" : undefined}
                                                                     >
                                                                         {row.contractReference || <span className="text-white/20">Nomor kontrak / BAK</span>}
                                                                     </button>
@@ -3168,9 +3168,10 @@ function IspDetailPage({
                                                                     }}
                                                                     onFocus={() => {
                                                                         if (!isEditingContractRow && canManageIspContracts) {
-                                                                            openContractRowEditor(row);
+                                                                            openContractRowEditor(row, "contractStartDate");
                                                                         }
                                                                     }}
+                                                                    autoFocus={contractRowEditor?.focusField === "contractStartDate"}
                                                                     className="h-9 w-full"
                                                                     hideIcon={true}
                                                                     inputClass="w-full h-full bg-transparent px-2 text-[10px] font-black text-white border-transparent focus:border-gold-accent/40 focus:bg-white/[0.04] hover:bg-white/[0.02] outline-none transition-all text-center uppercase"
@@ -3193,9 +3194,10 @@ function IspDetailPage({
                                                                     }}
                                                                     onFocus={() => {
                                                                         if (!isEditingContractRow && canManageIspContracts) {
-                                                                            openContractRowEditor(row);
+                                                                            openContractRowEditor(row, "periodStart");
                                                                         }
                                                                     }}
+                                                                    autoFocus={contractRowEditor?.focusField === "periodStart"}
                                                                     className="h-9 w-full"
                                                                     hideIcon={true}
                                                                     inputClass="w-full h-full bg-transparent px-2 text-[10px] font-black text-white border-transparent focus:border-gold-accent/40 focus:bg-white/[0.04] hover:bg-white/[0.02] outline-none transition-all text-center uppercase"
@@ -3218,9 +3220,10 @@ function IspDetailPage({
                                                                     }}
                                                                     onFocus={() => {
                                                                         if (!isEditingContractRow && canManageIspContracts) {
-                                                                            openContractRowEditor(row);
+                                                                            openContractRowEditor(row, "periodEnd");
                                                                         }
                                                                     }}
+                                                                    autoFocus={contractRowEditor?.focusField === "periodEnd"}
                                                                     className="h-9 w-full"
                                                                     hideIcon={true}
                                                                     inputClass="w-full h-full bg-transparent px-2 text-[10px] font-black text-white border-transparent focus:border-gold-accent/40 focus:bg-white/[0.04] hover:bg-white/[0.02] outline-none transition-all text-center uppercase"
@@ -3395,7 +3398,7 @@ function IspDetailPage({
                                                                         value={contractRowEditor.contractReference || ""}
                                                                         onChange={(e) => setContractRowEditor((prev) => prev ? { ...prev, contractReference: e.target.value } : prev)}
                                                                         placeholder="Nomor kontrak..."
-                                                                        autoFocus
+                                                                        autoFocus={!contractRowEditor.focusField || contractRowEditor.focusField === "contractReference"}
                                                                         onKeyDown={(event) => {
                                                                             if (event.key === "Enter") {
                                                                                 event.preventDefault();
@@ -3427,7 +3430,7 @@ function IspDetailPage({
                                                                 <button
                                                                     className="text-[11px] font-black uppercase tracking-tight text-white hover:text-gold-accent transition-all text-left truncate"
                                                                     disabled={!canManageIspContracts}
-                                                                    onClick={() => openContractRowEditor(row)}
+                                                                    onClick={() => openContractRowEditor(row, "contractReference")}
                                                                     type="button"
                                                                 >
                                                                     {row.contractReference || <span className="text-white/20">Isi Nomor Kontrak / BAK</span>}
@@ -3453,9 +3456,10 @@ function IspDetailPage({
                                                                             onChange={(val) => setContractRowEditor((prev) => prev ? { ...prev, contractStartDate: val } : prev)}
                                                                             onFocus={() => {
                                                                                 if (!isEditingContractRow && canManageIspContracts) {
-                                                                                    openContractRowEditor(row);
+                                                                                    openContractRowEditor(row, "contractStartDate");
                                                                                 }
                                                                             }}
+                                                                            autoFocus={contractRowEditor?.focusField === "contractStartDate"}
                                                                             className="h-full w-full"
                                                                             hideIcon={true}
                                                                             inputClass="w-full h-full bg-transparent px-1 text-[10px] font-bold text-white border-transparent focus:border-gold-accent/40 focus:bg-white/[0.04] outline-none transition-all text-center uppercase"
@@ -3476,9 +3480,10 @@ function IspDetailPage({
                                                                             onChange={(val) => setContractRowEditor((prev) => prev ? { ...prev, periodStart: val } : prev)}
                                                                             onFocus={() => {
                                                                                 if (!isEditingContractRow && canManageIspContracts) {
-                                                                                    openContractRowEditor(row);
+                                                                                    openContractRowEditor(row, "periodStart");
                                                                                 }
                                                                             }}
+                                                                            autoFocus={contractRowEditor?.focusField === "periodStart"}
                                                                             className="h-full w-full"
                                                                             hideIcon={true}
                                                                             inputClass="w-full h-full bg-transparent px-1 text-[10px] font-bold text-white border-transparent focus:border-gold-accent/40 focus:bg-white/[0.04] outline-none transition-all text-center uppercase"
@@ -3499,9 +3504,10 @@ function IspDetailPage({
                                                                             onChange={(val) => setContractRowEditor((prev) => prev ? { ...prev, periodEnd: val } : prev)}
                                                                             onFocus={() => {
                                                                                 if (!isEditingContractRow && canManageIspContracts) {
-                                                                                    openContractRowEditor(row);
+                                                                                    openContractRowEditor(row, "periodEnd");
                                                                                 }
                                                                             }}
+                                                                            autoFocus={contractRowEditor?.focusField === "periodEnd"}
                                                                             className="h-full w-full"
                                                                             hideIcon={true}
                                                                             inputClass="w-full h-full bg-transparent px-1 text-[10px] font-bold text-white border-transparent focus:border-gold-accent/40 focus:bg-white/[0.04] outline-none transition-all text-center uppercase"
