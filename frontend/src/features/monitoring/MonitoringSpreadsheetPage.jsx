@@ -108,6 +108,13 @@ const isPendingOperationalStatus = (status) => ["belum_beroperasi", "belum berop
 const resolveRouteStatus = (customerStatus, routeStatus) => (isStoppedStatus(customerStatus) || isPendingOperationalStatus(customerStatus))
     ? "nonaktif"
     : String(routeStatus || "aktif").trim().toLowerCase();
+const normalizeMonitoringYear = (value, fallbackYear) => {
+    const normalizedYear = String(value ?? "").trim();
+    const numericYear = Number(normalizedYear);
+    return Number.isInteger(numericYear) && numericYear >= 2000 && numericYear <= 2100
+        ? String(numericYear)
+        : String(fallbackYear);
+};
 const getRemainingRentalBadgeMeta = (remainingDays) => {
     if (remainingDays === null) {
         return {
@@ -231,6 +238,10 @@ function MonitoringSpreadsheetPage({
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
     const [error, setError] = useState("");
+    const coreRequestIdRef = useRef(0);
+    const supplementaryRequestIdRef = useRef(0);
+    const historyRequestIdRef = useRef(0);
+    const monitoringTableColSpan = isTeknisi ? 11 : 26;
 
     const invoiceDetailModal = selectedInvoiceCell && typeof document !== "undefined" && createPortal(
         <div className="fixed inset-0 z-[200] flex items-center justify-center px-4">
@@ -387,61 +398,88 @@ function MonitoringSpreadsheetPage({
     }, [tableOnly]);
 
     const loadCoreData = useCallback(async () => {
+        const requestId = coreRequestIdRef.current + 1;
+        coreRequestIdRef.current = requestId;
+        const queryYear = normalizeMonitoringYear(appliedFilters.year, currentYear);
+
         setIsLoading(true);
         setError("");
 
         try {
             const billingResult = await api.monitoring.getBilling({
-                year: appliedFilters.year,
+                year: queryYear,
                 isp: appliedFilters.isp || undefined,
                 status: appliedFilters.status || undefined,
             });
 
             const nextBillingRows = Array.isArray(billingResult?.rows) ? billingResult.rows : [];
+            if (coreRequestIdRef.current !== requestId) return;
             setBillingRows(nextBillingRows);
         } catch (requestError) {
+            if (coreRequestIdRef.current !== requestId) return;
+            setBillingRows([]);
             setError(
                 requestError instanceof Error
                     ? requestError.message
                     : "Terjadi kesalahan saat memuat monitoring.",
             );
         } finally {
-            setIsLoading(false);
+            if (coreRequestIdRef.current === requestId) {
+                setIsLoading(false);
+            }
         }
-    }, [appliedFilters]);
+    }, [appliedFilters, currentYear]);
 
     const loadSupplementaryData = useCallback(async () => {
+        const requestId = supplementaryRequestIdRef.current + 1;
+        supplementaryRequestIdRef.current = requestId;
+        const queryYear = normalizeMonitoringYear(appliedFilters.year, currentYear);
+
         setIsLoadingSupplementary(true);
 
         try {
-            const alertsResult = await api.notifications.list({ year: appliedFilters.year, limit: 200 });
+            const alertsResult = await api.notifications.list({ year: queryYear, limit: 200 });
 
             const nextAlerts = Array.isArray(alertsResult) ? alertsResult : [];
 
+            if (supplementaryRequestIdRef.current !== requestId) return;
             setAlerts(nextAlerts);
         } catch {
+            if (supplementaryRequestIdRef.current !== requestId) return;
+            setAlerts([]);
             // Supplementary data should not block core table render.
         } finally {
-            setIsLoadingSupplementary(false);
+            if (supplementaryRequestIdRef.current === requestId) {
+                setIsLoadingSupplementary(false);
+            }
         }
-    }, [appliedFilters.year]);
+    }, [appliedFilters.year, currentYear]);
 
     const loadHistoryData = useCallback(async () => {
+        const requestId = historyRequestIdRef.current + 1;
+        historyRequestIdRef.current = requestId;
+        const queryYear = normalizeMonitoringYear(appliedFilters.year, currentYear);
+
         setIsLoadingHistory(true);
 
         try {
             const historyResult = await api.monitoring.getHistory({
-                year: appliedFilters.year,
+                year: queryYear,
                 isp: appliedFilters.isp || undefined,
             });
             const nextHistoryRows = Array.isArray(historyResult?.rows) ? historyResult.rows : [];
+            if (historyRequestIdRef.current !== requestId) return;
             setHistoryRows(nextHistoryRows);
         } catch {
+            if (historyRequestIdRef.current !== requestId) return;
+            setHistoryRows([]);
             // Keep non-blocking; table remains usable.
         } finally {
-            setIsLoadingHistory(false);
+            if (historyRequestIdRef.current === requestId) {
+                setIsLoadingHistory(false);
+            }
         }
-    }, [appliedFilters]);
+    }, [appliedFilters, currentYear]);
 
     useEffect(() => {
         void loadCoreData();
@@ -838,7 +876,7 @@ function MonitoringSpreadsheetPage({
                     <tbody className="divide-y divide-white/5">
                         {isLoading && (
                             <tr>
-                                <td className={`px-6 ${tableOnly ? "h-full" : "h-[400px] lg:h-[500px]"} text-center text-sm font-bold text-white/40 italic`} colSpan="27">
+                                <td className={`px-6 ${tableOnly ? "h-full" : "h-[400px] lg:h-[500px]"} text-center text-sm font-bold text-white/40 italic`} colSpan={monitoringTableColSpan}>
                                     <div className="flex flex-col items-center justify-center gap-4">
                                         <div className="h-10 w-10 border-4 border-gold-accent border-t-transparent rounded-full animate-spin"></div>
                                         <span>Sinkronisasi data monitoring dari pusat...</span>
@@ -849,7 +887,7 @@ function MonitoringSpreadsheetPage({
 
                         {!isLoading && filteredRows.length === 0 && (
                             <tr>
-                                <td className={`px-6 ${tableOnly ? "h-full" : "h-[400px] lg:h-[500px]"} text-center`} colSpan="27">
+                                <td className={`px-6 ${tableOnly ? "h-full" : "h-[400px] lg:h-[500px]"} text-center`} colSpan={monitoringTableColSpan}>
                                     {billingRows.length === 0 ? (
                                         <div className="flex flex-col items-center justify-center animate-in fade-in zoom-in duration-500">
                                             <div className="h-20 w-20 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center mb-6 shadow-glass-depth">
@@ -1355,7 +1393,7 @@ function MonitoringSpreadsheetPage({
                             <button
                                 className="h-9 w-9 rounded-xl border border-gold-accent bg-gold-accent/10 shadow-gold-glow flex items-center justify-center transition-colors shrink-0 text-gold-accent hover:bg-gold-accent hover:text-black"
                                 onClick={() => setAppliedFilters({
-                                    year: filters.year,
+                                    year: normalizeMonitoringYear(filters.year, currentYear),
                                     contractStatus: filters.contractStatus,
                                     routeStatus: filters.routeStatus,
                                     todoStatus: filters.todoStatus,
@@ -1521,7 +1559,7 @@ function MonitoringSpreadsheetPage({
                             <button
                                 className="h-9 btn-premium px-4 rounded-xl shadow-gold-glow transition-colors flex items-center gap-1.5"
                                 onClick={() => setAppliedFilters({
-                                    year: filters.year,
+                                    year: normalizeMonitoringYear(filters.year, currentYear),
                                     contractStatus: filters.contractStatus,
                                     routeStatus: filters.routeStatus,
                                     todoStatus: filters.todoStatus,

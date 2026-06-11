@@ -1159,13 +1159,18 @@ function App() {
 
     const handleOpenCustomerById = useCallback((customerId, initialTab = "overview") => {
         const normalizedCustomerId = Number(customerId);
+        if (!Number.isFinite(normalizedCustomerId) || normalizedCustomerId <= 0) {
+            return;
+        }
+
         const targetCustomer = customers.find((item) => Number(item.id) === normalizedCustomerId);
         if (!targetCustomer) {
+            navigateTo(appPaths.customerDetail(normalizedCustomerId, { tab: initialTab }));
             return;
         }
 
         handleOpenTenantDetail(targetCustomer, initialTab);
-    }, [customers, handleOpenTenantDetail]);
+    }, [appPaths, customers, handleOpenTenantDetail, navigateTo]);
 
     if (!hasCheckedAuth || (!isLoggedIn && !PUBLIC_ROUTE_TYPES.has(route.type)) || (isLoggedIn && route.type === "login")) {
         return (

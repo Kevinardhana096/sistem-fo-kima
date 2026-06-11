@@ -91,4 +91,42 @@ describe('CustomerWorkspacePage - aksi grup ISP', () => {
       name: 'PT ISP Valid',
     }));
   });
+
+  it('menampilkan jumlah tindakan grup ISP dari tindakan ISP saja', () => {
+    renderWorkspace({
+      isps: [
+        {
+          id: 26,
+          name: 'PT Indonesia Comnet Plus',
+          status: 'aktif',
+          contractReference: 'KTR-ISP-026',
+        },
+      ],
+      customers: [
+        {
+          id: 101,
+          name: 'Lokasi Dengan Tindakan',
+          customerId: 'CUST-101',
+          status: 'aktif',
+          routeStatus: 'aktif',
+          ispList: ['PT Indonesia Comnet Plus'],
+          ispDisplay: 'PT Indonesia Comnet Plus',
+          actionSummary: {
+            priority: 2,
+            needAction: 2,
+            total: 4,
+          },
+        },
+      ],
+      notificationCountsByIspId: {
+        26: {
+          active: 1,
+          unread: 1,
+        },
+      },
+    });
+
+    expect(screen.getByText('1 TINDAKAN')).toBeInTheDocument();
+    expect(screen.queryByText('5 TINDAKAN')).not.toBeInTheDocument();
+  });
 });

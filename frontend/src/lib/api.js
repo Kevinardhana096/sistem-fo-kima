@@ -2894,7 +2894,10 @@ export const ispsApi = {
 export const monitoringApi = {
   // Get billing monitoring data
   async getBilling({ year, isp, status }) {
-    const selectedYear = Number(year);
+    const requestedYear = Number(year);
+    const selectedYear = Number.isInteger(requestedYear) && requestedYear >= 2000 && requestedYear <= 2100
+      ? requestedYear
+      : new Date().getUTCFullYear();
 
     const { data: customers, error } = await supabase
       .from('customers')
@@ -2918,7 +2921,7 @@ export const monitoringApi = {
     if (error) throw error;
     if (!Array.isArray(customers) || customers.length === 0) {
       return {
-        year,
+        year: String(selectedYear),
         appliedFilters: {
           isp: isp || null,
           status: status || null,
@@ -3145,7 +3148,10 @@ export const monitoringApi = {
       const invoiceLookup = invoiceLookupByCustomerId.get(customer.id) || new Map();
       const latestRouteVersion = getLatestRouteVersion(routeVersionsByCustomerId.get(customer.id) || []);
       const currentContract = getCurrentContract(customerContracts);
-      const effectiveVersion = getEffectiveVersion(currentContract);
+      const effectiveVersionDate = selectedYear === new Date().getUTCFullYear()
+        ? today
+        : `${selectedYear}-12-31`;
+      const effectiveVersion = getEffectiveVersion(currentContract, effectiveVersionDate);
       const currentMonthInvoice = invoiceLookup.get(getInvoiceKey(currentContract?.id ?? null, selectedYear, currentMonth)) || null;
       const currentContractInvoices = [...invoiceLookup.values()]
         .filter(invoice => Number(invoice.contract_id ?? 0) === Number(currentContract?.id ?? 0))
@@ -3258,7 +3264,7 @@ export const monitoringApi = {
     });
 
     return {
-      year,
+      year: String(selectedYear),
       appliedFilters: {
         isp: isp || null,
         status: status || null,
@@ -3269,7 +3275,10 @@ export const monitoringApi = {
   },
 
   async getHistory({ year, isp }) {
-    const selectedYear = Number(year);
+    const requestedYear = Number(year);
+    const selectedYear = Number.isInteger(requestedYear) && requestedYear >= 2000 && requestedYear <= 2100
+      ? requestedYear
+      : new Date().getUTCFullYear();
     const yearStart = `${selectedYear}-01-01`;
     const yearEnd = `${selectedYear}-12-31`;
     const today = new Date().toISOString().slice(0, 10);
@@ -3283,7 +3292,7 @@ export const monitoringApi = {
     if (error) throw error;
 
     if (!Array.isArray(customers) || customers.length === 0) {
-      return { year, rows: [] };
+      return { year: String(selectedYear), rows: [] };
     }
 
     const customerIds = customers.map((customer) => customer.id).filter(Boolean);
@@ -3489,7 +3498,7 @@ export const monitoringApi = {
     }
 
     return {
-      year,
+      year: String(selectedYear),
       rows: filteredRows.sort((left, right) => getDateValue(right.contractEnd) - getDateValue(left.contractEnd)),
     };
   },

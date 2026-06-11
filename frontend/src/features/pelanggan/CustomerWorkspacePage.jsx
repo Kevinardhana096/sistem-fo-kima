@@ -268,7 +268,7 @@ function CustomerWorkspacePage({
                 const ispActionCounts = getIspActionCounts(isp, notificationCountsByIspId);
                 const actionTenantCount = tenants.filter((tenant) => getTenantActionCounts(tenant, notificationCountsByCustomerId).total > 0).length;
                 const tenantActionCount = tenants.reduce((total, tenant) => total + getTenantActionCounts(tenant, notificationCountsByCustomerId).total, 0);
-                const totalActionCount = tenantActionCount + ispActionCounts.total;
+                const totalActionCount = ispActionCounts.total;
 
                 return {
                     ...isp,
