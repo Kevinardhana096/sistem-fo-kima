@@ -611,6 +611,9 @@ const getIspDerivedNotifications = async () => {
     contractRowsByIspId.get(ispId).push(row);
   });
 
+  const hasActiveContractRowReference = (ispId) => (contractRowsByIspId.get(Number(ispId)) || [])
+    .some((row) => String(row?.contract_reference ?? row?.contractReference ?? '').trim().length > 0);
+
   return (ispsResult.data || []).flatMap((isp) => {
     const ispId = isp.id;
     const ispName = isp.name || `ISP #${ispId}`;
@@ -618,7 +621,7 @@ const getIspDerivedNotifications = async () => {
     if (['berhenti', 'nonaktif'].includes(ispStatus)) return [];
 
     const notifications = [];
-    if (!String(isp.contract_reference || '').trim()) {
+    if (!String(isp.contract_reference || '').trim() && !hasActiveContractRowReference(ispId)) {
       notifications.push(createIspDerivedNotification({
         code: 'isp_contract_reference_missing',
         type: 'isp_contract',
@@ -4909,6 +4912,7 @@ export const ispContractRowsApi = {
       .single();
 
     if (error) throw error;
+    clearNotificationListCache();
     return data;
   },
 
@@ -4921,6 +4925,7 @@ export const ispContractRowsApi = {
       .single();
 
     if (error) throw error;
+    clearNotificationListCache();
     return data;
   },
 };

@@ -112,6 +112,74 @@ describe('IspDetailPage - tab kontrak', () => {
     });
   });
 
+  it('menampilkan nomor kontrak dari baris kontrak aktif saat referensi utama ISP kosong', async () => {
+    const { default: api } = await import('../../../lib/api');
+    api.isps.getById.mockResolvedValue({
+      ...baseIsp,
+      contractReference: '',
+      contractRows: [
+        {
+          id: 21,
+          ispId: 7,
+          contractReference: 'KTR-ROW-AKTIF-001',
+          periodStart: '2099-01-01',
+          periodEnd: '2099-12-31',
+          status: 'aktif',
+          renewalStatus: 'active',
+          renewalFollowUps: [],
+        },
+      ],
+      tenants: [],
+      entryPoints: [],
+    });
+
+    renderPage();
+
+    expect(await screen.findByLabelText(/nomor kontrak isp utama/i)).toHaveTextContent('KTR-ROW-AKTIF-001');
+  });
+
+  it('menandai baris needs_completion menjadi active setelah nomor kontrak dan periode dilengkapi', async () => {
+    const { default: api } = await import('../../../lib/api');
+    api.isps.getById.mockResolvedValue({
+      ...baseIsp,
+      contractRows: [
+        {
+          id: 22,
+          ispId: 7,
+          contractReference: 'DRAFT-KONTRAK',
+          contractStartDate: '2026-01-01',
+          periodStart: '2026-02-01',
+          periodEnd: '2027-01-31',
+          status: 'aktif',
+          renewalStatus: 'needs_completion',
+          renewalFollowUps: [],
+        },
+      ],
+      tenants: [],
+      entryPoints: [],
+    });
+    api.ispContractRows.update.mockResolvedValue({ id: 22 });
+
+    renderPage();
+
+    const editButtons = await screen.findAllByRole('button', { name: /draft-kontrak/i });
+    await userEvent.click(editButtons[0]);
+
+    const contractInput = screen.getAllByDisplayValue('DRAFT-KONTRAK')[0];
+    await userEvent.clear(contractInput);
+    await userEvent.type(contractInput, 'KTR-FINAL-001');
+    await userEvent.click(screen.getAllByTitle('Simpan')[0]);
+
+    await waitFor(() => {
+      expect(api.ispContractRows.update).toHaveBeenCalledWith(22, expect.objectContaining({
+        contract_reference: 'KTR-FINAL-001',
+        period_start: '2026-02-01',
+        period_end: '2027-01-31',
+        renewal_status: 'active',
+      }));
+    });
+  });
+
   it('tidak menampilkan tombol tambah kontrak untuk role ISP', async () => {
     renderPage({ currentRole: 'isp' });
 
