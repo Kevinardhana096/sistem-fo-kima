@@ -301,6 +301,7 @@ function CustomerWorkspacePage({
         if (otherTenants.length > 0) {
             groups.push({
                 id: "other",
+                isSyntheticGroup: true,
                 name: "Lokasi Tanpa ISP Terdaftar",
                 logoUrl: null,
                 contractReference: "Kumpulan lokasi yang belum terhubung ke ISP master",
@@ -644,6 +645,10 @@ function CustomerWorkspacePage({
                     ) : (
                         paginatedGroups.map((group) => {
                             const isExpanded = normalizedSearch ? true : !(collapsedMap[group.id] ?? true);
+                            const groupIspId = Number(group.id);
+                            const canManageIspGroup = !group.isSyntheticGroup
+                                && Number.isFinite(groupIspId)
+                                && groupIspId > 0;
                             return (
                                 <div key={group.id} className="relative group/group">
 
@@ -694,16 +699,19 @@ function CustomerWorkspacePage({
                                                 </div>
 
                                                 {/* 4. Detail ISP */}
-                                                <button
-                                                    className="h-8 px-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase tracking-[0.2em] hover:bg-emerald-500 hover:text-white transition-all duration-300 active:scale-95 shadow-glass-depth hover:shadow-[0_0_20px_rgba(16,185,129,0.2)] flex items-center gap-1.5 group/isp-btn backdrop-blur-md"
-                                                    onClick={() => onOpenIsp(group)}
-                                                >
-                                                    <span className="material-symbols-outlined group-hover/isp-btn:translate-x-0.5 transition-transform" style={{ fontSize: "16px" }}>visibility</span>
-                                                    Detail ISP
-                                                </button>
+                                                {canManageIspGroup && (
+                                                    <button
+                                                        className="h-8 px-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase tracking-[0.2em] hover:bg-emerald-500 hover:text-white transition-all duration-300 active:scale-95 shadow-glass-depth hover:shadow-[0_0_20px_rgba(16,185,129,0.2)] flex items-center gap-1.5 group/isp-btn backdrop-blur-md"
+                                                        onClick={() => onOpenIsp(group)}
+                                                        type="button"
+                                                    >
+                                                        <span className="material-symbols-outlined group-hover/isp-btn:translate-x-0.5 transition-transform" style={{ fontSize: "16px" }}>visibility</span>
+                                                        Detail ISP
+                                                    </button>
+                                                )}
 
                                                 {/* 5. Tombol Hapus */}
-                                                {!isTeknisi && (
+                                                {!isTeknisi && canManageIspGroup && (
                                                     <button
                                                         type="button"
                                                         onClick={() => handleDeleteIsp(group)}
