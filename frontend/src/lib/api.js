@@ -5189,12 +5189,14 @@ export const ispRenewalFollowUpsApi = {
       .single();
 
     if (error) throw error;
+    clearNotificationListCache();
     return data;
   },
 
   async delete(id) {
     const { error } = await supabase.from('isp_renewal_follow_ups').delete().eq('id', id);
     if (error) throw error;
+    clearNotificationListCache();
   },
 
   async update(id, followUpData) {
@@ -5206,6 +5208,7 @@ export const ispRenewalFollowUpsApi = {
       .single();
 
     if (error) throw error;
+    clearNotificationListCache();
 
     const decision = followUpData.response_status ?? followUpData.responseStatus ?? followUpData.response_decision ?? followUpData.responseDecision;
     const shouldPromote = followUpData.status === 'completed' && decision === 'lanjut';
