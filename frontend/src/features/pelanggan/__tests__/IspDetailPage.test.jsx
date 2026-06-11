@@ -141,6 +141,50 @@ describe('IspDetailPage - tab kontrak', () => {
     expect(await screen.findByLabelText(/nomor kontrak isp utama/i)).toHaveTextContent('KTR-ROW-AKTIF-001');
   });
 
+  it('menyinkronkan ringkasan profil dari baris kontrak aktif terbaru meskipun metadata utama ISP berbeda', async () => {
+    const { default: api } = await import('../../../lib/api');
+    api.isps.getById.mockResolvedValue({
+      ...baseIsp,
+      contractReference: 'KTR-UTAMA-LAMA',
+      contractStartDate: null,
+      contractPeriodStart: null,
+      contractPeriodEnd: null,
+      contractRows: [
+        {
+          id: 24,
+          ispId: 7,
+          contractReference: 'KTR-ROW-LAMA',
+          contractStartDate: '2026-01-10',
+          periodStart: '2026-02-01',
+          periodEnd: '2027-01-31',
+          status: 'aktif',
+          renewalStatus: 'active',
+          renewalFollowUps: [],
+        },
+        {
+          id: 25,
+          ispId: 7,
+          contractReference: 'KTR-ROW-AKTIF-TERBARU',
+          contractStartDate: '2026-08-15',
+          periodStart: '2099-03-01',
+          periodEnd: '2099-12-31',
+          status: 'aktif',
+          renewalStatus: 'active',
+          renewalFollowUps: [],
+        },
+      ],
+      tenants: [],
+      entryPoints: [],
+    });
+
+    renderPage();
+
+    expect(await screen.findByLabelText(/nomor kontrak isp utama/i)).toHaveTextContent('KTR-ROW-AKTIF-TERBARU');
+    expect(screen.getByLabelText(/periode awal kontrak isp utama/i)).toHaveTextContent('15 Agu 2026');
+    expect(screen.getByLabelText(/periode berjalan isp utama/i)).toHaveTextContent('01 Mar 2099');
+    expect(screen.getByLabelText(/periode berjalan isp utama/i)).toHaveTextContent('31 Des 2099');
+  });
+
   it('menandai baris needs_completion menjadi active setelah nomor kontrak dan periode dilengkapi', async () => {
     const { default: api } = await import('../../../lib/api');
     api.isps.getById.mockResolvedValue({

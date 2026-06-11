@@ -40,15 +40,49 @@ const getTrimmedContractReference = (value) => {
     return reference.length > 0 ? reference : null;
 };
 
-const getDisplayIspContractReference = ({ detail, isp, contractRows = [], todayIso }) => {
-    const directReference = getTrimmedContractReference(detail?.contractReference ?? detail?.contract_reference)
-        ?? getTrimmedContractReference(isp?.contractReference ?? isp?.contract_reference);
-    if (directReference) return directReference;
+const getContractSummaryRowSortValue = (row) => {
+    const rawDate = row?.periodStart ?? row?.period_start ?? row?.contractStartDate ?? row?.contract_start_date ?? row?.createdAt ?? row?.created_at ?? "";
+    const timestamp = rawDate ? new Date(rawDate).getTime() : Number.NaN;
+    return Number.isFinite(timestamp) ? timestamp : 0;
+};
 
-    const activeRowReference = (Array.isArray(contractRows) ? contractRows : [])
-        .find((row) => getContractRowStatus(row, todayIso) === "beroperasi" && getTrimmedContractReference(row?.contractReference ?? row?.contract_reference));
+const hasDisplayableContractSummaryData = (row) => [
+    row?.contractReference ?? row?.contract_reference,
+    row?.contractStartDate ?? row?.contract_start_date,
+    row?.periodStart ?? row?.period_start,
+    row?.periodEnd ?? row?.period_end,
+].some((value) => String(value ?? "").trim().length > 0);
 
-    return getTrimmedContractReference(activeRowReference?.contractReference ?? activeRowReference?.contract_reference) ?? "-";
+const pickDisplayIspContractSummaryRow = ({ contractRows = [], todayIso }) => {
+    const rows = (Array.isArray(contractRows) ? contractRows : [])
+        .filter(hasDisplayableContractSummaryData);
+
+    if (rows.length === 0) return null;
+
+    const activeRows = rows.filter((row) => getContractRowStatus(row, todayIso) === "beroperasi");
+    const candidates = activeRows.length > 0 ? activeRows : rows;
+
+    return [...candidates].sort((a, b) => getContractSummaryRowSortValue(b) - getContractSummaryRowSortValue(a))[0] ?? null;
+};
+
+const resolveDisplayIspContractSummary = ({ detail, isp, contractRows = [], todayIso }) => {
+    const summaryRow = pickDisplayIspContractSummaryRow({ contractRows, todayIso });
+    const fallbackSource = detail ?? isp ?? {};
+
+    return {
+        contractReference: getTrimmedContractReference(summaryRow?.contractReference ?? summaryRow?.contract_reference)
+            ?? getTrimmedContractReference(fallbackSource.contractReference ?? fallbackSource.contract_reference)
+            ?? "-",
+        contractStartDate: summaryRow?.contractStartDate ?? summaryRow?.contract_start_date
+            ?? fallbackSource.contractStartDate ?? fallbackSource.contract_start_date
+            ?? null,
+        periodStart: summaryRow?.periodStart ?? summaryRow?.period_start
+            ?? fallbackSource.contractPeriodStart ?? fallbackSource.contract_period_start
+            ?? null,
+        periodEnd: summaryRow?.periodEnd ?? summaryRow?.period_end
+            ?? fallbackSource.contractPeriodEnd ?? fallbackSource.contract_period_end
+            ?? null,
+    };
 };
 
 const buildPrimaryIspContractRow = (ispDetail, fallbackIsp) => {
@@ -726,7 +760,11 @@ function IspDetailPage({
     const totalTenantActionCount = tenantActionRows.reduce((sum, tenant) => sum + tenant.totalActions, 0);
 
     const ispName = detail?.name ?? isp.name;
-    const contractRef = getDisplayIspContractReference({ detail, isp, contractRows, todayIso });
+    const contractSummary = useMemo(
+        () => resolveDisplayIspContractSummary({ detail, isp, contractRows, todayIso }),
+        [detail, isp, contractRows, todayIso],
+    );
+    const contractRef = contractSummary.contractReference;
 
     useEffect(() => {
         if (!canManageEntryPoints) {
@@ -1786,8 +1824,8 @@ function IspDetailPage({
                                         <p className="text-[8px] font-black uppercase tracking-[0.35em] text-white/20">Periode Awal Kontrak</p>
                                         <div className="flex items-center gap-1 sm:gap-2">
                                             <span className="material-symbols-outlined text-[10px] sm:text-[12px] scale-[0.75] sm:scale-100 origin-center text-emerald-400/60">event_available</span>
-                                            <p className="text-[11px] font-black text-white tracking-wide font-mono">
-                                                {detail?.contractStartDate ?? isp.contractStartDate ? formatDate(detail?.contractStartDate ?? isp.contractStartDate) : "—"}
+                                            <p aria-label="Periode awal kontrak ISP utama" className="text-[11px] font-black text-white tracking-wide font-mono">
+                                                {contractSummary.contractStartDate ? formatDate(contractSummary.contractStartDate) : "—"}
                                             </p>
                                         </div>
                                     </div>
@@ -1797,9 +1835,9 @@ function IspDetailPage({
                                         <p className="text-[8px] font-black uppercase tracking-[0.35em] text-white/20">Periode Berjalan</p>
                                         <div className="flex items-center gap-1 sm:gap-2">
                                             <span className="material-symbols-outlined text-[10px] sm:text-[12px] scale-[0.75] sm:scale-100 origin-center text-sky-400/60">date_range</span>
-                                            <p className="text-[11px] font-black text-white tracking-wide font-mono">
-                                                {detail?.contractPeriodStart ?? isp.contractPeriodStart ?? detail?.contractPeriodEnd ?? isp.contractPeriodEnd
-                                                    ? <>{formatDate(detail?.contractPeriodStart ?? isp.contractPeriodStart)}<span className="mx-1.5 text-white/20 font-normal">—</span>{formatDate(detail?.contractPeriodEnd ?? isp.contractPeriodEnd)}</>
+                                            <p aria-label="Periode berjalan ISP utama" className="text-[11px] font-black text-white tracking-wide font-mono">
+                                                {contractSummary.periodStart ?? contractSummary.periodEnd
+                                                    ? <>{formatDate(contractSummary.periodStart)}<span className="mx-1.5 text-white/20 font-normal">—</span>{formatDate(contractSummary.periodEnd)}</>
                                                     : "—"
                                                 }
                                             </p>
