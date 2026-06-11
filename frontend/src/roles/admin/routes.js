@@ -1,3 +1,15 @@
+function encodeRouteSegment(value) {
+    return encodeURIComponent(String(value));
+}
+
+function decodeRouteSegment(value) {
+    try {
+        return decodeURIComponent(value);
+    } catch {
+        return value;
+    }
+}
+
 export const ADMIN_PATHS = {
     login: "/login",
     adminRegister: "/kima-admin/register-7f4c9a2e",
@@ -22,12 +34,12 @@ export const ADMIN_PATHS = {
         }
 
         const query = searchParams.toString();
-        return `/customers/${customerId}${query ? `?${query}` : ""}`;
+        return `/customers/${encodeRouteSegment(customerId)}${query ? `?${query}` : ""}`;
     },
-    customerEdit: (customerId) => `/customers/${customerId}/edit`,
-    customerJalur: (customerId) => `/customers/${customerId}/jalur`,
-    customerJalurPlanner: (customerId) => `/customers/${customerId}/jalur/planner`,
-    customerJalurFullscreen: (customerId) => `/customers/${customerId}/jalur/fullscreen`,
+    customerEdit: (customerId) => `/customers/${encodeRouteSegment(customerId)}/edit`,
+    customerJalur: (customerId) => `/customers/${encodeRouteSegment(customerId)}/jalur`,
+    customerJalurPlanner: (customerId) => `/customers/${encodeRouteSegment(customerId)}/jalur/planner`,
+    customerJalurFullscreen: (customerId) => `/customers/${encodeRouteSegment(customerId)}/jalur/fullscreen`,
     ispDetail: (ispId, { tab = "overview" } = {}) => {
         const searchParams = new URLSearchParams();
 
@@ -36,9 +48,9 @@ export const ADMIN_PATHS = {
         }
 
         const query = searchParams.toString();
-        return `/isps/${ispId}${query ? `?${query}` : ""}`;
+        return `/isps/${encodeRouteSegment(ispId)}${query ? `?${query}` : ""}`;
     },
-    ispEdit: (ispId) => `/isps/${ispId}/edit`,
+    ispEdit: (ispId) => `/isps/${encodeRouteSegment(ispId)}/edit`,
 };
 
 export function getAdminSectionPath(sectionKey) {
@@ -118,7 +130,7 @@ export function parseAdminRoute(pathname, search) {
         return {
             type: "customer-edit",
             sectionKey: "customers",
-            customerId: customerEditMatch[1],
+            customerId: decodeRouteSegment(customerEditMatch[1]),
         };
     }
 
@@ -127,7 +139,7 @@ export function parseAdminRoute(pathname, search) {
         return {
             type: "customer-jalur-planner",
             sectionKey: "customers",
-            customerId: customerJalurPlannerMatch[1],
+            customerId: decodeRouteSegment(customerJalurPlannerMatch[1]),
         };
     }
 
@@ -136,7 +148,7 @@ export function parseAdminRoute(pathname, search) {
         return {
             type: "customer-jalur-fullscreen",
             sectionKey: "customers",
-            customerId: customerJalurFullscreenMatch[1],
+            customerId: decodeRouteSegment(customerJalurFullscreenMatch[1]),
         };
     }
 
@@ -145,7 +157,7 @@ export function parseAdminRoute(pathname, search) {
         return {
             type: "customer-jalur",
             sectionKey: "customers",
-            customerId: customerJalurMatch[1],
+            customerId: decodeRouteSegment(customerJalurMatch[1]),
         };
     }
 
@@ -154,7 +166,7 @@ export function parseAdminRoute(pathname, search) {
         return {
             type: "customer-detail",
             sectionKey: "customers",
-            customerId: customerDetailMatch[1],
+            customerId: decodeRouteSegment(customerDetailMatch[1]),
             initialTab: searchParams.get("tab") || "overview",
             contextIspId: searchParams.get("isp"),
         };
@@ -165,7 +177,7 @@ export function parseAdminRoute(pathname, search) {
         return {
             type: "isp-edit",
             sectionKey: "customers",
-            ispId: ispEditMatch[1],
+            ispId: decodeRouteSegment(ispEditMatch[1]),
         };
     }
 
@@ -174,7 +186,7 @@ export function parseAdminRoute(pathname, search) {
         return {
             type: "isp-detail",
             sectionKey: "customers",
-            ispId: ispDetailMatch[1],
+            ispId: decodeRouteSegment(ispDetailMatch[1]),
             initialTab: searchParams.get("tab") || "overview",
         };
     }

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { getSectionPath } from "../../app/routes";
 import { getRoleConfig } from "../../roles";
 import api from "../../lib/api";
+import { requestAppNavigation } from "../../app/navigation-events";
 import { supabase, updateCurrentUserProfile } from "../../lib/supabase";
 
 const AUTH_TRANSITION_EVENT = "sistem-fo-kima:auth-transition";
@@ -26,6 +27,7 @@ export default function AppShell({
     hideSidebar = false,
     full = false,
     currentRole = "admin",
+    onNavigatePath,
 }) {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -194,6 +196,7 @@ export default function AppShell({
                 onToggleMenu={() => setIsMobileMenuOpen((prev) => !prev)}
                 onCloseMenu={() => setIsMobileMenuOpen(false)}
                 onNavigate={handleMobileNavigate}
+                onNavigatePath={onNavigatePath}
                 activeSection={activeSection}
                 onLogout={onLogout}
                 roleConfig={roleConfig}
@@ -282,7 +285,7 @@ export default function AppShell({
                                     className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs font-medium text-white focus:outline-none focus:ring-1 focus:ring-gold-accent/50 transition-[background-color,border-color,box-shadow] duration-200"
                                 />
                             </div>
-                            
+
                             <div className="pt-3 border-t border-white/10">
                                 <p className="text-[9px] font-black text-on-surface uppercase tracking-widest mb-2.5">Ubah Password</p>
                                 <div className="space-y-2.5">
@@ -351,6 +354,7 @@ function TopNav({
     onToggleMenu,
     onCloseMenu,
     onNavigate,
+    onNavigatePath,
     activeSection,
     onLogout,
     roleConfig,
@@ -390,8 +394,11 @@ function TopNav({
         }
         setIsNotificationsOpen(false);
         if (notification.targetPath) {
-            window.history.pushState({}, "", notification.targetPath);
-            window.dispatchEvent(new PopStateEvent("popstate"));
+            if (onNavigatePath) {
+                onNavigatePath(notification.targetPath);
+            } else {
+                requestAppNavigation(notification.targetPath);
+            }
         }
     };
 
@@ -439,8 +446,8 @@ function TopNav({
                                                 <button
                                                     key={item.key}
                                                     className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left anim-surface transition-all duration-200 ${
-                                                        isActive 
-                                                            ? "active-glow-gold text-on-surface font-black" 
+                                                        isActive
+                                                            ? "active-glow-gold text-on-surface font-black"
                                                             : "text-on-surface-variant hover:text-on-surface hover:bg-white/5"
                                                     }`}
                                                     onClick={() => { onNavigate(item.key); onCloseMenu(); }}
@@ -514,7 +521,7 @@ function TopNav({
                                                     >
                                                         <div className="flex w-full items-center gap-3 text-left">
                                                             <div className="min-w-0 flex-1">
-                                                                <button 
+                                                                <button
                                                                     onClick={() => handleOpenNotification(notification)}
                                                                     className="w-full text-left group focus:outline-none"
                                                                     type="button"
@@ -528,7 +535,7 @@ function TopNav({
                                                                     </div>
                                                                     <p className="line-clamp-2 text-[10px] font-bold leading-tight text-on-surface-variant group-hover:text-white/80 transition-colors">{notification.message}</p>
                                                                 </button>
-                                                                
+
                                                                 <div className="mt-0.5 flex items-center justify-end">
                                                                     <button
                                                                         onClick={() => handleOpenNotification(notification)}
@@ -591,10 +598,10 @@ function TopNav({
                                     <p className="text-xs font-black text-on-surface truncate">{profileDisplayName}</p>
                                     <p className="text-[9px] font-bold text-on-surface-variant uppercase mt-0.5 truncate">{roleConfig.profileSubtitle}</p>
                                 </div>
-                                
+
                                 {roleConfig.key !== 'isp' && (
                                     <div className="px-1.5 mb-1.5 pb-1.5 border-b border-white/10">
-                                    <button 
+                                    <button
                                         onClick={() => { setIsProfileOpen(false); onEditProfile(); }}
                                         className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[11px] font-bold text-on-surface hover:bg-white/10 anim-surface"
                                     >

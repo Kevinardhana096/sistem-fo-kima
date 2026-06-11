@@ -4,6 +4,7 @@ import { sectionMeta } from "./app/constants";
 import { mapCustomerToRow } from "./app/utils";
 import { signOut, supabase } from "./lib/supabase";
 import api from "./lib/api";
+import { APP_NAVIGATION_EVENT } from "./app/navigation-events";
 
 const CHUNK_RELOAD_STATE_KEY = "__sistemFoKimaChunkReloaded";
 const AUTH_TRANSITION_EVENT = "sistem-fo-kima:auth-transition";
@@ -237,6 +238,39 @@ function getPageTransitionCopy(targetPath, currentRole) {
         title: "Memuat Halaman",
         description: "Menyiapkan tampilan tujuan...",
     };
+}
+
+
+function getNumericId(value) {
+    const numericValue = Number(value);
+    return Number.isFinite(numericValue) && numericValue > 0 ? numericValue : null;
+}
+
+function getCustomerIspIds(customer) {
+    if (!customer) return [];
+
+    const candidateIds = [
+        customer.ispId,
+        customer.isp_id,
+        customer.primaryIspId,
+        customer.primary_isp_id,
+        ...(Array.isArray(customer.ispIds) ? customer.ispIds : []),
+        ...(Array.isArray(customer.isp_ids) ? customer.isp_ids : []),
+        ...(Array.isArray(customer.isps) ? customer.isps.map((isp) => isp?.id ?? isp?.isp_id) : []),
+        ...(Array.isArray(customer.ispMemberships) ? customer.ispMemberships.map((membership) => membership?.ispId ?? membership?.isp_id ?? membership?.isp?.id) : []),
+    ];
+
+    return Array.from(new Set(
+        candidateIds
+            .map((value) => getNumericId(value))
+            .filter((value) => value !== null),
+    ));
+}
+
+function isCustomerLinkedToIsp(customer, ispId) {
+    const numericIspId = getNumericId(ispId);
+    if (!numericIspId) return false;
+    return getCustomerIspIds(customer).includes(numericIspId);
 }
 
 function getAuthUserIspId(user) {
@@ -581,6 +615,21 @@ function App() {
     }, [appPaths.login, navigateTo]);
 
     useEffect(() => {
+        if (typeof window === "undefined") {
+            return undefined;
+        }
+
+        const handleAppNavigationRequest = (event) => {
+            const targetPath = event?.detail?.targetPath;
+            if (!targetPath) return;
+            navigateTo(targetPath, event.detail.options ?? {});
+        };
+
+        window.addEventListener(APP_NAVIGATION_EVENT, handleAppNavigationRequest);
+        return () => window.removeEventListener(APP_NAVIGATION_EVENT, handleAppNavigationRequest);
+    }, [navigateTo]);
+
+    useEffect(() => {
         if (route.type === "redirect") {
             navigateTo(route.to, { replace: true });
         }
@@ -647,16 +696,9 @@ function App() {
             && Number.isFinite(routeContextIspId)
             && routeContextIspId === resolvedCurrentIspId;
         const isOwnCustomerDetail = route.type === "customer-detail"
-            && (
-                route.contextIspId === null
-                || route.contextIspId === undefined
-                || route.contextIspId === ""
-                || (
-                    resolvedCurrentIspId !== null
-                    && Number.isFinite(routeContextIspId)
-                    && routeContextIspId === resolvedCurrentIspId
-                )
-            );
+            && resolvedCurrentIspId !== null
+            && Number.isFinite(routeContextIspId)
+            && routeContextIspId === resolvedCurrentIspId;
         const isAllowedIspRoute = isOwnIspDetail || isOwnCustomerCreate || isOwnCustomerDetail;
 
         const currentPath = `${locationState.pathname}${locationState.search}`;
@@ -697,9 +739,13 @@ function App() {
         ? resolveCustomerByIdentifier(customers, route.customerId)
         : null;
     const resolvedCustomerDetail = selectedCustomer ?? customerDetailRecord;
+    const isResolvedCustomerAllowedForIsp = currentRole !== APP_ROLES.isp
+        || isCustomerLinkedToIsp(resolvedCustomerDetail, resolvedCurrentIspId);
     const selectedCustomerContextIsp = route.contextIspId
         ? resolveIspByIdentifier(isps, route.contextIspId)
-        : null;
+        : currentRole === APP_ROLES.isp && resolvedCurrentIspId
+            ? resolveIspByIdentifier(isps, resolvedCurrentIspId)
+            : null;
     const selectedIsp = route.type === "isp-detail" || route.type === "isp-edit"
         ? resolveIspByIdentifier(isps, route.ispId)
         : null;
@@ -723,7 +769,13 @@ function App() {
     useEffect(() => {
         let isActive = true;
 
-        const shouldLoadCustomerDetail = (
+        const canLoadCustomerForCurrentRole = currentRole !== APP_ROLES.isp
+            || (
+                route.type === "customer-detail"
+                && resolvedCurrentIspId !== null
+                && Number(route.contextIspId) === resolvedCurrentIspId
+            );
+        const shouldLoadCustomerDetail = canLoadCustomerForCurrentRole && (
             route.type === "customer-detail"
             || route.type === "customer-edit"
             || route.type === "customer-jalur"
@@ -764,7 +816,7 @@ function App() {
         return () => {
             isActive = false;
         };
-    }, [route.customerId, route.type, selectedCustomer]);
+    }, [currentRole, resolvedCurrentIspId, route.contextIspId, route.customerId, route.type, selectedCustomer]);
 
     useEffect(() => {
         let isActive = true;
@@ -1185,6 +1237,7 @@ function App() {
                     activeSection={activeSection}
                     currentRole={currentRole}
                     onNavigate={handleNavigate}
+                    onNavigatePath={navigateTo}
                     onLogout={handleLogout}
                 />
             </Suspense>
@@ -1344,13 +1397,16 @@ function App() {
         }
 
         if (!resolvedIspDetail) {
+            const isUnresolvedSelfIspRoute = currentRole === APP_ROLES.isp && route.ispId === "me";
             return (
                 <RouteMissingPage
                     activeSection={activeSection}
                     currentRole={currentRole}
                     onNavigate={handleNavigate}
-                    title="ISP tidak ditemukan"
-                    description={ispDetailError || "Data ISP yang Anda buka belum tersedia."}
+                    title={isUnresolvedSelfIspRoute ? "Akun ISP belum terhubung" : "ISP tidak ditemukan"}
+                    description={isUnresolvedSelfIspRoute
+                        ? "Akun ini belum memiliki metadata isp_id atau hanya dapat dihubungkan jika data ISP yang terlihat tepat satu. Hubungi admin untuk mengaitkan akun ke ISP yang benar."
+                        : ispDetailError || "Data ISP yang Anda buka belum tersedia."}
                 />
             );
         }
@@ -1363,7 +1419,7 @@ function App() {
                     initialTab={route.initialTab}
                     onBack={() => {
                         const fallbackPath = currentRole === APP_ROLES.isp
-                            ? getLandingPathForRole(currentRole, appPaths, authSession?.user)
+                            ? appPaths.ispDetail(resolvedIspDetail.id)
                             : appPaths.customers;
                         navigateTo(fallbackPath, { replace: true });
                     }}
@@ -1414,6 +1470,19 @@ function App() {
             );
         }
 
+        if (!isResolvedCustomerAllowedForIsp) {
+            return (
+                <RouteForbiddenPage
+                    activeSection={fallbackSection}
+                    currentRole={currentRole}
+                    onNavigate={handleNavigate}
+                    onLogout={handleLogout}
+                    defaultSection={fallbackSection}
+                    roleLabel={roleConfig.label}
+                />
+            );
+        }
+
         return (
             <Suspense fallback={<RouteLoadingPage activeSection={activeSection} currentRole={currentRole} onNavigate={handleNavigate} onLogout={handleLogout} message="Memuat detail tenant..." />}>
                 <TenantDetailPage
@@ -1439,13 +1508,16 @@ function App() {
                     }}
                     onTabChange={(nextTab) => {
                         if (nextTab === "jalur") {
-                            navigateTo(appPaths.customerJalur(resolvedCustomerDetail.id), { replace: true });
+                            const jalurPath = typeof appPaths.customerJalur === "function"
+                                ? appPaths.customerJalur(resolvedCustomerDetail.id)
+                                : appPaths.customerDetail(resolvedCustomerDetail.id, { tab: "jalur", ispId: resolvedCurrentIspId });
+                            navigateTo(jalurPath, { replace: true });
                             return;
                         }
 
                         navigateTo(appPaths.customerDetail(resolvedCustomerDetail.id, {
                             tab: nextTab,
-                            ispId: selectedCustomerContextIsp?.id ?? null,
+                            ispId: selectedCustomerContextIsp?.id ?? (currentRole === APP_ROLES.isp ? resolvedCurrentIspId : null),
                         }), { replace: true });
                     }}
                     onOpenRoutePlanner={(tenant) => {
@@ -1455,7 +1527,9 @@ function App() {
                             return;
                         }
 
-                        navigateTo(appPaths.customerJalurPlanner(resolvedCustomerId));
+                        if (typeof appPaths.customerJalurPlanner === "function") {
+                            navigateTo(appPaths.customerJalurPlanner(resolvedCustomerId));
+                        }
                     }}
                     canDeleteTenant={roleCapabilities.canDeleteTenant}
                     canEditTenant={roleCapabilities.canEditTenant}
@@ -1665,9 +1739,16 @@ function App() {
     );
     }
 
-    function RouteLoadingPage({ activeSection, currentRole, onNavigate, onLogout, message }) {
+    function requestAppNavigationFallback(targetPath, options) {
+    if (typeof window === "undefined") return;
+    window.dispatchEvent(new CustomEvent(APP_NAVIGATION_EVENT, {
+        detail: { targetPath, options },
+    }));
+}
+
+function RouteLoadingPage({ activeSection, currentRole, onNavigate, onLogout, message }) {
     return (
-        <AppShell activeSection={activeSection} currentRole={currentRole} onNavigate={onNavigate} onLogout={onLogout} hideSidebar={currentRole === APP_ROLES.isp}>
+        <AppShell activeSection={activeSection} currentRole={currentRole} onNavigate={onNavigate} onNavigatePath={requestAppNavigationFallback} onLogout={onLogout} hideSidebar={currentRole === APP_ROLES.isp}>
             <div className="mx-auto flex min-h-[50vh] max-w-4xl items-center justify-center">
                 <div className="rounded-2xl border border-slate-100 bg-surface-container-lowest px-6 py-5 text-sm text-on-surface-variant shadow-sm">
                     {message}
@@ -1679,7 +1760,7 @@ function App() {
 
     function RouteMissingPage({ activeSection, currentRole, onNavigate, onLogout, title, description }) {
     return (
-        <AppShell activeSection={activeSection} currentRole={currentRole} onNavigate={onNavigate} onLogout={onLogout} hideSidebar={currentRole === APP_ROLES.isp}>
+        <AppShell activeSection={activeSection} currentRole={currentRole} onNavigate={onNavigate} onNavigatePath={requestAppNavigationFallback} onLogout={onLogout} hideSidebar={currentRole === APP_ROLES.isp}>
             <div className="mx-auto max-w-4xl">
                 <section className="rounded-2xl border border-slate-100 bg-surface-container-lowest p-8 shadow-sm">
                     <div className="mb-6 flex items-center gap-3">
@@ -1698,11 +1779,11 @@ function App() {
 
                     <button
                         className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-primary to-primary-container px-5 py-3 text-sm font-bold text-white"
-                        onClick={() => onNavigate("customers")}
+                        onClick={() => onNavigate(currentRole === APP_ROLES.isp ? "isp-detail" : "customers")}
                         type="button"
                     >
-                        <span className="material-symbols-outlined text-sm">groups</span>
-                        Kembali ke Customer Page
+                        <span className="material-symbols-outlined text-sm">{currentRole === APP_ROLES.isp ? "business" : "groups"}</span>
+                        {currentRole === APP_ROLES.isp ? "Kembali ke Halaman ISP" : "Kembali ke Customer Page"}
                     </button>
                 </section>
             </div>
@@ -1712,7 +1793,7 @@ function App() {
 
     function RouteForbiddenPage({ activeSection, currentRole, onNavigate, onLogout, defaultSection, roleLabel }) {
     return (
-        <AppShell activeSection={activeSection} currentRole={currentRole} onNavigate={onNavigate} onLogout={onLogout} hideSidebar={currentRole === APP_ROLES.isp}>
+        <AppShell activeSection={activeSection} currentRole={currentRole} onNavigate={onNavigate} onNavigatePath={requestAppNavigationFallback} onLogout={onLogout} hideSidebar={currentRole === APP_ROLES.isp}>
             <div className="mx-auto max-w-4xl">
                 <section className="rounded-2xl border border-amber-100 bg-surface-container-lowest p-8 shadow-sm">
                     <div className="mb-6 flex items-center gap-3">
@@ -1748,7 +1829,7 @@ function App() {
     const isTrashSection = activeSection === "trash";
 
     return (
-        <AppShell activeSection={activeSection} currentRole={currentRole} onNavigate={onNavigate} onLogout={onLogout} hideSidebar={currentRole === APP_ROLES.isp}>
+        <AppShell activeSection={activeSection} currentRole={currentRole} onNavigate={onNavigate} onNavigatePath={requestAppNavigationFallback} onLogout={onLogout} hideSidebar={currentRole === APP_ROLES.isp}>
             <div className="mx-auto max-w-5xl">
                 <header className="mb-10">
                     <h1 className="text-4xl font-extrabold tracking-tight text-primary">{section.title}</h1>

@@ -850,16 +850,23 @@ export const mapCustomerToRow = (customer, index) => {
 
     // Handle both NestJS format (customer.isps) and Supabase format (customer.ispMemberships)
     let ispList = [];
+    let ispIds = [];
     if (Array.isArray(customer.isps)) {
         // NestJS format
         ispList = customer.isps
             .map((isp) => isp?.name)
             .filter((name) => typeof name === "string" && name.trim().length > 0);
+        ispIds = customer.isps
+            .map((isp) => Number(isp?.id ?? isp?.isp_id))
+            .filter((id) => Number.isFinite(id) && id > 0);
     } else if (Array.isArray(customer.ispMemberships)) {
         // Supabase format
         ispList = customer.ispMemberships
             .map((membership) => membership?.isp?.name)
             .filter((name) => typeof name === "string" && name.trim().length > 0);
+        ispIds = customer.ispMemberships
+            .map((membership) => Number(membership?.ispId ?? membership?.isp_id ?? membership?.isp?.id))
+            .filter((id) => Number.isFinite(id) && id > 0);
     }
 
     const fallbackIspName = typeof customer.ispName === "string" && customer.ispName.trim()
@@ -878,6 +885,7 @@ export const mapCustomerToRow = (customer, index) => {
         isp: primaryIsp,
         ispDisplay,
         ispList: ispList.length > 0 ? ispList : [primaryIsp],
+        ispIds,
         name: customer.name ?? "-",
         status: operationalStatus === "aktif"
             ? "Beroperasi"
