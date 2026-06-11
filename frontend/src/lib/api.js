@@ -43,6 +43,20 @@ const clearNotificationListCache = () => {
   notificationListCache.clear();
 };
 
+export const clearSessionCaches = () => {
+  clearIspListCache();
+  clearNotificationListCache();
+};
+
+const mapIspAccount = (mapping) => mapping ? ({
+  id: mapping.id ?? null,
+  authUserId: mapping.auth_user_id ?? mapping.authUserId ?? null,
+  ispId: mapping.isp_id ?? mapping.ispId ?? null,
+  email: mapping.email ?? null,
+  displayName: mapping.display_name ?? mapping.displayName ?? null,
+  isp: mapping.isp ? mapIsp(mapping.isp) : null,
+}) : null;
+
 const resolveInvoiceDueDate = (periodStartDate) => resolveInvoiceDueMonthIsoDate(periodStartDate);
 
 const resolveBillingCycleInvoiceAmount = (monthlyAmount, billingCycle) => {
@@ -269,6 +283,52 @@ const createActivityLog = async ({ metadata = {}, ...payload }) => {
     console.error('Failed to write activity log:', error);
     return null;
   }
+};
+
+export const sessionApi = {
+  clearCaches: clearSessionCaches,
+
+  async getCurrentIspAccount() {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError) throw userError;
+    if (!user?.id) return null;
+
+    const { data, error } = await supabase
+      .from('isp_user_accounts')
+      .select(`
+        id,
+        auth_user_id,
+        isp_id,
+        email,
+        display_name,
+        isp:isps(
+          id,
+          name,
+          status,
+          logo_url,
+          contract_reference,
+          contract_start_date,
+          contract_period_start,
+          contract_period_end,
+          bak_file_name,
+          contract_file_name,
+          paket,
+          jumlah,
+          billing_period_mode,
+          activation_fee_amount,
+          created_at,
+          updated_at,
+          user_id,
+          deleted_at
+        )
+      `)
+      .eq('auth_user_id', user.id)
+      .maybeSingle();
+
+    if (error) throw error;
+    if (data?.isp?.deleted_at) return null;
+    return mapIspAccount(data);
+  },
 };
 
 const softDeleteRows = async ({ table, ids = [], deletedBy = null, now = new Date().toISOString() }) => {
@@ -5540,6 +5600,7 @@ export const trashApi = {
 
 // Export all APIs
 export default {
+  session: sessionApi,
   customers: customersApi,
   isps: ispsApi,
   monitoring: monitoringApi,

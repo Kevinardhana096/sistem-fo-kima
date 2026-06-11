@@ -279,9 +279,9 @@ function getAuthUserIspId(user) {
     return Number.isFinite(ispId) && ispId > 0 ? ispId : null;
 }
 
-function getLandingPathForRole(roleKey, paths, user) {
+function getLandingPathForRole(roleKey, paths, user, resolvedIspId = null) {
     if (roleKey === APP_ROLES.isp) {
-        const ispId = getAuthUserIspId(user);
+        const ispId = getNumericId(resolvedIspId) ?? getAuthUserIspId(user);
         return paths.ispDetail(ispId ?? "me");
     }
 
@@ -316,6 +316,10 @@ function App() {
     const [isLoadingIsps, setIsLoadingIsps] = useState(false);
     const [ispsError, setIspsError] = useState("");
     const [hasRequestedIsps, setHasRequestedIsps] = useState(false);
+    const [currentIspAccount, setCurrentIspAccount] = useState(null);
+    const [isLoadingCurrentIspAccount, setIsLoadingCurrentIspAccount] = useState(false);
+    const [hasRequestedCurrentIspAccount, setHasRequestedCurrentIspAccount] = useState(false);
+    const [currentIspAccountError, setCurrentIspAccountError] = useState("");
     const [notifications, setNotifications] = useState([]);
     const [dashboardRefreshToken, setDashboardRefreshToken] = useState(0);
     const [customerDetailRecord, setCustomerDetailRecord] = useState(null);
@@ -331,13 +335,15 @@ function App() {
     const roleConfig = useMemo(() => getRoleConfig(currentRole), [currentRole]);
     const roleCapabilities = roleConfig.capabilities;
     const currentUserIspId = useMemo(() => getAuthUserIspId(authSession?.user), [authSession?.user]);
+    const mappedCurrentIspId = useMemo(() => getNumericId(currentIspAccount?.ispId), [currentIspAccount?.ispId]);
     const resolvedCurrentIspId = useMemo(() => {
+        if (mappedCurrentIspId) return mappedCurrentIspId;
         if (currentUserIspId) return currentUserIspId;
         if (currentRole !== APP_ROLES.isp || isps.length !== 1) return null;
 
         const ispId = Number(isps[0]?.id);
         return Number.isFinite(ispId) && ispId > 0 ? ispId : null;
-    }, [currentRole, currentUserIspId, isps]);
+    }, [currentRole, currentUserIspId, isps, mappedCurrentIspId]);
     const isRouteAllowed = useMemo(
         () => canAccessRoute(currentRole, route),
         [currentRole, route],
@@ -346,9 +352,31 @@ function App() {
 
     useEffect(() => {
         let isActive = true;
+        let lastAppliedUserId = null;
 
         const applySession = (nextSession) => {
             if (!isActive) return;
+            const nextUserId = nextSession?.user?.id ?? null;
+            if (nextUserId !== lastAppliedUserId) {
+                lastAppliedUserId = nextUserId;
+                api.session.clearCaches();
+                setCustomers([]);
+                setCustomersPageInfo({
+                    count: 0,
+                    hasMore: false,
+                    limit: CUSTOMER_PAGE_SIZE,
+                    offset: 0,
+                });
+                setHasRequestedCustomers(false);
+                setIsps([]);
+                setHasRequestedIsps(false);
+                setNotifications([]);
+                setCustomerDetailRecord(null);
+                setIspDetailRecord(null);
+                setCurrentIspAccount(null);
+                setHasRequestedCurrentIspAccount(false);
+                setCurrentIspAccountError("");
+            }
             const nextRole = nextSession?.user
                 ? normalizeAppRole(nextSession.user.user_metadata?.role)
                 : APP_ROLES.guest;
@@ -470,6 +498,51 @@ function App() {
             setIsLoadingIsps(false);
         }
     }, []);
+
+    const loadCurrentIspAccount = useCallback(async () => {
+        setHasRequestedCurrentIspAccount(true);
+        setIsLoadingCurrentIspAccount(true);
+        setCurrentIspAccountError("");
+
+        try {
+            const account = await api.session.getCurrentIspAccount();
+            setCurrentIspAccount(account);
+            if (account?.isp) {
+                setIsps((previousIsps) => {
+                    const accountIspId = Number(account.isp.id);
+                    if (!Number.isFinite(accountIspId) || accountIspId <= 0) return previousIsps;
+
+                    const exists = previousIsps.some((item) => Number(item.id) === accountIspId);
+                    return exists ? previousIsps : [account.isp, ...previousIsps];
+                });
+            }
+            return account;
+        } catch (error) {
+            setCurrentIspAccountError(
+                error instanceof Error
+                    ? error.message
+                    : "Terjadi kesalahan saat memuat mapping akun ISP.",
+            );
+            setCurrentIspAccount(null);
+            return null;
+        } finally {
+            setIsLoadingCurrentIspAccount(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (hasCheckedAuth && isLoggedIn && currentRole === APP_ROLES.isp && !hasRequestedCurrentIspAccount && !isLoadingCurrentIspAccount) {
+            void loadCurrentIspAccount();
+            return;
+        }
+
+        if (hasCheckedAuth && (!isLoggedIn || currentRole !== APP_ROLES.isp)) {
+            setCurrentIspAccount(null);
+            setCurrentIspAccountError("");
+            setHasRequestedCurrentIspAccount(false);
+            setIsLoadingCurrentIspAccount(false);
+        }
+    }, [currentRole, hasCheckedAuth, hasRequestedCurrentIspAccount, isLoadingCurrentIspAccount, isLoggedIn, loadCurrentIspAccount]);
 
     // Only load ISPs when user is authenticated (not on login page)
     useEffect(() => {
@@ -668,13 +741,21 @@ function App() {
         }
 
         if (isLoggedIn && route.type === "login") {
-            const landingPath = getLandingPathForRole(currentRole, appPaths, authSession?.user);
+            if (currentRole === APP_ROLES.isp && (!hasRequestedCurrentIspAccount || isLoadingCurrentIspAccount)) {
+                return;
+            }
+
+            const landingPath = getLandingPathForRole(currentRole, appPaths, authSession?.user, resolvedCurrentIspId);
             navigateTo(landingPath, { replace: true });
         }
-    }, [appPaths, authSession?.user, currentRole, hasCheckedAuth, isLoggedIn, navigateTo, route.type]);
+    }, [appPaths, authSession?.user, currentRole, hasCheckedAuth, hasRequestedCurrentIspAccount, isLoadingCurrentIspAccount, isLoggedIn, navigateTo, resolvedCurrentIspId, route.type]);
 
     useEffect(() => {
         if (!hasCheckedAuth || !isLoggedIn || currentRole !== APP_ROLES.isp || route.type === "login" || route.type === "redirect") {
+            return;
+        }
+
+        if (!hasRequestedCurrentIspAccount || isLoadingCurrentIspAccount) {
             return;
         }
 
@@ -706,7 +787,7 @@ function App() {
         if (!isAllowedIspRoute && currentPath !== landingPath) {
             navigateTo(landingPath, { replace: true });
         }
-    }, [appPaths, authSession?.user, currentRole, hasCheckedAuth, hasRequestedIsps, isLoadingIsps, isLoggedIn, locationState.pathname, locationState.search, navigateTo, resolvedCurrentIspId, route.contextIspId, route.ispId, route.type]);
+    }, [appPaths, authSession?.user, currentRole, hasCheckedAuth, hasRequestedCurrentIspAccount, hasRequestedIsps, isLoadingCurrentIspAccount, isLoadingIsps, isLoggedIn, locationState.pathname, locationState.search, navigateTo, resolvedCurrentIspId, route.contextIspId, route.ispId, route.type]);
 
     // Reset scroll to top on route change
     useEffect(() => {
@@ -748,6 +829,7 @@ function App() {
             : null;
     const selectedIsp = route.type === "isp-detail" || route.type === "isp-edit"
         ? resolveIspByIdentifier(isps, route.ispId)
+            ?? (Number(route.ispId) === mappedCurrentIspId ? currentIspAccount?.isp ?? null : null)
         : null;
     const resolvedIspDetail = selectedIsp ?? ispDetailRecord;
     const createTenantContextIsp = route.type === "customer-create"
@@ -1059,6 +1141,7 @@ function App() {
             console.error('Logout error:', error);
         } finally {
             // Clear role and redirect to login
+            api.session.clearCaches();
             setAuthSession(null);
             setCurrentRole(APP_ROLES.guest);
             persistRole(APP_ROLES.guest);
@@ -1129,7 +1212,30 @@ function App() {
                         // Extract role from user metadata
                         const nextRole = normalizeAppRole(user?.user_metadata?.role);
                         const nextRolePaths = getAppPaths(nextRole);
-                        const landingPath = getLandingPathForRole(nextRole, nextRolePaths, user);
+                        api.session.clearCaches();
+                        let loginIspAccount = null;
+                        if (nextRole === APP_ROLES.isp) {
+                            setHasRequestedCurrentIspAccount(true);
+                            setIsLoadingCurrentIspAccount(true);
+                            setCurrentIspAccountError("");
+                            try {
+                                loginIspAccount = await api.session.getCurrentIspAccount();
+                                setCurrentIspAccount(loginIspAccount);
+                                if (loginIspAccount?.isp) {
+                                    setIsps([loginIspAccount.isp]);
+                                }
+                            } catch (error) {
+                                setCurrentIspAccount(null);
+                                setCurrentIspAccountError(
+                                    error instanceof Error
+                                        ? error.message
+                                        : "Terjadi kesalahan saat memuat mapping akun ISP.",
+                                );
+                            } finally {
+                                setIsLoadingCurrentIspAccount(false);
+                            }
+                        }
+                        const landingPath = getLandingPathForRole(nextRole, nextRolePaths, user, loginIspAccount?.ispId);
 
                         setAuthSession({ user });
                         setCurrentRole(nextRole);
@@ -1405,7 +1511,7 @@ function App() {
                     onNavigate={handleNavigate}
                     title={isUnresolvedSelfIspRoute ? "Akun ISP belum terhubung" : "ISP tidak ditemukan"}
                     description={isUnresolvedSelfIspRoute
-                        ? "Akun ini belum memiliki metadata isp_id atau hanya dapat dihubungkan jika data ISP yang terlihat tepat satu. Hubungi admin untuk mengaitkan akun ke ISP yang benar."
+                        ? currentIspAccountError || "Akun ini belum memiliki mapping ISP aktif. Hubungi admin untuk mengaitkan akun ke ISP yang benar."
                         : ispDetailError || "Data ISP yang Anda buka belum tersedia."}
                 />
             );
