@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState, useRef } from "react"
 import AppShell from "../../components/layout/AppShell";
 import { formatDateTime as formatDate } from "../../app/utils";
 import api from "../../lib/api";
+import { requestAppNavigation } from "../../app/navigation-events";
 
 const TYPE_LABELS = {
     contract_expiring: "Kontrak Lokasi",
@@ -87,7 +88,7 @@ function CustomDropdown({ value, options, onChange, align = "left", position = "
     );
 }
 
-export default function TodoListPage({ activeSection, onNavigate, onLogout, currentRole = "admin" }) {
+export default function TodoListPage({ activeSection, onNavigate, onNavigatePath, onLogout, currentRole = "admin" }) {
     const [notifications, setNotifications] = useState([]);
     const [search, setSearch] = useState("");
     const [type, setType] = useState("all");
@@ -198,7 +199,12 @@ export default function TodoListPage({ activeSection, onNavigate, onLogout, curr
     }, [totalPages]);
 
     const openNotification = async (n) => {
-        if (n.targetPath) { window.history.pushState({}, "", n.targetPath); window.dispatchEvent(new PopStateEvent("popstate")); }
+        if (!n.targetPath) return;
+        if (onNavigatePath) {
+            onNavigatePath(n.targetPath);
+            return;
+        }
+        requestAppNavigation(n.targetPath);
     };
     const stopActionClick = (event) => {
         event.stopPropagation();
@@ -211,7 +217,7 @@ export default function TodoListPage({ activeSection, onNavigate, onLogout, curr
     ];
 
     return (
-        <AppShell activeSection={activeSection} onNavigate={onNavigate} onLogout={onLogout} currentRole={currentRole}>
+        <AppShell activeSection={activeSection} onNavigate={onNavigate} onNavigatePath={onNavigatePath} onLogout={onLogout} currentRole={currentRole}>
             <div className="space-y-3 pb-20 pt-2 md:pt-4">
 
                 {/* Header */}

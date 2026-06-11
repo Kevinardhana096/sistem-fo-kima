@@ -1,5 +1,13 @@
 import { ADMIN_PATHS, normalizePathname } from "../admin/routes";
 
+function decodeRouteSegment(value) {
+    try {
+        return decodeURIComponent(value);
+    } catch {
+        return value;
+    }
+}
+
 export const ISP_PATHS = {
     login: ADMIN_PATHS.login,
     adminRegister: ADMIN_PATHS.adminRegister,
@@ -37,7 +45,7 @@ export function parseIspRoute(pathname, search) {
         return {
             type: "customer-detail",
             sectionKey: "isp-detail",
-            customerId: customerDetailMatch[1],
+            customerId: decodeRouteSegment(customerDetailMatch[1]),
             initialTab: searchParams.get("tab") || "overview",
             contextIspId: searchParams.get("isp"),
         };
@@ -48,7 +56,7 @@ export function parseIspRoute(pathname, search) {
         return {
             type: "isp-detail",
             sectionKey: "isp-detail",
-            ispId: ispDetailMatch[1],
+            ispId: decodeRouteSegment(ispDetailMatch[1]),
             initialTab: searchParams.get("tab") || "overview",
         };
     }
