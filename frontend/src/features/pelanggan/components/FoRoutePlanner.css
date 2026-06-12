@@ -1,8 +1,14 @@
-.fo-route-planner {
+.fo-route-planner,
+.fo-route-map,
+.fo-route-preview-map,
+.isp-mini-map {
     --fo-border: rgba(34, 211, 238, 0.18);
     --fo-panel: rgba(2, 8, 23, 0.76);
     --fo-panel-2: rgba(7, 19, 34, 0.92);
     --fo-text-muted: rgba(186, 230, 253, 0.62);
+}
+
+.fo-route-planner {
     font-family: "IBM Plex Mono", "Fira Code", "JetBrains Mono", monospace;
     position: relative;
     overflow: hidden;
@@ -116,7 +122,10 @@
 }
 
 /* Override Leaflet Controls Position */
-.leaflet-control-attribution {
+.fo-route-planner .leaflet-control-attribution,
+.fo-route-map .leaflet-control-attribution,
+.fo-route-preview-map .leaflet-control-attribution,
+.isp-mini-map .leaflet-control-attribution {
     background: rgba(15, 23, 42, 0.6) !important;
     backdrop-filter: blur(8px) !important;
     padding: 4px 10px !important;
@@ -127,19 +136,28 @@
     z-index: 800 !important;
 }
 
-.leaflet-control-attribution a {
+.fo-route-planner .leaflet-control-attribution a,
+.fo-route-map .leaflet-control-attribution a,
+.fo-route-preview-map .leaflet-control-attribution a,
+.isp-mini-map .leaflet-control-attribution a {
     color: var(--fo-text-muted) !important;
     text-decoration: none !important;
 }
 
-.leaflet-bottom.leaflet-left {
+.fo-route-planner .leaflet-bottom.leaflet-left,
+.fo-route-map .leaflet-bottom.leaflet-left,
+.fo-route-preview-map .leaflet-bottom.leaflet-left,
+.isp-mini-map .leaflet-bottom.leaflet-left {
     bottom: 24px !important;
     left: 24px !important;
     margin: 0 !important;
     z-index: 800;
 }
 
-.leaflet-bottom.leaflet-right {
+.fo-route-planner .leaflet-bottom.leaflet-right,
+.fo-route-map .leaflet-bottom.leaflet-right,
+.fo-route-preview-map .leaflet-bottom.leaflet-right,
+.isp-mini-map .leaflet-bottom.leaflet-right {
     bottom: 24px !important;
     right: 24px !important;
     display: flex;
@@ -150,11 +168,17 @@
 }
 
 /* Hide default top-left zoom control completely */
-.leaflet-top.leaflet-left .leaflet-control-zoom {
+.fo-route-planner .leaflet-top.leaflet-left .leaflet-control-zoom,
+.fo-route-map .leaflet-top.leaflet-left .leaflet-control-zoom,
+.fo-route-preview-map .leaflet-top.leaflet-left .leaflet-control-zoom,
+.isp-mini-map .leaflet-top.leaflet-left .leaflet-control-zoom {
     display: none !important;
 }
 
-.leaflet-control-zoom {
+.fo-route-planner .leaflet-control-zoom,
+.fo-route-map .leaflet-control-zoom,
+.fo-route-preview-map .leaflet-control-zoom,
+.isp-mini-map .leaflet-control-zoom {
     margin: 16px !important;
     margin-top: 40px !important;
     border: 1px solid rgba(255,255,255,0.1) !important;
@@ -174,7 +198,10 @@
     margin-right: 8px !important;
 }
 
-.leaflet-control-zoom a {
+.fo-route-planner .leaflet-control-zoom a,
+.fo-route-map .leaflet-control-zoom a,
+.fo-route-preview-map .leaflet-control-zoom a,
+.isp-mini-map .leaflet-control-zoom a {
     width: 28px !important;
     height: 28px !important;
     line-height: 28px !important;
@@ -190,13 +217,16 @@
     justify-content: center !important;
 }
 
-.leaflet-control-zoom a:hover {
+.fo-route-planner .leaflet-control-zoom a:hover,
+.fo-route-map .leaflet-control-zoom a:hover,
+.fo-route-preview-map .leaflet-control-zoom a:hover,
+.isp-mini-map .leaflet-control-zoom a:hover {
     background-color: rgba(255,255,255,0.1) !important;
     color: white !important;
 }
 
 @media (max-width: 1024px) {
-    aside {
+    .fo-route-planner aside {
         width: 300px !important;
     }
 }

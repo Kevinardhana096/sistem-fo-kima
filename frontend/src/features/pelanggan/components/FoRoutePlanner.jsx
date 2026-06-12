@@ -1557,7 +1557,7 @@ export default function FoRoutePlanner({
             >
               <span className="material-symbols-outlined text-base">my_location</span>
             </button>
-            <div className="absolute inset-0 z-10">
+            <div className="fo-route-map absolute inset-0 z-10">
               <MapContainer
                 attributionControl={false}
                 center={DEFAULT_CENTER}
@@ -1739,7 +1739,7 @@ export default function FoRoutePlanner({
       <ToastStack onDismiss={dismissToast} toasts={toasts} />
 
       {/* Background Map - Fills entire container */}
-      <div className="absolute inset-0 z-0">
+      <div className="fo-route-map absolute inset-0 z-0">
         <MapContainer
           attributionControl={false}
           center={DEFAULT_CENTER}
