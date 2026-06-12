@@ -46,6 +46,28 @@ const getContractSummaryRowSortValue = (row) => {
     return Number.isFinite(timestamp) ? timestamp : 0;
 };
 
+const getTenantLeaseRemainingDays = (tenant, todayIso) => {
+    const endDateStr = tenant?.contractPeriodInfo?.contractPeriodEnd ?? tenant?.contractPeriodEnd;
+    if (!endDateStr) return null;
+
+    const endDate = new Date(endDateStr);
+    const today = new Date(todayIso);
+    const diffDays = Math.ceil((endDate.getTime() - today.getTime()) / 86400000);
+
+    return Number.isFinite(diffDays) ? diffDays : null;
+};
+
+const compareTenantsByLeaseRemaining = (a, b, todayIso) => {
+    const daysA = getTenantLeaseRemainingDays(a, todayIso);
+    const daysB = getTenantLeaseRemainingDays(b, todayIso);
+    const sortA = daysA ?? Number.POSITIVE_INFINITY;
+    const sortB = daysB ?? Number.POSITIVE_INFINITY;
+
+    if (sortA !== sortB) return sortA - sortB;
+
+    return String(a?.name ?? "").localeCompare(String(b?.name ?? ""));
+};
+
 const hasDisplayableContractSummaryData = (row) => [
     row?.contractReference ?? row?.contract_reference,
     row?.contractStartDate ?? row?.contract_start_date,
@@ -340,7 +362,7 @@ function IspDetailPage({
     const [tenantSearch, setTenantSearch] = useState("");
     const [tenantStatusFilter, setTenantStatusFilter] = useState("all");
     const [tenantPaketFilter, setTenantPaketFilter] = useState("all");
-    const [tenantSortMethod, setTenantSortMethod] = useState("newest");
+    const [tenantSortMethod, setTenantSortMethod] = useState("lease_remaining");
     const [showTenantFilters, setShowTenantFilters] = useState(false);
 
     // Filtering & Sorting State for Dokumen Table
@@ -676,14 +698,15 @@ function IspDetailPage({
 
         // 4. Sorting
         result.sort((a, b) => {
+            if (tenantSortMethod === "lease_remaining") return compareTenantsByLeaseRemaining(a, b, todayIso);
             if (tenantSortMethod === "name_asc") return a.name.localeCompare(b.name);
             if (tenantSortMethod === "name_desc") return b.name.localeCompare(a.name);
             if (tenantSortMethod === "oldest") return (a.id || 0) - (b.id || 0);
-            return (b.id || 0) - (a.id || 0); // newest default
+            return (b.id || 0) - (a.id || 0); // newest fallback
         });
 
         return result;
-    }, [allTenants, tenantSearch, tenantStatusFilter, tenantPaketFilter, tenantSortMethod]);
+    }, [allTenants, tenantSearch, tenantStatusFilter, tenantPaketFilter, tenantSortMethod, todayIso]);
 
     // Filtered & Sorted Documents
     const filteredDocs = useMemo(() => {
@@ -2378,6 +2401,7 @@ function IspDetailPage({
                                                 value={tenantSortMethod}
                                                 onChange={setTenantSortMethod}
                                                 options={[
+                                                    { value: "lease_remaining", label: "Sisa Sewa" },
                                                     { value: "newest", label: "Terbaru" },
                                                     { value: "oldest", label: "Terlama" },
                                                     { value: "name_asc", label: "Nama A-Z" },
@@ -2388,14 +2412,14 @@ function IspDetailPage({
 
                                         {/* 5. Reset Filter */}
                                         {(() => {
-                                            const isFilterActive = tenantSearch || tenantStatusFilter !== "all" || tenantPaketFilter !== "all" || tenantSortMethod !== "newest";
+                                            const isFilterActive = tenantSearch || tenantStatusFilter !== "all" || tenantPaketFilter !== "all" || tenantSortMethod !== "lease_remaining";
                                             return (
                                                 <button
                                                     onClick={() => {
                                                         setTenantSearch("");
                                                         setTenantStatusFilter("all");
                                                         setTenantPaketFilter("all");
-                                                        setTenantSortMethod("newest");
+                                                        setTenantSortMethod("lease_remaining");
                                                     }}
                                                     title="Hapus Filter"
                                                     disabled={!isFilterActive}
@@ -2495,6 +2519,7 @@ function IspDetailPage({
                                                     <span className="text-[8px] font-black uppercase tracking-[0.25em] text-white/25">Urutkan</span>
                                                     <div className="flex flex-wrap gap-1.5">
                                                         {[
+                                                            { value: "lease_remaining", label: "Sisa Sewa" },
                                                             { value: "newest", label: "Terbaru" },
                                                             { value: "oldest", label: "Terlama" },
                                                             { value: "name_asc", label: "A – Z" },
@@ -2522,14 +2547,14 @@ function IspDetailPage({
                                             <span className="text-[9px] font-black text-white/20 uppercase tracking-widest">
                                                 {filteredTenants.length} lokasi
                                             </span>
-                                            {(tenantSearch || tenantStatusFilter !== "all" || tenantPaketFilter !== "all" || tenantSortMethod !== "newest") && (
+                                            {(tenantSearch || tenantStatusFilter !== "all" || tenantPaketFilter !== "all" || tenantSortMethod !== "lease_remaining") && (
                                                 <button
                                                     type="button"
                                                     onClick={() => {
                                                         setTenantSearch("");
                                                         setTenantStatusFilter("all");
                                                         setTenantPaketFilter("all");
-                                                        setTenantSortMethod("newest");
+                                                        setTenantSortMethod("lease_remaining");
                                                     }}
                                                     className="flex items-center gap-1 h-6 px-2.5 rounded-full text-[8px] font-black uppercase tracking-wide border border-[#ff2400]/30 bg-[#ff2400]/10 text-[#ff2400] hover:bg-[#ff2400]/20 transition-all"
                                                 >
