@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { Fragment, useEffect, useMemo, useRef } from "react";
 import {
   AttributionControl,
   GeoJSON,
@@ -11,6 +11,7 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import LeafletRenderStabilizer from "./LeafletRenderStabilizer";
 import "./FoRoutePlanner.css";
 
 const KIMA_CENTER = [-5.0929568, 119.5018379];
@@ -72,13 +73,25 @@ function getPointCoordinates(point) {
   return null;
 }
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
 function makePinHtml(logoUrl, fallbackLabel, bgColor, title) {
-  const bg = logoUrl ? "white" : bgColor;
-  const inner = logoUrl
-    ? `<img src="${logoUrl}" style="width:28px;height:28px;object-fit:contain;transform:rotate(45deg);" />`
-    : `<span style="transform:rotate(45deg);font-size:11px;font-weight:800;color:white;">${fallbackLabel}</span>`;
+  const safeLogoUrl = String(logoUrl ?? "").trim();
+  const safeTitle = escapeHtml(title);
+  const safeFallbackLabel = escapeHtml(fallbackLabel);
+  const bg = safeLogoUrl ? "white" : bgColor;
+  const inner = safeLogoUrl
+    ? `<img src="${escapeHtml(safeLogoUrl)}" alt="${safeTitle}" style="width:28px;height:28px;object-fit:contain;transform:rotate(45deg);" />`
+    : `<span style="transform:rotate(45deg);font-size:11px;font-weight:800;color:white;">${safeFallbackLabel}</span>`;
   return `
-    <div title="${title}" style="position:relative;width:36px;height:44px;filter:drop-shadow(0 3px 6px rgba(0,0,0,0.5));cursor:pointer;">
+    <div title="${safeTitle}" style="position:relative;width:36px;height:44px;filter:drop-shadow(0 3px 6px rgba(0,0,0,0.5));cursor:pointer;">
       <div style="width:36px;height:36px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:${bg};border:2.5px solid ${bgColor};overflow:hidden;display:flex;align-items:center;justify-content:center;">
         ${inner}
       </div>
@@ -126,13 +139,6 @@ function FitBounds({ bounds }) {
   return null;
 }
 
-function MapInstanceCapture({ onReady }) {
-  const map = useMap();
-  useEffect(() => {
-    if (onReady) onReady(map);
-  }, [map, onReady]);
-  return null;
-}
 
 export default function FoRouteMultiPreview({ tenants = [], entryPoints = [], ispLogoUrl = "", ispName = "", onTenantClick }) {
   const routeData = useMemo(() => {
@@ -201,6 +207,9 @@ export default function FoRouteMultiPreview({ tenants = [], entryPoints = [], is
     return L.latLngBounds(allCoords);
   }, [entryPointMarkers, routeData]);
 
+  const renderRefreshKey = bounds?.isValid()
+    ? `${routeData.length}-${entryPointMarkers.length}-${bounds.toBBoxString()}`
+    : `${routeData.length}-${entryPointMarkers.length}-empty`;
   const ispIcon = useMemo(() => createIspIcon(ispLogoUrl, ispName || "ISP"), [ispLogoUrl, ispName]);
   const fallbackIspMarker = entryPointMarkers.length === 0 ? routeData[0]?.awalCoord : null;
 
@@ -246,12 +255,18 @@ export default function FoRouteMultiPreview({ tenants = [], entryPoints = [], is
           <ZoomControl position="topright" />
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            keepBuffer={4}
             maxNativeZoom={TILE_MAX_NATIVE_ZOOM}
             maxZoom={MAP_MAX_ZOOM}
+            updateInterval={100}
+            updateWhenIdle={false}
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
           <AttributionControl position="bottomleft" />
-          <MapInstanceCapture onReady={(map) => { mapRef.current = map; }} />
+          <LeafletRenderStabilizer
+            onReady={(map) => { mapRef.current = map; }}
+            refreshKey={renderRefreshKey}
+          />
           {bounds && <FitBounds bounds={bounds} />}
 
           <Marker icon={KIMA_ICON} position={KIMA_CENTER} zIndexOffset={1000} />
@@ -291,7 +306,7 @@ export default function FoRouteMultiPreview({ tenants = [], entryPoints = [], is
             const icon = createCustomerIcon(route.color, route.tenantName.charAt(0), route.tenantLogoUrl, route.tenantName);
 
             return (
-              <span key={route.tenantId}>
+              <Fragment key={route.tenantId}>
                 <GeoJSON data={geoJson} style={() => ({ color: route.color, weight: 8, opacity: 0.18 })} />
                 <GeoJSON data={geoJson} style={() => ({ color: route.color, weight: 3.5, opacity: 0.9 })} />
                 {route.tujuanCoord && (
@@ -301,7 +316,7 @@ export default function FoRouteMultiPreview({ tenants = [], entryPoints = [], is
                     eventHandlers={{ click: () => onTenantClick?.(route.tenantId) }}
                   />
                 )}
-              </span>
+              </Fragment>
             );
           })}
         </MapContainer>

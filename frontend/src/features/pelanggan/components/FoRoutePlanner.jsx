@@ -11,13 +11,14 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import LeafletRenderStabilizer from "./LeafletRenderStabilizer";
 import "./FoRoutePlanner.css";
 
 const KIMA_CENTER = [-5.0929568, 119.5018379];
 const DEFAULT_CENTER = KIMA_CENTER;
 const DEFAULT_ZOOM = 14;
 const MAP_MIN_ZOOM = 12;
-const MAP_MAX_ZOOM = 22;
+const MAP_MAX_ZOOM = 19;
 const DEFAULT_TILE_MAX_NATIVE_ZOOM = 19;
 const VALHALLA_LOCAL_HOST =
   typeof import.meta.env.VITE_VALHALLA_HOST === "string" &&
@@ -454,80 +455,6 @@ function MapViewportController({ flyTarget, fitRouteKey, fitCoordinates }) {
   return null;
 }
 
-function MapRenderStabilizer({ onReady, refreshKey }) {
-  const map = useMap();
-
-  useEffect(() => {
-    if (onReady) onReady(map);
-  }, [map, onReady]);
-
-  useEffect(() => {
-    const container = map.getContainer();
-    const refreshTiles = () => {
-      map.eachLayer((layer) => {
-        if (layer instanceof L.TileLayer) {
-          layer.redraw();
-        }
-      });
-    };
-    const invalidate = (redrawTiles = false) => {
-      map.invalidateSize({ debounceMoveend: true, pan: false });
-      if (redrawTiles) {
-        refreshTiles();
-      }
-    };
-
-    const animationFrame = requestAnimationFrame(() => invalidate(true));
-    const timers = [120, 320, 700].map((delay) =>
-      window.setTimeout(() => invalidate(delay >= 700), delay),
-    );
-
-    const resizeObserver = new ResizeObserver(() => invalidate());
-    resizeObserver.observe(container);
-
-    const intersectionObserver = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting) {
-          invalidate(true);
-        }
-      },
-      { threshold: 0.1 },
-    );
-    intersectionObserver.observe(container);
-
-    const handleWindowResize = () => invalidate(true);
-    const handleTransitionEnd = () => invalidate(true);
-    let zoomSettleTimer = null;
-    const handleZoomSettled = () => {
-      invalidate();
-      if (zoomSettleTimer) {
-        window.clearTimeout(zoomSettleTimer);
-      }
-      zoomSettleTimer = window.setTimeout(() => invalidate(true), 180);
-    };
-
-    window.addEventListener("resize", handleWindowResize);
-    window.visualViewport?.addEventListener("resize", handleWindowResize);
-    container.addEventListener("transitionend", handleTransitionEnd);
-    map.on("zoomend viewreset", handleZoomSettled);
-
-    return () => {
-      cancelAnimationFrame(animationFrame);
-      timers.forEach((timer) => window.clearTimeout(timer));
-      if (zoomSettleTimer) {
-        window.clearTimeout(zoomSettleTimer);
-      }
-      resizeObserver.disconnect();
-      intersectionObserver.disconnect();
-      window.removeEventListener("resize", handleWindowResize);
-      window.visualViewport?.removeEventListener("resize", handleWindowResize);
-      container.removeEventListener("transitionend", handleTransitionEnd);
-      map.off("zoomend viewreset", handleZoomSettled);
-    };
-  }, [map, refreshKey]);
-
-  return null;
-}
 
 function ToastStack({ toasts, onDismiss }) {
   return (
@@ -1655,7 +1582,7 @@ export default function FoRoutePlanner({
                   fitRouteKey={isPreviewMode ? `preview-${previewControlPoints.length}-${previewGeometryCoordinates.length}-${previewRoadSegments.length}` : `route-${routeData?.geometryCoordinates?.length || 0}`}
                   flyTarget={flyTarget}
                 />
-                <MapRenderStabilizer refreshKey={`preview-${basemap}`} />
+                <LeafletRenderStabilizer refreshKey={`preview-${basemap}`} />
                 <Marker icon={KIMA_ICON} position={KIMA_CENTER} zIndexOffset={1000}>
                   <Popup>Kawasan Industri Makassar (KIMA)</Popup>
                 </Marker>
@@ -1839,7 +1766,7 @@ export default function FoRoutePlanner({
             fitRouteKey={`${routeData?.source ?? "none"}-${routeData?.distance ?? 0}-${routeData?.mode ?? "idle"}`}
             flyTarget={flyTarget}
           />
-          <MapRenderStabilizer
+          <LeafletRenderStabilizer
             onReady={setMapInstance}
             refreshKey={`${basemap}-${isSidebarOpen ? "sidebar-open" : "sidebar-closed"}`}
           />
