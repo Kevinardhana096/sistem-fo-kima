@@ -4,6 +4,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from "re
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import LeafletRenderStabilizer from "./LeafletRenderStabilizer";
+import "./FoRoutePlanner.css";
 
 const KIMA_CENTER = [-5.0929568, 119.5018379];
 const DEFAULT_ZOOM = 14;
