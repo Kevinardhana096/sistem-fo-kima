@@ -35,6 +35,8 @@ Urutan setup environment baru (ringkas): **auth users → RLS → kolom/feature 
 | [maintenance/add-soft-delete-columns.sql](maintenance/add-soft-delete-columns.sql) | Menambahkan kolom `deleted_at`/`deleted_by` ke seluruh tabel utama (dasar fitur Tempat Sampah / soft delete). |
 | [maintenance/add-activity-logs.sql](maintenance/add-activity-logs.sql) | Membuat tabel `activity_logs` (audit trail) untuk fitur Log Aktivitas. |
 | [maintenance/add-notification-states.sql](maintenance/add-notification-states.sql) | Membuat state baca/selesai notifikasi per user untuk fitur Tindak Lanjut. |
+| [maintenance/add-notification-email-deliveries.sql](maintenance/add-notification-email-deliveries.sql) | Membuat log delivery email notifikasi per user agar pengiriman role-based tidak duplikat. |
+| [maintenance/schedule-notification-email-job.sql](maintenance/schedule-notification-email-job.sql) | Template Supabase Cron + Vault untuk menjadwalkan Edge Function email notifikasi setiap 15 menit. |
 | [maintenance/add-isp-document-columns.sql](maintenance/add-isp-document-columns.sql) | Menambahkan kolom metadata file BAK & kontrak ISP yang dipakai frontend. |
 | [maintenance/add-isp-contract-row-status.sql](maintenance/add-isp-contract-row-status.sql) | Menambahkan kolom `status` kompatibilitas pada `isp_contract_rows` agar payload frontend lama tetap bisa ditulis. |
 | [maintenance/add-isp-contract-row-contract-start-date.sql](maintenance/add-isp-contract-row-contract-start-date.sql) | Menambahkan kolom `contract_start_date` pada `isp_contract_rows` agar tanggal kontrak di tab kontrak ISP tersimpan per baris. |

@@ -4,6 +4,11 @@ import { getRoleConfig } from "../../roles";
 import api from "../../lib/api";
 import { requestAppNavigation } from "../../app/navigation-events";
 import { supabase, updateCurrentUserProfile } from "../../lib/supabase";
+import {
+    getBrowserNotificationSupport,
+    requestBrowserNotificationPermission,
+    showBrowserNotification,
+} from "../../lib/browser-notifications";
 
 const AUTH_TRANSITION_EVENT = "sistem-fo-kima:auth-transition";
 const TRANSITION_STATE_KEY = "__sistemFoKimaTransitionState";
@@ -367,6 +372,8 @@ function TopNav({
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
     const [notifications, setNotifications] = useState([]);
     const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
+    const [browserNotificationStatus, setBrowserNotificationStatus] = useState(() => getBrowserNotificationSupport());
+    const [isEnablingBrowserNotifications, setIsEnablingBrowserNotifications] = useState(false);
 
     const loadNotifications = async () => {
         setIsLoadingNotifications(true);
@@ -383,6 +390,35 @@ function TopNav({
     useEffect(() => {
         loadNotifications();
     }, []);
+
+    useEffect(() => {
+        const syncPermission = () => {
+            setBrowserNotificationStatus(getBrowserNotificationSupport());
+        };
+
+        window.addEventListener("focus", syncPermission);
+        return () => {
+            window.removeEventListener("focus", syncPermission);
+        };
+    }, []);
+
+    const handleEnableBrowserNotifications = async () => {
+        setIsEnablingBrowserNotifications(true);
+        try {
+            const status = await requestBrowserNotificationPermission();
+            setBrowserNotificationStatus(status);
+            if (status.permission === "granted") {
+                await showBrowserNotification({
+                    id: "browser-notification-enabled",
+                    title: "Notifikasi KIMA aktif",
+                    message: "Perangkat ini akan menampilkan notifikasi operasional baru.",
+                    targetPath: "/todos",
+                });
+            }
+        } finally {
+            setIsEnablingBrowserNotifications(false);
+        }
+    };
 
     const handleOpenNotification = async (notification) => {
         if (!notification.readAt) {
@@ -503,6 +539,45 @@ function TopNav({
                                     >
                                         <span className={`material-symbols-outlined text-lg ${isLoadingNotifications ? "animate-spin" : ""}`}>sync</span>
                                     </button>
+                                </div>
+
+                                <div className="border-b border-white/10 px-4 py-3">
+                                    {browserNotificationStatus.isSupported ? (
+                                        <div className="flex items-center justify-between gap-3">
+                                            <div className="min-w-0">
+                                                <p className="text-[11px] font-black text-on-surface">
+                                                    Notifikasi perangkat
+                                                </p>
+                                                <p className="mt-0.5 text-[10px] font-bold leading-snug text-on-surface-variant/75">
+                                                    {browserNotificationStatus.permission === "granted"
+                                                        ? "Aktif di perangkat ini."
+                                                        : browserNotificationStatus.permission === "denied"
+                                                            ? "Diblokir oleh browser. Ubah izin dari pengaturan browser."
+                                                            : "Aktifkan agar notifikasi muncul di HP atau laptop ini."}
+                                                </p>
+                                            </div>
+                                            {browserNotificationStatus.permission !== "granted" && (
+                                                <button
+                                                    className="flex shrink-0 items-center gap-1.5 rounded-lg bg-gold-accent px-3 py-2 text-[9px] font-black uppercase tracking-widest text-black shadow-gold-glow anim-surface disabled:cursor-not-allowed disabled:opacity-60"
+                                                    disabled={isEnablingBrowserNotifications || browserNotificationStatus.permission === "denied"}
+                                                    onClick={handleEnableBrowserNotifications}
+                                                    type="button"
+                                                >
+                                                    <span className="material-symbols-outlined text-sm">
+                                                        {isEnablingBrowserNotifications ? "sync" : "notifications_active"}
+                                                    </span>
+                                                    Aktifkan
+                                                </button>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-start gap-2 rounded-xl bg-amber-500/10 px-3 py-2 text-amber-200">
+                                            <span className="material-symbols-outlined mt-0.5 text-base">info</span>
+                                            <p className="text-[10px] font-bold leading-snug">
+                                                {browserNotificationStatus.reason}
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="p-3">

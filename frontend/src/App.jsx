@@ -1,10 +1,14 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AppShell from "./components/layout/AppShell";
 import { sectionMeta } from "./app/constants";
 import { mapCustomerToRow } from "./app/utils";
 import { signOut, supabase } from "./lib/supabase";
 import api from "./lib/api";
 import { APP_NAVIGATION_EVENT } from "./app/navigation-events";
+import {
+    notifyNewUnreadBrowserNotifications,
+    rememberBrowserNotificationIds,
+} from "./lib/browser-notifications";
 
 const CHUNK_RELOAD_STATE_KEY = "__sistemFoKimaChunkReloaded";
 const AUTH_TRANSITION_EVENT = "sistem-fo-kima:auth-transition";
@@ -321,6 +325,7 @@ function App() {
     const [hasRequestedCurrentIspAccount, setHasRequestedCurrentIspAccount] = useState(false);
     const [currentIspAccountError, setCurrentIspAccountError] = useState("");
     const [notifications, setNotifications] = useState([]);
+    const hasInitializedBrowserNotificationBaselineRef = useRef(false);
     const [dashboardRefreshToken, setDashboardRefreshToken] = useState(0);
     const [customerDetailRecord, setCustomerDetailRecord] = useState(null);
     const [customerDetailLoading, setCustomerDetailLoading] = useState(false);
@@ -583,6 +588,36 @@ function App() {
         }
     }, [hasCheckedAuth, isLoggedIn, loadNotifications, route.type]);
 
+    useEffect(() => {
+        if (!hasCheckedAuth || !isLoggedIn || route.type === "login") {
+            return undefined;
+        }
+
+        const refreshInterval = window.setInterval(() => {
+            void loadNotifications();
+        }, 60_000);
+
+        return () => {
+            window.clearInterval(refreshInterval);
+        };
+    }, [hasCheckedAuth, isLoggedIn, loadNotifications, route.type]);
+
+    useEffect(() => {
+        const userId = authSession?.user?.id;
+        if (!isLoggedIn || !userId) {
+            hasInitializedBrowserNotificationBaselineRef.current = false;
+            return;
+        }
+
+        if (!hasInitializedBrowserNotificationBaselineRef.current) {
+            rememberBrowserNotificationIds(notifications, userId);
+            hasInitializedBrowserNotificationBaselineRef.current = true;
+            return;
+        }
+
+        void notifyNewUnreadBrowserNotifications(notifications, userId);
+    }, [authSession?.user?.id, isLoggedIn, notifications]);
+
     const notificationCountsByCustomerId = useMemo(() => {
         return notifications.reduce((counts, notification) => {
             const customerId = Number(notification.customerId);
@@ -663,6 +698,23 @@ function App() {
 
         setLocationState(nextState);
     }, [currentRole]);
+
+    useEffect(() => {
+        if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) {
+            return undefined;
+        }
+
+        const handleServiceWorkerMessage = (event) => {
+            if (event?.data?.type !== "OPEN_NOTIFICATION_TARGET") return;
+            const targetPath = event.data.targetPath;
+            if (targetPath) navigateTo(targetPath);
+        };
+
+        navigator.serviceWorker.addEventListener("message", handleServiceWorkerMessage);
+        return () => {
+            navigator.serviceWorker.removeEventListener("message", handleServiceWorkerMessage);
+        };
+    }, [navigateTo]);
 
     useEffect(() => {
         if (typeof window === "undefined") {
