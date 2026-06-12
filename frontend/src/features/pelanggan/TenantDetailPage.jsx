@@ -4488,11 +4488,11 @@ function TenantDetailPage({
         onNavigate={onNavigate}
         onLogout={onLogout}
         hideSidebar={true}
-        full={false}
+        full={true}
       >
-        <div className="relative z-0 h-auto md:h-[calc(100vh-12rem)] w-full overflow-hidden bg-slate-950/40 rounded-2xl border border-white/10 font-manrope antialiased p-0 flex flex-col">
+        <div className="relative z-0 h-[100dvh] w-screen overflow-hidden bg-slate-950 font-manrope antialiased p-0 flex flex-col">
           {/* Map Container */}
-          <div className="w-full aspect-square md:aspect-auto md:h-full">
+          <div className="h-full w-full">
             <FoRoutePlanner
               disabled={routeBusy || !canManageRoute}
               initialControlPoints={previewRoutePoints}
