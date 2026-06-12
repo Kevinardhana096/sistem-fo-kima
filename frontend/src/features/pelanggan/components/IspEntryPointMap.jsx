@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap, ZoomControl } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import LeafletRenderStabilizer from "./LeafletRenderStabilizer";
 
 const KIMA_CENTER = [-5.0929568, 119.5018379];
 const DEFAULT_ZOOM = 14;
@@ -71,31 +72,6 @@ function FitBounds({ bounds }) {
   return null;
 }
 
-function MapCapture({ onReady }) {
-  const map = useMap();
-  useEffect(() => {
-    if (onReady) onReady(map);
-    map.invalidateSize();
-    const animationFrame = requestAnimationFrame(() => map.invalidateSize());
-    const resizeTimer = window.setTimeout(() => map.invalidateSize(), 250);
-    const container = map.getContainer();
-    // Fix tiles not loading when map is below the fold
-    const io = new IntersectionObserver(
-      (entries) => { if (entries[0]?.isIntersecting) map.invalidateSize(); },
-      { threshold: 0.1 },
-    );
-    io.observe(container);
-    const ro = new ResizeObserver(() => map.invalidateSize());
-    ro.observe(container);
-    return () => {
-      cancelAnimationFrame(animationFrame);
-      window.clearTimeout(resizeTimer);
-      io.disconnect();
-      ro.disconnect();
-    };
-  }, [map, onReady]);
-  return null;
-}
 
 export default function IspEntryPointMap({
   entryPoints = [],
@@ -244,11 +220,17 @@ function EntryPointMapSurface({
       >
         
         <TileLayer
+          keepBuffer={4}
           maxNativeZoom={TILE_MAX_NATIVE_ZOOM}
           maxZoom={MAP_MAX_ZOOM}
+          updateInterval={100}
+          updateWhenIdle={false}
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <MapCapture onReady={(map) => { mapRef.current = map; }} />
+        <LeafletRenderStabilizer
+          onReady={(map) => { mapRef.current = map; }}
+          refreshKey={`${fullscreen ? "fullscreen" : "mini"}-${entryPoints.length}-${bounds?.toBBoxString() ?? "empty"}`}
+        />
         {bounds && <FitBounds bounds={bounds} />}
         {!readOnly && <ClickHandler onMapClick={onMapClick} />}
         <Marker icon={KIMA_ICON} position={KIMA_CENTER}>
