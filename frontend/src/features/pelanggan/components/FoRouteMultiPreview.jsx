@@ -16,8 +16,9 @@ import "./FoRoutePlanner.css";
 const KIMA_CENTER = [-5.0929568, 119.5018379];
 const DEFAULT_ZOOM = 14;
 const MAP_MIN_ZOOM = 12;
-const MAP_MAX_ZOOM = 22;
+const MAP_MAX_ZOOM = 19;
 const TILE_MAX_NATIVE_ZOOM = 19;
+const FIT_BOUNDS_MAX_ZOOM = 16;
 const KIMA_ICON = L.icon({
   iconUrl: "/logo-kima.png",
   iconSize: [40, 40],
@@ -119,7 +120,7 @@ function FitBounds({ bounds }) {
   const map = useMap();
   useEffect(() => {
     if (bounds && bounds.isValid()) {
-      map.fitBounds(bounds, { padding: [40, 40] });
+      map.fitBounds(bounds, { padding: [40, 40], maxZoom: FIT_BOUNDS_MAX_ZOOM });
     }
   }, [bounds, map]);
   return null;
