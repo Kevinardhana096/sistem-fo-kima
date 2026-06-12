@@ -160,7 +160,6 @@ export default function DateInput({
                 defaultValue={isoToDisplay(value)}
                 onChange={handleTextChange}
                 onBlur={handleTextBlur}
-                onClick={openPicker}
                 onKeyDown={handleTextKeyDown}
                 onFocus={handleTextFocus}
                 disabled={disabled}
@@ -176,7 +175,6 @@ export default function DateInput({
                     type="button"
                     onClick={openPicker}
                     disabled={disabled}
-                    tabIndex={-1}
                     aria-label="Buka kalender"
                     className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center justify-center text-white/30 hover:text-gold-accent transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
                 >
