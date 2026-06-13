@@ -64,7 +64,7 @@ const baseIsp = {
 
 const renderPage = (props = {}) => render(
   <IspDetailPage
-    currentRole="admin"
+    currentRole="super_admin"
     initialTab="contracts"
     isp={baseIsp}
     onBack={vi.fn()}

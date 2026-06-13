@@ -609,6 +609,11 @@ function TenantDetailPage({
   const {
     isTeknisi,
     isIsp,
+    canViewOverview,
+    canViewTenantContracts,
+    canViewInvoices,
+    canViewRoute,
+    canViewDocuments,
     canManageRoute,
     canManageTenantContracts,
   } = resolveTenantDetailAccess(currentRole);
@@ -677,6 +682,15 @@ function TenantDetailPage({
   const routeDraftStorageKey = `tenant-route-draft-${customer.id}`;
   const isStandaloneJalurView = routeViewMode !== "embedded";
   const isPlannerJalurView = routeViewMode === "planner";
+  const tabItems = useMemo(() => [
+    canViewOverview ? { id: "overview", label: "Ringkasan", icon: "dashboard" } : null,
+    canViewTenantContracts ? { id: "contracts", label: "Kontrak", icon: "description" } : null,
+    canViewInvoices ? { id: "invoices", label: "Invoice", icon: "receipt_long" } : null,
+    canViewRoute ? { id: "jalur", label: "Jalur", icon: "map" } : null,
+    canViewDocuments ? { id: "documents", label: "Dokumen", icon: "inventory_2" } : null,
+    canViewOverview ? { id: "timeline", label: "Timeline", icon: "history" } : null,
+  ].filter(Boolean), [canViewDocuments, canViewInvoices, canViewOverview, canViewRoute, canViewTenantContracts]);
+  const fallbackTab = tabItems[0]?.id ?? "overview";
 
   const loadDetail = useCallback(async () => {
     setError("");
@@ -695,9 +709,11 @@ function TenantDetailPage({
   }, [customer.id]);
 
   useEffect(() => {
-    setActiveTab(isStandaloneJalurView || isTeknisi ? "jalur" : initialTab);
+    const requestedTab = isStandaloneJalurView || isTeknisi ? "jalur" : initialTab;
+    const nextTab = tabItems.some((tab) => tab.id === requestedTab) ? requestedTab : fallbackTab;
+    setActiveTab(nextTab);
     void loadDetail();
-  }, [initialTab, isStandaloneJalurView, isTeknisi, loadDetail]);
+  }, [fallbackTab, initialTab, isStandaloneJalurView, isTeknisi, loadDetail, tabItems]);
 
   useEffect(() => {
     const handleWindowFocus = () => {
@@ -4561,14 +4577,7 @@ function TenantDetailPage({
               >
                 <span className="material-symbols-outlined text-base text-gold-accent">menu</span>
                 <span className="text-[10px] font-black tracking-widest uppercase text-white">
-                  {[
-                    { id: "overview", label: "Ringkasan" },
-                    { id: "contracts", label: "Kontrak" },
-                    { id: "invoices", label: "Invoice" },
-                    { id: "jalur", label: "Jalur" },
-                    { id: "documents", label: "Dokumen" },
-                    { id: "timeline", label: "Timeline" }
-                  ].find(t => t.id === activeTab)?.label || "Menu"}
+                  {tabItems.find(t => t.id === activeTab)?.label || "Menu"}
                 </span>
               </button>
 
@@ -4576,14 +4585,7 @@ function TenantDetailPage({
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setIsMobileTabMenuOpen(false)}></div>
                   <div className="absolute top-full left-0 mt-3 w-52 origin-top-left p-2 rounded-2xl glass-popover shadow-glass-depth z-50 flex flex-col gap-1 animate-in fade-in zoom-in duration-300">
-                    {[
-                      { id: "overview", label: "Ringkasan", icon: "dashboard" },
-                      { id: "contracts", label: "Kontrak", icon: "description" },
-                      { id: "invoices", label: "Invoice", icon: "receipt_long" },
-                      { id: "jalur", label: "Jalur", icon: "map" },
-                      { id: "documents", label: "Dokumen", icon: "inventory_2" },
-                      { id: "timeline", label: "Timeline", icon: "history" }
-                    ].map(tab => (
+                    {tabItems.map(tab => (
                       <button
                         key={tab.id}
                         onClick={() => {
@@ -4996,14 +4998,7 @@ function TenantDetailPage({
           <section className="hidden md:block glass-card backdrop-blur-xl rounded-2xl p-1 border-white/10 shadow-glass-depth relative overflow-hidden">
             <div className="absolute inset-0 bg-white/[0.02] pointer-events-none" />
             <nav className="relative flex flex-wrap gap-1">
-              {[
-                { id: "overview", label: "Ringkasan", icon: "dashboard" },
-                { id: "contracts", label: "Kontrak", icon: "description" },
-                { id: "invoices", label: "Invoice", icon: "receipt_long" },
-                { id: "jalur", label: "Jalur", icon: "map" },
-                { id: "documents", label: "Dokumen", icon: "inventory_2" },
-                { id: "timeline", label: "Timeline", icon: "history" },
-              ]
+              {tabItems
                 .map((tab) => (
                   <button
                     key={tab.id}
@@ -5019,7 +5014,7 @@ function TenantDetailPage({
           </section>
         )}
 
-        {activeTab === "overview" && (
+        {canViewOverview && activeTab === "overview" && (
           <div className="flex flex-col gap-3 md:gap-4">
             {/* ── Row 1: Stats strip ─────────────────────────────────── */}
             <section className="grid grid-cols-2 gap-2 lg:grid-cols-4">
@@ -5278,7 +5273,7 @@ function TenantDetailPage({
           </div>
         )}
 
-        {activeTab === "jalur" && (
+        {canViewRoute && activeTab === "jalur" && (
           <div className={`flex flex-col gap-4 ${isTeknisi ? "mt-4" : ""}`}>
             <FoRoutePlanner
               mode="preview"
@@ -5725,7 +5720,7 @@ function TenantDetailPage({
             </section>
           </div>
         )}
-        {activeTab === "contracts" && (
+        {canViewTenantContracts && activeTab === "contracts" && (
           <div className="space-y-4">
             <section className="glass-card backdrop-blur-xl rounded-xl border border-white/10 shadow-glass-depth overflow-hidden bg-white/[0.02]">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 border-b border-white/[0.05]">
@@ -6452,7 +6447,7 @@ function TenantDetailPage({
           </div>
         )}
 
-        {activeTab === "invoices" && (
+        {canViewInvoices && activeTab === "invoices" && (
           <div className="space-y-4">
             {/* Billing Header (Card 1) */}
             <section className="glass-card backdrop-blur-xl rounded-premium border-white/10 shadow-glass-depth relative overflow-hidden">
@@ -7347,7 +7342,7 @@ function TenantDetailPage({
           </div>
         )}
 
-        {activeTab === "documents" && (
+        {canViewDocuments && activeTab === "documents" && (
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
             {/* Document List */}
             <section className={`${isIsp ? 'lg:col-span-12' : 'lg:col-span-7'} glass-card backdrop-blur-xl rounded-xl border-white/10 shadow-glass-depth overflow-hidden flex flex-col`}>

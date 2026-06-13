@@ -404,7 +404,9 @@ const getNotificationSeverityRank = (severity) => ({ critical: 0, warning: 1, in
 const mapAlertToNotification = (alert, index) => {
   const alertCode = alert.code || alert.type || 'notification';
   const customerId = Number(alert.customerId);
-  const targetTab = alertCode.includes('invoice') || alertCode.includes('payment')
+  const targetTab = alertCode.includes('contract')
+    ? 'contracts'
+    : alertCode.includes('invoice') || alertCode.includes('payment')
     ? 'invoices'
     : alertCode.includes('route')
       ? 'jalur'
@@ -439,6 +441,112 @@ const mapAlertToNotification = (alert, index) => {
 const getNotificationTargetPath = (customerId, tab = 'overview') => (
   customerId ? `/customers/${customerId}${tab !== 'overview' ? `?tab=${tab}` : ''}` : null
 );
+
+const getCustomerNotificationTargetPath = (customerId, { tab = 'overview', ispId = null } = {}) => {
+  if (!customerId) return null;
+  const searchParams = new URLSearchParams();
+  if (tab && tab !== 'overview') {
+    searchParams.set('tab', tab);
+  }
+  if (ispId !== null && ispId !== undefined) {
+    searchParams.set('isp', String(ispId));
+  }
+  const query = searchParams.toString();
+  return `/customers/${customerId}${query ? `?${query}` : ''}`;
+};
+
+const getNotificationTargetTab = (notification) => {
+  if (notification.type === 'contract_expiring' || notification.type === 'contract_renewal') return 'contracts';
+  if (notification.type === 'route_setup' || notification.type === 'route_attention') return 'jalur';
+  if (String(notification.type || '').startsWith('invoice_') || notification.type === 'invoice_attention') return 'invoices';
+
+  try {
+    const url = new URL(notification.targetPath || '/', 'https://local.invalid');
+    return url.searchParams.get('tab') || 'overview';
+  } catch {
+    return 'overview';
+  }
+};
+
+const ADMIN_CONTRACT_NOTIFICATION_TYPES = new Set(['contract_expiring', 'contract_renewal']);
+const TEKNISI_ROUTE_NOTIFICATION_TYPES = new Set(['route_setup', 'route_attention']);
+
+const getNotificationIspIds = (notification) => {
+  const ids = [];
+  const directIspId = Number(notification.ispId);
+  if (Number.isFinite(directIspId) && directIspId > 0) ids.push(directIspId);
+  if (Array.isArray(notification.metadata?.ispIds)) {
+    notification.metadata.ispIds.forEach((value) => {
+      const ispId = Number(value);
+      if (Number.isFinite(ispId) && ispId > 0) ids.push(ispId);
+    });
+  }
+  return Array.from(new Set(ids));
+};
+
+const canReceiveInAppNotification = ({ role, ispId }, notification) => {
+  if (role === 'super_admin') return true;
+  if (role === 'admin') return ADMIN_CONTRACT_NOTIFICATION_TYPES.has(notification.type);
+  if (role === 'teknisi') return TEKNISI_ROUTE_NOTIFICATION_TYPES.has(notification.type);
+  if (role === 'isp') {
+    const scopedIspIds = getNotificationIspIds(notification);
+    if (scopedIspIds.length > 0) return scopedIspIds.includes(Number(ispId));
+    return Number.isFinite(Number(notification.customerId));
+  }
+  return false;
+};
+
+const scopeNotificationTargetForRole = ({ role, ispId }, notification) => {
+  const customerId = Number(notification.customerId);
+  if (!Number.isFinite(customerId) || customerId <= 0) return notification;
+
+  if (role === 'admin') {
+    return {
+      ...notification,
+      actionLabel: notification.actionLabel || 'Buka Kontrak',
+      targetPath: getCustomerNotificationTargetPath(customerId, { tab: 'contracts' }),
+    };
+  }
+
+  if (role === 'teknisi') {
+    return {
+      ...notification,
+      actionLabel: notification.actionLabel || 'Buka Jalur',
+      targetPath: getCustomerNotificationTargetPath(customerId, { tab: 'jalur' }),
+    };
+  }
+
+  if (role === 'isp') {
+    return {
+      ...notification,
+      targetPath: getCustomerNotificationTargetPath(customerId, {
+        tab: getNotificationTargetTab(notification),
+        ispId,
+      }),
+    };
+  }
+
+  return notification;
+};
+
+const getCurrentNotificationScope = async (user) => {
+  const role = user?.user_metadata?.role || 'guest';
+  if (role !== 'isp' || !user?.id) {
+    return { role, ispId: null };
+  }
+
+  const { data, error } = await supabase
+    .from('isp_user_accounts')
+    .select('isp_id')
+    .eq('auth_user_id', user.id)
+    .maybeSingle();
+
+  if (error) throw error;
+  return {
+    role,
+    ispId: data?.isp_id ?? null,
+  };
+};
 
 const addDaysToIsoDate = (dateValue, dayOffset) => {
   if (!dateValue) return null;
@@ -1014,6 +1122,7 @@ const notificationsApi = {
     const { user } = await getCurrentActor();
     const cacheKey = [
       user?.id ?? 'anonymous',
+      user?.user_metadata?.role ?? 'guest',
       Number(year) || new Date().getUTCFullYear(),
       cappedLimit,
       includeResolved ? 'resolved' : 'active',
@@ -1026,6 +1135,7 @@ const notificationsApi = {
 
     if (!cached?.promise) {
       const promise = (async () => {
+        const notificationScope = await getCurrentNotificationScope(user);
         const latestRouteByCustomerId = await getLatestRouteVersionByCustomerId();
         const [result, customerDerivedNotifications, ispDerivedNotifications] = await Promise.all([
           monitoringApi.getAlerts({ year, latestRouteByCustomerId }),
@@ -1037,7 +1147,9 @@ const notificationsApi = {
           ...alerts.map(mapAlertToNotification),
           ...customerDerivedNotifications,
           ...ispDerivedNotifications,
-        ];
+        ]
+          .filter((notification) => canReceiveInAppNotification(notificationScope, notification))
+          .map((notification) => scopeNotificationTargetForRole(notificationScope, notification));
         const notificationKeys = notifications.map((item) => item.id);
         let stateByKey = new Map();
 
