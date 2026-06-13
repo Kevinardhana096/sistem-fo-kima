@@ -12,7 +12,7 @@ function decodeRouteSegment(value) {
 
 export const ADMIN_PATHS = {
     login: "/login",
-    adminRegister: "/kima-admin/register-7f4c9a2e",
+    adminRegister: "/register",
     dashboard: "/dashboard",
     customers: "/customers",
     customerCreate: "/customers/new",

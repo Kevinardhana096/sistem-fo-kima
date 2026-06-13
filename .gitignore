@@ -35,6 +35,7 @@ frontend/.env.local
 .serena/
 infra/valhalla/runtime/
 infra/valhalla/data/*.osm.pbf
+supabase/.temp/
 *.bak
 patch.js
 fix_patch.js

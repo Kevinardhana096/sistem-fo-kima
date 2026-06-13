@@ -26,7 +26,31 @@ function normalizeEmail(email) {
     return String(email ?? "").trim().toLowerCase();
 }
 
+async function verifyRegisterSecret(secretKey) {
+    const response = await fetch("/api/register-access", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ secretKey }),
+    });
+
+    let payload = null;
+    try {
+        payload = await response.json();
+    } catch {
+        payload = null;
+    }
+
+    if (!response.ok || !payload?.ok) {
+        throw new Error(payload?.error || "Secret key tidak valid.");
+    }
+
+    return true;
+}
+
 export default function AdminRegisterPage({ onBackToLogin }) {
+    const [accessGranted, setAccessGranted] = useState(false);
+    const [secretKey, setSecretKey] = useState("");
+    const [isVerifyingSecret, setIsVerifyingSecret] = useState(false);
     const [form, setForm] = useState({
         role: REGISTER_ROLES.admin.key,
         displayName: "Administrator",
@@ -45,6 +69,33 @@ export default function AdminRegisterPage({ onBackToLogin }) {
     }, [form.confirmPassword, form.password]);
 
     const selectedRole = getRegisterRole(form.role);
+
+    const handleSecretSubmit = async (event) => {
+        event.preventDefault();
+
+        const trimmedSecretKey = secretKey.trim();
+        if (!trimmedSecretKey) {
+            setStatus({ type: "error", message: "Secret key wajib diisi." });
+            return;
+        }
+
+        setIsVerifyingSecret(true);
+        setStatus({ type: "", message: "" });
+
+        try {
+            await verifyRegisterSecret(trimmedSecretKey);
+            setAccessGranted(true);
+            setSecretKey("");
+            setStatus({ type: "", message: "" });
+        } catch (error) {
+            setStatus({
+                type: "error",
+                message: error instanceof Error ? error.message : "Secret key tidak valid.",
+            });
+        } finally {
+            setIsVerifyingSecret(false);
+        }
+    };
 
     const updateField = (key, value) => {
         setForm((previous) => {
@@ -146,10 +197,12 @@ export default function AdminRegisterPage({ onBackToLogin }) {
                                 Internal Access
                             </p>
                             <h1 className="text-2xl font-black tracking-tight text-white">
-                                Register Pengguna
+                                {accessGranted ? "Register Pengguna" : "Akses Register"}
                             </h1>
                             <p className="mt-2 text-xs font-semibold leading-relaxed text-white/65">
-                                Buat akun Supabase Auth dengan role admin atau teknisi untuk Sistem FO KIMA.
+                                {accessGranted
+                                    ? "Buat akun Supabase Auth dengan role admin atau teknisi untuk Sistem FO KIMA."
+                                    : "Masukkan secret key internal untuk membuka form registrasi pengguna."}
                             </p>
                         </div>
                         <img alt="Logo PT KIMA" className="h-10 w-auto brightness-0 invert" src="/logo-kima.png" />
@@ -167,6 +220,35 @@ export default function AdminRegisterPage({ onBackToLogin }) {
                         </div>
                     )}
 
+                    {!accessGranted ? (
+                        <form className="space-y-4" onSubmit={handleSecretSubmit}>
+                            <label className="block">
+                                <span className="mb-2 block text-[10px] font-black uppercase tracking-[0.18em] text-white/75">
+                                    Secret Key
+                                </span>
+                                <input
+                                    autoComplete="off"
+                                    autoFocus
+                                    className="w-full rounded-lg border border-white/15 bg-white/[0.07] px-3 py-2 text-sm font-semibold text-white outline-none transition-[background-color,border-color,box-shadow] duration-200 placeholder:text-white/30 focus:border-gold-accent/60 focus:bg-white/10 focus:ring-2 focus:ring-gold-accent/10"
+                                    onChange={(event) => {
+                                        setSecretKey(event.target.value);
+                                        setStatus({ type: "", message: "" });
+                                    }}
+                                    placeholder="Masukkan secret key"
+                                    type="password"
+                                    value={secretKey}
+                                />
+                            </label>
+
+                            <button
+                                className="mt-2 flex w-full items-center justify-center rounded-lg border border-gold-accent/40 bg-gold-accent px-4 py-2.5 text-xs font-black uppercase tracking-[0.18em] text-white shadow-gold-glow transition-[opacity,transform,box-shadow] duration-200 hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-55"
+                                disabled={isVerifyingSecret}
+                                type="submit"
+                            >
+                                {isVerifyingSecret ? "Memeriksa..." : "Lanjut Register"}
+                            </button>
+                        </form>
+                    ) : (
                     <form className="space-y-4" onSubmit={handleSubmit}>
                         <label className="block">
                             <span className="mb-2 block text-[10px] font-black uppercase tracking-[0.18em] text-white/75">
@@ -249,6 +331,7 @@ export default function AdminRegisterPage({ onBackToLogin }) {
                             {isSubmitting ? "Membuat akun..." : `Buat ${selectedRole.label}`}
                         </button>
                     </form>
+                    )}
 
                     <button
                         className="mt-5 w-full text-center text-[10px] font-black uppercase tracking-[0.2em] text-white/55 transition-colors duration-200 hover:text-gold-accent"

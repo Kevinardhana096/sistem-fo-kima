@@ -64,24 +64,30 @@ id | username | email              | role  | display_name  | is_active
 
 ## 🧪 Test Login
 
-## 🔗 URL Register Internal Tersembunyi
+## 🔗 Register Internal
 
 Frontend menyediakan halaman register internal khusus untuk kebutuhan provisioning awal admin dan teknisi:
 
 ```text
-/kima-admin/register-7f4c9a2e
+/register
 ```
+
+Halaman pertama meminta secret key. Jika secret key valid, form registrasi admin/teknisi akan tampil di halaman yang sama.
+
+Secret key disimpan sebagai environment variable server-side `REGISTER_SECRET_KEY` di Vercel dan divalidasi lewat endpoint `/api/register-access`. Jangan menaruh nilai secret key di file `.env` frontend dengan prefix `VITE_`.
 
 Contoh lokal:
 
 ```text
-http://localhost:5173/kima-admin/register-7f4c9a2e
+http://localhost:5173/register
 ```
+
+Untuk pengujian lokal dengan `npm --prefix frontend run dev`, jalankan dev server dengan environment `REGISTER_SECRET_KEY` karena Vite dev server menyediakan endpoint `/api/register-access` dari nilai tersebut.
 
 Contoh production:
 
 ```text
-https://<domain-production>/kima-admin/register-7f4c9a2e
+https://<domain-production>/register
 ```
 
 Form ini membuat akun Supabase Auth dengan metadata sesuai role yang dipilih:

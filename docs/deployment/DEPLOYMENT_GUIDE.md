@@ -103,7 +103,7 @@ npx vercel --prod     # deploy production
    - Tindak Lanjut & Log Aktivitas terisi.
    - Tempat Sampah: lihat/pulihkan/hapus permanen.
    - Route planner FO (jika Valhalla aktif): buka `/api/valhalla/status` di domain Vercel dan pastikan response upstream sukses.
-4. Jika provisioning admin via frontend diperlukan, buka URL register tersembunyi `/kima-admin/register-7f4c9a2e` dan pastikan halaman tampil. Jangan membuat akun test di production kecuali memang bagian dari prosedur provisioning. Detail: [../operations/kredensial-admin.md](../operations/kredensial-admin.md).
+4. Jika provisioning admin via frontend diperlukan, pastikan environment variable server-side `REGISTER_SECRET_KEY` sudah diset di Vercel, lalu buka `/register`. Masukkan secret key untuk membuka form registrasi. Jangan membuat akun test di production kecuali memang bagian dari prosedur provisioning. Detail: [../operations/kredensial-admin.md](../operations/kredensial-admin.md).
 5. Cek console browser & tab network: tidak ada error 401/403/5xx yang tidak terduga.
 6. Supabase Dashboard → Logs: pantau error Auth/RLS/API.
 
