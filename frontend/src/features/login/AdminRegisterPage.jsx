@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { signUpInternalUser } from "@/lib/supabase";
+import { sendInitialNotificationEmails, signUpInternalUser } from "@/lib/supabase";
 
 const REGISTER_ROLES = {
     admin: {
@@ -89,10 +89,31 @@ export default function AdminRegisterPage({ onBackToLogin }) {
 
         setIsSubmitting(true);
         try {
-            await signUpInternalUser({ email, password: form.password, displayName, role: role.key });
+            const signUpResult = await signUpInternalUser({ email, password: form.password, displayName, role: role.key });
+            let notificationMessage = " Email notifikasi awal belum dikirim karena belum ada notifikasi operasional aktif untuk role ini.";
+
+            try {
+                const emailResult = await sendInitialNotificationEmails({
+                    recipientUserId: signUpResult?.user?.id,
+                    recipientEmail: email,
+                    accessToken: signUpResult?.session?.access_token,
+                });
+                const sentCount = Number(emailResult?.sentCount ?? 0);
+                const attemptedCount = Number(emailResult?.attemptedCount ?? 0);
+
+                if (sentCount > 0) {
+                    notificationMessage = ` ${sentCount} email notifikasi awal berhasil dikirim sesuai role.`;
+                } else if (attemptedCount > 0) {
+                    notificationMessage = " Email notifikasi awal sudah diproses, tetapi belum ada yang berhasil terkirim. Periksa log pengiriman email.";
+                }
+            } catch (notificationError) {
+                const detail = notificationError instanceof Error ? notificationError.message : "pemicu email gagal dijalankan";
+                notificationMessage = ` Akun dibuat, tetapi email notifikasi awal belum terkirim: ${detail}`;
+            }
+
             setStatus({
                 type: "success",
-                message: `Akun ${role.label.toLowerCase()} berhasil dibuat dan sudah dapat digunakan.`,
+                message: `Akun ${role.label.toLowerCase()} berhasil dibuat dan sudah dapat digunakan.${notificationMessage}`,
             });
             setForm({
                 role: role.key,

@@ -59,10 +59,34 @@ curl -X POST "https://PROJECT_REF.supabase.co/functions/v1/send-notification-ema
   -d '{"limit":100}'
 ```
 
+## Pemanggilan Setelah Register
+
+Halaman register memicu function yang sama setelah akun Supabase Auth berhasil
+dibuat. Mode ini memakai JWT user yang baru dibuat, bukan `EMAIL_JOB_SECRET`,
+dan function membatasi pengiriman hanya untuk `recipientUserId`/`recipientEmail`
+yang sama dengan JWT tersebut. Dengan begitu register tidak dapat memicu batch
+email ke semua user.
+
+Contoh payload self-service:
+
+```json
+{
+  "trigger": "register",
+  "recipientUserId": "auth-user-id",
+  "recipientEmail": "user@example.com",
+  "limit": 100
+}
+```
+
+Jika Supabase Auth mewajibkan email confirmation dan tidak mengembalikan session
+setelah `signUp`, pemicu langsung dari frontend tidak bisa berjalan karena belum
+ada JWT user. Akun tetap berhasil dibuat, dan email notifikasi akan dikirim oleh
+cron berikutnya setelah user aktif/sesuai konfigurasi Auth.
+
 ## Aturan Role
 
 - `admin`: menerima semua notifikasi operasional.
-- `teknisi`: menerima notifikasi jalur dan kelengkapan teknis ISP.
+- `teknisi`: hanya menerima notifikasi jalur/map (`route_setup`).
 - `isp`: hanya menerima notifikasi yang terkait `isp_id` yang terhubung melalui
   `public.isp_user_accounts`.
 

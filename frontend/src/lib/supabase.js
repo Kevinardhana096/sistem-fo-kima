@@ -59,6 +59,35 @@ export const signUpInternalUser = async ({ email, password, displayName, role = 
   return data;
 };
 
+export const sendInitialNotificationEmails = async ({
+  recipientUserId,
+  recipientEmail,
+  accessToken,
+  limit = 100,
+}) => {
+  const token = accessToken || (await supabase.auth.getSession()).data.session?.access_token;
+
+  if (!token) {
+    throw new Error('Sesi akun baru belum tersedia untuk memicu email notifikasi.');
+  }
+
+  const { data, error } = await supabase.functions.invoke('send-notification-emails', {
+    body: {
+      trigger: 'register',
+      recipientUserId,
+      recipientEmail,
+      limit,
+    },
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (error) throw error;
+  if (data?.error) throw new Error(data.error);
+  return data;
+};
+
 export const signUpAdmin = async ({ email, password, displayName }) => (
   signUpInternalUser({ email, password, displayName, role: 'admin' })
 );

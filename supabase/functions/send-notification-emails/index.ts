@@ -45,6 +45,17 @@ type DeliveryInsert = {
   metadata: Record<string, unknown>;
 };
 
+type RecipientFilter = {
+  userId: string | null;
+  email: string | null;
+};
+
+type RequestAuth = {
+  privileged: boolean;
+  selfUserId: string | null;
+  selfEmail: string | null;
+};
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-email-job-secret",
@@ -215,6 +226,102 @@ async function listAuthRecipients(): Promise<Recipient[]> {
     ...user,
     ispId: user.role === "isp" ? ispIdByUserId.get(user.id) || null : null,
   }));
+}
+
+function getBearerToken(req: Request) {
+  return req.headers.get("authorization")?.replace(/^Bearer\s+/i, "").trim() || "";
+}
+
+async function getRequestAuth(req: Request): Promise<RequestAuth> {
+  const providedSecret = req.headers.get("x-email-job-secret") || "";
+  const bearerToken = getBearerToken(req);
+
+  if (jobSecret && (providedSecret === jobSecret || bearerToken === jobSecret)) {
+    return {
+      privileged: true,
+      selfUserId: null,
+      selfEmail: null,
+    };
+  }
+
+  if (!bearerToken) {
+    return {
+      privileged: false,
+      selfUserId: null,
+      selfEmail: null,
+    };
+  }
+
+  const { data, error } = await supabase.auth.getUser(bearerToken);
+  if (error || !data?.user) {
+    return {
+      privileged: false,
+      selfUserId: null,
+      selfEmail: null,
+    };
+  }
+
+  return {
+    privileged: false,
+    selfUserId: data.user.id,
+    selfEmail: data.user.email?.trim().toLowerCase() || null,
+  };
+}
+
+function getRecipientFilter(body: Record<string, unknown>): RecipientFilter {
+  const userId = typeof body?.recipientUserId === "string" ? body.recipientUserId.trim() : "";
+  const email = typeof body?.recipientEmail === "string" ? body.recipientEmail.trim().toLowerCase() : "";
+
+  return {
+    userId: userId || null,
+    email: email || null,
+  };
+}
+
+function getRecipientAccessError(auth: RequestAuth, filter: RecipientFilter) {
+  if (auth.privileged) return null;
+
+  if (!auth.selfUserId) {
+    return Response.json({ error: "Unauthorized" }, {
+      status: 401,
+      headers: corsHeaders,
+    });
+  }
+
+  if (filter.userId && filter.userId !== auth.selfUserId) {
+    return Response.json({ error: "Forbidden recipientUserId" }, {
+      status: 403,
+      headers: corsHeaders,
+    });
+  }
+
+  if (filter.email && filter.email !== auth.selfEmail) {
+    return Response.json({ error: "Forbidden recipientEmail" }, {
+      status: 403,
+      headers: corsHeaders,
+    });
+  }
+
+  return null;
+}
+
+function resolveRecipientFilter(auth: RequestAuth, filter: RecipientFilter): RecipientFilter {
+  if (auth.privileged) return filter;
+
+  return {
+    userId: filter.userId || auth.selfUserId,
+    email: filter.email || auth.selfEmail,
+  };
+}
+
+function applyRecipientFilter(recipients: Recipient[], filter: RecipientFilter) {
+  if (!filter.userId && !filter.email) return recipients;
+
+  return recipients.filter((recipient) => {
+    if (filter.userId && recipient.id !== filter.userId) return false;
+    if (filter.email && recipient.email.trim().toLowerCase() !== filter.email) return false;
+    return true;
+  });
 }
 
 async function getCustomerIspIdsByCustomerId() {
@@ -787,7 +894,7 @@ function getNotificationIspIds(notification: NotificationItem) {
 function canReceiveNotification(recipient: Recipient, notification: NotificationItem) {
   if (recipient.role === "admin") return true;
   if (recipient.role === "teknisi") {
-    return notification.type === "route_setup" || notification.type === "isp_document" || notification.type === "isp_contract";
+    return notification.type === "route_setup";
   }
   if (recipient.role === "isp") {
     if (!recipient.ispId) return false;
@@ -927,29 +1034,31 @@ async function handleRequest(req: Request) {
   if (req.method !== "POST") {
     return Response.json({ error: "Method not allowed" }, { status: 405, headers: corsHeaders });
   }
-  if (!jobSecret) {
-    return Response.json({
-      error: "EMAIL_JOB_SECRET is required before this function can run.",
-    }, { status: 500, headers: corsHeaders });
-  }
-  if (jobSecret) {
-    const providedSecret = req.headers.get("x-email-job-secret")
-      || req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
-    if (providedSecret !== jobSecret) {
-      return Response.json({ error: "Unauthorized" }, { status: 401, headers: corsHeaders });
-    }
-  }
 
   const body = await req.json().catch(() => ({}));
   const dryRun = Boolean(body?.dryRun);
-  const force = Boolean(body?.force);
+  const requestedForce = Boolean(body?.force);
   const limit = Math.max(1, Math.min(Number(body?.limit || 100), 500));
+  const auth = await getRequestAuth(req);
+  const force = auth.privileged && requestedForce;
+  const requestedRecipientFilter = getRecipientFilter(body);
+  const accessError = getRecipientAccessError(auth, requestedRecipientFilter);
+  if (accessError) {
+    if (!jobSecret && !getBearerToken(req)) {
+      return Response.json({
+        error: "EMAIL_JOB_SECRET is required for scheduled jobs, or a valid user JWT is required for self-service sends.",
+      }, { status: 500, headers: corsHeaders });
+    }
+    return accessError;
+  }
+  const recipientFilter = resolveRecipientFilter(auth, requestedRecipientFilter);
 
-  const [recipients, customerNotifications, ispNotifications] = await Promise.all([
+  const [allRecipients, customerNotifications, ispNotifications] = await Promise.all([
     listAuthRecipients(),
     buildCustomerNotifications(),
     buildIspNotifications(),
   ]);
+  const recipients = applyRecipientFilter(allRecipients, recipientFilter);
   const notifications = [...customerNotifications, ...ispNotifications].slice(0, limit);
   const existingKeys = force
     ? new Set<string>()
@@ -1020,6 +1129,8 @@ async function handleRequest(req: Request) {
   return Response.json({
     dryRun,
     force,
+    selfService: !auth.privileged,
+    recipientFilter,
     notificationCount: notifications.length,
     recipientCount: recipients.length,
     attemptedCount: attempts.length,
