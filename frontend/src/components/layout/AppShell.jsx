@@ -463,7 +463,7 @@ function TopNav({
                         </button>
                         {isMobileMenuOpen && (
                             <>
-                                <div className="fixed inset-0 z-[2025]" onClick={onCloseMenu}></div>
+                                <div className="fixed inset-0 z-[2025] bg-black/25 backdrop-blur-sm" onClick={onCloseMenu}></div>
                                 <div className="!absolute left-0 top-full z-[2030] mt-3 w-56 origin-top-left rounded-2xl glass-premium border border-white/10 p-3 shadow-glass-depth animate-in fade-in zoom-in-95 duration-200">
                                     {/* Header / Logo */}
                                     <div className="flex items-center gap-2.5 px-2 py-1.5 border-b border-white/10 mb-2">
@@ -524,7 +524,7 @@ function TopNav({
 
                     {isNotificationsOpen && (
                         <>
-                            <div className="fixed inset-0 z-[2025]" onClick={() => setIsNotificationsOpen(false)}></div>
+                            <div className="fixed inset-0 z-[2025] bg-black/25 backdrop-blur-sm" onClick={() => setIsNotificationsOpen(false)}></div>
                             <div className="!fixed left-6 right-6 max-w-md mx-auto top-[72px] md:!absolute md:right-0 md:left-auto md:mx-0 md:top-full md:mt-3 md:w-[24rem] md:max-w-none z-[2030] origin-top md:origin-top-right rounded-2xl glass-premium border border-white/10 p-0 shadow-glass-depth animate-in fade-in slide-in-from-top-3 duration-300 ease-out">
                                 <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
                                     <div>
@@ -667,7 +667,7 @@ function TopNav({
 
                     {isProfileOpen && (
                         <>
-                            <div className="fixed inset-0 z-[2025]" onClick={() => setIsProfileOpen(false)}></div>
+                            <div className="fixed inset-0 z-[2025] bg-black/25 backdrop-blur-sm" onClick={() => setIsProfileOpen(false)}></div>
                             <div className="!absolute right-0 top-full z-[2030] mt-3 w-52 origin-top-right rounded-2xl glass-premium anim-popover p-2 shadow-glass-depth animate-in fade-in zoom-in duration-300 md:w-56">
                                 <div className="px-3 py-3 border-b border-white/10 mb-1.5">
                                     <p className="text-xs font-black text-on-surface truncate">{profileDisplayName}</p>
