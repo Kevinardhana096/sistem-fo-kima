@@ -11,14 +11,13 @@ Panduan deploy production untuk Sistem FO KIMA: frontend **React + Vite** yang m
 ```text
 Vercel (static build frontend/dist)
         |
-        v
-Supabase Cloud (Auth + PostgreSQL + RLS + Storage + REST/RPC)
+        +--> Supabase Cloud (Auth + PostgreSQL + RLS + Storage + REST/RPC)
         |
-        v
-Valhalla (opsional, hanya untuk route planner FO)
+        +--> Vercel Function /api/valhalla/* -> Valhalla upstream (opsional)
 ```
 
 - **Host frontend:** Vercel (static hosting + SPA rewrite). Konfigurasi build ada di `vercel.json` di root repo.
+- **Vercel Functions:** `/api/valhalla/*` menjadi proxy production untuk route planner FO agar browser tidak memanggil `localhost`.
 - **Backend/data:** Supabase Cloud. Tidak ada server aplikasi terpisah.
 - **Script SQL production:** dijalankan **manual** via Supabase SQL Editor setelah direview.
 
@@ -62,7 +61,8 @@ Set environment variables berikut pada scope **Production** (dan **Preview** bil
 | `VITE_SUPABASE_URL` | Ya | URL Supabase project production. |
 | `VITE_SUPABASE_ANON_KEY` | Ya | Supabase anon/public key project production. |
 | `VITE_SUPABASE_STORAGE_BUCKET` | Opsional | Nama bucket Storage dokumen (bila berbeda dari default). |
-| `VITE_VALHALLA_HOST` | Opsional | Host Valhalla untuk route planner FO. |
+| `VITE_VALHALLA_HOST` | Opsional | Host Valhalla untuk route planner FO. Kosongkan di Vercel agar memakai `/api/valhalla`. |
+| `VALHALLA_UPSTREAM_URL` | Opsional | URL upstream Valhalla untuk Vercel Function, mis. `https://valhalla.example.com`. Wajib bila route planner FO dipakai di production. |
 | `VITE_ADMIN_WHATSAPP_NUMBER` | Opsional | Nomor WhatsApp admin untuk tautan bantuan akses di halaman login. |
 | `VITE_API_BASE_URL` | Opsional | Base URL API tambahan bila dipakai. |
 
@@ -102,7 +102,7 @@ npx vercel --prod     # deploy production
    - Monitoring billing: spreadsheet per tahun/ISP.
    - Tindak Lanjut & Log Aktivitas terisi.
    - Tempat Sampah: lihat/pulihkan/hapus permanen.
-   - Route planner FO (jika Valhalla aktif).
+   - Route planner FO (jika Valhalla aktif): buka `/api/valhalla/status` di domain Vercel dan pastikan response upstream sukses.
 4. Jika provisioning admin via frontend diperlukan, buka URL register tersembunyi `/kima-admin/register-7f4c9a2e` dan pastikan halaman tampil. Jangan membuat akun test di production kecuali memang bagian dari prosedur provisioning. Detail: [../operations/kredensial-admin.md](../operations/kredensial-admin.md).
 5. Cek console browser & tab network: tidak ada error 401/403/5xx yang tidak terduga.
 6. Supabase Dashboard → Logs: pantau error Auth/RLS/API.

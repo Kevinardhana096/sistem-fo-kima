@@ -24,7 +24,9 @@ const VALHALLA_LOCAL_HOST =
   typeof import.meta.env.VITE_VALHALLA_HOST === "string" &&
     import.meta.env.VITE_VALHALLA_HOST.trim()
     ? import.meta.env.VITE_VALHALLA_HOST.trim().replace(/\/$/, "")
-    : "http://localhost:8002";
+    : import.meta.env.PROD
+      ? "/api/valhalla"
+      : "http://localhost:8002";
 
 const BASEMAP_OPTIONS = [
   {
