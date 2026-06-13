@@ -73,8 +73,8 @@ DROP POLICY IF EXISTS "ISP read own account mapping" ON public.isp_user_accounts
 CREATE POLICY "Admin full access on isp_user_accounts"
 ON public.isp_user_accounts
 FOR ALL
-USING (public.get_user_role() = 'admin')
-WITH CHECK (public.get_user_role() = 'admin');
+USING (public.get_user_role() IN ('super_admin', 'admin'))
+WITH CHECK (public.get_user_role() IN ('super_admin', 'admin'));
 
 CREATE POLICY "ISP read own account mapping"
 ON public.isp_user_accounts
@@ -98,8 +98,8 @@ DROP POLICY IF EXISTS "ISP read own customers" ON public.customers;
 CREATE POLICY "Admin full access on customers"
 ON public.customers
 FOR ALL
-USING (public.get_user_role() = 'admin')
-WITH CHECK (public.get_user_role() = 'admin');
+USING (public.get_user_role() IN ('super_admin', 'admin'))
+WITH CHECK (public.get_user_role() IN ('super_admin', 'admin'));
 
 CREATE POLICY "Teknisi read all customers"
 ON public.customers
@@ -128,8 +128,8 @@ DROP POLICY IF EXISTS "ISP read own isps" ON public.isps;
 CREATE POLICY "Admin full access on isps"
 ON public.isps
 FOR ALL
-USING (public.get_user_role() = 'admin')
-WITH CHECK (public.get_user_role() = 'admin');
+USING (public.get_user_role() IN ('super_admin', 'admin'))
+WITH CHECK (public.get_user_role() IN ('super_admin', 'admin'));
 
 CREATE POLICY "Teknisi read all isps"
 ON public.isps
@@ -158,8 +158,8 @@ DROP POLICY IF EXISTS "ISP read own memberships" ON public.customer_isp_membersh
 CREATE POLICY "Admin full access on customer_isp_memberships"
 ON public.customer_isp_memberships
 FOR ALL
-USING (public.get_user_role() = 'admin')
-WITH CHECK (public.get_user_role() = 'admin');
+USING (public.get_user_role() IN ('super_admin', 'admin'))
+WITH CHECK (public.get_user_role() IN ('super_admin', 'admin'));
 
 CREATE POLICY "Teknisi read all memberships"
 ON public.customer_isp_memberships
@@ -188,8 +188,8 @@ DROP POLICY IF EXISTS "ISP read own contracts" ON public.contracts;
 CREATE POLICY "Admin full access on contracts"
 ON public.contracts
 FOR ALL
-USING (public.get_user_role() = 'admin')
-WITH CHECK (public.get_user_role() = 'admin');
+USING (public.get_user_role() IN ('super_admin', 'admin'))
+WITH CHECK (public.get_user_role() IN ('super_admin', 'admin'));
 
 CREATE POLICY "Teknisi read all contracts"
 ON public.contracts
@@ -218,8 +218,8 @@ DROP POLICY IF EXISTS "ISP read own contract_versions" ON public.contract_versio
 CREATE POLICY "Admin full access on contract_versions"
 ON public.contract_versions
 FOR ALL
-USING (public.get_user_role() = 'admin')
-WITH CHECK (public.get_user_role() = 'admin');
+USING (public.get_user_role() IN ('super_admin', 'admin'))
+WITH CHECK (public.get_user_role() IN ('super_admin', 'admin'));
 
 CREATE POLICY "Teknisi read all contract_versions"
 ON public.contract_versions
@@ -248,8 +248,8 @@ DROP POLICY IF EXISTS "ISP read own invoices" ON public.invoices;
 CREATE POLICY "Admin full access on invoices"
 ON public.invoices
 FOR ALL
-USING (public.get_user_role() = 'admin')
-WITH CHECK (public.get_user_role() = 'admin');
+USING (public.get_user_role() IN ('super_admin', 'admin'))
+WITH CHECK (public.get_user_role() IN ('super_admin', 'admin'));
 
 CREATE POLICY "Teknisi read all invoices"
 ON public.invoices
@@ -278,8 +278,8 @@ DROP POLICY IF EXISTS "ISP read own documents" ON public.documents;
 CREATE POLICY "Admin full access on documents"
 ON public.documents
 FOR ALL
-USING (public.get_user_role() = 'admin')
-WITH CHECK (public.get_user_role() = 'admin');
+USING (public.get_user_role() IN ('super_admin', 'admin'))
+WITH CHECK (public.get_user_role() IN ('super_admin', 'admin'));
 
 CREATE POLICY "Teknisi read all documents"
 ON public.documents
@@ -315,8 +315,8 @@ DROP POLICY IF EXISTS "Admin teknisi delete customer_route_versions" ON public.c
 CREATE POLICY "Admin teknisi full access on customer_route_versions"
 ON public.customer_route_versions
 FOR ALL
-USING (public.get_user_role() IN ('admin', 'teknisi'))
-WITH CHECK (public.get_user_role() IN ('admin', 'teknisi'));
+USING (public.get_user_role() IN ('super_admin', 'admin', 'teknisi'))
+WITH CHECK (public.get_user_role() IN ('super_admin', 'admin', 'teknisi'));
 
 CREATE POLICY "ISP read own routes"
 ON public.customer_route_versions
@@ -347,8 +347,8 @@ DROP POLICY IF EXISTS "Admin teknisi delete customer_route_points" ON public.cus
 CREATE POLICY "Admin teknisi full access on customer_route_points"
 ON public.customer_route_points
 FOR ALL
-USING (public.get_user_role() IN ('admin', 'teknisi'))
-WITH CHECK (public.get_user_role() IN ('admin', 'teknisi'));
+USING (public.get_user_role() IN ('super_admin', 'admin', 'teknisi'))
+WITH CHECK (public.get_user_role() IN ('super_admin', 'admin', 'teknisi'));
 
 CREATE POLICY "ISP read own route points"
 ON public.customer_route_points
@@ -377,8 +377,8 @@ DROP POLICY IF EXISTS "ISP read own isp contract rows" ON public.isp_contract_ro
 CREATE POLICY "Admin full access on isp_contract_rows"
 ON public.isp_contract_rows
 FOR ALL
-USING (public.get_user_role() = 'admin')
-WITH CHECK (public.get_user_role() = 'admin');
+USING (public.get_user_role() IN ('super_admin', 'admin'))
+WITH CHECK (public.get_user_role() IN ('super_admin', 'admin'));
 
 CREATE POLICY "Teknisi read all isp contract rows"
 ON public.isp_contract_rows
@@ -407,8 +407,8 @@ DROP POLICY IF EXISTS "ISP read own renewal follow ups" ON public.isp_renewal_fo
 CREATE POLICY "Admin full access on isp_renewal_follow_ups"
 ON public.isp_renewal_follow_ups
 FOR ALL
-USING (public.get_user_role() = 'admin')
-WITH CHECK (public.get_user_role() = 'admin');
+USING (public.get_user_role() IN ('super_admin', 'admin'))
+WITH CHECK (public.get_user_role() IN ('super_admin', 'admin'));
 
 CREATE POLICY "Teknisi read all renewal follow ups"
 ON public.isp_renewal_follow_ups
@@ -440,8 +440,8 @@ DROP POLICY IF EXISTS "Authenticated read own user row" ON public.users;
 CREATE POLICY "Admin full access on users"
 ON public.users
 FOR ALL
-USING (public.get_user_role() = 'admin')
-WITH CHECK (public.get_user_role() = 'admin');
+USING (public.get_user_role() IN ('super_admin', 'admin'))
+WITH CHECK (public.get_user_role() IN ('super_admin', 'admin'));
 
 CREATE POLICY "Authenticated read own user row"
 ON public.users
@@ -464,8 +464,8 @@ DROP POLICY IF EXISTS "ISP read own invoice follow ups" ON public.invoice_follow
 CREATE POLICY "Admin full access on invoice_follow_ups"
 ON public.invoice_follow_ups
 FOR ALL
-USING (public.get_user_role() = 'admin')
-WITH CHECK (public.get_user_role() = 'admin');
+USING (public.get_user_role() IN ('super_admin', 'admin'))
+WITH CHECK (public.get_user_role() IN ('super_admin', 'admin'));
 
 CREATE POLICY "Teknisi read all invoice follow ups"
 ON public.invoice_follow_ups
@@ -498,8 +498,8 @@ DROP POLICY IF EXISTS "ISP read own contract version renewal follow ups" ON publ
 CREATE POLICY "Admin full access on contract version renewal follow ups"
 ON public.contract_version_renewal_follow_ups
 FOR ALL
-USING (public.get_user_role() = 'admin')
-WITH CHECK (public.get_user_role() = 'admin');
+USING (public.get_user_role() IN ('super_admin', 'admin'))
+WITH CHECK (public.get_user_role() IN ('super_admin', 'admin'));
 
 CREATE POLICY "Teknisi read all contract version renewal follow ups"
 ON public.contract_version_renewal_follow_ups
@@ -539,8 +539,8 @@ DROP POLICY IF EXISTS "Admin teknisi delete customer_route_history" ON public.cu
 CREATE POLICY "Admin teknisi full access on customer_route_history"
 ON public.customer_route_history
 FOR ALL
-USING (public.get_user_role() IN ('admin', 'teknisi'))
-WITH CHECK (public.get_user_role() IN ('admin', 'teknisi'));
+USING (public.get_user_role() IN ('super_admin', 'admin', 'teknisi'))
+WITH CHECK (public.get_user_role() IN ('super_admin', 'admin', 'teknisi'));
 
 CREATE POLICY "ISP read own customer route history"
 ON public.customer_route_history

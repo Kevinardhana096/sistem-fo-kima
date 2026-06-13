@@ -329,11 +329,12 @@ function IspDetailPage({
     notifications = [],
     onTabChange,
 }) {
+    const isAdminRole = currentRole === "admin" || currentRole === "super_admin";
     const isTeknisi = currentRole === "teknisi";
     const isIsp = currentRole === "isp";
-    const canManageIspContracts = currentRole === "admin";
-    const canRespondToIspRenewals = currentRole === "admin" || currentRole === "isp";
-    const canManageEntryPoints = currentRole === "admin" || currentRole === "teknisi";
+    const canManageIspContracts = isAdminRole;
+    const canRespondToIspRenewals = isAdminRole || currentRole === "isp";
+    const canManageEntryPoints = isAdminRole || currentRole === "teknisi";
     const canOpenTenantDetail = typeof onOpenTenant === "function";
     const todayIso = new Date().toISOString().slice(0, 10);
     const [detail, setDetail] = useState(null);

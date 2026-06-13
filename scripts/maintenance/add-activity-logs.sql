@@ -40,7 +40,7 @@ DROP POLICY IF EXISTS "Authenticated insert own activity_logs" ON public.activit
 CREATE POLICY "Admin read all activity_logs"
 ON public.activity_logs
 FOR SELECT
-USING (public.get_user_role() = 'admin');
+USING (public.get_user_role() IN ('super_admin', 'admin'));
 
 CREATE POLICY "Authenticated insert own activity_logs"
 ON public.activity_logs

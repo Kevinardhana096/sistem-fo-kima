@@ -37,6 +37,7 @@ export const signIn = async (email, password) => {
 };
 
 const SIGNUP_ROLE_DEFAULT_NAMES = {
+  super_admin: 'Super Administrator',
   admin: 'Administrator',
   teknisi: 'Teknisi',
 };

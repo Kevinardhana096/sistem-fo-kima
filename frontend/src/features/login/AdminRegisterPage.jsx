@@ -2,6 +2,13 @@ import { useMemo, useState } from "react";
 import { sendInitialNotificationEmails, signUpInternalUser } from "@/lib/supabase";
 
 const REGISTER_ROLES = {
+    super_admin: {
+        key: "super_admin",
+        label: "Super Admin",
+        defaultDisplayName: "Super Administrator",
+        emailLabel: "Email Super Admin",
+        emailPlaceholder: "superadmin@kima.co.id",
+    },
     admin: {
         key: "admin",
         label: "Admin",
@@ -201,7 +208,7 @@ export default function AdminRegisterPage({ onBackToLogin }) {
                             </h1>
                             <p className="mt-2 text-xs font-semibold leading-relaxed text-white/65">
                                 {accessGranted
-                                    ? "Buat akun Supabase Auth dengan role admin atau teknisi untuk Sistem FO KIMA."
+                                    ? "Buat akun Supabase Auth dengan role super admin, admin, atau teknisi untuk Sistem FO KIMA."
                                     : "Masukkan secret key internal untuk membuka form registrasi pengguna."}
                             </p>
                         </div>
