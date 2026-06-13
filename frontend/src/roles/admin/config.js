@@ -1,8 +1,4 @@
 export const adminMenuItems = [
-    { key: "todos", label: "Tindak Lanjut", icon: "task_alt" },
-];
-
-export const superAdminMenuItems = [
     { key: "dashboard", label: "Dashboard", icon: "dashboard" },
     { key: "customers", label: "Pelanggan", icon: "groups" },
     { key: "monitoring", label: "Monitoring", icon: "monitor_heart" },
@@ -15,34 +11,9 @@ export const adminRoleConfig = {
     key: "admin",
     label: "Administrator",
     profileTitle: "Administrator",
-    profileSubtitle: "Kontrak",
-    defaultSection: "todos",
-    menuItems: adminMenuItems,
-    capabilities: {
-        canCreateIsp: false,
-        canCreateTenant: false,
-        canEditIsp: false,
-        canDeleteIsp: false,
-        canEditTenant: false,
-        canDeleteTenant: false,
-    },
-    allowedSections: ["todos"],
-    allowedRouteTypes: [
-        "redirect",
-        "login",
-        "section",
-        "customer-detail",
-        "not-found",
-    ],
-};
-
-export const superAdminRoleConfig = {
-    key: "super_admin",
-    label: "Super Admin",
-    profileTitle: "Super Admin",
-    profileSubtitle: "Akses Penuh",
+    profileSubtitle: "Super Admin",
     defaultSection: "dashboard",
-    menuItems: superAdminMenuItems,
+    menuItems: adminMenuItems,
     capabilities: {
         canCreateIsp: true,
         canCreateTenant: true,

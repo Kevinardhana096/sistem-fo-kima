@@ -1,4 +1,4 @@
-import { adminRoleConfig, superAdminRoleConfig } from "./admin/config";
+import { adminRoleConfig } from "./admin/config";
 import { ispRoleConfig } from "./isp/config";
 import { teknisiRoleConfig } from "./teknisi/config";
 
@@ -31,7 +31,12 @@ const guestRoleConfig = {
 
 export const roleConfigs = {
     [APP_ROLES.guest]: guestRoleConfig,
-    [APP_ROLES.superAdmin]: superAdminRoleConfig,
+    [APP_ROLES.superAdmin]: {
+        ...adminRoleConfig,
+        key: APP_ROLES.superAdmin,
+        label: "Super Admin",
+        profileTitle: "Super Admin",
+    },
     [APP_ROLES.admin]: adminRoleConfig,
     [APP_ROLES.teknisi]: teknisiRoleConfig,
     [APP_ROLES.isp]: ispRoleConfig,
