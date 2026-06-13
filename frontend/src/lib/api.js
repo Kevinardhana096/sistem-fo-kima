@@ -2241,6 +2241,7 @@ export const customersApi = {
       },
     });
 
+    clearNotificationListCache();
     return data;
   },
 
@@ -2294,6 +2295,7 @@ export const customersApi = {
       metadata: pickChangedFields(previousCustomer, data, ['name', 'status', 'isp_name', 'customer_code', 'activation_fee_paid_at']),
     });
 
+    clearNotificationListCache();
     return data;
   },
 
@@ -2331,6 +2333,8 @@ export const customersApi = {
         deleted_by: user?.id ?? null,
       },
     });
+
+    clearNotificationListCache();
   },
 };
 
@@ -2827,6 +2831,7 @@ export const ispsApi = {
     });
 
     clearIspListCache();
+    clearNotificationListCache();
     return data;
   },
 
@@ -2886,6 +2891,7 @@ export const ispsApi = {
     });
 
     clearIspListCache();
+    clearNotificationListCache();
     return data;
   },
 
@@ -2951,6 +2957,7 @@ export const ispsApi = {
     });
 
     clearIspListCache();
+    clearNotificationListCache();
     return { deletedCustomersCount: customerIds.length };
   },
 };
@@ -4005,6 +4012,7 @@ export const documentsApi = {
       .single();
 
     if (error) throw error;
+    clearNotificationListCache();
     return data;
   },
 
@@ -4018,6 +4026,7 @@ export const documentsApi = {
       .single();
 
     if (error) throw error;
+    clearNotificationListCache();
     return data;
   },
 
@@ -4029,6 +4038,7 @@ export const documentsApi = {
       .eq('id', id);
 
     if (error) throw error;
+    clearNotificationListCache();
   },
 };
 
@@ -4059,6 +4069,7 @@ export const invoicesApi = {
       .single();
 
     if (error) throw error;
+    clearNotificationListCache();
     return data;
   },
 
@@ -4072,6 +4083,7 @@ export const invoicesApi = {
       .single();
 
     if (error) throw error;
+    clearNotificationListCache();
     return data;
   },
 
@@ -4083,6 +4095,7 @@ export const invoicesApi = {
       .eq('id', id);
 
     if (error) throw error;
+    clearNotificationListCache();
   },
 };
 
@@ -4115,6 +4128,7 @@ export const contractsApi = {
       .single();
 
     if (error) throw error;
+    clearNotificationListCache();
     return data;
   },
 
@@ -4133,6 +4147,7 @@ export const contractsApi = {
       .single();
 
     if (error) throw error;
+    clearNotificationListCache();
     return data;
   },
 
@@ -4182,6 +4197,7 @@ export const contractsApi = {
       .eq('id', contractId);
 
     if (error) throw error;
+    clearNotificationListCache();
   },
 };
 
