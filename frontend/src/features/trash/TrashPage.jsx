@@ -41,7 +41,7 @@ function CustomDropdown({ value, options, onChange, align = "right", triggerClas
             {isOpen && (
                 <>
                     <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)}></div>
-                    <div className={`absolute top-full mt-3 ${align === "right" ? "right-0" : "left-0"} z-50 w-full min-w-[160px] rounded-2xl glass-premium shadow-glass-depth overflow-hidden animate-in fade-in zoom-in duration-300`}>
+                    <div className={`absolute top-full mt-3 ${align === "right" ? "right-0" : "left-0"} z-50 w-full min-w-[160px] rounded-2xl glass-popover shadow-glass-depth overflow-hidden animate-in fade-in zoom-in duration-300`}>
                         <div className="max-h-[250px] overflow-y-auto py-1.5 [&::-webkit-scrollbar]:w-[2px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gold-accent/30 [&::-webkit-scrollbar-thumb]:rounded-full">
                         {options.map((opt) => (
                             <button

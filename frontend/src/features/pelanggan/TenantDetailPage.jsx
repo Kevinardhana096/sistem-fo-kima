@@ -4575,7 +4575,7 @@ function TenantDetailPage({
               {isMobileTabMenuOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setIsMobileTabMenuOpen(false)}></div>
-                  <div className="absolute top-full left-0 mt-3 w-52 origin-top-left p-2 rounded-2xl glass-premium border border-white/10 shadow-glass-depth z-50 flex flex-col gap-1 animate-in fade-in zoom-in duration-300">
+                  <div className="absolute top-full left-0 mt-3 w-52 origin-top-left p-2 rounded-2xl glass-popover shadow-glass-depth z-50 flex flex-col gap-1 animate-in fade-in zoom-in duration-300">
                     {[
                       { id: "overview", label: "Ringkasan", icon: "dashboard" },
                       { id: "contracts", label: "Kontrak", icon: "description" },

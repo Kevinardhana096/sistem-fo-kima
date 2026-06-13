@@ -251,7 +251,7 @@ export default function AppShell({
             {isEditModalOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
                     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsEditModalOpen(false)}></div>
-                    <div className="relative w-full max-w-sm rounded-2xl glass-premium anim-popover p-6 shadow-2xl animate-in fade-in zoom-in duration-300 border border-white/10">
+                    <div className="relative w-full max-w-sm rounded-2xl glass-popover anim-popover p-6 shadow-2xl animate-in fade-in zoom-in duration-300">
                         <div className="flex items-center justify-between mb-5">
                             <h2 className="text-lg font-black text-on-surface">Edit Profile</h2>
                             <button onClick={() => setIsEditModalOpen(false)} className="h-7 w-7 flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 anim-surface">
@@ -464,7 +464,7 @@ function TopNav({
                         {isMobileMenuOpen && (
                             <>
                                 <div className="fixed inset-0 z-[2025] bg-black/25 backdrop-blur-sm" onClick={onCloseMenu}></div>
-                                <div className="!absolute left-0 top-full z-[2030] mt-3 w-56 origin-top-left rounded-2xl glass-premium border border-white/10 p-3 shadow-glass-depth animate-in fade-in zoom-in-95 duration-200">
+                                <div className="!absolute left-0 top-full z-[2030] mt-3 w-56 origin-top-left rounded-2xl glass-popover p-3 shadow-glass-depth animate-in fade-in zoom-in-95 duration-200">
                                     {/* Header / Logo */}
                                     <div className="flex items-center gap-2.5 px-2 py-1.5 border-b border-white/10 mb-2">
                                         <div className="h-6 w-6 flex items-center justify-center rounded-lg bg-gold-accent shadow-gold-glow">
@@ -525,7 +525,7 @@ function TopNav({
                     {isNotificationsOpen && (
                         <>
                             <div className="fixed inset-0 z-[2025] bg-black/25 backdrop-blur-sm" onClick={() => setIsNotificationsOpen(false)}></div>
-                            <div className="!fixed left-6 right-6 max-w-md mx-auto top-[72px] md:!absolute md:right-0 md:left-auto md:mx-0 md:top-full md:mt-3 md:w-[24rem] md:max-w-none z-[2030] origin-top md:origin-top-right rounded-2xl glass-premium border border-white/10 p-0 shadow-glass-depth animate-in fade-in slide-in-from-top-3 duration-300 ease-out">
+                            <div className="!fixed left-6 right-6 max-w-md mx-auto top-[72px] md:!absolute md:right-0 md:left-auto md:mx-0 md:top-full md:mt-3 md:w-[24rem] md:max-w-none z-[2030] origin-top md:origin-top-right rounded-2xl glass-popover p-0 shadow-glass-depth animate-in fade-in slide-in-from-top-3 duration-300 ease-out">
                                 <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
                                     <div>
                                         <p className="text-sm font-black text-on-surface">Notifikasi</p>
@@ -668,7 +668,7 @@ function TopNav({
                     {isProfileOpen && (
                         <>
                             <div className="fixed inset-0 z-[2025] bg-black/25 backdrop-blur-sm" onClick={() => setIsProfileOpen(false)}></div>
-                            <div className="!absolute right-0 top-full z-[2030] mt-3 w-52 origin-top-right rounded-2xl glass-premium anim-popover p-2 shadow-glass-depth animate-in fade-in zoom-in duration-300 md:w-56">
+                            <div className="!absolute right-0 top-full z-[2030] mt-3 w-52 origin-top-right rounded-2xl glass-popover anim-popover p-2 shadow-glass-depth animate-in fade-in zoom-in duration-300 md:w-56">
                                 <div className="px-3 py-3 border-b border-white/10 mb-1.5">
                                     <p className="text-xs font-black text-on-surface truncate">{profileDisplayName}</p>
                                     <p className="text-[9px] font-bold text-on-surface-variant uppercase mt-0.5 truncate">{roleConfig.profileSubtitle}</p>

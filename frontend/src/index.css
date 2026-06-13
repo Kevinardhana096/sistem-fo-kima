@@ -106,6 +106,34 @@
     z-index: 1;
   }
 
+  .glass-popover {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    background: rgba(15, 20, 30, 0.86);
+    backdrop-filter: blur(28px) saturate(1.12);
+    -webkit-backdrop-filter: blur(28px) saturate(1.12);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    box-shadow: 0 24px 52px rgba(0, 0, 0, 0.56);
+    transform: translateZ(0);
+  }
+
+  .glass-popover::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background:
+      linear-gradient(135deg, rgba(255, 255, 255, 0.10), transparent 48%),
+      rgba(15, 20, 30, 0.24);
+  }
+
+  .glass-popover > * {
+    position: relative;
+    z-index: 1;
+  }
+
   @media (max-width: 1023px) {
     nav .glass-premium,
     .lg\:hidden .glass-premium,
@@ -264,6 +292,7 @@
     }
 
     .glass-premium,
+    .glass-popover,
     .glass-sidebar,
     .glass-navbar {
       background: rgba(15, 20, 30, 0.9);
