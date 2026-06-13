@@ -12,7 +12,7 @@ DECLARE
 BEGIN
   -- 1. Check if current user is admin
   v_role := (auth.jwt() -> 'user_metadata' ->> 'role')::TEXT;
-  IF v_role != 'admin' THEN
+  IF v_role NOT IN ('super_admin', 'admin') THEN
     RAISE EXCEPTION 'Access denied: Only admins can manage ISP accounts';
   END IF;
 

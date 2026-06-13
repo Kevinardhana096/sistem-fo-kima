@@ -21,7 +21,7 @@ type NotificationItem = {
 type Recipient = {
   id: string;
   email: string;
-  role: "admin" | "teknisi" | "isp";
+  role: "super_admin" | "admin" | "teknisi" | "isp";
   displayName: string;
   ispId: number | null;
 };
@@ -198,7 +198,7 @@ async function listAuthRecipients(): Promise<Recipient[]> {
   const roleUsers = users
     .map((user) => {
       const role = String(user.user_metadata?.role || "").trim().toLowerCase();
-      if (!["admin", "teknisi", "isp"].includes(role) || !user.email) return null;
+      if (!["super_admin", "admin", "teknisi", "isp"].includes(role) || !user.email) return null;
       return {
         id: user.id,
         email: user.email,
@@ -891,8 +891,17 @@ function getNotificationIspIds(notification: NotificationItem) {
   return [];
 }
 
+const ADMIN_CONTRACT_NOTIFICATION_TYPES = new Set(["contract_renewal"]);
+
+function isAdminContractNotification(notification: NotificationItem) {
+  return ADMIN_CONTRACT_NOTIFICATION_TYPES.has(notification.type);
+}
+
 function canReceiveNotification(recipient: Recipient, notification: NotificationItem) {
-  if (recipient.role === "admin") return true;
+  if (recipient.role === "super_admin") return true;
+  if (recipient.role === "admin") {
+    return isAdminContractNotification(notification);
+  }
   if (recipient.role === "teknisi") {
     return notification.type === "route_setup";
   }

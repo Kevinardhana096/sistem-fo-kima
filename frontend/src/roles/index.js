@@ -4,6 +4,7 @@ import { teknisiRoleConfig } from "./teknisi/config";
 
 export const APP_ROLES = {
     guest: "guest",
+    superAdmin: "super_admin",
     admin: "admin",
     teknisi: "teknisi",
     isp: "isp",
@@ -30,6 +31,12 @@ const guestRoleConfig = {
 
 export const roleConfigs = {
     [APP_ROLES.guest]: guestRoleConfig,
+    [APP_ROLES.superAdmin]: {
+        ...adminRoleConfig,
+        key: APP_ROLES.superAdmin,
+        label: "Super Admin",
+        profileTitle: "Super Admin",
+    },
     [APP_ROLES.admin]: adminRoleConfig,
     [APP_ROLES.teknisi]: teknisiRoleConfig,
     [APP_ROLES.isp]: ispRoleConfig,

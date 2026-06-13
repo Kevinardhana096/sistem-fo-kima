@@ -40,7 +40,7 @@ DROP POLICY IF EXISTS "Users read own notification email deliveries" ON public.n
 CREATE POLICY "Admins read notification email deliveries"
 ON public.notification_email_deliveries
 FOR SELECT
-USING ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
+USING ((auth.jwt() -> 'user_metadata' ->> 'role') IN ('super_admin', 'admin'));
 
 CREATE POLICY "Users read own notification email deliveries"
 ON public.notification_email_deliveries

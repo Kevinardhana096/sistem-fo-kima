@@ -24,6 +24,11 @@ const routeRegistry = {
         getSectionPath: getAdminSectionPath,
         parseRoute: parseAdminRoute,
     },
+    [APP_ROLES.superAdmin]: {
+        paths: ADMIN_PATHS,
+        getSectionPath: getAdminSectionPath,
+        parseRoute: parseAdminRoute,
+    },
     [APP_ROLES.admin]: {
         paths: ADMIN_PATHS,
         getSectionPath: getAdminSectionPath,

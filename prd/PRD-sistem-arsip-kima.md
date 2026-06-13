@@ -30,7 +30,8 @@ Operasional sebelumnya tersebar di dokumen, spreadsheet, dan pencatatan manual. 
 
 | Peran | Deskripsi | Kapabilitas Utama |
 | --- | --- | --- |
-| **Admin** | Pengelola penuh sistem | CRUD ISP, CRUD pelanggan, kelola kontrak, dokumen, invoice, route, monitoring, dan akses rancangan tempat sampah |
+| **Super Admin** | Pengelola penuh sistem | CRUD ISP, CRUD pelanggan, kelola kontrak, dokumen, invoice, route, monitoring, akses rancangan tempat sampah, dan menerima semua notifikasi operasional |
+| **Admin** | Pengelola operasional kontrak | Mengelola operasional sesuai kebutuhan aplikasi dan menerima notifikasi masa/perpanjangan kontrak pelanggan saja |
 | **Teknisi** | Staf operasional/lapangan | Melihat data pelanggan dan monitoring operasional, route planner FO, dan akses **Tempat Sampah** (lihat item terhapus) — tanpa hak buat/ubah/hapus entitas |
 | **ISP** | Mitra ISP | Melihat data terkait ISP dan pelanggan yang relevan secara read-only |
 
@@ -255,6 +256,7 @@ Detail pelanggan terdiri dari tab:
 
 - Pusat notifikasi operasional terpusat untuk hal-hal yang perlu dibaca atau ditindaklanjuti.
 - Sumber notifikasi mencakup: kontrak mendekati/lewat periode, invoice perlu perhatian/belum di-setup/belum diupload/jatuh tempo, jalur FO perlu perhatian/setup, biaya aktivasi, serta kontrak/dokumen/perpanjangan ISP.
+- Pengiriman notifikasi berdasarkan role: **Super Admin** menerima semua notifikasi operasional; **Admin** hanya menerima notifikasi masa/perpanjangan kontrak pelanggan; **Teknisi** menerima notifikasi teknis/jalur; **ISP** menerima notifikasi yang terkait dengan ISP-nya.
 - Tiap item memiliki tingkat keparahan (`critical`/`warning`/`info`) dan status baca/selesai (`unread`/`read`/`resolved`), dengan aksi **Buka**, **Tandai Dibaca**, dan **Tandai Selesai**.
 - Mendukung pencarian, filter berdasarkan tipe/status, dan pagination.
 

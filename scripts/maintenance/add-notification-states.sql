@@ -35,4 +35,4 @@ WITH CHECK (actor_user_id = auth.uid());
 CREATE POLICY "Admin read all notification_states"
 ON public.notification_states
 FOR SELECT
-USING (public.get_user_role() = 'admin');
+USING (public.get_user_role() IN ('super_admin', 'admin'));
