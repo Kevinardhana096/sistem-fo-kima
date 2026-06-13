@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /**
  * DateInput — input tanggal yang bisa diketik (DD/MM/YYYY) sekaligus
@@ -11,6 +11,8 @@ import { useEffect, useRef } from "react";
  *   className  : string  — class tambahan untuk wrapper luar (opsional)
  *   inputClass : string  — class tambahan untuk <input> (opsional)
  *   placeholder: string  — default "DD/MM/YYYY"
+ *   displayMode: string  — "date" atau "month-year"; month-year hanya mengubah
+ *                          tampilan saat field tidak fokus.
  *
  * Contoh pemakaian:
  *   <DateInput value={form.tanggal} onChange={val => setForm(f => ({ ...f, tanggal: val }))} />
@@ -24,6 +26,24 @@ function isoToDisplay(iso) {
     const [y, m, d] = iso.split("-");
     if (!y || !m || !d) return iso;
     return `${d}/${m}/${y}`;
+}
+
+/** YYYY-MM-DD → Bulan YYYY (untuk tampilan ringkas saat tidak diedit) */
+function isoToMonthYearDisplay(iso) {
+    if (!isValidIsoDate(iso)) return iso || "";
+
+    return new Intl.DateTimeFormat("id-ID", {
+        month: "long",
+        year: "numeric",
+    }).format(new Date(`${iso}T00:00:00.000Z`));
+}
+
+function isoToModeDisplay(iso, displayMode, isFocused) {
+    if (displayMode === "month-year" && !isFocused) {
+        return isoToMonthYearDisplay(iso);
+    }
+
+    return isoToDisplay(iso);
 }
 
 function isValidIsoDate(iso) {
@@ -76,6 +96,7 @@ export default function DateInput({
     className = "",
     inputClass = "",
     placeholder = "DD/MM/YYYY",
+    displayMode = "date",
     hideIcon = false,
     onBlur,
     onKeyDown,
@@ -83,20 +104,21 @@ export default function DateInput({
     ...inputProps
 }) {
     const textRef = useRef(null);
+    const [isFocused, setIsFocused] = useState(false);
 
     // Hidden input type="date" — dipakai hanya untuk membuka kalender
     const hiddenRef = useRef(null);
 
     // Sinkronisasi jika value dari luar berubah (mis. reset form)
     useEffect(() => {
-        const next = isoToDisplay(value);
+        const next = isoToModeDisplay(value, displayMode, isFocused);
         if (textRef.current && textRef.current.value !== next) {
             textRef.current.value = next;
         }
         if (hiddenRef.current && hiddenRef.current.value !== (value || "")) {
             hiddenRef.current.value = value || "";
         }
-    }, [value]);
+    }, [value, displayMode, isFocused]);
 
     function handleTextChange(e) {
         const raw = e.target.value;
@@ -115,8 +137,9 @@ export default function DateInput({
 
     function handleTextBlur() {
         // Saat blur, normalkan tampilan dari value ISO yang tersimpan
+        setIsFocused(false);
         if (textRef.current) {
-            textRef.current.value = isoToDisplay(value);
+            textRef.current.value = isoToModeDisplay(value, displayMode, false);
         }
         onBlur?.();
     }
@@ -126,6 +149,10 @@ export default function DateInput({
     }
 
     function handleTextFocus(event) {
+        setIsFocused(true);
+        if (textRef.current) {
+            textRef.current.value = isoToDisplay(value);
+        }
         onFocus?.(event);
     }
 
@@ -133,7 +160,7 @@ export default function DateInput({
         const iso = e.target.value; // YYYY-MM-DD
         onChange?.(iso);
         if (textRef.current) {
-            textRef.current.value = isoToDisplay(iso);
+            textRef.current.value = isoToModeDisplay(iso, displayMode, isFocused);
         }
     }
 
@@ -164,7 +191,7 @@ export default function DateInput({
                 onFocus={handleTextFocus}
                 disabled={disabled}
                 placeholder={placeholder}
-                maxLength={10}
+                maxLength={displayMode === "month-year" && !isFocused ? undefined : 10}
                 className={`w-full ${inputClass}`}
                 {...inputProps}
             />

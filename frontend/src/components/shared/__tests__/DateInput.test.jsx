@@ -25,4 +25,17 @@ describe('DateInput', () => {
       }
     }
   });
+
+  it('menampilkan bulan dan tahun saat mode month-year tidak fokus', async () => {
+    render(<DateInput value="2025-05-01" onChange={vi.fn()} displayMode="month-year" />);
+
+    const input = screen.getByDisplayValue('Mei 2025');
+    expect(input).toBeInTheDocument();
+
+    await userEvent.click(input);
+    expect(input).toHaveValue('01/05/2025');
+
+    await userEvent.tab();
+    expect(input).toHaveValue('Mei 2025');
+  });
 });

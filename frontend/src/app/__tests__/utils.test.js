@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
     formatMonthYear,
     getIspContractRowCoverage,
+    resolveCustomerOperationalStatus,
     resolveInvoiceDueMonthIsoDate,
 } from "../utils";
 
@@ -67,5 +68,28 @@ describe("getIspContractRowCoverage", () => {
             hasBakFile: false,
             hasContractFile: false,
         });
+    });
+});
+
+describe("resolveCustomerOperationalStatus", () => {
+    it("uses active contract version period over stale raw customer status", () => {
+        expect(resolveCustomerOperationalStatus({
+            status: "expired",
+            contracts: [
+                {
+                    id: 52,
+                    status: "aktif",
+                    startDate: "2025-10-09",
+                    endDate: "2026-10-08",
+                    versions: [
+                        {
+                            id: 61,
+                            startDate: "2025-10-09",
+                            endDate: "2026-10-08",
+                        },
+                    ],
+                },
+            ],
+        }, "2026-06-12")).toBe("aktif");
     });
 });

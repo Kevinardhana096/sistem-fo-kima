@@ -2769,7 +2769,7 @@ export const ispsApi = {
       contractRows: Array.isArray(data.contractRows)
         ? data.contractRows.map(mapIspContractRow)
         : [],
-      tenants: data.customerMemberships?.map(membership => membership.customer).filter(Boolean) || [],
+      tenants: data.customerMemberships?.map(membership => membership.customer).filter(Boolean).map(mapCustomerDetail) || [],
     };
   },
 

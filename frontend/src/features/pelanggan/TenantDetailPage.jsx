@@ -6581,6 +6581,8 @@ function TenantDetailPage({
                       <DateInput
                         value={invoiceBulkForm.dueDate}
                         onChange={(val) => setInvoiceBulkForm(p => ({ ...p, dueDate: val }))}
+                        displayMode="month-year"
+                        placeholder="Bulan Tahun"
                         className="h-8 w-32 rounded-lg border border-white/10 bg-white/[0.02] transition-all focus-within:border-gold-accent/50 focus-within:bg-white/5"
                         inputClass="w-full h-full bg-transparent px-2.5 text-[10px] font-bold text-white outline-none disabled:cursor-not-allowed disabled:opacity-40"
                         disabled={!canManageTenantContracts}
@@ -6772,7 +6774,7 @@ function TenantDetailPage({
                           {/* Bulan jatuh tempo (due date teknis) */}
                           <td className="px-2.5 py-2 whitespace-nowrap border border-white/5 text-center">
                             {isIsp ? (
-                              <span className="text-[10px] font-bold text-white">{draft.dueDate || "-"}</span>
+                              <span className="text-[10px] font-bold text-white">{formatMonthYear(draft.dueDate)}</span>
                             ) : (
                               <div className="space-y-1 flex flex-col items-center">
                                 <DateInput
@@ -6783,6 +6785,8 @@ function TenantDetailPage({
                                   }}
                                   disabled={isSetDateLockedByGlobal || isSavingInvoice || isIsp}
                                   hideIcon={true}
+                                  displayMode="month-year"
+                                  placeholder="Bulan Tahun"
                                   className="h-8 w-36 rounded-lg border border-white/10 bg-white/[0.03] transition-all focus-within:border-gold-accent/50 focus-within:bg-white/5"
                                   inputClass="w-full h-full bg-transparent px-2.5 text-[10px] font-bold text-white text-center outline-none"
                                 />
@@ -7034,7 +7038,7 @@ function TenantDetailPage({
                               <div className="flex items-center gap-1.5 mt-0.5">
                                 <span className="text-[8px] font-bold text-white/50">Jatuh Tempo:</span>
                                 {isIsp ? (
-                                  <span className="text-[9px] font-bold text-white truncate">{draft.dueDate || "-"}</span>
+                                  <span className="text-[9px] font-bold text-white truncate">{formatMonthYear(draft.dueDate)}</span>
                                 ) : (
                                   <div onClick={(e) => e.stopPropagation()}>
                                     <DateInput
@@ -7044,6 +7048,8 @@ function TenantDetailPage({
                                         handleInvoiceAutoSave(invoice, { dueDate: val });
                                       }}
                                       hideIcon={true}
+                                      displayMode="month-year"
+                                      placeholder="Bulan Tahun"
                                       className="h-5 w-24 rounded border border-white/10 bg-white/[0.03]"
                                       inputClass="w-full h-full bg-transparent px-1.5 text-[8px] font-bold text-white text-left outline-none"
                                     />
