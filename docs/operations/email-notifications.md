@@ -85,7 +85,9 @@ cron berikutnya setelah user aktif/sesuai konfigurasi Auth.
 
 ## Aturan Role
 
-- `admin`: menerima semua notifikasi operasional.
+- `super_admin`: menerima semua notifikasi operasional.
+- `admin`: hanya menerima notifikasi masa/perpanjangan kontrak tenant
+  (`contract_renewal`).
 - `teknisi`: hanya menerima notifikasi jalur/map (`route_setup`).
 - `isp`: hanya menerima notifikasi yang terkait `isp_id` yang terhubung melalui
   `public.isp_user_accounts`.
