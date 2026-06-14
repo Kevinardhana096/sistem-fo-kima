@@ -11,7 +11,7 @@ export const adminRoleConfig = {
     key: "admin",
     label: "Administrator",
     profileTitle: "Administrator",
-    profileSubtitle: "Super Admin",
+    profileSubtitle: "Admin Sistem",
     defaultSection: "dashboard",
     menuItems: adminMenuItems,
     capabilities: {

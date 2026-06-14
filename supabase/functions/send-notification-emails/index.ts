@@ -901,7 +901,13 @@ function getNotificationIspIds(notification: NotificationItem) {
   return [];
 }
 
-const ADMIN_CONTRACT_NOTIFICATION_TYPES = new Set(["contract_renewal"]);
+const ADMIN_CONTRACT_NOTIFICATION_TYPES = new Set([
+  "contract_renewal",
+  "contract_admin",
+  "isp_contract",
+  "isp_document",
+  "isp_renewal"
+]);
 
 function isAdminContractNotification(notification: NotificationItem) {
   return ADMIN_CONTRACT_NOTIFICATION_TYPES.has(notification.type);
