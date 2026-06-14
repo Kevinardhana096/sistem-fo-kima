@@ -54,6 +54,8 @@ type RequestAuth = {
   privileged: boolean;
   selfUserId: string | null;
   selfEmail: string | null;
+  selfRole?: string | null;
+  selfDisplayName?: string | null;
 };
 
 const corsHeaders = {
@@ -241,6 +243,8 @@ async function getRequestAuth(req: Request): Promise<RequestAuth> {
       privileged: true,
       selfUserId: null,
       selfEmail: null,
+      selfRole: null,
+      selfDisplayName: null,
     };
   }
 
@@ -249,6 +253,8 @@ async function getRequestAuth(req: Request): Promise<RequestAuth> {
       privileged: false,
       selfUserId: null,
       selfEmail: null,
+      selfRole: null,
+      selfDisplayName: null,
     };
   }
 
@@ -258,6 +264,8 @@ async function getRequestAuth(req: Request): Promise<RequestAuth> {
       privileged: false,
       selfUserId: null,
       selfEmail: null,
+      selfRole: null,
+      selfDisplayName: null,
     };
   }
 
@@ -265,6 +273,8 @@ async function getRequestAuth(req: Request): Promise<RequestAuth> {
     privileged: false,
     selfUserId: data.user.id,
     selfEmail: data.user.email?.trim().toLowerCase() || null,
+    selfRole: String(data.user.user_metadata?.role || "").trim(),
+    selfDisplayName: String(data.user.user_metadata?.display_name || "").trim(),
   };
 }
 
@@ -898,6 +908,7 @@ function isAdminContractNotification(notification: NotificationItem) {
 }
 
 function canReceiveNotification(recipient: Recipient, notification: NotificationItem) {
+  if (notification.type === "welcome") return true;
   if (recipient.role === "super_admin") return true;
   if (recipient.role === "admin") {
     return isAdminContractNotification(notification);
@@ -1045,6 +1056,7 @@ async function handleRequest(req: Request) {
   }
 
   const body = await req.json().catch(() => ({}));
+  const isRegisterTrigger = body?.trigger === "register";
   const dryRun = Boolean(body?.dryRun);
   const requestedForce = Boolean(body?.force);
   const limit = Math.max(1, Math.min(Number(body?.limit || 100), 500));
@@ -1062,13 +1074,40 @@ async function handleRequest(req: Request) {
   }
   const recipientFilter = resolveRecipientFilter(auth, requestedRecipientFilter);
 
-  const [allRecipients, customerNotifications, ispNotifications] = await Promise.all([
-    listAuthRecipients(),
-    buildCustomerNotifications(),
-    buildIspNotifications(),
-  ]);
+  let allRecipients: Recipient[];
+  let notifications: NotificationItem[];
+
+  if (isRegisterTrigger && !auth.privileged && auth.selfUserId && auth.selfEmail) {
+    const role = (auth.selfRole || "admin").toLowerCase() as Recipient["role"];
+    allRecipients = [{
+      id: auth.selfUserId,
+      email: auth.selfEmail,
+      role: ["super_admin", "admin", "teknisi", "isp"].includes(role) ? role : "admin",
+      displayName: auth.selfDisplayName || "Pengguna Baru",
+      ispId: null,
+    }];
+    notifications = [{
+      id: "welcome-email",
+      type: "welcome",
+      code: "welcome",
+      severity: "info",
+      title: "Selamat Datang di Sistem FO KIMA",
+      message: "Akun Anda telah berhasil dibuat dan sudah dapat digunakan. Notifikasi operasional akan dikirimkan ke email ini sesuai dengan role Anda.",
+      actionLabel: "Buka Aplikasi",
+      targetPath: "/",
+      createdAt: new Date().toISOString(),
+    }];
+  } else {
+    const [fetchedRecipients, customerNotifications, ispNotifications] = await Promise.all([
+      listAuthRecipients(),
+      buildCustomerNotifications(),
+      buildIspNotifications(),
+    ]);
+    allRecipients = fetchedRecipients;
+    notifications = [...customerNotifications, ...ispNotifications].slice(0, limit);
+  }
+
   const recipients = applyRecipientFilter(allRecipients, recipientFilter);
-  const notifications = [...customerNotifications, ...ispNotifications].slice(0, limit);
   const existingKeys = force
     ? new Set<string>()
     : await getExistingDeliveryKeys(

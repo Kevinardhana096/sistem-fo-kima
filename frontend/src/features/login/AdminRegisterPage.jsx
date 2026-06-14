@@ -148,26 +148,15 @@ export default function AdminRegisterPage({ onBackToLogin }) {
         setIsSubmitting(true);
         try {
             const signUpResult = await signUpInternalUser({ email, password: form.password, displayName, role: role.key });
-            let notificationMessage = " Email notifikasi awal belum dikirim karena belum ada notifikasi operasional aktif untuk role ini.";
+            let notificationMessage = " Pengiriman email notifikasi awal sedang diproses di latar belakang.";
 
-            try {
-                const emailResult = await sendInitialNotificationEmails({
-                    recipientUserId: signUpResult?.user?.id,
-                    recipientEmail: email,
-                    accessToken: signUpResult?.session?.access_token,
-                });
-                const sentCount = Number(emailResult?.sentCount ?? 0);
-                const attemptedCount = Number(emailResult?.attemptedCount ?? 0);
-
-                if (sentCount > 0) {
-                    notificationMessage = ` ${sentCount} email notifikasi awal berhasil dikirim sesuai role.`;
-                } else if (attemptedCount > 0) {
-                    notificationMessage = " Email notifikasi awal sudah diproses, tetapi belum ada yang berhasil terkirim. Periksa log pengiriman email.";
-                }
-            } catch (notificationError) {
-                const detail = notificationError instanceof Error ? notificationError.message : "pemicu email gagal dijalankan";
-                notificationMessage = ` Akun dibuat, tetapi email notifikasi awal belum terkirim: ${detail}`;
-            }
+            sendInitialNotificationEmails({
+                recipientUserId: signUpResult?.user?.id,
+                recipientEmail: email,
+                accessToken: signUpResult?.session?.access_token,
+            }).catch((notificationError) => {
+                console.error("Gagal mengirim notifikasi awal:", notificationError);
+            });
 
             setStatus({
                 type: "success",
