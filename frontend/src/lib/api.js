@@ -897,7 +897,7 @@ const getIspDerivedNotifications = async () => {
 
 const getDerivedNotifications = async (latestRouteByCustomerId = null) => {
   const todayIso = new Date().toISOString().slice(0, 10);
-  const baseInvoiceColumns = 'id,customer_id,invoice_number,amount,due_date,period_end_date,status,schedule_status';
+  const baseInvoiceColumns = 'id,customer_id,invoice_number,amount,due_date,period_start_date,period_end_date,status,schedule_status';
   const [customersResult, incompleteInvoicesResult, missingFileInvoicesResult] = await Promise.all([
     supabase
       .from('customers')
@@ -1058,7 +1058,7 @@ const getDerivedNotifications = async (latestRouteByCustomerId = null) => {
 
     const invoices = customerStatus === 'aktif' ? invoicesByCustomerId.get(customer.id) || [] : [];
     invoices.forEach((invoice) => {
-        const dueDate = invoice.due_date || invoice.period_end_date || null;
+        const dueDate = invoice.due_date || (invoice.period_start_date ? resolveInvoiceDueMonthIsoDate(invoice.period_start_date) : null) || invoice.period_end_date || null;
         const amount = Number(invoice.amount || 0);
 
         if (invoice.isIncomplete && (!dueDate || amount <= 0)) {
@@ -3217,7 +3217,7 @@ export const monitoringApi = {
     invoicesByCustomerId.forEach((customerInvoices, customerId) => {
       const lookup = new Map();
       customerInvoices.forEach((invoice) => {
-        const displayDateValue = invoice.due_date || invoice.period_start_date || null;
+        const displayDateValue = invoice.due_date || (invoice.period_start_date ? resolveInvoiceDueMonthIsoDate(invoice.period_start_date) : null) || invoice.period_start_date || null;
         const displayDate = displayDateValue ? new Date(`${String(displayDateValue).slice(0, 10)}T00:00:00.000Z`) : null;
         const displayYear = displayDate && Number.isFinite(displayDate.getTime())
           ? displayDate.getUTCFullYear()

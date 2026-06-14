@@ -112,6 +112,19 @@ const getDaysUntilIsoDate = (dateValue: string | null | undefined, baseDateValue
   if (Number.isNaN(targetDate.getTime()) || Number.isNaN(baseDate.getTime())) return null;
   return Math.ceil((targetDate.getTime() - baseDate.getTime()) / (24 * 60 * 60 * 1000));
 };
+const resolveInvoiceDueMonthIsoDate = (periodStartDate: string | null | undefined): string => {
+  if (!periodStartDate) return "";
+  const parsed = new Date(`${String(periodStartDate).slice(0, 10)}T00:00:00.000Z`);
+  if (Number.isNaN(parsed.getTime())) return "";
+  const startDay = parsed.getUTCDate();
+  const dueMonthOffset = startDay <= 15 ? 0 : 1;
+  const dueMonthDate = new Date(Date.UTC(
+    parsed.getUTCFullYear(),
+    parsed.getUTCMonth() + dueMonthOffset,
+    1,
+  ));
+  return dueMonthDate.toISOString().slice(0, 10);
+};
 
 const isActiveStatus = (status: unknown) => {
   const value = String(status || "").trim().toLowerCase();
@@ -419,14 +432,14 @@ async function buildCustomerNotifications(): Promise<NotificationItem[]> {
       .is("deleted_at", null),
     supabase
       .from("invoices")
-      .select("id,customer_id,invoice_number,amount,due_date,period_end_date,status,schedule_status")
+      .select("id,customer_id,invoice_number,amount,due_date,period_start_date,period_end_date,status,schedule_status")
       .in("status", ["belum_bayar", "terlambat", "belum_ditagih"])
       .eq("schedule_status", "active")
       .is("deleted_at", null)
       .or("due_date.is.null,amount.lte.0"),
     supabase
       .from("invoices")
-      .select("id,customer_id,invoice_number,amount,due_date,period_end_date,status,schedule_status,invoice_file_url,payment_proof_file_url")
+      .select("id,customer_id,invoice_number,amount,due_date,period_start_date,period_end_date,status,schedule_status,invoice_file_url,payment_proof_file_url")
       .in("status", ["belum_bayar", "terlambat", "belum_ditagih"])
       .eq("schedule_status", "active")
       .is("deleted_at", null)
@@ -648,7 +661,7 @@ async function buildCustomerNotifications(): Promise<NotificationItem[]> {
     }
 
     (invoicesByCustomerId.get(customerId) || []).forEach((invoice) => {
-      const dueDate = String(invoice.due_date || invoice.period_end_date || "");
+      const dueDate = String(invoice.due_date || (invoice.period_start_date ? resolveInvoiceDueMonthIsoDate(invoice.period_start_date as string) : "") || invoice.period_end_date || "");
       const amount = Number(invoice.amount || 0);
       if (invoice.isIncomplete && (!dueDate || amount <= 0)) {
         notifications.push(createCustomerNotification({
