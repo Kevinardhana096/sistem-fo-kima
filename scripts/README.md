@@ -34,6 +34,7 @@ Urutan setup environment baru (ringkas): **auth users → RLS → kolom/feature 
 | --- | --- |
 | [maintenance/add-soft-delete-columns.sql](maintenance/add-soft-delete-columns.sql) | Menambahkan kolom `deleted_at`/`deleted_by` ke seluruh tabel utama (dasar fitur Tempat Sampah / soft delete). |
 | [maintenance/add-activity-logs.sql](maintenance/add-activity-logs.sql) | Membuat tabel `activity_logs` (audit trail) untuk fitur Log Aktivitas. |
+| [maintenance/add-auth-user-profiles.sql](maintenance/add-auth-user-profiles.sql) | Membuat tabel monitor akun Auth dengan kolom `role` biasa yang tersinkron dari metadata Supabase Auth. |
 | [maintenance/add-notification-states.sql](maintenance/add-notification-states.sql) | Membuat state baca/selesai notifikasi per user untuk fitur Tindak Lanjut. |
 | [maintenance/add-notification-email-deliveries.sql](maintenance/add-notification-email-deliveries.sql) | Membuat log delivery email notifikasi per user agar pengiriman role-based tidak duplikat. |
 | [maintenance/schedule-notification-email-job.sql](maintenance/schedule-notification-email-job.sql) | Template Supabase Cron + Vault untuk menjadwalkan Edge Function email notifikasi setiap 15 menit. |
