@@ -653,6 +653,7 @@ function TenantDetailPage({
   const [invoiceFeedback, setInvoiceFeedback] = useState("");
   const [isSavingInvoice, setIsSavingInvoice] = useState(false);
   const [openInvoiceStatusId, setOpenInvoiceStatusId] = useState(null);
+  const [dropdownPosition, setDropdownPosition] = useState(null);
   const savingInvoiceIdsRef = useRef(new Set());
   const [billingEditor, setBillingEditor] = useState(null);
   const [billingError, setBillingError] = useState("");
@@ -6644,8 +6645,8 @@ function TenantDetailPage({
             )}
 
             {/* Active Invoice Table */}
-            <section className="glass-card backdrop-blur-xl rounded-premium border-white/10 shadow-glass-depth overflow-hidden">
-              <div className="px-4 pt-4 pb-2.5 md:px-8 md:py-5 border-b border-white/5 bg-white/[0.02] flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0">
+            <section className="glass-card backdrop-blur-xl rounded-premium border-white/10 shadow-glass-depth xl:overflow-visible overflow-hidden relative z-20">
+              <div className="px-4 pt-4 pb-2.5 md:px-8 md:py-5 border-b border-white/5 bg-white/[0.02] flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0 xl:rounded-t-[inherit]">
                 <div className="flex items-center gap-3 md:gap-4">
                   <div className="h-8 w-8 rounded-lg bg-gold-accent/10 border border-gold-accent/20 flex items-center justify-center shrink-0">
                     <span className="material-symbols-outlined text-gold-accent text-sm">payments</span>
@@ -6675,7 +6676,7 @@ function TenantDetailPage({
                   </div>
                 </div>
               </div>
-              <div className="overflow-x-auto no-scrollbar pb-3 md:pb-4 px-3 md:px-5 pt-3 md:pt-4">
+              <div className="overflow-x-auto no-scrollbar px-3 md:px-5 pt-3 md:pt-4">
                 <table className="w-full text-left min-w-[1200px] border-collapse hidden xl:table">
                   <thead>
                     <tr className="bg-white/[0.02]">
@@ -6834,16 +6835,38 @@ function TenantDetailPage({
                                 <button
                                   className={`flex h-8 w-full items-center justify-between rounded-md border px-2.5 text-[10px] font-bold tracking-wide outline-none transition-all ${statusStyle} hover:border-gold-accent/30 focus:border-gold-accent/50 disabled:opacity-50 shadow-sm backdrop-blur-md`}
                                   disabled={isSavingInvoice || isIsp}
-                                  onClick={() => setOpenInvoiceStatusId(openInvoiceStatusId === invoice.id ? null : invoice.id)}
+                                  onClick={(e) => {
+                                    if (openInvoiceStatusId === invoice.id) {
+                                      setOpenInvoiceStatusId(null);
+                                      setDropdownPosition(null);
+                                    } else {
+                                      const rect = e.currentTarget.getBoundingClientRect();
+                                      const spaceBelow = window.innerHeight - rect.bottom;
+                                      const topPos = spaceBelow < 180 ? rect.top - 180 : rect.bottom + 4;
+                                      setDropdownPosition({
+                                        top: topPos,
+                                        left: rect.left,
+                                        width: rect.width
+                                      });
+                                      setOpenInvoiceStatusId(invoice.id);
+                                    }
+                                  }}
                                   type="button"
                                 >
                                   <span>{INVOICE_STATUS_OPTIONS.find((opt) => opt.value === draft.status)?.label || draft.status}</span>
                                   <span className={`material-symbols-outlined text-[14px] transition-transform duration-300 ${openInvoiceStatusId === invoice.id ? "rotate-180 text-gold-accent" : "text-white/40"}`}>expand_more</span>
                                 </button>
-                                {openInvoiceStatusId === invoice.id && (
+                                {openInvoiceStatusId === invoice.id && dropdownPosition && createPortal(
                                   <>
-                                    <div className="fixed inset-0 z-[110]" onClick={() => setOpenInvoiceStatusId(null)} />
-                                    <div className="absolute left-0 top-[calc(100%+4px)] z-[120] w-full rounded-lg border border-white/10 bg-[#0a0f18]/95 p-1 shadow-2xl backdrop-blur-2xl animate-in fade-in zoom-in-95 duration-200">
+                                    <div className="fixed inset-0 z-[110]" onClick={() => { setOpenInvoiceStatusId(null); setDropdownPosition(null); }} />
+                                    <div 
+                                      className="fixed z-[120] rounded-lg border border-white/10 bg-[#0a0f18]/95 p-1 shadow-2xl backdrop-blur-2xl animate-in fade-in zoom-in-95 duration-200"
+                                      style={{
+                                        top: `${dropdownPosition.top}px`,
+                                        left: `${dropdownPosition.left}px`,
+                                        width: `${dropdownPosition.width}px`
+                                      }}
+                                    >
                                       <div className="no-scrollbar max-h-40 overflow-y-auto space-y-0.5">
                                         {INVOICE_STATUS_OPTIONS.map((option) => {
                                           const isSelected = draft.status === option.value;
@@ -6855,16 +6878,19 @@ function TenantDetailPage({
                                                 updateInvoiceDraftField(invoice.id, "status", option.value);
                                                 handleInvoiceAutoSave(invoice, { status: option.value });
                                                 setOpenInvoiceStatusId(null);
+                                                setDropdownPosition(null);
                                               }}
                                               type="button"
                                             >
                                               {option.label}
+                                              {isSelected && <span className="material-symbols-outlined text-[12px] text-gold-accent">check</span>}
                                             </button>
                                           );
                                         })}
                                       </div>
                                     </div>
-                                  </>
+                                  </>,
+                                  document.body
                                 )}
                               </div>
                             )}
@@ -7204,7 +7230,7 @@ function TenantDetailPage({
               </div>
             </section>
 
-            <section className="glass-card backdrop-blur-xl rounded-premium border-white/10 shadow-glass-depth overflow-hidden">
+            <section className="glass-card backdrop-blur-xl rounded-premium border-white/10 shadow-glass-depth overflow-hidden relative z-10">
               <div className="px-4 py-3 md:px-6 md:py-4 border-b border-white/5 bg-white/[0.01] flex flex-col md:flex-row md:items-center justify-between gap-1.5 md:gap-3">
                 <div className="flex flex-col gap-1">
                   <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-white/60">Arsip Riwayat Settlement</h3>

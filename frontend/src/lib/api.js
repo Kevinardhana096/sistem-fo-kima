@@ -3302,19 +3302,46 @@ export const monitoringApi = {
         ?? null;
     };
 
+    const getContractDueMonthRange = (contractObject) => {
+      if (!contractObject?.start_date || !contractObject?.end_date) return null;
+      const start = new Date(`${contractObject.start_date.slice(0, 10)}T00:00:00.000Z`);
+      const end = new Date(`${contractObject.end_date.slice(0, 10)}T00:00:00.000Z`);
+      if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return null;
+
+      const firstDueIso = resolveInvoiceDueMonthIsoDate(contractObject.start_date);
+      const billingMonths = getBillingCycleMonths(contractObject);
+      
+      let lastStart = new Date(start.getTime());
+      let nextStart = new Date(start.getTime());
+      
+      for (let i = 0; i < 1200; i++) {
+        nextStart = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + (i + 1) * billingMonths, start.getUTCDate()));
+        if (nextStart > end) {
+          break;
+        }
+        lastStart = new Date(nextStart.getTime());
+      }
+
+      const lastDueIso = resolveInvoiceDueMonthIsoDate(lastStart.toISOString().slice(0, 10));
+      return { firstDueIso, lastDueIso };
+    };
+
     const isMonthInsideContract = (contract, month) => {
       if (!contract?.start_date || !contract?.end_date) return false;
-      const monthStart = `${selectedYear}-${String(month).padStart(2, '0')}-01`;
-      const monthEndDate = new Date(Date.UTC(selectedYear, month, 0));
-      const monthEnd = monthEndDate.toISOString().slice(0, 10);
+      const targetDate = `${selectedYear}-${String(month).padStart(2, '0')}-01`;
       
-      const insideBase = monthEnd >= contract.start_date && monthStart <= contract.end_date;
-      if (insideBase) return true;
+      const checkInside = (contractObj) => {
+        const range = getContractDueMonthRange(contractObj);
+        if (!range || !range.firstDueIso || !range.lastDueIso) return false;
+        return targetDate >= range.firstDueIso && targetDate <= range.lastDueIso;
+      };
+
+      if (checkInside(contract)) return true;
 
       const versions = contract.versions || [];
       return versions.some(version => {
         if (version.deleted_at) return false;
-        return monthEnd >= version.start_date && monthStart <= version.end_date;
+        return checkInside(version);
       });
     };
 
