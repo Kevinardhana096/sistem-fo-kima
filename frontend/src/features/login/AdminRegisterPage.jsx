@@ -26,7 +26,7 @@ const REGISTER_ROLES = {
 };
 
 function getRegisterRole(role) {
-    return REGISTER_ROLES[role] ?? REGISTER_ROLES.admin;
+    return REGISTER_ROLES[role] ?? null;
 }
 
 function normalizeEmail(email) {
@@ -59,8 +59,8 @@ export default function AdminRegisterPage({ onBackToLogin }) {
     const [secretKey, setSecretKey] = useState("");
     const [isVerifyingSecret, setIsVerifyingSecret] = useState(false);
     const [form, setForm] = useState({
-        role: REGISTER_ROLES.admin.key,
-        displayName: "Administrator",
+        role: "",
+        displayName: "",
         email: "",
         password: "",
         confirmPassword: "",
@@ -75,7 +75,11 @@ export default function AdminRegisterPage({ onBackToLogin }) {
         return "Password siap digunakan.";
     }, [form.confirmPassword, form.password]);
 
-    const selectedRole = getRegisterRole(form.role);
+    const selectedRole = getRegisterRole(form.role) || {
+        emailLabel: "Email",
+        emailPlaceholder: "Masukkan email",
+        label: "Pengguna"
+    };
 
     const handleSecretSubmit = async (event) => {
         event.preventDefault();
@@ -105,21 +109,7 @@ export default function AdminRegisterPage({ onBackToLogin }) {
     };
 
     const updateField = (key, value) => {
-        setForm((previous) => {
-            if (key === "role") {
-                const nextRole = getRegisterRole(value);
-                const previousRole = getRegisterRole(previous.role);
-                const shouldUseRoleDefaultName = previous.displayName.trim() === previousRole.defaultDisplayName;
-
-                return {
-                    ...previous,
-                    role: nextRole.key,
-                    displayName: shouldUseRoleDefaultName ? nextRole.defaultDisplayName : previous.displayName,
-                };
-            }
-
-            return { ...previous, [key]: value };
-        });
+        setForm((previous) => ({ ...previous, [key]: value }));
         setStatus({ type: "", message: "" });
     };
 
@@ -128,6 +118,12 @@ export default function AdminRegisterPage({ onBackToLogin }) {
 
         const email = normalizeEmail(form.email);
         const role = getRegisterRole(form.role);
+
+        if (!role) {
+            setStatus({ type: "error", message: "Role wajib dipilih." });
+            return;
+        }
+
         const displayName = form.displayName.trim() || role.defaultDisplayName;
 
         if (!email) {
@@ -163,8 +159,8 @@ export default function AdminRegisterPage({ onBackToLogin }) {
                 message: `Akun ${role.label.toLowerCase()} berhasil dibuat dan sudah dapat digunakan.${notificationMessage}`,
             });
             setForm({
-                role: role.key,
-                displayName,
+                role: "",
+                displayName: "",
                 email: "",
                 password: "",
                 confirmPassword: "",
@@ -255,6 +251,7 @@ export default function AdminRegisterPage({ onBackToLogin }) {
                                 onChange={(event) => updateField("role", event.target.value)}
                                 value={form.role}
                             >
+                                <option value="" disabled className="bg-[#151923] text-white/50">-- Pilih Role --</option>
                                 {Object.values(REGISTER_ROLES).map((roleOption) => (
                                     <option className="bg-[#151923] text-white" key={roleOption.key} value={roleOption.key}>
                                         {roleOption.label}
