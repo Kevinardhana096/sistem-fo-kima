@@ -36,6 +36,7 @@ export const roleConfigs = {
         key: APP_ROLES.superAdmin,
         label: "Super Admin",
         profileTitle: "Super Admin",
+        profileSubtitle: "Pusat Kendali",
     },
     [APP_ROLES.admin]: adminRoleConfig,
     [APP_ROLES.teknisi]: teknisiRoleConfig,
