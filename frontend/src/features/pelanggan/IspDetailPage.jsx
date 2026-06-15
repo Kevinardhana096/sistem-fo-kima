@@ -218,6 +218,47 @@ const getIspAccountInfo = (source = {}) => {
     };
 };
 
+function CustomDropdown({ value, options, onChange, align = "left", itemAlign = "left", position = "bottom", triggerClass = "", hideArrow = false, menuWidth = "min-w-[160px]" }) {
+    const [isOpen, setIsOpen] = useState(false);
+    const selectedOption = options.find(opt => String(opt.value) === String(value)) || options[0] || { label: value };
+
+    return (
+        <div className="relative w-full h-full">
+            <button
+                type="button"
+                onClick={() => setIsOpen(!isOpen)}
+                className={`flex w-full h-full items-center ${hideArrow ? "justify-center" : "justify-between"} gap-1 appearance-none bg-transparent border-none font-black focus:outline-none ${triggerClass}`}
+            >
+                <span className={`truncate ${hideArrow ? "w-full text-center" : ""}`}>{selectedOption.label}</span>
+                {!hideArrow && (
+                    <span className={`material-symbols-outlined shrink-0 transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`} style={{ fontSize: "18px" }}>expand_more</span>
+                )}
+            </button>
+
+            {isOpen && (
+                <>
+                    <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)}></div>
+                    <div className={`absolute ${position === "top" ? "bottom-full mb-2" : "top-full mt-2"} ${align === "right" ? "right-0" : "left-0"} z-50 min-w-full ${menuWidth} rounded-xl bg-black/80 border border-white/10 backdrop-blur-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200`}>
+                        <div className="max-h-[200px] overflow-y-auto p-1 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/30">
+                        {options.map((opt) => (
+                            <button
+                                key={opt.value}
+                                type="button"
+                                onClick={() => { onChange(opt.value); setIsOpen(false); }}
+                                className={`w-full flex items-center ${itemAlign === "center" ? "justify-center text-center" : itemAlign === "right" ? "justify-end text-right" : "justify-start text-left"} px-3 py-1.5 mb-0.5 last:mb-0 text-[8px] font-black uppercase tracking-widest transition-colors rounded-lg ${String(value) === String(opt.value) ? "bg-gold-accent/10 text-gold-accent" : "text-white/60 hover:bg-white/10 hover:text-white"}`}
+                            >
+                                <span className="truncate">{opt.label}</span>
+                            </button>
+                        ))}
+                        </div>
+                    </div>
+                </>
+            )}
+        </div>
+    );
+}
+
+
 const GlassCustomSelect = ({ label, value, onChange, options, icon, heightClass = "h-12" }) => {
     const [isOpen, setIsOpen] = useState(false);
     const containerRef = useRef(null);
@@ -365,6 +406,18 @@ function IspDetailPage({
     const [tenantPaketFilter, setTenantPaketFilter] = useState("all");
     const [tenantSortMethod, setTenantSortMethod] = useState("lease_remaining");
     const [showTenantFilters, setShowTenantFilters] = useState(false);
+
+    // Pagination State for Lokasi Table
+    const [tenantCurrentPage, setTenantCurrentPage] = useState(1);
+    const [tenantItemsPerPage, setTenantItemsPerPage] = useState(10);
+    const tenantPaginationRef = useRef(null);
+    const isTenantScrollingProgrammatically = useRef(false);
+
+    // Pagination State for Tindak Lanjut Lokasi
+    const [actionCurrentPage, setActionCurrentPage] = useState(1);
+    const [actionItemsPerPage, setActionItemsPerPage] = useState(10);
+    const actionPaginationRef = useRef(null);
+    const isActionScrollingProgrammatically = useRef(false);
 
     // Filtering & Sorting State for Dokumen Table
     const [docSearch, setDocSearch] = useState("");
@@ -709,6 +762,39 @@ function IspDetailPage({
         return result;
     }, [allTenants, tenantSearch, tenantStatusFilter, tenantPaketFilter, tenantSortMethod, todayIso]);
 
+    // Pagination for Lokasi Table
+    useEffect(() => { setTenantCurrentPage(1); }, [tenantSearch, tenantStatusFilter, tenantPaketFilter, tenantSortMethod, tenantItemsPerPage]);
+
+    const tenantTotalPages = Math.max(1, Math.ceil(filteredTenants.length / tenantItemsPerPage));
+    const tenantStartIndex = (tenantCurrentPage - 1) * tenantItemsPerPage;
+    const paginatedTenants = filteredTenants.slice(tenantStartIndex, tenantStartIndex + tenantItemsPerPage);
+
+    const handleTenantPaginationScroll = useCallback((e) => {
+        if (isTenantScrollingProgrammatically.current) return;
+        const scrollLeft = e.target.scrollLeft;
+        const page = Math.round(scrollLeft / 34) + 1;
+        if (page >= 1 && page <= tenantTotalPages && page !== tenantCurrentPage) {
+            setTenantCurrentPage(page);
+        }
+    }, [tenantCurrentPage, tenantTotalPages]);
+
+    const handleTenantPageChange = useCallback((page) => {
+        isTenantScrollingProgrammatically.current = true;
+        setTenantCurrentPage(page);
+        if (tenantPaginationRef.current) {
+            tenantPaginationRef.current.scrollTo({ left: (page - 1) * 34, behavior: 'smooth' });
+        }
+        setTimeout(() => { isTenantScrollingProgrammatically.current = false; }, 400);
+    }, []);
+
+    const tenantPageNumbers = useMemo(() => {
+        const pages = [];
+        for (let i = 1; i <= tenantTotalPages; i++) {
+            pages.push(i);
+        }
+        return pages;
+    }, [tenantTotalPages]);
+
     // Filtered & Sorted Documents
     const filteredDocs = useMemo(() => {
         let result = [...risalahRows];
@@ -781,6 +867,41 @@ function IspDetailPage({
         }))
         .filter((tenant) => tenant.totalActions > 0);
     const totalTenantActionCount = tenantActionRows.reduce((sum, tenant) => sum + tenant.totalActions, 0);
+
+    const overviewIssues = useMemo(() => {
+        const pathIssues = allTenants.filter(t => (t.route?.activeFlowStatus ?? t.status_jalur) === "gangguan");
+        return [...pathIssues, ...tenantActionRows.filter(t => !pathIssues.find(p => p.id === t.id))];
+    }, [allTenants, tenantActionRows]);
+
+    const actionTotalPages = Math.max(1, Math.ceil(overviewIssues.length / actionItemsPerPage));
+    const actionStartIndex = (actionCurrentPage - 1) * actionItemsPerPage;
+    const paginatedIssues = overviewIssues.slice(actionStartIndex, actionStartIndex + actionItemsPerPage);
+
+    const handleActionPaginationScroll = useCallback((e) => {
+        if (isActionScrollingProgrammatically.current) return;
+        const scrollLeft = e.target.scrollLeft;
+        const page = Math.round(scrollLeft / 34) + 1;
+        if (page >= 1 && page <= actionTotalPages && page !== actionCurrentPage) {
+            setActionCurrentPage(page);
+        }
+    }, [actionCurrentPage, actionTotalPages]);
+
+    const handleActionPageChange = useCallback((page) => {
+        isActionScrollingProgrammatically.current = true;
+        setActionCurrentPage(page);
+        if (actionPaginationRef.current) {
+            actionPaginationRef.current.scrollTo({ left: (page - 1) * 34, behavior: 'smooth' });
+        }
+        setTimeout(() => { isActionScrollingProgrammatically.current = false; }, 400);
+    }, []);
+
+    const actionPageNumbers = useMemo(() => {
+        const pages = [];
+        for (let i = 1; i <= actionTotalPages; i++) {
+            pages.push(i);
+        }
+        return pages;
+    }, [actionTotalPages]);
 
     const ispName = detail?.name ?? isp.name;
     const contractSummary = useMemo(
@@ -2206,42 +2327,120 @@ function IspDetailPage({
                                             </div>
 
                                             <div className="space-y-3 relative z-10">
-                                                {(() => {
-                                                    const pathIssues = allTenants.filter(t => (t.route?.activeFlowStatus ?? t.status_jalur) === "gangguan");
-                                                    const issues = [...pathIssues, ...tenantActionRows.filter(t => !pathIssues.find(p => p.id === t.id))];
-
-                                                    if (issues.length === 0) {
-                                                        return <p className="text-xs font-bold text-white/20 italic p-8 text-center border border-dashed border-white/10 rounded-2xl">Seluruh lokasi terpantau normal.</p>;
-                                                    }
-
-                                                    return issues.map((t) => {
-                                                        const isGangguan = (t.route?.activeFlowStatus ?? t.status_jalur) === "gangguan";
-                                                        return (
-                                                            <div
-                                                                key={`loc-${t.id}`}
-                                                                className={`flex flex-col lg:flex-row lg:items-center justify-between gap-2 rounded-sm p-2 border transition-all ${canOpenTenantDetail ? "hover:scale-[1.01] hover:shadow-lg cursor-pointer" : ""} ${isGangguan ? "bg-[#ff2400]/10 border-[#ff2400]/20 text-[#ff2400]" : "bg-white/5 border-white/10 text-white/80"}`}
-                                                                onClick={() => {
-                                                                    if (canOpenTenantDetail) onOpenTenant(t, isGangguan ? "jalur" : "overview");
-                                                                }}
-                                                            >
-                                                                <div className="space-y-1">
-                                                                    <div className="flex items-center gap-1.5">
-                                                                        <span className="material-symbols-outlined" style={{ fontSize: "15px" }}>{isGangguan ? "router" : "warning"}</span>
-                                                                        <h4 className="text-xs font-bold">{t.name}</h4>
+                                                {overviewIssues.length === 0 ? (
+                                                    <p className="text-xs font-bold text-white/20 italic p-8 text-center border border-dashed border-white/10 rounded-2xl">Seluruh lokasi terpantau normal.</p>
+                                                ) : (
+                                                    <>
+                                                        {paginatedIssues.map((t) => {
+                                                            const isGangguan = (t.route?.activeFlowStatus ?? t.status_jalur) === "gangguan";
+                                                            return (
+                                                                <div
+                                                                    key={`loc-${t.id}`}
+                                                                    className={`flex flex-col lg:flex-row lg:items-center justify-between gap-2 rounded-sm p-2 border transition-all ${canOpenTenantDetail ? "hover:scale-[1.01] hover:shadow-lg cursor-pointer" : ""} ${isGangguan ? "bg-[#ff2400]/10 border-[#ff2400]/20 text-[#ff2400]" : "bg-white/5 border-white/10 text-white/80"}`}
+                                                                    onClick={() => {
+                                                                        if (canOpenTenantDetail) onOpenTenant(t, isGangguan ? "jalur" : "overview");
+                                                                    }}
+                                                                >
+                                                                    <div className="space-y-1">
+                                                                        <div className="flex items-center gap-1.5">
+                                                                            <span className="material-symbols-outlined" style={{ fontSize: "15px" }}>{isGangguan ? "router" : "warning"}</span>
+                                                                            <h4 className="text-xs font-bold">{t.name}</h4>
+                                                                        </div>
+                                                                        <p className="text-[9px] font-bold opacity-70">
+                                                                            {isGangguan ? "Terdeteksi gangguan jalur fiber optik." : `Terdapat ${t.totalActions || 1} rincian berkas yang perlu dilengkapi.`}
+                                                                        </p>
                                                                     </div>
-                                                                    <p className="text-[9px] font-bold opacity-70">
-                                                                        {isGangguan ? "Terdeteksi gangguan jalur fiber optik." : `Terdapat ${t.totalActions || 1} rincian berkas yang perlu dilengkapi.`}
+                                                                    {canOpenTenantDetail && (
+                                                                        <div className="flex items-center gap-2">
+                                                                            <span className="text-[8px] font-bold bg-white/10 px-3 py-1 rounded-full border border-white/10">Buka Lokasi</span>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })}
+
+                                                        {overviewIssues.length > 0 && (
+                                                            <div className="mt-4 flex items-center justify-between gap-2 border-t border-white/10 pt-3">
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className="relative z-[50] w-12">
+                                                                        <div className="relative group h-8 rounded-lg bg-white/5 border border-white/10 focus-within:border-[#ff2400]/40 focus-within:bg-black/40 transition-all backdrop-blur-md">
+                                                                            <CustomDropdown
+                                                                                value={actionItemsPerPage}
+                                                                                onChange={(val) => { setActionItemsPerPage(Number(val)); setActionCurrentPage(1); }}
+                                                                                options={[10, 20, 50, 100].map(n => ({ value: n, label: String(n) }))}
+                                                                                triggerClass="text-[8px] font-black uppercase tracking-widest text-white/50 group-hover:text-white px-3 cursor-pointer text-center"
+                                                                                position="top"
+                                                                                hideArrow={true}
+                                                                                itemAlign="center"
+                                                                                menuWidth="min-w-[60px]"
+                                                                            />
+                                                                        </div>
+                                                                    </div>
+                                                                    <p className="text-[8px] font-black uppercase tracking-widest text-white/30 hidden xs:block">
+                                                                        {actionStartIndex + 1}–{Math.min(actionStartIndex + actionItemsPerPage, overviewIssues.length)} dari {overviewIssues.length}
                                                                     </p>
                                                                 </div>
-                                                                {canOpenTenantDetail && (
-                                                                    <div className="flex items-center gap-2">
-                                                                        <span className="text-[8px] font-bold bg-white/10 px-3 py-1 rounded-full border border-white/10">Buka Lokasi</span>
+                                                                <div className="flex items-center gap-1.5 w-full sm:w-auto justify-between sm:justify-end">
+                                                                    <button
+                                                                        className="flex h-8 items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-3 text-[8px] font-black uppercase tracking-widest text-white/50 transition-all hover:bg-white/10 hover:text-white disabled:opacity-30 backdrop-blur-md"
+                                                                        type="button" disabled={actionCurrentPage <= 1} onClick={() => handleActionPageChange(Math.max(1, actionCurrentPage - 1))}
+                                                                    >
+                                                                        <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>chevron_left</span> Prev
+                                                                    </button>
+
+                                                                    <div 
+                                                                        ref={actionPaginationRef}
+                                                                        onScroll={handleActionPaginationScroll}
+                                                                        className="flex items-center gap-1.5 w-[96px] justify-start overflow-x-auto overflow-y-hidden snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden" 
+                                                                        style={{ scrollbarWidth: 'none' }}
+                                                                    >
+                                                                        <div className="shrink-0 w-7 h-7 snap-center pointer-events-none opacity-0"></div>
+
+                                                                        {actionPageNumbers.map((page) => {
+                                                                            const distance = Math.abs(actionCurrentPage - page);
+                                                                            const isActive = distance === 0;
+
+                                                                            let scaleClass = "scale-100 opacity-100 z-10";
+                                                                            let bgClass = "bg-white/5 border border-white/5 text-white/50 hover:bg-white/10 hover:text-white";
+
+                                                                            if (distance === 1) {
+                                                                                scaleClass = "scale-90 opacity-80 z-0";
+                                                                                bgClass = "bg-white/5 border border-white/5 text-white/40 hover:bg-white/10 hover:text-white";
+                                                                            } else if (distance >= 2) {
+                                                                                scaleClass = "scale-75 opacity-40 z-0";
+                                                                                bgClass = "bg-white/5 border border-white/5 text-white/30";
+                                                                            }
+
+                                                                            if (isActive) {
+                                                                                bgClass = "bg-[#ff2400]/20 text-[#ff2400] border-[#ff2400]/30 shadow-[0_0_10px_rgba(255,36,0,0.15)]";
+                                                                            }
+
+                                                                            return (
+                                                                                <button
+                                                                                    key={`action-page-${page}`}
+                                                                                    onClick={() => handleActionPageChange(page)}
+                                                                                    className={`snap-center shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-[9px] font-black transition-all duration-300 ease-out transform ${scaleClass} ${bgClass} backdrop-blur-md`}
+                                                                                    type="button"
+                                                                                >
+                                                                                    {page}
+                                                                                </button>
+                                                                            );
+                                                                        })}
+
+                                                                        <div className="shrink-0 w-7 h-7 snap-center pointer-events-none opacity-0"></div>
                                                                     </div>
-                                                                )}
+
+                                                                    <button
+                                                                        className="flex h-8 items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-3 text-[8px] font-black uppercase tracking-widest text-white/50 transition-all hover:bg-white/10 hover:text-white disabled:opacity-30 backdrop-blur-md"
+                                                                        type="button" disabled={actionCurrentPage >= actionTotalPages} onClick={() => handleActionPageChange(Math.min(actionTotalPages, actionCurrentPage + 1))}
+                                                                    >
+                                                                        Next <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>chevron_right</span>
+                                                                    </button>
+                                                                </div>
                                                             </div>
-                                                        );
-                                                    });
-                                                })()}
+                                                        )}
+                                                    </>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -2456,8 +2655,8 @@ function IspDetailPage({
                                                 type="button"
                                                 onClick={() => setShowTenantFilters(!showTenantFilters)}
                                                 className={`h-10 w-10 shrink-0 flex items-center justify-center rounded-xl border transition-all ${showTenantFilters
-                                                        ? "bg-gold-accent/20 border-gold-accent/40 text-gold-accent shadow-[0_0_15px_rgba(212,175,55,0.25)]"
-                                                        : "bg-white/[0.04] border-white/[0.08] text-white/60 hover:text-white hover:border-white/20"
+                                                    ? "bg-gold-accent/20 border-gold-accent/40 text-gold-accent shadow-[0_0_15px_rgba(212,175,55,0.25)]"
+                                                    : "bg-white/[0.04] border-white/[0.08] text-white/60 hover:text-white hover:border-white/20"
                                                     }`}
                                                 title="Filter Rincian"
                                             >
@@ -2482,8 +2681,8 @@ function IspDetailPage({
                                                                 type="button"
                                                                 onClick={() => setTenantStatusFilter(tenantStatusFilter === opt.value ? "all" : opt.value)}
                                                                 className={`h-7 px-3 rounded-full text-[9px] font-black uppercase tracking-wide border transition-all ${tenantStatusFilter === opt.value
-                                                                        ? "bg-gold-accent/20 border-gold-accent/40 text-gold-accent shadow-[0_0_10px_rgba(212,175,55,0.2)]"
-                                                                        : "bg-white/[0.04] border-white/[0.08] text-white/40 hover:text-white/60 hover:border-white/20"
+                                                                    ? "bg-gold-accent/20 border-gold-accent/40 text-gold-accent shadow-[0_0_10px_rgba(212,175,55,0.2)]"
+                                                                    : "bg-white/[0.04] border-white/[0.08] text-white/40 hover:text-white/60 hover:border-white/20"
                                                                     }`}
                                                             >
                                                                 {opt.label}
@@ -2505,8 +2704,8 @@ function IspDetailPage({
                                                                 type="button"
                                                                 onClick={() => setTenantPaketFilter(tenantPaketFilter === opt.value ? "all" : opt.value)}
                                                                 className={`h-7 px-3 rounded-full text-[9px] font-black uppercase tracking-wide border transition-all ${tenantPaketFilter === opt.value
-                                                                        ? "bg-sky-500/15 border-sky-500/30 text-sky-400 shadow-[0_0_10px_rgba(56,189,248,0.15)]"
-                                                                        : "bg-white/[0.04] border-white/[0.08] text-white/40 hover:text-white/60 hover:border-white/20"
+                                                                    ? "bg-sky-500/15 border-sky-500/30 text-sky-400 shadow-[0_0_10px_rgba(56,189,248,0.15)]"
+                                                                    : "bg-white/[0.04] border-white/[0.08] text-white/40 hover:text-white/60 hover:border-white/20"
                                                                     }`}
                                                             >
                                                                 {opt.label}
@@ -2531,8 +2730,8 @@ function IspDetailPage({
                                                                 type="button"
                                                                 onClick={() => setTenantSortMethod(opt.value)}
                                                                 className={`h-7 px-3 rounded-full text-[9px] font-black uppercase tracking-wide border transition-all ${tenantSortMethod === opt.value
-                                                                        ? "bg-violet-500/15 border-violet-500/30 text-violet-300 shadow-[0_0_10px_rgba(139,92,246,0.15)]"
-                                                                        : "bg-white/[0.04] border-white/[0.08] text-white/40 hover:text-white/60 hover:border-white/20"
+                                                                    ? "bg-violet-500/15 border-violet-500/30 text-violet-300 shadow-[0_0_10px_rgba(139,92,246,0.15)]"
+                                                                    : "bg-white/[0.04] border-white/[0.08] text-white/40 hover:text-white/60 hover:border-white/20"
                                                                     }`}
                                                             >
                                                                 {opt.label}
@@ -2592,9 +2791,9 @@ function IspDetailPage({
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-white/10">
-                                                    {filteredTenants.map((tenant, idx) => (
+                                                    {paginatedTenants.map((tenant, idx) => (
                                                         <tr key={tenant.id} className="hover:bg-white/[0.04] transition-colors group/row">
-                                                            <td className="px-3 py-2.5 text-center text-[11px] font-bold text-white/20 border-r border-white/10">{String(idx + 1).padStart(2, '0')}</td>
+                                                            <td className="px-3 py-2.5 text-center text-[11px] font-bold text-white/20 border-r border-white/10">{String(tenantStartIndex + idx + 1).padStart(2, '0')}</td>
                                                             <td className="px-3 py-2.5 border-r border-white/10">
                                                                 <p className="text-[11px] font-bold text-white group-hover/row:text-gold-accent transition-colors">{tenant.name}</p>
                                                             </td>
@@ -2703,7 +2902,7 @@ function IspDetailPage({
 
                                         {/* ══════ MOBILE VIEW (CARD LAYOUT) ══════ */}
                                         <div className="xl:hidden flex flex-col gap-4 mt-3">
-                                            {filteredTenants.map((tenant, idx) => {
+                                            {paginatedTenants.map((tenant, idx) => {
                                                 const endDateStr = tenant.contractPeriodInfo?.contractPeriodEnd ?? tenant.contractPeriodEnd;
                                                 const diffDays = endDateStr ? Math.ceil((new Date(endDateStr) - new Date(todayIso)) / 86400000) : null;
                                                 const routeStatus = resolveRouteStatus(tenant.status, tenant.route?.activeFlowStatus ?? tenant.status_jalur);
@@ -2717,7 +2916,7 @@ function IspDetailPage({
 
                                                         {/* ── HEADER: nomor + nama ── */}
                                                         <div className="flex items-center gap-2.5 px-3.5 pt-3 pb-2.5 border-b border-white/[0.06]">
-                                                            <span className="shrink-0 text-[10px] font-black text-gold-accent/60 tabular-nums">#{String(idx + 1).padStart(2, '0')}</span>
+                                                            <span className="shrink-0 text-[10px] font-black text-gold-accent/60 tabular-nums">#{String(tenantStartIndex + idx + 1).padStart(2, '0')}</span>
                                                             <p className="flex-1 text-[13px] font-black text-white uppercase tracking-wide leading-tight">{tenant.name}</p>
                                                             {diffDays !== null && (
                                                                 <span className={`shrink-0 text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${diffDays < 0 ? 'bg-[#ff2400]/15 border-[#ff2400]/30 text-[#ff2400]' : diffDays < 30 ? 'bg-amber-500/15 border-amber-500/30 text-amber-400' : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'}`}>
@@ -2838,6 +3037,88 @@ function IspDetailPage({
                                                 </div>
                                             )}
                                         </div>
+
+                                        {/* Pagination */}
+                                        {filteredTenants.length > 0 && (
+                                            <div className="mt-5 flex items-center justify-between gap-2 border-t border-white/10 pt-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="relative z-[60] w-12">
+                                                        <div className="relative group h-8 rounded-lg bg-white/5 border border-white/10 focus-within:border-gold-accent/40 focus-within:bg-black/40 transition-all backdrop-blur-md">
+                                                            <CustomDropdown
+                                                                value={tenantItemsPerPage}
+                                                                onChange={(val) => setTenantItemsPerPage(Number(val))}
+                                                                options={[10, 20, 50, 100].map(n => ({ value: n, label: String(n) }))}
+                                                                triggerClass="text-[8px] font-black uppercase tracking-widest text-white/50 group-hover:text-white px-3 cursor-pointer text-center"
+                                                                position="top"
+                                                                hideArrow={true}
+                                                                itemAlign="center"
+                                                                menuWidth="min-w-[60px]"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <p className="text-[8px] font-black uppercase tracking-widest text-white/30 hidden xs:block">
+                                                        {filteredTenants.length === 0 ? 0 : tenantStartIndex + 1}–{Math.min(tenantStartIndex + tenantItemsPerPage, filteredTenants.length)} dari {filteredTenants.length}
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-center gap-1.5 w-full sm:w-auto justify-between sm:justify-end">
+                                                    <button
+                                                        className="flex h-8 items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-3 text-[8px] font-black uppercase tracking-widest text-white/50 transition-all hover:bg-white/10 hover:text-white disabled:opacity-30 backdrop-blur-md"
+                                                        type="button" disabled={tenantCurrentPage <= 1} onClick={() => handleTenantPageChange(Math.max(1, tenantCurrentPage - 1))}
+                                                    >
+                                                        <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>chevron_left</span> Prev
+                                                    </button>
+                                                    
+                                                    <div 
+                                                        ref={tenantPaginationRef}
+                                                        onScroll={handleTenantPaginationScroll}
+                                                        className="flex items-center gap-1.5 w-[96px] justify-start overflow-x-auto overflow-y-hidden snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden" 
+                                                        style={{ scrollbarWidth: 'none' }}
+                                                    >
+                                                        <div className="shrink-0 w-7 h-7 snap-center pointer-events-none opacity-0"></div>
+
+                                                        {tenantPageNumbers.map((page) => {
+                                                            const distance = Math.abs(tenantCurrentPage - page);
+                                                            const isActive = distance === 0;
+                                                            
+                                                            let scaleClass = "scale-100 opacity-100 z-10";
+                                                            let bgClass = "bg-white/5 border border-white/5 text-white/50 hover:bg-white/10 hover:text-white";
+                                                            
+                                                            if (distance === 1) {
+                                                                scaleClass = "scale-90 opacity-80 z-0";
+                                                                bgClass = "bg-white/5 border border-white/5 text-white/40 hover:bg-white/10 hover:text-white";
+                                                            } else if (distance >= 2) {
+                                                                scaleClass = "scale-75 opacity-40 z-0";
+                                                                bgClass = "bg-white/5 border border-white/5 text-white/30";
+                                                            }
+
+                                                            if (isActive) {
+                                                                bgClass = "bg-gold-accent text-black shadow-gold-glow";
+                                                            }
+
+                                                            return (
+                                                                <button
+                                                                    key={`page-${page}`}
+                                                                    onClick={() => handleTenantPageChange(page)}
+                                                                    className={`snap-center shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-[9px] font-black transition-all duration-300 ease-out transform ${scaleClass} ${bgClass} backdrop-blur-md`}
+                                                                    type="button"
+                                                                >
+                                                                    {page}
+                                                                </button>
+                                                            );
+                                                        })}
+
+                                                        <div className="shrink-0 w-7 h-7 snap-center pointer-events-none opacity-0"></div>
+                                                    </div>
+
+                                                    <button
+                                                        className="flex h-8 items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-3 text-[8px] font-black uppercase tracking-widest text-white/50 transition-all hover:bg-white/10 hover:text-white disabled:opacity-30 backdrop-blur-md"
+                                                        type="button" disabled={tenantCurrentPage >= tenantTotalPages} onClick={() => handleTenantPageChange(Math.min(tenantTotalPages, tenantCurrentPage + 1))}
+                                                    >
+                                                        Next <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>chevron_right</span>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
 
                                     </div>
                                 </section>
@@ -3154,13 +3435,13 @@ function IspDetailPage({
                                                                             </button>
                                                                             {canManageIspContracts && (
                                                                                 <button
-                                                                                        type="button"
-                                                                                        onClick={() => {
-                                                                                            if (!isEditingContractRow) {
-                                                                                                void handleClearContractRowFile(row.id, "contract");
-                                                                                            } else {
-                                                                                                setContractRowEditor(prev => prev ? { ...prev, contractFileUrl: "" } : null);
-                                                                                            }
+                                                                                    type="button"
+                                                                                    onClick={() => {
+                                                                                        if (!isEditingContractRow) {
+                                                                                            void handleClearContractRowFile(row.id, "contract");
+                                                                                        } else {
+                                                                                            setContractRowEditor(prev => prev ? { ...prev, contractFileUrl: "" } : null);
+                                                                                        }
                                                                                     }}
                                                                                     className="h-6 w-6 rounded-md border border-[#ff2400]/20 bg-[#ff2400]/10 flex items-center justify-center text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all shrink-0"
                                                                                     title="Hapus berkas"
@@ -3305,13 +3586,13 @@ function IspDetailPage({
                                                                             </button>
                                                                             {canManageIspContracts && (
                                                                                 <button
-                                                                                        type="button"
-                                                                                        onClick={() => {
-                                                                                            if (!isEditingContractRow) {
-                                                                                                void handleClearContractRowFile(row.id, "bak");
-                                                                                            } else {
-                                                                                                setContractRowEditor(prev => prev ? { ...prev, bakFileUrl: "" } : null);
-                                                                                            }
+                                                                                    type="button"
+                                                                                    onClick={() => {
+                                                                                        if (!isEditingContractRow) {
+                                                                                            void handleClearContractRowFile(row.id, "bak");
+                                                                                        } else {
+                                                                                            setContractRowEditor(prev => prev ? { ...prev, bakFileUrl: "" } : null);
+                                                                                        }
                                                                                     }}
                                                                                     className="h-6 w-6 rounded-md border border-[#ff2400]/20 bg-[#ff2400]/10 flex items-center justify-center text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all shrink-0"
                                                                                     title="Hapus berkas"
@@ -3590,13 +3871,13 @@ function IspDetailPage({
                                                                                 </button>
                                                                                 {canManageIspContracts && (
                                                                                     <button
-                                                                                            type="button"
-                                                                                            onClick={() => {
-                                                                                                if (!isEditingContractRow) {
-                                                                                                    void handleClearContractRowFile(row.id, "contract");
-                                                                                                } else {
-                                                                                                    setContractRowEditor(prev => prev ? { ...prev, contractFileUrl: "" } : null);
-                                                                                                }
+                                                                                        type="button"
+                                                                                        onClick={() => {
+                                                                                            if (!isEditingContractRow) {
+                                                                                                void handleClearContractRowFile(row.id, "contract");
+                                                                                            } else {
+                                                                                                setContractRowEditor(prev => prev ? { ...prev, contractFileUrl: "" } : null);
+                                                                                            }
                                                                                         }}
                                                                                         className="h-6 w-6 rounded-lg border border-[#ff2400]/20 bg-[#ff2400]/10 flex items-center justify-center text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all"
                                                                                         title="Hapus"
@@ -3676,13 +3957,13 @@ function IspDetailPage({
                                                                                 </button>
                                                                                 {canManageIspContracts && (
                                                                                     <button
-                                                                                            type="button"
-                                                                                            onClick={() => {
-                                                                                                if (!isEditingContractRow) {
-                                                                                                    void handleClearContractRowFile(row.id, "bak");
-                                                                                                } else {
-                                                                                                    setContractRowEditor(prev => prev ? { ...prev, bakFileUrl: "" } : null);
-                                                                                                }
+                                                                                        type="button"
+                                                                                        onClick={() => {
+                                                                                            if (!isEditingContractRow) {
+                                                                                                void handleClearContractRowFile(row.id, "bak");
+                                                                                            } else {
+                                                                                                setContractRowEditor(prev => prev ? { ...prev, bakFileUrl: "" } : null);
+                                                                                            }
                                                                                         }}
                                                                                         className="h-6 w-6 rounded-lg border border-[#ff2400]/20 bg-[#ff2400]/10 flex items-center justify-center text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all"
                                                                                         title="Hapus"
