@@ -20,13 +20,29 @@ const DEFAULT_ZOOM = 14;
 const MAP_MIN_ZOOM = 12;
 const MAP_MAX_ZOOM = 19;
 const DEFAULT_TILE_MAX_NATIVE_ZOOM = 19;
+const isLocalBrowserHost = () => {
+  if (typeof window === "undefined") return false;
+  return ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
+};
+const resolveValhallaHost = () => {
+  const configuredHost =
+    typeof import.meta.env.VITE_VALHALLA_HOST === "string"
+      ? import.meta.env.VITE_VALHALLA_HOST.trim().replace(/\/$/, "")
+      : "";
+
+  if (configuredHost) {
+    const isLocalConfiguredHost = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(?::|\/|$)/i.test(configuredHost);
+    if (isLocalConfiguredHost && !isLocalBrowserHost()) {
+      return "/api/valhalla";
+    }
+
+    return configuredHost;
+  }
+
+  return import.meta.env.PROD ? "/api/valhalla" : "http://localhost:8002";
+};
 const VALHALLA_LOCAL_HOST =
-  typeof import.meta.env.VITE_VALHALLA_HOST === "string" &&
-    import.meta.env.VITE_VALHALLA_HOST.trim()
-    ? import.meta.env.VITE_VALHALLA_HOST.trim().replace(/\/$/, "")
-    : import.meta.env.PROD
-      ? "/api/valhalla"
-      : "http://localhost:8002";
+  resolveValhallaHost();
 
 const BASEMAP_OPTIONS = [
   {

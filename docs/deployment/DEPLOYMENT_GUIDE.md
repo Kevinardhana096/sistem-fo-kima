@@ -62,11 +62,17 @@ Set environment variables berikut pada scope **Production** (dan **Preview** bil
 | `VITE_SUPABASE_ANON_KEY` | Ya | Supabase anon/public key project production. |
 | `VITE_SUPABASE_STORAGE_BUCKET` | Opsional | Nama bucket Storage dokumen (bila berbeda dari default). |
 | `VITE_VALHALLA_HOST` | Opsional | Host Valhalla untuk route planner FO. Kosongkan di Vercel agar memakai `/api/valhalla`. |
-| `VALHALLA_UPSTREAM_URL` | Opsional | URL upstream Valhalla untuk Vercel Function, mis. `https://valhalla.example.com`. Wajib bila route planner FO dipakai di production. |
+| `VALHALLA_UPSTREAM_URL` | Opsional | URL upstream Valhalla untuk Vercel Function, mis. `https://valhalla.example.com`. Diprioritaskan bila diisi. |
+| `OPENROUTESERVICE_API_KEY` | Opsional | Alternatif hosted routing provider bila tidak memakai Valhalla self-hosted. Server-side only, tanpa prefix `VITE_`. |
 | `VITE_ADMIN_WHATSAPP_NUMBER` | Opsional | Nomor WhatsApp admin untuk tautan bantuan akses di halaman login. |
 | `VITE_API_BASE_URL` | Opsional | Base URL API tambahan bila dipakai. |
 
 > Variabel `VITE_DEV_*` (quick login) **hanya** untuk development lokal dan tidak boleh diset di production. Lihat `frontend/.env.example`.
+
+Untuk route planner FO production, pilih salah satu backend routing:
+
+- **Self-hosted Valhalla:** isi `VALHALLA_UPSTREAM_URL`, kosongkan `VITE_VALHALLA_HOST`.
+- **Hosted provider:** isi `OPENROUTESERVICE_API_KEY`, kosongkan `VALHALLA_UPSTREAM_URL` dan `VITE_VALHALLA_HOST`.
 
 ---
 

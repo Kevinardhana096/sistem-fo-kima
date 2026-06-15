@@ -97,7 +97,7 @@ npm --prefix frontend run build
 
 ## Valhalla Route Planner
 
-Konfigurasi Valhalla berada di `infra/valhalla/`. Layanan ini hanya diperlukan untuk fitur route planner FO.
+Konfigurasi Valhalla lokal berada di `infra/valhalla/`. Untuk production di Vercel, route planner FO memakai `/api/valhalla` sebagai proxy. Proxy ini dapat diarahkan ke `VALHALLA_UPSTREAM_URL` atau, sebagai alternatif hosted provider, memakai `OPENROUTESERVICE_API_KEY`.
 
 ## Status
 
