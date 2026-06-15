@@ -24,7 +24,13 @@ const isLocalBrowserHost = () => {
   if (typeof window === "undefined") return false;
   return ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
 };
-const resolveValhallaHost = () => {
+const resolveAutomaticRoutingHost = () => {
+  const explicitRoutingHost =
+    typeof import.meta.env.VITE_ROUTING_HOST === "string"
+      ? import.meta.env.VITE_ROUTING_HOST.trim().replace(/\/$/, "")
+      : "";
+  if (explicitRoutingHost) return explicitRoutingHost;
+
   const configuredHost =
     typeof import.meta.env.VITE_VALHALLA_HOST === "string"
       ? import.meta.env.VITE_VALHALLA_HOST.trim().replace(/\/$/, "")
@@ -33,16 +39,16 @@ const resolveValhallaHost = () => {
   if (configuredHost) {
     const isLocalConfiguredHost = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(?::|\/|$)/i.test(configuredHost);
     if (isLocalConfiguredHost && !isLocalBrowserHost()) {
-      return "/api/valhalla";
+      return "/api/ors";
     }
 
     return configuredHost;
   }
 
-  return import.meta.env.PROD ? "/api/valhalla" : "http://localhost:8002";
+  return "/api/ors";
 };
-const VALHALLA_LOCAL_HOST =
-  resolveValhallaHost();
+const AUTOMATIC_ROUTING_HOST =
+  resolveAutomaticRoutingHost();
 
 const BASEMAP_OPTIONS = [
   {
@@ -759,12 +765,12 @@ export default function FoRoutePlanner({
   useEffect(() => {
     if (isPreviewMode) return;
     let cancelled = false;
-    if (!VALHALLA_LOCAL_HOST) {
+    if (!AUTOMATIC_ROUTING_HOST) {
       setValhallaStatus("offline");
       return () => { cancelled = true; };
     }
 
-    fetch(`${VALHALLA_LOCAL_HOST}/status`, { method: "GET", signal: AbortSignal.timeout(3000) })
+    fetch(`${AUTOMATIC_ROUTING_HOST}/status`, { method: "GET", signal: AbortSignal.timeout(3000) })
       .then((res) => { if (!cancelled) setValhallaStatus(res.ok ? "online" : "offline"); })
       .catch(() => { if (!cancelled) setValhallaStatus("offline"); });
     return () => { cancelled = true; };
@@ -983,12 +989,12 @@ export default function FoRoutePlanner({
     );
   };
 
-  const fetchValhallaRouteForPoints = async (routingPoints) => {
-    if (!VALHALLA_LOCAL_HOST) {
-      throw new Error("Valhalla belum dikonfigurasi.");
+  const fetchAutomaticRouteForPoints = async (routingPoints) => {
+    if (!AUTOMATIC_ROUTING_HOST) {
+      throw new Error("OpenRouteService belum dikonfigurasi.");
     }
 
-    const response = await fetch(`${VALHALLA_LOCAL_HOST}/route`, {
+    const response = await fetch(`${AUTOMATIC_ROUTING_HOST}/route`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -997,12 +1003,12 @@ export default function FoRoutePlanner({
     });
 
     if (!response.ok) {
-      throw new Error(`Valhalla gagal merespons (${response.status}).`);
+      throw new Error(`OpenRouteService gagal merespons (${response.status}).`);
     }
 
     const result = await response.json();
     if (Number(result?.error_code ?? 0) > 0) {
-      throw new Error(result?.error ?? "Valhalla gagal menghitung rute.");
+      throw new Error(result?.error ?? "OpenRouteService gagal menghitung rute.");
     }
 
     const trip = result?.trip;
@@ -1051,15 +1057,15 @@ export default function FoRoutePlanner({
     setIsCalculating(true);
     setRouteError("");
     try {
-      const valhallaRoute = await fetchValhallaRouteForPoints(manualPoints);
-      const namedRoads = getUniqueNamedRoads(valhallaRoute.roads);
+      const automaticRoute = await fetchAutomaticRouteForPoints(manualPoints);
+      const namedRoads = getUniqueNamedRoads(automaticRoute.roads);
 
       if (namedRoads.length > 0) {
         roads = namedRoads;
-        source = "custom-route-valhalla-roads";
+        source = "custom-route-ors-roads";
       }
     } catch {
-      // Custom route generation must remain available even when Valhalla road-name lookup fails.
+      // Custom route generation must remain available even when road-name lookup fails.
     } finally {
       setIsCalculating(false);
     }
@@ -1083,14 +1089,14 @@ export default function FoRoutePlanner({
     setRouteError("");
     pushToast(
       "Custom Jalur Dibuat",
-      source === "custom-route-valhalla-roads"
+      source === "custom-route-ors-roads"
         ? "Garis manual dibuat dan nama ruas jalan berhasil dideteksi."
         : "Garis manual berhasil dibuat dari titik yang sudah Anda tetapkan.",
       "success",
     );
   };
 
-  const handleGenerateValhallaRoute = async () => {
+  const handleGenerateAutomaticRoute = async () => {
     if (disabled) {
       setRouteError("Mode lihat saja aktif. Jalur tidak dapat diubah.");
       return;
@@ -1101,8 +1107,8 @@ export default function FoRoutePlanner({
       return;
     }
 
-    if (!VALHALLA_LOCAL_HOST) {
-      setRouteError("Valhalla belum dikonfigurasi. Isi VITE_VALHALLA_HOST terlebih dahulu.");
+    if (!AUTOMATIC_ROUTING_HOST) {
+      setRouteError("OpenRouteService belum dikonfigurasi. Isi OPENROUTESERVICE_API_KEY di Vercel.");
       setValhallaStatus("offline");
       return;
     }
@@ -1112,15 +1118,15 @@ export default function FoRoutePlanner({
     setIsCalculating(true);
     setRouteError("");
     try {
-      const { geometryCoordinates, roads, distance, duration } = await fetchValhallaRouteForPoints(routingPoints);
+      const { geometryCoordinates, roads, distance, duration } = await fetchAutomaticRouteForPoints(routingPoints);
 
       if (geometryCoordinates.length < 2) {
-        throw new Error("Valhalla tidak mengembalikan geometri rute.");
+        throw new Error("OpenRouteService tidak mengembalikan geometri rute.");
       }
-      const source = "valhalla-local";
+      const source = "openrouteservice";
 
       setRouteData({
-        mode: "valhalla",
+        mode: "ors",
         source,
         distance,
         duration,
@@ -1128,7 +1134,7 @@ export default function FoRoutePlanner({
         geometryCoordinates,
         geoJson: createRouteGeoJson(geometryCoordinates, {
           source,
-          mode: "valhalla",
+          mode: "ors",
           distance,
           duration,
           profile,
@@ -1139,7 +1145,7 @@ export default function FoRoutePlanner({
       setRouteError("");
       pushToast(
         "Rute Berhasil Dihitung",
-        "Jalur otomatis dari server Valhalla berhasil dirender.",
+        "Jalur otomatis dari OpenRouteService berhasil dirender.",
         "success",
       );
     } catch (error) {
@@ -1147,13 +1153,13 @@ export default function FoRoutePlanner({
       setRouteError(
         error instanceof Error
           ? error.message
-          : "Gagal menghitung rute Valhalla.",
+          : "Gagal menghitung rute OpenRouteService.",
       );
       pushToast(
         "Rute Gagal Dihitung",
         error instanceof Error
           ? error.message
-          : "Server Valhalla tidak tersedia.",
+          : "OpenRouteService tidak tersedia.",
         "error",
       );
     } finally {
@@ -1500,7 +1506,7 @@ export default function FoRoutePlanner({
         id: `planner-draft-${Date.now()}-${index}`,
         pathName: buildPointLabel(point, index, controlPoints.length),
         pointType,
-        note: `${routeData?.mode === "manual" ? "Custom Route" : "Valhalla Route"} • ${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}`,
+        note: `${routeData?.mode === "manual" ? "Custom Route" : "ORS Route"} • ${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}`,
         orderNumber: index + 1,
       };
     });
@@ -2250,7 +2256,7 @@ export default function FoRoutePlanner({
                     ? 'bg-primary/50 text-white/40 cursor-not-allowed'
                     : 'bg-primary hover:bg-primary-hover shadow-primary/30'
                 }`}
-                onClick={customRouteMode ? handleGenerateManualRoute : () => void handleGenerateValhallaRoute()}
+                onClick={customRouteMode ? handleGenerateManualRoute : () => void handleGenerateAutomaticRoute()}
                 disabled={disabled || isCalculating || !pointA || !pointB || (!customRouteMode && valhallaStatus === "offline")}
                 type="button"
               >

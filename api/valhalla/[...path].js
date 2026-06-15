@@ -216,7 +216,7 @@ module.exports = async function handler(req, res) {
     return;
   }
 
-  const upstreamBaseUrl = getUpstreamBaseUrl();
+  const upstreamBaseUrl = req.forceOpenRouteService ? "" : getUpstreamBaseUrl();
   const openRouteServiceConfig = getOpenRouteServiceConfig();
   const path = getPath(req.query?.path);
 
@@ -227,8 +227,10 @@ module.exports = async function handler(req, res) {
 
   if (!upstreamBaseUrl && !openRouteServiceConfig) {
     res.status(503).json({
-      error: "Valhalla upstream is not configured.",
-      detail: "Set VALHALLA_UPSTREAM_URL or OPENROUTESERVICE_API_KEY in Vercel production environment variables.",
+      error: req.forceOpenRouteService ? "OpenRouteService is not configured." : "Valhalla upstream is not configured.",
+      detail: req.forceOpenRouteService
+        ? "Set OPENROUTESERVICE_API_KEY in Vercel production environment variables."
+        : "Set VALHALLA_UPSTREAM_URL or OPENROUTESERVICE_API_KEY in Vercel production environment variables.",
     });
     return;
   }

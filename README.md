@@ -46,7 +46,7 @@ Variabel yang umum digunakan:
 
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
-- `VITE_VALHALLA_HOST` untuk route planner FO jika digunakan
+- `OPENROUTESERVICE_API_KEY` untuk route otomatis FO production
 
 ## Dokumentasi
 
@@ -73,7 +73,7 @@ Komponen:
 - **Backend utama:** Supabase direct access dari frontend.
 - **Database/Auth:** Supabase PostgreSQL dan Supabase Auth.
 - **Security:** Supabase Row Level Security.
-- **Route planner:** Valhalla sebagai layanan pendukung jika fitur peta digunakan.
+- **Route planner:** OpenRouteService sebagai backend route otomatis production.
 
 Tidak ada service NestJS yang perlu dijalankan untuk alur utama aplikasi saat ini.
 
@@ -95,9 +95,9 @@ npm --prefix frontend run lint
 npm --prefix frontend run build
 ```
 
-## Valhalla Route Planner
+## Route Planner
 
-Konfigurasi Valhalla lokal berada di `infra/valhalla/`. Untuk production di Vercel, route planner FO memakai `/api/valhalla` sebagai proxy. Proxy ini dapat diarahkan ke `VALHALLA_UPSTREAM_URL` atau, sebagai alternatif hosted provider, memakai `OPENROUTESERVICE_API_KEY`.
+Route otomatis FO production memakai `/api/ors` sebagai proxy OpenRouteService agar API key tetap server-side. Konfigurasi Valhalla lokal di `infra/valhalla/` masih tersedia sebagai legacy tooling, tetapi bukan default route otomatis production.
 
 ## Status
 
