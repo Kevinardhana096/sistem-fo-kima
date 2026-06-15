@@ -4,7 +4,7 @@ import {
   resolveCustomerOperationalStatus,
   resolveInvoiceDueMonthIsoDate,
 } from '../app/utils';
-import { supabase } from './supabase';
+import { sendSavedEntityNotificationEmails, supabase } from './supabase';
 
 /**
  * API Service untuk Supabase REST API
@@ -2354,6 +2354,14 @@ export const customersApi = {
     });
 
     clearNotificationListCache();
+    try {
+      await sendSavedEntityNotificationEmails({
+        entityType: 'customer',
+        entityId: data.id,
+      });
+    } catch (notificationError) {
+      console.warn('Failed to send customer save notification emails:', notificationError);
+    }
     return data;
   },
 
@@ -2944,6 +2952,14 @@ export const ispsApi = {
 
     clearIspListCache();
     clearNotificationListCache();
+    try {
+      await sendSavedEntityNotificationEmails({
+        entityType: 'isp',
+        entityId: data.id,
+      });
+    } catch (notificationError) {
+      console.warn('Failed to send ISP save notification emails:', notificationError);
+    }
     return data;
   },
 

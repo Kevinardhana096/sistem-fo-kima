@@ -89,6 +89,42 @@ export const sendInitialNotificationEmails = async ({
   return data;
 };
 
+
+export const sendSavedEntityNotificationEmails = async ({
+  entityType,
+  entityId,
+  limit = 25,
+}) => {
+  const normalizedEntityType = String(entityType || '').trim().toLowerCase();
+  const numericEntityId = Number(entityId);
+
+  if (!['customer', 'isp'].includes(normalizedEntityType) || !Number.isFinite(numericEntityId) || numericEntityId <= 0) {
+    throw new Error('Target notifikasi tidak valid.');
+  }
+
+  const token = (await supabase.auth.getSession()).data.session?.access_token;
+
+  if (!token) {
+    throw new Error('Sesi tidak tersedia untuk memicu email notifikasi.');
+  }
+
+  const { data, error } = await supabase.functions.invoke('send-notification-emails', {
+    body: {
+      trigger: 'entity_saved',
+      entityType: normalizedEntityType,
+      entityId: numericEntityId,
+      limit,
+    },
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (error) throw error;
+  if (data?.error) throw new Error(data.error);
+  return data;
+};
+
 export const signUpAdmin = async ({ email, password, displayName }) => (
   signUpInternalUser({ email, password, displayName, role: 'admin' })
 );
