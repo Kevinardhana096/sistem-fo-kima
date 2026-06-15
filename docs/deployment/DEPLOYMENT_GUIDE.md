@@ -13,11 +13,11 @@ Vercel (static build frontend/dist)
         |
         +--> Supabase Cloud (Auth + PostgreSQL + RLS + Storage + REST/RPC)
         |
-        +--> Vercel Function /api/ors/* -> OpenRouteService
+        +--> Vercel Function /api/valhalla/* -> Valhalla
 ```
 
 - **Host frontend:** Vercel (static hosting + SPA rewrite). Konfigurasi build ada di `vercel.json` di root repo.
-- **Vercel Functions:** `/api/ors/*` menjadi proxy production untuk route planner FO agar API key OpenRouteService tetap server-side.
+- **Vercel Functions:** `/api/valhalla/*` menjadi proxy production untuk route planner FO dan meneruskan request ke URL Valhalla dari environment variable.
 - **Backend/data:** Supabase Cloud. Tidak ada server aplikasi terpisah.
 - **Script SQL production:** dijalankan **manual** via Supabase SQL Editor setelah direview.
 
@@ -61,20 +61,23 @@ Set environment variables berikut pada scope **Production** (dan **Preview** bil
 | `VITE_SUPABASE_URL` | Ya | URL Supabase project production. |
 | `VITE_SUPABASE_ANON_KEY` | Ya | Supabase anon/public key project production. |
 | `VITE_SUPABASE_STORAGE_BUCKET` | Opsional | Nama bucket Storage dokumen (bila berbeda dari default). |
-| `VITE_ROUTING_HOST` | Opsional | Host proxy route otomatis FO. Kosongkan di Vercel agar memakai `/api/ors`. |
-| `OPENROUTESERVICE_API_KEY` | Ya, bila route otomatis dipakai | API key OpenRouteService untuk route otomatis. Server-side only, tanpa prefix `VITE_`. |
-| `OPENROUTESERVICE_BASE_URL` | Opsional | Override base URL ORS. Biasanya kosong. |
-| `VITE_VALHALLA_HOST` | Legacy | Host Valhalla lama. Kosongkan di Vercel. |
-| `VALHALLA_UPSTREAM_URL` | Legacy | URL upstream Valhalla lama. Kosongkan bila route otomatis memakai ORS. |
+| `VITE_ROUTING_HOST` | Opsional | Host proxy route otomatis FO. Kosongkan di Vercel agar frontend memakai `/api/valhalla`. |
+| `NEXT_PUBLIC_VALHALLA_URL` | Ya, bila route otomatis memakai Valhalla di Vercel | URL layanan Valhalla production yang diteruskan oleh proxy `/api/valhalla`. |
+| `VALHALLA_UPSTREAM_URL` | Opsional | Alias server-side untuk URL upstream Valhalla; prioritasnya lebih tinggi dari `NEXT_PUBLIC_VALHALLA_URL`. |
+| `VITE_VALHALLA_HOST` | Opsional/dev | Host Valhalla untuk build Vite lokal. Di Vercel utamakan `NEXT_PUBLIC_VALHALLA_URL`. |
+| `OPENROUTESERVICE_API_KEY` | Fallback | API key OpenRouteService hanya dipakai bila URL Valhalla tidak diset. Server-side only, tanpa prefix `VITE_`. |
+| `OPENROUTESERVICE_BASE_URL` | Opsional | Override base URL ORS bila memakai fallback. Biasanya kosong. |
 | `VITE_ADMIN_WHATSAPP_NUMBER` | Opsional | Nomor WhatsApp admin untuk tautan bantuan akses di halaman login. |
 | `VITE_API_BASE_URL` | Opsional | Base URL API tambahan bila dipakai. |
 
 > Variabel `VITE_DEV_*` (quick login) **hanya** untuk development lokal dan tidak boleh diset di production. Lihat `frontend/.env.example`.
 
-Untuk route planner FO production berbasis OpenRouteService:
+Untuk route planner FO production berbasis Valhalla:
 
-- Isi `OPENROUTESERVICE_API_KEY`.
-- Kosongkan `VITE_ROUTING_HOST`, `VITE_VALHALLA_HOST`, `VALHALLA_UPSTREAM_URL`, dan `OPENROUTESERVICE_BASE_URL`.
+- Isi `NEXT_PUBLIC_VALHALLA_URL` dengan URL Valhalla yang sudah tersedia di Vercel Environment Variables.
+- Kosongkan `VITE_ROUTING_HOST` agar frontend memakai proxy default `/api/valhalla`.
+- Deploy ulang agar Vercel Function `/api/valhalla/*` membaca environment variable terbaru.
+- `OPENROUTESERVICE_API_KEY` hanya menjadi fallback bila URL Valhalla tidak diset.
 
 ---
 
@@ -110,7 +113,7 @@ npx vercel --prod     # deploy production
    - Monitoring billing: spreadsheet per tahun/ISP.
    - Tindak Lanjut & Log Aktivitas terisi.
    - Tempat Sampah: lihat/pulihkan/hapus permanen.
-   - Route planner FO: buka `/api/ors/status` di domain Vercel dan pastikan response `provider` bernilai `openrouteservice`.
+   - Route planner FO: buka `/api/valhalla/status` di domain Vercel dan pastikan response dari Valhalla berhasil diteruskan.
 4. Jika provisioning admin via frontend diperlukan, pastikan environment variable server-side `REGISTER_SECRET_KEY` sudah diset di Vercel, lalu buka `/register`. Masukkan secret key untuk membuka form registrasi. Jangan membuat akun test di production kecuali memang bagian dari prosedur provisioning. Detail: [../operations/kredensial-admin.md](../operations/kredensial-admin.md).
 5. Cek console browser & tab network: tidak ada error 401/403/5xx yang tidak terduga.
 6. Supabase Dashboard → Logs: pantau error Auth/RLS/API.
