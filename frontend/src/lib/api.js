@@ -48,6 +48,12 @@ const clearNotificationListCache = () => {
   notificationListCache.clear();
 };
 
+const triggerSavedEntityNotificationEmails = ({ entityType, entityId }) => {
+  void sendSavedEntityNotificationEmails({ entityType, entityId }).catch((notificationError) => {
+    console.warn(`Failed to send ${entityType} save notification emails:`, notificationError);
+  });
+};
+
 export const clearSessionCaches = () => {
   clearIspListCache();
   clearNotificationListCache();
@@ -2354,14 +2360,10 @@ export const customersApi = {
     });
 
     clearNotificationListCache();
-    try {
-      await sendSavedEntityNotificationEmails({
-        entityType: 'customer',
-        entityId: data.id,
-      });
-    } catch (notificationError) {
-      console.warn('Failed to send customer save notification emails:', notificationError);
-    }
+    triggerSavedEntityNotificationEmails({
+      entityType: 'customer',
+      entityId: data.id,
+    });
     return data;
   },
 
@@ -2952,14 +2954,10 @@ export const ispsApi = {
 
     clearIspListCache();
     clearNotificationListCache();
-    try {
-      await sendSavedEntityNotificationEmails({
-        entityType: 'isp',
-        entityId: data.id,
-      });
-    } catch (notificationError) {
-      console.warn('Failed to send ISP save notification emails:', notificationError);
-    }
+    triggerSavedEntityNotificationEmails({
+      entityType: 'isp',
+      entityId: data.id,
+    });
     return data;
   },
 
