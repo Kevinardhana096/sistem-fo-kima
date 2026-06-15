@@ -4,7 +4,7 @@ import api, { getApiErrorDetails } from "../../lib/api";
 import { uploadFileForRecord } from "../../lib/files";
 import DateInput from "../../components/shared/DateInput";
 
-const GlassFieldInput = ({ label, type = "text", value, onChange, placeholder = "", icon, error = "" }) => {
+const GlassFieldInput = ({ label, type = "text", value, onChange, placeholder = "", icon, error = "", autoComplete = "off" }) => {
     const inputClass = `w-full h-9 rounded-xl bg-black/20 border backdrop-blur-md ${error ? "border-rose-500/70 ring-2 ring-rose-500/10" : "border-white/10 focus:border-gold-accent/40 focus:ring-2 focus:ring-gold-accent/10"} ${icon ? "pl-9" : "px-3"} pr-3 text-[10px] font-bold text-white placeholder:text-white/20 outline-none transition-all focus:bg-black/40 shadow-inner-glass [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`;
     return (
         <div className="space-y-1.5">
@@ -31,6 +31,7 @@ const GlassFieldInput = ({ label, type = "text", value, onChange, placeholder = 
                         placeholder={placeholder}
                         type={type}
                         value={value}
+                        autoComplete={autoComplete}
                     />
                 )}
             </div>
@@ -533,6 +534,7 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
                                         label="Alamat Email Akses"
                                         icon="mail"
                                         placeholder="Contoh: admin@ispmitra.com"
+                                        autoComplete="new-password"
                                         value={form.userEmail}
                                         error={fieldErrors.userEmail}
                                         onChange={(val) => {
@@ -545,6 +547,7 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
                                         icon="lock"
                                         type="password"
                                         placeholder="••••••••"
+                                        autoComplete="new-password"
                                         value={form.userPassword}
                                         error={fieldErrors.userPassword}
                                         onChange={(val) => {
