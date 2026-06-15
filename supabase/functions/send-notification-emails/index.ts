@@ -50,6 +50,11 @@ type RecipientFilter = {
   email: string | null;
 };
 
+type EntitySavedFilter = {
+  entityType: "customer" | "isp";
+  entityId: number;
+};
+
 type RequestAuth = {
   privileged: boolean;
   selfUserId: string | null;
@@ -382,16 +387,15 @@ async function getLatestRouteCustomerIds() {
   return customerIds;
 }
 
-async function buildCustomerNotifications(): Promise<NotificationItem[]> {
+async function buildCustomerNotifications(filter: { customerId?: number | null } = {}): Promise<NotificationItem[]> {
   const [customerIspIdsByCustomerId, routeCustomerIds] = await Promise.all([
     getCustomerIspIdsByCustomerId(),
     getLatestRouteCustomerIds(),
   ]);
 
-  const [customersResult, incompleteInvoicesResult, missingFileInvoicesResult] = await Promise.all([
-    supabase
-      .from("customers")
-      .select(`
+  let customersQuery = supabase
+    .from("customers")
+    .select(`
         id,
         name,
         status,
@@ -429,23 +433,35 @@ async function buildCustomerNotifications(): Promise<NotificationItem[]> {
         ),
         documents(id,contract_id,jenis_dokumen,file_url,deleted_at)
       `)
-      .is("deleted_at", null),
-    supabase
-      .from("invoices")
-      .select("id,customer_id,invoice_number,amount,due_date,period_start_date,period_end_date,status,schedule_status")
-      .in("status", ["belum_bayar", "terlambat", "belum_ditagih"])
-      .eq("schedule_status", "active")
-      .is("deleted_at", null)
-      .or("due_date.is.null,amount.lte.0"),
-    supabase
-      .from("invoices")
-      .select("id,customer_id,invoice_number,amount,due_date,period_start_date,period_end_date,status,schedule_status,invoice_file_url,payment_proof_file_url")
-      .in("status", ["belum_bayar", "terlambat", "belum_ditagih"])
-      .eq("schedule_status", "active")
-      .is("deleted_at", null)
-      .or("due_date.not.is.null,period_end_date.not.is.null")
-      .or("invoice_file_url.is.null,invoice_file_url.eq.")
-      .or("payment_proof_file_url.is.null,payment_proof_file_url.eq."),
+    .is("deleted_at", null);
+  let incompleteInvoicesQuery = supabase
+    .from("invoices")
+    .select("id,customer_id,invoice_number,amount,due_date,period_start_date,period_end_date,status,schedule_status")
+    .in("status", ["belum_bayar", "terlambat", "belum_ditagih"])
+    .eq("schedule_status", "active")
+    .is("deleted_at", null)
+    .or("due_date.is.null,amount.lte.0");
+  let missingFileInvoicesQuery = supabase
+    .from("invoices")
+    .select("id,customer_id,invoice_number,amount,due_date,period_start_date,period_end_date,status,schedule_status,invoice_file_url,payment_proof_file_url")
+    .in("status", ["belum_bayar", "terlambat", "belum_ditagih"])
+    .eq("schedule_status", "active")
+    .is("deleted_at", null)
+    .or("due_date.not.is.null,period_end_date.not.is.null")
+    .or("invoice_file_url.is.null,invoice_file_url.eq.")
+    .or("payment_proof_file_url.is.null,payment_proof_file_url.eq.");
+
+  if (Number.isFinite(Number(filter.customerId))) {
+    const customerId = Number(filter.customerId);
+    customersQuery = customersQuery.eq("id", customerId);
+    incompleteInvoicesQuery = incompleteInvoicesQuery.eq("customer_id", customerId);
+    missingFileInvoicesQuery = missingFileInvoicesQuery.eq("customer_id", customerId);
+  }
+
+  const [customersResult, incompleteInvoicesResult, missingFileInvoicesResult] = await Promise.all([
+    customersQuery,
+    incompleteInvoicesQuery,
+    missingFileInvoicesQuery,
   ]);
 
   if (customersResult.error) throw customersResult.error;
@@ -698,15 +714,14 @@ async function buildCustomerNotifications(): Promise<NotificationItem[]> {
   return notifications;
 }
 
-async function buildIspNotifications(): Promise<NotificationItem[]> {
-  const [ispsResult, contractRowsResult] = await Promise.all([
-    supabase
-      .from("isps")
-      .select("id,name,status,contract_reference,contract_start_date,contract_period_start,contract_period_end,bak_file_url,contract_file_url")
-      .is("deleted_at", null),
-    supabase
-      .from("isp_contract_rows")
-      .select(`
+async function buildIspNotifications(filter: { ispId?: number | null } = {}): Promise<NotificationItem[]> {
+  let ispsQuery = supabase
+    .from("isps")
+    .select("id,name,status,contract_reference,contract_start_date,contract_period_start,contract_period_end,bak_file_url,contract_file_url")
+    .is("deleted_at", null);
+  let contractRowsQuery = supabase
+    .from("isp_contract_rows")
+    .select(`
         id,
         isp_id,
         contract_reference,
@@ -730,8 +745,18 @@ async function buildIspNotifications(): Promise<NotificationItem[]> {
           updated_at
         )
       `)
-      .is("deleted_at", null)
-      .eq("renewal_status", "active"),
+    .is("deleted_at", null)
+    .eq("renewal_status", "active");
+
+  if (Number.isFinite(Number(filter.ispId))) {
+    const ispId = Number(filter.ispId);
+    ispsQuery = ispsQuery.eq("id", ispId);
+    contractRowsQuery = contractRowsQuery.eq("isp_id", ispId);
+  }
+
+  const [ispsResult, contractRowsResult] = await Promise.all([
+    ispsQuery,
+    contractRowsQuery,
   ]);
 
   if (ispsResult.error) throw ispsResult.error;
@@ -1060,6 +1085,41 @@ async function sendEmail(notification: NotificationItem, recipient: Recipient) {
   throw new Error(`Unsupported EMAIL_PROVIDER: ${emailProvider}`);
 }
 
+function getEntitySavedFilter(body: Record<string, unknown>): EntitySavedFilter | null {
+  const entityType = String(body?.entityType || "").trim().toLowerCase();
+  const entityId = Number(body?.entityId);
+
+  if (!["customer", "isp"].includes(entityType) || !Number.isFinite(entityId) || entityId <= 0) {
+    return null;
+  }
+
+  return {
+    entityType: entityType as EntitySavedFilter["entityType"],
+    entityId,
+  };
+}
+
+function getEntitySavedAccessError(auth: RequestAuth) {
+  if (auth.privileged) return null;
+
+  if (!auth.selfUserId) {
+    return Response.json({ error: "Unauthorized" }, {
+      status: 401,
+      headers: corsHeaders,
+    });
+  }
+
+  const role = String(auth.selfRole || "").trim().toLowerCase();
+  if (!["super_admin", "admin"].includes(role)) {
+    return Response.json({ error: "Forbidden entity_saved trigger" }, {
+      status: 403,
+      headers: corsHeaders,
+    });
+  }
+
+  return null;
+}
+
 async function recordDelivery(delivery: DeliveryInsert) {
   // Use insert (not upsert) so each daily send creates a separate history
   // record.  The old UNIQUE(notification_key, recipient_user_id) constraint
@@ -1081,13 +1141,21 @@ async function handleRequest(req: Request) {
 
   const body = await req.json().catch(() => ({}));
   const isRegisterTrigger = body?.trigger === "register";
+  const isEntitySavedTrigger = body?.trigger === "entity_saved";
+  const entitySavedFilter = isEntitySavedTrigger ? getEntitySavedFilter(body) : null;
   const dryRun = Boolean(body?.dryRun);
   const requestedForce = Boolean(body?.force);
   const limit = Math.max(1, Math.min(Number(body?.limit || 100), 500));
   const auth = await getRequestAuth(req);
   const force = auth.privileged && requestedForce;
   const requestedRecipientFilter = getRecipientFilter(body);
-  const accessError = getRecipientAccessError(auth, requestedRecipientFilter);
+  if (isEntitySavedTrigger && !entitySavedFilter) {
+    return Response.json({ error: "Invalid entity_saved payload" }, { status: 400, headers: corsHeaders });
+  }
+
+  const accessError = isEntitySavedTrigger
+    ? getEntitySavedAccessError(auth)
+    : getRecipientAccessError(auth, requestedRecipientFilter);
   if (accessError) {
     if (!jobSecret && !getBearerToken(req)) {
       return Response.json({
@@ -1096,7 +1164,9 @@ async function handleRequest(req: Request) {
     }
     return accessError;
   }
-  const recipientFilter = resolveRecipientFilter(auth, requestedRecipientFilter);
+  const recipientFilter = isEntitySavedTrigger
+    ? requestedRecipientFilter
+    : resolveRecipientFilter(auth, requestedRecipientFilter);
 
   let allRecipients: Recipient[];
   let notifications: NotificationItem[];
@@ -1121,6 +1191,15 @@ async function handleRequest(req: Request) {
       targetPath: "/",
       createdAt: new Date().toISOString(),
     }];
+  } else if (isEntitySavedTrigger && entitySavedFilter) {
+    const [fetchedRecipients, entityNotifications] = await Promise.all([
+      listAuthRecipients(),
+      entitySavedFilter.entityType === "customer"
+        ? buildCustomerNotifications({ customerId: entitySavedFilter.entityId })
+        : buildIspNotifications({ ispId: entitySavedFilter.entityId }),
+    ]);
+    allRecipients = fetchedRecipients;
+    notifications = entityNotifications.slice(0, limit);
   } else {
     const [fetchedRecipients, customerNotifications, ispNotifications] = await Promise.all([
       listAuthRecipients(),
@@ -1202,6 +1281,8 @@ async function handleRequest(req: Request) {
     dryRun,
     force,
     selfService: !auth.privileged,
+    trigger: isEntitySavedTrigger ? "entity_saved" : isRegisterTrigger ? "register" : "scheduled",
+    entityFilter: entitySavedFilter,
     recipientFilter,
     notificationCount: notifications.length,
     recipientCount: recipients.length,

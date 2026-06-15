@@ -83,6 +83,41 @@ setelah `signUp`, pemicu langsung dari frontend tidak bisa berjalan karena belum
 ada JWT user. Akun tetap berhasil dibuat, dan email notifikasi akan dikirim oleh
 cron berikutnya setelah user aktif/sesuai konfigurasi Auth.
 
+## Pemanggilan Saat Data Disimpan
+
+Selain cron harian, frontend memicu Edge Function yang sama setelah data ISP
+atau lokasi/pelanggan baru berhasil disimpan. Mode ini memakai JWT user yang
+sedang login dan payload `trigger: "entity_saved"`, sehingga `EMAIL_JOB_SECRET`
+tetap hanya dipakai oleh job/cron backend.
+
+Contoh payload setelah simpan lokasi/pelanggan:
+
+```json
+{
+  "trigger": "entity_saved",
+  "entityType": "customer",
+  "entityId": 123,
+  "limit": 25
+}
+```
+
+Contoh payload setelah simpan ISP:
+
+```json
+{
+  "trigger": "entity_saved",
+  "entityType": "isp",
+  "entityId": 456,
+  "limit": 25
+}
+```
+
+Mode ini hanya boleh dipicu oleh user login dengan role `super_admin` atau
+`admin`. Function akan menghitung notifikasi untuk entity tersebut saja, lalu
+mengirim email ke penerima sesuai aturan role. Jika pengiriman email gagal, data
+yang baru disimpan tetap tidak dibatalkan; kegagalan dicatat di log browser dan
+riwayat `notification_email_deliveries` jika function berhasil mencatat attempt.
+
 ## Aturan Role
 
 - `super_admin`: menerima semua notifikasi operasional.
