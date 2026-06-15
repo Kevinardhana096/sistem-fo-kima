@@ -397,7 +397,92 @@ function resolveInvoiceStatusMeta(invoice) {
 
 function GlassSelect({ label, value, onChange, options, placeholder = "Pilih opsi", className = "", textClass = "text-[10px] font-black uppercase tracking-widest", optionTextClass = "text-[9px] font-black uppercase tracking-widest", disabled = false }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState(null);
   const selectedOption = options.find((opt) => opt.value === value);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+
+    const closeDropdown = () => {
+      setIsOpen(false);
+      setDropdownPosition(null);
+    };
+
+    window.addEventListener("resize", closeDropdown);
+    window.addEventListener("scroll", closeDropdown, true);
+
+    return () => {
+      window.removeEventListener("resize", closeDropdown);
+      window.removeEventListener("scroll", closeDropdown, true);
+    };
+  }, [isOpen]);
+
+  const openDropdown = (event) => {
+    if (disabled) return;
+
+    if (isOpen) {
+      setIsOpen(false);
+      setDropdownPosition(null);
+      return;
+    }
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    const menuHeight = Math.min(192, (options.length * 34) + 8);
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const top = spaceBelow < menuHeight + 8
+      ? Math.max(8, rect.top - menuHeight - 4)
+      : rect.bottom + 4;
+
+    setDropdownPosition({
+      left: rect.left,
+      top,
+      width: rect.width,
+    });
+    setIsOpen(true);
+  };
+
+  const dropdownMenu = isOpen && !disabled && dropdownPosition && (
+    <>
+      <div
+        className="fixed inset-0 z-[110]"
+        onClick={() => {
+          setIsOpen(false);
+          setDropdownPosition(null);
+        }}
+      />
+      <div
+        className="fixed z-[120] animate-in fade-in zoom-in-95 rounded-lg border border-white/10 bg-[#0a0f18]/95 p-1 shadow-2xl backdrop-blur-2xl duration-200"
+        style={{
+          left: `${dropdownPosition.left}px`,
+          top: `${dropdownPosition.top}px`,
+          width: `${dropdownPosition.width}px`,
+        }}
+      >
+        <div className="no-scrollbar max-h-48 overflow-y-auto space-y-0.5">
+          {options.map((opt) => {
+            const isSelected = value === opt.value;
+            return (
+              <button
+                className={`flex w-full items-center justify-between px-2 py-1.5 text-left ${optionTextClass} transition-all rounded-md ${isSelected
+                  ? "bg-gold-accent/10 text-gold-accent"
+                  : "text-white/60 hover:bg-white/10 hover:text-white"
+                  }`}
+                key={opt.value}
+                onClick={() => {
+                  onChange(opt.value);
+                  setIsOpen(false);
+                  setDropdownPosition(null);
+                }}
+                type="button"
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </>
+  );
 
   return (
     <div className="relative space-y-1.5">
@@ -410,7 +495,7 @@ function GlassSelect({ label, value, onChange, options, placeholder = "Pilih ops
         <button
           className={`group flex ${className || "h-10"} w-full items-center justify-between rounded-xl border border-white/5 bg-white/[0.01] backdrop-blur-3xl px-3 ${textClass} text-white outline-none transition-all focus:border-gold-accent/40 focus:bg-white/[0.04] disabled:cursor-not-allowed disabled:opacity-40`}
           disabled={disabled}
-          onClick={() => setIsOpen(!isOpen)}
+          onClick={openDropdown}
           type="button"
         >
           <span className={selectedOption ? "text-white truncate" : "text-white/20 truncate"}>
@@ -424,37 +509,7 @@ function GlassSelect({ label, value, onChange, options, placeholder = "Pilih ops
           </span>
         </button>
 
-        {isOpen && !disabled && (
-          <>
-            <div
-              className="fixed inset-0 z-[60]"
-              onClick={() => setIsOpen(false)}
-            />
-            <div className="absolute left-0 right-0 top-[calc(100%+4px)] z-[70] animate-in fade-in zoom-in-95 rounded-lg border border-white/10 bg-[#0a0f18]/95 p-1 shadow-2xl backdrop-blur-2xl duration-200">
-              <div className="no-scrollbar max-h-48 overflow-y-auto space-y-0.5">
-                {options.map((opt) => {
-                  const isSelected = value === opt.value;
-                  return (
-                    <button
-                      className={`flex w-full items-center justify-between px-2 py-1.5 text-left ${optionTextClass} transition-all rounded-md ${isSelected
-                        ? "bg-gold-accent/10 text-gold-accent"
-                        : "text-white/60 hover:bg-white/10 hover:text-white"
-                        }`}
-                      key={opt.value}
-                      onClick={() => {
-                        onChange(opt.value);
-                        setIsOpen(false);
-                      }}
-                      type="button"
-                    >
-                      {opt.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </>
-        )}
+        {typeof document !== "undefined" ? createPortal(dropdownMenu, document.body) : dropdownMenu}
       </div>
     </div>
   );
