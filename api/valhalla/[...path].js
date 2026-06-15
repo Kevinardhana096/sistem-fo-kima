@@ -8,6 +8,10 @@ const CORS_HEADERS = {
 };
 
 const normalizeBaseUrl = (value) => String(value || "").trim().replace(/\/+$/, "");
+const normalizeOpenRouteServiceBaseUrl = (value) => {
+  const baseUrl = normalizeBaseUrl(value) || DEFAULT_OPENROUTESERVICE_BASE_URL;
+  return baseUrl.replace(/\/v2\/directions(?:\/.*)?$/i, "");
+};
 
 const getUpstreamBaseUrl = () => {
   const explicitUrl = normalizeBaseUrl(process.env.VALHALLA_UPSTREAM_URL);
@@ -25,7 +29,7 @@ const getOpenRouteServiceConfig = () => {
 
   return {
     apiKey,
-    baseUrl: normalizeBaseUrl(process.env.OPENROUTESERVICE_BASE_URL) || DEFAULT_OPENROUTESERVICE_BASE_URL,
+    baseUrl: normalizeOpenRouteServiceBaseUrl(process.env.OPENROUTESERVICE_BASE_URL),
   };
 };
 
@@ -183,6 +187,8 @@ const handleOpenRouteServiceRoute = async ({ config, body, signal }) => {
   if (!upstreamResponse.ok) {
     const error = new Error(responseJson?.error?.message || "OpenRouteService request failed.");
     error.statusCode = upstreamResponse.status;
+    error.provider = "openrouteservice";
+    error.providerStatus = upstreamResponse.status;
     throw error;
   }
 
@@ -195,6 +201,11 @@ module.exports = async function handler(req, res) {
   });
 
   if (req.method === "OPTIONS") {
+    res.status(204).end();
+    return;
+  }
+
+  if (req.method === "HEAD") {
     res.status(204).end();
     return;
   }
@@ -260,8 +271,11 @@ module.exports = async function handler(req, res) {
     res.send(responseBody);
   } catch (error) {
     const isTimeout = error?.name === "AbortError";
-    res.status(error?.statusCode || (isTimeout ? 504 : 502)).json({
+    const statusCode = error?.statusCode || (isTimeout ? 504 : 502);
+    res.status(statusCode).json({
       error: isTimeout ? "Routing provider timed out." : error?.message || "Routing provider request failed.",
+      provider: error?.provider,
+      providerStatus: error?.providerStatus,
     });
   } finally {
     clearTimeout(timeout);
