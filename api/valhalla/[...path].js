@@ -33,9 +33,19 @@ const getOpenRouteServiceConfig = () => {
   };
 };
 
-const getPath = (queryPath) => {
+const getPath = (req) => {
+  const queryPath = req?.query?.path;
   if (Array.isArray(queryPath)) return queryPath.join("/");
-  return String(queryPath || "status");
+  if (typeof queryPath === "string") return queryPath;
+
+  try {
+    const parsed = new URL(req.url, "http://localhost");
+    const parts = parsed.pathname.split("/").filter(Boolean);
+    const p = parts[parts.length - 1];
+    return String(p || "status");
+  } catch {
+    return "status";
+  }
 };
 
 const readRequestBody = (req) => new Promise((resolve, reject) => {
@@ -237,7 +247,7 @@ module.exports = async function handler(req, res) {
 
   const upstreamBaseUrl = req.forceOpenRouteService ? "" : getUpstreamBaseUrl();
   const openRouteServiceConfig = getOpenRouteServiceConfig();
-  const path = getPath(req.query?.path);
+  const path = getPath(req);
 
   if (!upstreamBaseUrl && path === "status" && openRouteServiceConfig) {
     res.status(200).json({ status: "ok", provider: "openrouteservice" });
