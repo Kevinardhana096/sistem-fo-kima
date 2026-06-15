@@ -1,5 +1,6 @@
 const DEFAULT_TIMEOUT_MS = 15_000;
 const DEFAULT_OPENROUTESERVICE_BASE_URL = "https://api.openrouteservice.org";
+const OPENROUTESERVICE_GEOJSON_ACCEPT = "application/geo+json, application/json";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -199,7 +200,7 @@ const handleOpenRouteServiceRoute = async ({ config, body, signal }) => {
     headers: {
       "Authorization": config.apiKey,
       "Content-Type": "application/json",
-      "Accept": "application/json",
+      "Accept": OPENROUTESERVICE_GEOJSON_ACCEPT,
     },
     body: JSON.stringify(request.body),
     signal,
