@@ -46,7 +46,7 @@ Variabel yang umum digunakan:
 
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
-- `OPENROUTESERVICE_API_KEY` untuk route otomatis FO production
+- `NEXT_PUBLIC_VALHALLA_URL` untuk route otomatis FO production berbasis Valhalla
 
 ## Dokumentasi
 
@@ -73,7 +73,7 @@ Komponen:
 - **Backend utama:** Supabase direct access dari frontend.
 - **Database/Auth:** Supabase PostgreSQL dan Supabase Auth.
 - **Security:** Supabase Row Level Security.
-- **Route planner:** OpenRouteService sebagai backend route otomatis production.
+- **Route planner:** Valhalla sebagai backend route otomatis production melalui proxy `/api/valhalla`.
 
 Tidak ada service NestJS yang perlu dijalankan untuk alur utama aplikasi saat ini.
 
@@ -97,7 +97,7 @@ npm --prefix frontend run build
 
 ## Route Planner
 
-Route otomatis FO production memakai `/api/ors` sebagai proxy OpenRouteService agar API key tetap server-side. Konfigurasi Valhalla lokal di `infra/valhalla/` masih tersedia sebagai legacy tooling, tetapi bukan default route otomatis production.
+Route otomatis FO production memakai `/api/valhalla` sebagai proxy ke URL Valhalla dari environment variable `NEXT_PUBLIC_VALHALLA_URL` atau `VALHALLA_UPSTREAM_URL`. OpenRouteService tetap tersedia sebagai fallback kompatibilitas bila URL Valhalla tidak diset.
 
 ## Status
 

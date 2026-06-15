@@ -39,13 +39,13 @@ const resolveAutomaticRoutingHost = () => {
   if (configuredHost) {
     const isLocalConfiguredHost = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(?::|\/|$)/i.test(configuredHost);
     if (isLocalConfiguredHost && !isLocalBrowserHost()) {
-      return "/api/ors";
+      return "/api/valhalla";
     }
 
     return configuredHost;
   }
 
-  return "/api/ors";
+  return "/api/valhalla";
 };
 const AUTOMATIC_ROUTING_HOST =
   resolveAutomaticRoutingHost();
@@ -991,7 +991,7 @@ export default function FoRoutePlanner({
 
   const fetchAutomaticRouteForPoints = async (routingPoints) => {
     if (!AUTOMATIC_ROUTING_HOST) {
-      throw new Error("OpenRouteService belum dikonfigurasi.");
+      throw new Error("Valhalla belum dikonfigurasi.");
     }
 
     const response = await fetch(`${AUTOMATIC_ROUTING_HOST}/route`, {
@@ -1010,12 +1010,12 @@ export default function FoRoutePlanner({
       } catch {
         // Abaikan jika bukan JSON
       }
-      throw new Error(errorDetail ? `OpenRouteService: ${errorDetail}` : `OpenRouteService gagal merespons (${response.status}).`);
+      throw new Error(errorDetail ? `Valhalla: ${errorDetail}` : `Valhalla gagal merespons (${response.status}).`);
     }
 
     const result = await response.json();
     if (Number(result?.error_code ?? 0) > 0) {
-      throw new Error(result?.error ?? "OpenRouteService gagal menghitung rute.");
+      throw new Error(result?.error ?? "Valhalla gagal menghitung rute.");
     }
 
     const trip = result?.trip;
@@ -1115,7 +1115,7 @@ export default function FoRoutePlanner({
     }
 
     if (!AUTOMATIC_ROUTING_HOST) {
-      setRouteError("OpenRouteService belum dikonfigurasi. Isi OPENROUTESERVICE_API_KEY di Vercel.");
+      setRouteError("Valhalla belum dikonfigurasi. Isi NEXT_PUBLIC_VALHALLA_URL di Vercel.");
       setValhallaStatus("offline");
       return;
     }
@@ -1128,9 +1128,9 @@ export default function FoRoutePlanner({
       const { geometryCoordinates, roads, distance, duration } = await fetchAutomaticRouteForPoints(routingPoints);
 
       if (geometryCoordinates.length < 2) {
-        throw new Error("OpenRouteService tidak mengembalikan geometri rute.");
+        throw new Error("Valhalla tidak mengembalikan geometri rute.");
       }
-      const source = "openrouteservice";
+      const source = "valhalla";
 
       setRouteData({
         mode: "ors",
@@ -1152,7 +1152,7 @@ export default function FoRoutePlanner({
       setRouteError("");
       pushToast(
         "Rute Berhasil Dihitung",
-        "Jalur otomatis dari OpenRouteService berhasil dirender.",
+        "Jalur otomatis dari Valhalla berhasil dirender.",
         "success",
       );
     } catch (error) {
@@ -1160,13 +1160,13 @@ export default function FoRoutePlanner({
       setRouteError(
         error instanceof Error
           ? error.message
-          : "Gagal menghitung rute OpenRouteService.",
+          : "Gagal menghitung rute Valhalla.",
       );
       pushToast(
         "Rute Gagal Dihitung",
         error instanceof Error
           ? error.message
-          : "OpenRouteService tidak tersedia.",
+          : "Valhalla tidak tersedia.",
         "error",
       );
     } finally {
@@ -1513,7 +1513,7 @@ export default function FoRoutePlanner({
         id: `planner-draft-${Date.now()}-${index}`,
         pathName: buildPointLabel(point, index, controlPoints.length),
         pointType,
-        note: `${routeData?.mode === "manual" ? "Custom Route" : "ORS Route"} • ${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}`,
+        note: `${routeData?.mode === "manual" ? "Custom Route" : "Valhalla Route"} • ${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}`,
         orderNumber: index + 1,
       };
     });

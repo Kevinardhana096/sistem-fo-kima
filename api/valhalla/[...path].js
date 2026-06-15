@@ -15,11 +15,12 @@ const normalizeOpenRouteServiceBaseUrl = (value) => {
 };
 
 const getUpstreamBaseUrl = () => {
-  const explicitUrl = normalizeBaseUrl(process.env.VALHALLA_UPSTREAM_URL);
-  if (explicitUrl) return explicitUrl;
-
-  const viteUrl = normalizeBaseUrl(process.env.VITE_VALHALLA_HOST);
-  if (viteUrl && !viteUrl.startsWith("/")) return viteUrl;
+  const valhallaUrl = normalizeBaseUrl(
+    process.env.VALHALLA_UPSTREAM_URL
+      || process.env.NEXT_PUBLIC_VALHALLA_URL
+      || process.env.VITE_VALHALLA_HOST
+  );
+  if (valhallaUrl && !valhallaUrl.startsWith("/")) return valhallaUrl;
 
   return "";
 };
