@@ -941,12 +941,17 @@ function canReceiveNotification(recipient: Recipient, notification: Notification
 async function getExistingDeliveryKeys(notificationIds: string[], recipientIds: string[]) {
   if (notificationIds.length === 0 || recipientIds.length === 0) return new Set<string>();
 
+  // Only check deliveries sent TODAY so that the same notification is re-sent
+  // once per day while it remains active (daily recurring reminder).
+  const todayStart = `${todayIso()}T00:00:00.000Z`;
+
   const { data, error } = await supabase
     .from("notification_email_deliveries")
     .select("notification_key,recipient_user_id")
     .eq("status", "sent")
     .in("notification_key", notificationIds)
-    .in("recipient_user_id", recipientIds);
+    .in("recipient_user_id", recipientIds)
+    .gte("sent_at", todayStart);
   if (error) throw error;
 
   return new Set((data || []).map((row) => `${row.notification_key}:${row.recipient_user_id}`));
@@ -1056,9 +1061,13 @@ async function sendEmail(notification: NotificationItem, recipient: Recipient) {
 }
 
 async function recordDelivery(delivery: DeliveryInsert) {
+  // Use insert (not upsert) so each daily send creates a separate history
+  // record.  The old UNIQUE(notification_key, recipient_user_id) constraint
+  // has been dropped to allow this — see
+  // scripts/maintenance/allow-daily-repeat-notification-emails.sql.
   const { error } = await supabase
     .from("notification_email_deliveries")
-    .upsert(delivery, { onConflict: "notification_key,recipient_user_id" });
+    .insert(delivery);
   if (error) throw error;
 }
 
@@ -1205,6 +1214,10 @@ async function handleRequest(req: Request) {
 
 Deno.serve((req) => handleRequest(req).catch((error) => (
   Response.json({
-    error: error instanceof Error ? error.message : String(error),
+    error: error instanceof Error
+      ? error.message
+      : (typeof error === "object" && error !== null && "message" in error)
+        ? String(error.message)
+        : JSON.stringify(error),
   }, { status: 500, headers: corsHeaders })
 )));

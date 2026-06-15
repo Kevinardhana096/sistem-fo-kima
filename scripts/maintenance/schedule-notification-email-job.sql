@@ -28,9 +28,12 @@ BEGIN
   END IF;
 END $$;
 
+-- Run once daily at 00:00 UTC (08:00 WITA).
+-- The Edge Function deduplicates per day so re-running within the same day
+-- is safe but unnecessary.
 SELECT cron.schedule(
   'send-kima-notification-emails',
-  '*/15 * * * *',
+  '0 0 * * *',
   $$
   SELECT net.http_post(
     url := (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'kima_project_url')

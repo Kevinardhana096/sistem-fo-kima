@@ -98,7 +98,24 @@ dan tanggapan perpanjangan.
 
 ## Jadwal
 
-Jadwalkan dari Supabase Cron setiap 10-15 menit. Gunakan header
-`x-email-job-secret` agar function hanya bisa dipanggil oleh job internal.
+Jadwalkan dari Supabase Cron **sekali sehari** (default 00:00 UTC = 08:00 WITA).
 Template SQL tersedia di:
 `scripts/maintenance/schedule-notification-email-job.sql`
+
+### Pengiriman Berulang Harian
+
+Email notifikasi dikirim **sekali per hari** selama notifikasi masih aktif.
+Deduplication dijalankan per hari: jika notifikasi sudah dikirim hari ini, cron
+berikutnya akan skip. Besoknya, jika notifikasi masih relevan (misalnya kontrak
+masih belum diperpanjang), email dikirim ulang otomatis.
+
+Setiap pengiriman dicatat sebagai baris terpisah di `notification_email_deliveries`
+sehingga riwayat pengiriman bisa dilacak per hari.
+
+Gunakan flag `force: true` (hanya untuk privileged/job request) untuk mengirim
+ulang meskipun sudah terkirim hari ini.
+
+### Setup Database
+
+Sebelum deploy, jalankan SQL berikut untuk memperbolehkan pengiriman harian:
+`scripts/maintenance/allow-daily-repeat-notification-emails.sql`
