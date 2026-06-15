@@ -112,7 +112,26 @@ const buildOpenRouteServiceRequest = (valhallaRequest) => {
 const mapOpenRouteServiceToValhalla = (payload) => {
   const feature = Array.isArray(payload?.features) ? payload.features[0] : null;
   const properties = feature?.properties || {};
-  const geometryCoordinates = Array.isArray(feature?.geometry?.coordinates) ? feature.geometry.coordinates : [];
+  let geometryCoordinates = [];
+  if (feature?.geometry?.type === "LineString") {
+    geometryCoordinates = Array.isArray(feature.geometry.coordinates) ? feature.geometry.coordinates : [];
+  } else if (feature?.geometry?.type === "MultiLineString") {
+    geometryCoordinates = Array.isArray(feature.geometry.coordinates) ? feature.geometry.coordinates.flat(1) : [];
+  } else {
+    geometryCoordinates = Array.isArray(feature?.geometry?.coordinates) ? feature.geometry.coordinates : [];
+  }
+
+  if (!feature && Array.isArray(payload?.routes)) {
+    const error = new Error("OpenRouteService returned standard JSON instead of GeoJSON. Ensure the upstream endpoint supports /geojson.");
+    error.statusCode = 502;
+    throw error;
+  }
+
+  if (!feature || geometryCoordinates.length < 2) {
+    const error = new Error(`OpenRouteService did not return valid geometry. Format: ${feature?.geometry?.type || "unknown"}`);
+    error.statusCode = 502;
+    throw error;
+  }
   const summary = properties.summary || {};
   const segments = Array.isArray(properties.segments) ? properties.segments : [];
   const maneuvers = segments.flatMap((segment) => {

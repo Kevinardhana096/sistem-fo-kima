@@ -1003,7 +1003,14 @@ export default function FoRoutePlanner({
     });
 
     if (!response.ok) {
-      throw new Error(`OpenRouteService gagal merespons (${response.status}).`);
+      let errorDetail = "";
+      try {
+        const errorJson = await response.json();
+        errorDetail = errorJson?.error || errorJson?.message || errorJson?.detail || "";
+      } catch {
+        // Abaikan jika bukan JSON
+      }
+      throw new Error(errorDetail ? `OpenRouteService: ${errorDetail}` : `OpenRouteService gagal merespons (${response.status}).`);
     }
 
     const result = await response.json();
