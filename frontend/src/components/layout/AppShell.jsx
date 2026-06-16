@@ -54,6 +54,7 @@ export default function AppShell({
     // Initialize state from localStorage to ensure persistence
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
         const saved = localStorage.getItem("sidebar_collapsed");
+        if (saved === null) return true;
         return saved === "true";
     });
 
@@ -708,6 +709,9 @@ function TopNav({
 }
 
 function Sidebar({ isCollapsed, onToggle, activeSection, onNavigate, roleConfig }) {
+    const [isHoverExpanded, setIsHoverExpanded] = useState(false);
+    const isExpanded = !isCollapsed || isHoverExpanded;
+
     const handleSectionClick = (event, sectionKey) => {
         if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
         event.preventDefault();
@@ -716,14 +720,22 @@ function Sidebar({ isCollapsed, onToggle, activeSection, onNavigate, roleConfig 
 
     return (
         <aside
-            className={`fixed left-4 lg:left-6 top-4 md:top-5 bottom-4 md:bottom-5 z-[2010] hidden lg:flex flex-col rounded-[20px] glass-sidebar shadow-glass-depth anim-layout-sidebar ${isCollapsed ? "w-16" : "w-52"
+            className={`fixed left-4 lg:left-6 top-4 md:top-5 bottom-4 md:bottom-5 z-[2010] hidden lg:flex flex-col rounded-[20px] glass-sidebar shadow-glass-depth anim-layout-sidebar ${isExpanded ? "w-52" : "w-16"
                 }`}
+            onMouseEnter={() => setIsHoverExpanded(true)}
+            onMouseLeave={() => setIsHoverExpanded(false)}
+            onFocusCapture={() => setIsHoverExpanded(true)}
+            onBlurCapture={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget)) {
+                    setIsHoverExpanded(false);
+                }
+            }}
         >
             <button
-                aria-label={isCollapsed ? "Buka sidebar" : "Ciutkan sidebar"}
+                aria-label={isCollapsed ? "Kunci sidebar terbuka" : "Ciutkan sidebar"}
                 className={`sidebar-collapse-hint ${isCollapsed ? "sidebar-collapse-hint--collapsed" : "sidebar-collapse-hint--expanded"}`}
                 onClick={onToggle}
-                title={isCollapsed ? "Buka sidebar" : "Ciutkan sidebar"}
+                title={isCollapsed ? "Kunci sidebar terbuka" : "Ciutkan sidebar"}
                 type="button"
             >
                 <span className="material-symbols-outlined" style={{ fontSize: "32px" }}>
@@ -733,15 +745,15 @@ function Sidebar({ isCollapsed, onToggle, activeSection, onNavigate, roleConfig 
 
             <button
                 onClick={onToggle}
-                className={`w-full py-5 transition-[transform,padding] duration-300 hover:scale-[1.02] active:scale-[0.98] group focus:outline-none flex items-center ${isCollapsed ? "justify-center px-0" : "px-4 lg:px-5"}`}
-                title={isCollapsed ? "Buka sidebar" : "Ciutkan sidebar"}
+                className={`w-full py-5 transition-[transform,padding] duration-300 hover:scale-[1.02] active:scale-[0.98] group focus:outline-none flex items-center ${isExpanded ? "px-4 lg:px-5" : "justify-center px-0"}`}
+                title={isCollapsed ? "Kunci sidebar terbuka" : "Ciutkan sidebar"}
                 type="button"
             >
                 <div className="flex items-center gap-3">
                     <div className="h-8 w-8 flex items-center justify-center rounded-xl bg-gold-accent shadow-gold-glow shrink-0">
                         <img alt="" className="h-5 w-5 object-contain" src="/logo-kima.png" />
                     </div>
-                    {!isCollapsed && (
+                    {isExpanded && (
                         <div className="overflow-hidden whitespace-nowrap text-left animate-in fade-in slide-in-from-left-4 duration-500">
                             <p className="text-lg font-black text-on-surface tracking-tighter leading-none">KIMA</p>
                             <p className="text-[8px] font-bold text-gold-accent uppercase tracking-[0.2em] mt-1">ARCHIVE</p>
@@ -758,8 +770,8 @@ function Sidebar({ isCollapsed, onToggle, activeSection, onNavigate, roleConfig 
                         <a
                             key={item.key}
                             href={href}
-                            title={isCollapsed ? item.label : ""}
-                            className={`flex items-center rounded-lg anim-surface group ${isCollapsed ? "justify-center h-10 w-10 mx-auto" : "gap-3 px-3 py-2"
+                            title={isExpanded ? "" : item.label}
+                            className={`flex items-center rounded-lg anim-surface group ${isExpanded ? "gap-3 px-3 py-2" : "justify-center h-10 w-10 mx-auto"
                                 } ${isActive
                                     ? "active-glow-gold text-on-surface font-black"
                                     : "text-on-surface-variant hover:text-on-surface hover:bg-black/5"
@@ -767,7 +779,7 @@ function Sidebar({ isCollapsed, onToggle, activeSection, onNavigate, roleConfig 
                             onClick={(event) => handleSectionClick(event, item.key)}
                         >
                             <span className={`material-symbols-outlined text-lg transition-transform duration-200 ${isActive ? "text-gold-accent" : "group-hover:scale-110"}`}>{item.icon}</span>
-                            {!isCollapsed && <span className="text-[10px] font-bold uppercase tracking-widest whitespace-nowrap animate-in fade-in duration-500">{item.label}</span>}
+                            {isExpanded && <span className="text-[10px] font-bold uppercase tracking-widest whitespace-nowrap animate-in fade-in duration-500">{item.label}</span>}
                         </a>
                     );
                 })}
