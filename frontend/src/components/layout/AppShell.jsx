@@ -226,7 +226,7 @@ export default function AppShell({
             )}
 
             <main
-                className={`relative z-10 min-h-screen anim-layout-sidebar px-4 sm:px-6 md:px-8 lg:px-10 pb-10 pt-16 lg:pt-20 ${hideSidebar ? "" : (isSidebarExpanded ? "lg:ml-72" : "lg:ml-24")
+                className={`relative z-10 min-h-screen anim-layout-sidebar px-4 sm:px-6 md:px-8 lg:px-10 pb-10 pt-16 lg:pt-20 ${hideSidebar ? "" : (isSidebarExpanded ? "lg:ml-60" : "lg:ml-24")
                     }`}
             >
                 <div className="mx-auto max-w-[1600px]">
