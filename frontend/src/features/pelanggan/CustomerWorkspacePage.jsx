@@ -54,6 +54,26 @@ const getCurrentContractNumber = (tenant, todayIso) => {
     const activeContract = contracts.find((contract) => isInPeriod(contract, todayIso));
     return normalizeContractNumber(activeContract?.contractNumber ?? activeContract?.contract_number ?? tenant?.contractNumber);
 };
+
+const normalizeSearchable = (value) => String(value ?? "").toLowerCase();
+const getTenantIspNames = (tenant) => Array.isArray(tenant?.ispList) ? tenant.ispList.filter(Boolean) : [];
+const tenantHasIspSearchMatch = (tenant, normalizedSearch) => normalizedSearch
+    ? getTenantIspNames(tenant).some((name) => normalizeSearchable(name).includes(normalizedSearch))
+    : false;
+const tenantMatchesLocationSearch = (tenant, normalizedSearch) => {
+    if (!normalizedSearch) return true;
+
+    return [
+        tenant?.name,
+        tenant?.customerId,
+    ].filter(Boolean).join(" ").toLowerCase().includes(normalizedSearch);
+};
+const tenantMatchesWorkspaceSearch = (tenant, normalizedSearch) => {
+    if (!normalizedSearch) return true;
+
+    return tenantMatchesLocationSearch(tenant, normalizedSearch) || tenantHasIspSearchMatch(tenant, normalizedSearch);
+};
+
 const getIspActionCounts = (isp, notificationCountsByIspId = {}) => {
     const ispId = Number(isp?.id);
     const notificationCounts = Number.isFinite(ispId) ? notificationCountsByIspId[ispId] : null;
@@ -236,19 +256,12 @@ function CustomerWorkspacePage({
                 : operationalStatus !== "berhenti";
             if (!matchesListType) return false;
 
-            const searchableText = [
-                tenant.name,
-                tenant.customerId,
-                tenant.ispDisplay,
-                ...(Array.isArray(tenant.ispList) ? tenant.ispList : []),
-            ].filter(Boolean).join(" ").toLowerCase();
-
             const contractStatusKey = getTenantOperationalStatus(tenant, todayIso);
             const tenantRouteStatus = resolveTenantRouteStatus(tenant, todayIso);
             const actionCounts = getTenantActionCounts(tenant, notificationCountsByCustomerId);
             const todoStatusKey = actionCounts.total > 0 ? "perlu_tindakan" : "tidak_ada";
 
-            const matchesSearch = !normalizedSearch || searchableText.includes(normalizedSearch);
+            const matchesSearch = tenantMatchesWorkspaceSearch(tenant, normalizedSearch);
             const matchesContractStatus = contractStatusFilter === "all" ? true : contractStatusKey === contractStatusFilter;
             const matchesRouteStatus = routeStatusFilter === "all" ? true : tenantRouteStatus === routeStatusFilter;
             const matchesTodo = todoFilter === "all" ? true : todoStatusKey === todoFilter;
@@ -263,7 +276,19 @@ function CustomerWorkspacePage({
 
         const groups = filteredIsps
             .map((isp) => {
-                const tenants = filteredTenants.filter(t => Array.isArray(t.ispList) && t.ispList.includes(isp.name));
+                const ispNameMatchesSearch = normalizedSearch
+                    ? normalizeSearchable(isp.name).includes(normalizedSearch)
+                    : true;
+                const tenants = filteredTenants.filter((tenant) => {
+                    const tenantIspNames = getTenantIspNames(tenant);
+                    if (!tenantIspNames.includes(isp.name)) return false;
+                    if (!normalizedSearch) return true;
+
+                    const tenantSearchesByIsp = tenantHasIspSearchMatch(tenant, normalizedSearch);
+                    if (tenantSearchesByIsp) return ispNameMatchesSearch;
+
+                    return tenantMatchesLocationSearch(tenant, normalizedSearch);
+                });
 
                 const ispActionCounts = getIspActionCounts(isp, notificationCountsByIspId);
                 const actionTenantCount = tenants.filter((tenant) => getTenantActionCounts(tenant, notificationCountsByCustomerId).total > 0).length;
@@ -272,6 +297,7 @@ function CustomerWorkspacePage({
 
                 return {
                     ...isp,
+                    matchesSearch: ispNameMatchesSearch,
                     tenants: tenants.sort((a, b) => a.name.localeCompare(b.name)),
                     activeTenantCount: tenants.filter((tenant) => isTenantActive(tenant, todayIso)).length,
                     actionTenantCount: actionTenantCount + (ispActionCounts.total > 0 ? 1 : 0),
@@ -283,6 +309,7 @@ function CustomerWorkspacePage({
             .filter((group) => {
                 // Keep group if it has matching tenants
                 if (group.tenants.length > 0) return true;
+                if (normalizedSearch && !group.matchesSearch) return false;
                 if (group.ispActionCounts?.total > 0 && todoFilter !== "tidak_ada") return true;
                 // Or if it matches the general "show empty" criteria
                 if (!shouldIncludeEmptyIspGroups) return false;

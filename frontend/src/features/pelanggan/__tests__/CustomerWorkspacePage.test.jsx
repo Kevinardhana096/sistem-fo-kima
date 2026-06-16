@@ -129,4 +129,66 @@ describe('CustomerWorkspacePage - aksi grup ISP', () => {
     expect(screen.getByText('1 TINDAKAN')).toBeInTheDocument();
     expect(screen.queryByText('5 TINDAKAN')).not.toBeInTheDocument();
   });
+
+  it('menyembunyikan grup ISP yang tidak berisi lokasi sesuai pencarian lokasi', async () => {
+    renderWorkspace({
+      isps: [
+        { id: 1, name: 'ISP Lokasi Cocok', status: 'aktif' },
+        { id: 2, name: 'ISP Lokasi Lain', status: 'aktif' },
+      ],
+      customers: [
+        {
+          id: 201,
+          name: 'Gudang Kima 5',
+          customerId: 'CUST-201',
+          status: 'aktif',
+          routeStatus: 'aktif',
+          ispList: ['ISP Lokasi Cocok'],
+          ispDisplay: 'ISP Lokasi Cocok',
+        },
+        {
+          id: 202,
+          name: 'Gudang Maros',
+          customerId: 'CUST-202',
+          status: 'aktif',
+          routeStatus: 'aktif',
+          ispList: ['ISP Lokasi Lain'],
+          ispDisplay: 'ISP Lokasi Lain',
+        },
+      ],
+    });
+
+    await userEvent.type(screen.getByPlaceholderText(/cari id, isp, atau nama lokasi/i), 'kima 5');
+
+    expect(screen.getByText('ISP Lokasi Cocok')).toBeInTheDocument();
+    expect(screen.getByText('Gudang Kima 5')).toBeInTheDocument();
+    expect(screen.queryByText('ISP Lokasi Lain')).not.toBeInTheDocument();
+    expect(screen.queryByText('Gudang Maros')).not.toBeInTheDocument();
+  });
+
+  it('saat pencarian ISP hanya menampilkan grup ISP yang namanya cocok', async () => {
+    renderWorkspace({
+      isps: [
+        { id: 1, name: 'PT Telkom Indonesia', status: 'aktif' },
+        { id: 2, name: 'PT Moratelindo', status: 'aktif' },
+      ],
+      customers: [
+        {
+          id: 301,
+          name: 'Lokasi Multi ISP',
+          customerId: 'CUST-301',
+          status: 'aktif',
+          routeStatus: 'aktif',
+          ispList: ['PT Telkom Indonesia', 'PT Moratelindo'],
+          ispDisplay: 'PT Telkom Indonesia, PT Moratelindo',
+        },
+      ],
+    });
+
+    await userEvent.type(screen.getByPlaceholderText(/cari id, isp, atau nama lokasi/i), 'telkom');
+
+    expect(screen.getByText('PT Telkom Indonesia')).toBeInTheDocument();
+    expect(screen.getByText('Lokasi Multi ISP')).toBeInTheDocument();
+    expect(screen.queryByText('PT Moratelindo')).not.toBeInTheDocument();
+  });
 });
