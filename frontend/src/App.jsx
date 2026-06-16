@@ -667,6 +667,17 @@ function App() {
             return;
         }
 
+        const nextUrl = new URL(targetPath, window.location.origin);
+        const currentPath = `${window.location.pathname}${window.location.search}`;
+        const nextPath = `${nextUrl.pathname}${nextUrl.search}`;
+        const isSameRoute = currentPath === nextPath
+            && locationState.pathname === nextUrl.pathname
+            && locationState.search === nextUrl.search;
+
+        if (isSameRoute && !replace) {
+            return;
+        }
+
         const fallbackTransition = getPageTransitionCopy(targetPath, currentRole);
         const isAuthTransitionActive = getRuntimeTransitionState().logout;
 
@@ -684,20 +695,19 @@ function App() {
             });
         }
 
-        const nextUrl = new URL(targetPath, window.location.origin);
         const nextState = {
             pathname: nextUrl.pathname,
             search: nextUrl.search,
         };
 
         if (replace) {
-            window.history.replaceState({}, "", `${nextUrl.pathname}${nextUrl.search}`);
+            window.history.replaceState({}, "", nextPath);
         } else {
-            window.history.pushState({}, "", `${nextUrl.pathname}${nextUrl.search}`);
+            window.history.pushState({}, "", nextPath);
         }
 
         setLocationState(nextState);
-    }, [currentRole]);
+    }, [currentRole, locationState.pathname, locationState.search]);
 
     useEffect(() => {
         if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) {
