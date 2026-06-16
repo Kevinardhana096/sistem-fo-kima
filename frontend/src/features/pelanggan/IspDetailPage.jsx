@@ -2795,7 +2795,20 @@ function IspDetailPage({
                                                         <tr key={tenant.id} className="hover:bg-white/[0.04] transition-colors group/row">
                                                             <td className="px-3 py-2.5 text-center text-[11px] font-bold text-white/20 border-r border-white/10">{String(tenantStartIndex + idx + 1).padStart(2, '0')}</td>
                                                             <td className="px-3 py-2.5 border-r border-white/10">
-                                                                <p className="text-[11px] font-bold text-white group-hover/row:text-gold-accent transition-colors">{tenant.name}</p>
+                                                                {canOpenTenantDetail ? (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => onOpenTenant(tenant, isTeknisi ? "jalur" : "overview")}
+                                                                        className="group/location inline-flex max-w-[18rem] items-center gap-1.5 text-left text-[11px] font-bold text-white transition-colors hover:text-gold-accent focus:outline-none focus-visible:text-gold-accent"
+                                                                        title={`Buka detail lokasi ${tenant.name}`}
+                                                                        aria-label={`Buka detail lokasi ${tenant.name}`}
+                                                                    >
+                                                                        <span className="truncate underline-offset-4 group-hover/location:underline group-focus-visible/location:underline">{tenant.name}</span>
+                                                                        <span className="material-symbols-outlined opacity-0 transition-opacity group-hover/location:opacity-70 group-focus-visible/location:opacity-70" style={{ fontSize: "12px" }}>open_in_new</span>
+                                                                    </button>
+                                                                ) : (
+                                                                    <p className="text-[11px] font-bold text-white group-hover/row:text-gold-accent transition-colors">{tenant.name}</p>
+                                                                )}
                                                             </td>
                                                             <td className="px-3 py-2.5 text-center border-r border-white/10">
                                                                 <span className={`inline-flex items-center px-3 py-1 rounded-full text-[8px] font-bold border transition-all ${normalizeOperationalStatus(tenant.status) === 'aktif' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : normalizeOperationalStatus(tenant.status) === 'expired' ? 'bg-[#ff2400]/10 text-[#ff2400] border-[#ff2400]/20' : isPendingOperationalStatus(tenant.status) ? 'bg-sky-500/10 text-sky-400 border-sky-500/20' : 'bg-white/5 text-white/30 border-white/10'}`}>
@@ -2917,7 +2930,19 @@ function IspDetailPage({
                                                         {/* ── HEADER: nomor + nama ── */}
                                                         <div className="flex items-center gap-2.5 px-3.5 pt-3 pb-2.5 border-b border-white/[0.06]">
                                                             <span className="shrink-0 text-[10px] font-black text-gold-accent/60 tabular-nums">#{String(tenantStartIndex + idx + 1).padStart(2, '0')}</span>
-                                                            <p className="flex-1 text-[13px] font-black text-white uppercase tracking-wide leading-tight">{tenant.name}</p>
+                                                            {canOpenTenantDetail ? (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => onOpenTenant(tenant, isTeknisi ? "jalur" : "overview")}
+                                                                    className="group/location flex-1 text-left text-[13px] font-black text-white uppercase tracking-wide leading-tight transition-colors hover:text-gold-accent focus:outline-none focus-visible:text-gold-accent"
+                                                                    title={`Buka detail lokasi ${tenant.name}`}
+                                                                    aria-label={`Buka detail lokasi ${tenant.name}`}
+                                                                >
+                                                                    <span className="underline-offset-4 group-hover/location:underline group-focus-visible/location:underline">{tenant.name}</span>
+                                                                </button>
+                                                            ) : (
+                                                                <p className="flex-1 text-[13px] font-black text-white uppercase tracking-wide leading-tight">{tenant.name}</p>
+                                                            )}
                                                             {diffDays !== null && (
                                                                 <span className={`shrink-0 text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${diffDays < 0 ? 'bg-[#ff2400]/15 border-[#ff2400]/30 text-[#ff2400]' : diffDays < 30 ? 'bg-amber-500/15 border-amber-500/30 text-amber-400' : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'}`}>
                                                                     {diffDays < 0 ? `Lewat ${Math.abs(diffDays)} hr` : diffDays === 0 ? 'Hari ini' : diffDays < 30 ? `${diffDays} hari` : `${Math.floor(diffDays / 30)} bln`}
