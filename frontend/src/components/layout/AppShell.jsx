@@ -732,18 +732,6 @@ function Sidebar({ isCollapsed, onToggle, activeSection, onNavigate, roleConfig 
             }}
         >
             <button
-                aria-label={isCollapsed ? "Kunci sidebar terbuka" : "Ciutkan sidebar"}
-                className={`sidebar-collapse-hint ${isCollapsed ? "sidebar-collapse-hint--collapsed" : "sidebar-collapse-hint--expanded"}`}
-                onClick={onToggle}
-                title={isCollapsed ? "Kunci sidebar terbuka" : "Ciutkan sidebar"}
-                type="button"
-            >
-                <span className="material-symbols-outlined" style={{ fontSize: "32px" }}>
-                    {isCollapsed ? "chevron_right" : "chevron_left"}
-                </span>
-            </button>
-
-            <button
                 onClick={onToggle}
                 className={`w-full py-5 transition-[transform,padding] duration-300 hover:scale-[1.02] active:scale-[0.98] group focus:outline-none flex items-center ${isExpanded ? "px-4 lg:px-5" : "justify-center px-0"}`}
                 title={isCollapsed ? "Kunci sidebar terbuka" : "Ciutkan sidebar"}
