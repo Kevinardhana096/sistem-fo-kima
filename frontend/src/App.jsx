@@ -1592,6 +1592,7 @@ function App() {
                     onOpenCreateTenant={handleOpenCreateTenantFromIsp}
                     onOpenTenant={(tenant, initialTab = "overview") =>
                         handleOpenTenantDetail(tenant, initialTab, resolvedIspDetail)}
+                    onEditTenant={handleOpenEditTenant}
                     onTabChange={(nextTab) => {
                         navigateTo(appPaths.ispDetail(resolvedIspDetail.id, { tab: nextTab }), { replace: true });
                     }}
