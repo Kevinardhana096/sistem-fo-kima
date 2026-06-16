@@ -35,6 +35,7 @@ export default function AppShell({
     onNavigatePath,
 }) {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [isSidebarHoverExpanded, setIsSidebarHoverExpanded] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [authUser, setAuthUser] = useState(null);
     const [profileForm, setProfileForm] = useState({
@@ -59,6 +60,7 @@ export default function AppShell({
     });
 
     const roleConfig = getRoleConfig(currentRole);
+    const isSidebarExpanded = !hideSidebar && (!isSidebarCollapsed || isSidebarHoverExpanded);
     const profileDisplayName = authUser?.user_metadata?.display_name
         || authUser?.user_metadata?.username
         || roleConfig.profileTitle;
@@ -197,7 +199,7 @@ export default function AppShell({
 
             <TopNav
                 hasSidebar={!hideSidebar}
-                isSidebarCollapsed={isSidebarCollapsed}
+                isSidebarCollapsed={!isSidebarExpanded}
                 isMobileMenuOpen={isMobileMenuOpen}
                 onToggleMenu={() => setIsMobileMenuOpen((prev) => !prev)}
                 onCloseMenu={() => setIsMobileMenuOpen(false)}
@@ -216,6 +218,7 @@ export default function AppShell({
                 <Sidebar
                     isCollapsed={isSidebarCollapsed}
                     onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                    onExpandedChange={setIsSidebarHoverExpanded}
                     activeSection={activeSection}
                     onNavigate={onNavigate}
                     roleConfig={roleConfig}
@@ -223,7 +226,7 @@ export default function AppShell({
             )}
 
             <main
-                className={`relative z-10 min-h-screen anim-layout-sidebar px-4 sm:px-6 md:px-8 lg:px-10 pb-10 pt-16 lg:pt-20 ${hideSidebar ? "" : (isSidebarCollapsed ? "lg:ml-24" : "lg:ml-60")
+                className={`relative z-10 min-h-screen anim-layout-sidebar px-4 sm:px-6 md:px-8 lg:px-10 pb-10 pt-16 lg:pt-20 ${hideSidebar ? "" : (isSidebarExpanded ? "lg:ml-72" : "lg:ml-24")
                     }`}
             >
                 <div className="mx-auto max-w-[1600px]">
@@ -708,9 +711,14 @@ function TopNav({
     );
 }
 
-function Sidebar({ isCollapsed, onToggle, activeSection, onNavigate, roleConfig }) {
+function Sidebar({ isCollapsed, onToggle, onExpandedChange, activeSection, onNavigate, roleConfig }) {
     const [isHoverExpanded, setIsHoverExpanded] = useState(false);
     const isExpanded = !isCollapsed || isHoverExpanded;
+
+    useEffect(() => {
+        onExpandedChange?.(isCollapsed && isHoverExpanded);
+        return () => onExpandedChange?.(false);
+    }, [isCollapsed, isHoverExpanded, onExpandedChange]);
 
     const handleSectionClick = (event, sectionKey) => {
         if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
