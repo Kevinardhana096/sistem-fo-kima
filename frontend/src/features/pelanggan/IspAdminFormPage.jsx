@@ -152,7 +152,7 @@ const deriveOperationalStatus = (contractPeriodStart, fallbackStatus = "aktif") 
 
 const mapPackageName = (value) => String(value || "").toLowerCase() === "shared" ? "Shared" : "Core";
 
-function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNavigate, onSaved }) {
+function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onSaved }) {
     const [form, setForm] = useState({
         name: "",
         status: "aktif",

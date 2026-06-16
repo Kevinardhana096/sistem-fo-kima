@@ -168,7 +168,7 @@ const GlassCustomSelect = ({ label, value, onChange, options, icon, heightClass 
     );
 };
 
-function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, mode = "create", currentRole = "admin", onCancel, onNavigate, onLogout, onSaved }) {
+function TenantAdminFormPage({ initialData = null, isps = [], lockedIsp = null, mode = "create", onCancel, onSaved }) {
     const formatRupiahInput = (value) => {
         if (value === null || value === undefined || value === "") return "";
         const numberString = String(value).replace(/[^0-9]/g, "");

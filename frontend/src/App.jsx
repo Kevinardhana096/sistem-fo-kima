@@ -1921,14 +1921,8 @@ function App() {
     return content;
 }
 
-    function requestAppNavigationFallback(targetPath, options) {
-    if (typeof window === "undefined") return;
-    window.dispatchEvent(new CustomEvent(APP_NAVIGATION_EVENT, {
-        detail: { targetPath, options },
-    }));
-}
 
-function RouteLoadingPage({ activeSection, currentRole, onNavigate, onLogout, message }) {
+function RouteLoadingPage({ message }) {
     return (
         <>
             <div className="mx-auto flex min-h-[50vh] max-w-4xl items-center justify-center">
@@ -1940,7 +1934,7 @@ function RouteLoadingPage({ activeSection, currentRole, onNavigate, onLogout, me
     );
     }
 
-    function RouteMissingPage({ activeSection, currentRole, onNavigate, onLogout, title, description }) {
+    function RouteMissingPage({ currentRole, onNavigate, title, description }) {
     return (
         <>
             <div className="mx-auto max-w-4xl">
@@ -1973,7 +1967,7 @@ function RouteLoadingPage({ activeSection, currentRole, onNavigate, onLogout, me
     );
     }
 
-    function RouteForbiddenPage({ activeSection, currentRole, onNavigate, onLogout, defaultSection, roleLabel }) {
+    function RouteForbiddenPage({ onNavigate, defaultSection, roleLabel }) {
     return (
         <>
             <div className="mx-auto max-w-4xl">
@@ -2006,7 +2000,7 @@ function RouteLoadingPage({ activeSection, currentRole, onNavigate, onLogout, me
     );
     }
 
-    function SectionPlaceholderPage({ activeSection, currentRole, onNavigate, onLogout }) {
+    function SectionPlaceholderPage({ activeSection, onNavigate }) {
     const section = sectionMeta[activeSection] ?? sectionMeta.dashboard;
     const isTrashSection = activeSection === "trash";
 

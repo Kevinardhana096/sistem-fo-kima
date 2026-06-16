@@ -352,8 +352,6 @@ function IspDetailPage({
     isp,
     onBack,
     onEditIsp,
-    onNavigate,
-    onLogout,
     onOpenCreateTenant,
     onOpenTenant,
     onRefreshAll,

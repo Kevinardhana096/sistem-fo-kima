@@ -63,7 +63,7 @@ function CustomDropdown({ value, options, onChange, align = "right", triggerClas
     );
 }
 
-export default function TrashPage({ activeSection, onNavigate, onLogout: _onLogout, currentRole = "admin" }) {
+export default function TrashPage({ currentRole = "admin" }) {
     const isTeknisi = currentRole === "teknisi";
     const [searchQuery, setSearchQuery] = useState("");
     const [trashItems, setTrashItems] = useState([]);

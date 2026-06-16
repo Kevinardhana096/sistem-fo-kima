@@ -193,7 +193,6 @@ const CustomSelect = ({ value, onChange, options, icon, label }) => {
 };
 
 function CustomerWorkspacePage({
-    activeSection,
     customers,
     customersPageInfo = null,
     notificationCountsByCustomerId = {},
@@ -202,8 +201,6 @@ function CustomerWorkspacePage({
     error,
     secondaryError,
     isLoading,
-    onNavigate,
-    onLogout,
     onOpenTenant,
     onOpenIsp,
     onOpenCreateTenant,

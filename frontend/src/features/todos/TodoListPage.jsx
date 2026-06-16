@@ -87,7 +87,7 @@ function CustomDropdown({ value, options, onChange, align = "left", position = "
     );
 }
 
-export default function TodoListPage({ activeSection, onNavigate, onNavigatePath, onLogout, currentRole = "admin" }) {
+export default function TodoListPage({ onNavigatePath, currentRole = "admin" }) {
     const [notifications, setNotifications] = useState([]);
     const [search, setSearch] = useState("");
     const [type, setType] = useState("all");

@@ -163,9 +163,6 @@ const getRemainingRentalBadgeMeta = (remainingDays) => {
 };
 
 function MonitoringSpreadsheetPage({
-    activeSection,
-    onNavigate,
-    onLogout,
     ispOptions,
     currentRole = "admin",
     onOpenIsp,

@@ -32,13 +32,9 @@ const compactChartMargin = { top: 5, right: 5, bottom: 5, left: -25 };
  */
 
 export default function DashboardPage({
-    activeSection,
-    onNavigate,
-    onLogout,
     customers,
     isps = [],
     notifications = [],
-    currentRole = "admin",
     refreshToken = 0,
 }) {
     const [availableYears] = useState([

@@ -124,7 +124,7 @@ function CustomDropdown({ value, options, onChange, align = "left", position = "
     );
 }
 
-export default function ActivityLogPage({ activeSection, onNavigate, onLogout, currentRole = "admin" }) {
+export default function ActivityLogPage() {
     const [logs, setLogs] = useState([]);
     const [searchQuery, setSearchQuery] = useState("");
     const [entityType, setEntityType] = useState("");
