@@ -52,15 +52,8 @@ export default function AppShell({
     const [pageTransitionDescription, setPageTransitionDescription] = useState(() => getRuntimeTransitionState().description);
     const isTransitioningAuth = isLogoutTransitioning || isPageTransitioning;
 
-    // Initialize state from localStorage to ensure persistence
-    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
-        const saved = localStorage.getItem("sidebar_collapsed");
-        if (saved === null) return true;
-        return saved === "true";
-    });
-
     const roleConfig = getRoleConfig(currentRole);
-    const isSidebarExpanded = !hideSidebar && (!isSidebarCollapsed || isSidebarHoverExpanded);
+    const isSidebarExpanded = !hideSidebar && isSidebarHoverExpanded;
     const profileDisplayName = authUser?.user_metadata?.display_name
         || authUser?.user_metadata?.username
         || roleConfig.profileTitle;
@@ -70,11 +63,6 @@ export default function AppShell({
         onNavigate(sectionKey);
         setIsMobileMenuOpen(false);
     };
-
-    // Effect to save state to localStorage whenever it changes
-    useEffect(() => {
-        localStorage.setItem("sidebar_collapsed", String(isSidebarCollapsed));
-    }, [isSidebarCollapsed]);
 
     useEffect(() => {
         const syncAuthTransition = (event) => {
@@ -216,8 +204,6 @@ export default function AppShell({
 
             {!hideSidebar && (
                 <Sidebar
-                    isCollapsed={isSidebarCollapsed}
-                    onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
                     onExpandedChange={setIsSidebarHoverExpanded}
                     activeSection={activeSection}
                     onNavigate={onNavigate}
@@ -711,14 +697,14 @@ function TopNav({
     );
 }
 
-function Sidebar({ isCollapsed, onToggle, onExpandedChange, activeSection, onNavigate, roleConfig }) {
+function Sidebar({ onExpandedChange, activeSection, onNavigate, roleConfig }) {
     const [isHoverExpanded, setIsHoverExpanded] = useState(false);
-    const isExpanded = !isCollapsed || isHoverExpanded;
+    const isExpanded = isHoverExpanded;
 
     useEffect(() => {
-        onExpandedChange?.(isCollapsed && isHoverExpanded);
+        onExpandedChange?.(isHoverExpanded);
         return () => onExpandedChange?.(false);
-    }, [isCollapsed, isHoverExpanded, onExpandedChange]);
+    }, [isHoverExpanded, onExpandedChange]);
 
     const handleSectionClick = (event, sectionKey) => {
         if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
@@ -739,11 +725,9 @@ function Sidebar({ isCollapsed, onToggle, onExpandedChange, activeSection, onNav
                 }
             }}
         >
-            <button
-                onClick={onToggle}
-                className={`w-full py-5 transition-[transform,padding] duration-300 hover:scale-[1.02] active:scale-[0.98] group focus:outline-none flex items-center ${isExpanded ? "px-4 lg:px-5" : "justify-center px-0"}`}
-                title={isCollapsed ? "Kunci sidebar terbuka" : "Ciutkan sidebar"}
-                type="button"
+            <div
+                className={`w-full py-5 transition-[padding] duration-300 flex items-center ${isExpanded ? "px-4 lg:px-5" : "justify-center px-0"}`}
+                aria-label="KIMA Archive"
             >
                 <div className="flex items-center gap-3">
                     <div className="h-8 w-8 flex items-center justify-center rounded-xl bg-gold-accent shadow-gold-glow shrink-0">
@@ -756,7 +740,7 @@ function Sidebar({ isCollapsed, onToggle, onExpandedChange, activeSection, onNav
                         </div>
                     )}
                 </div>
-            </button>
+            </div>
 
             <nav className="flex-grow px-2 lg:px-3 space-y-1 mt-1 overflow-y-auto no-scrollbar">
                 {roleConfig.menuItems.map((item) => {
