@@ -684,7 +684,7 @@ function CustomerWorkspacePage({
                                         <div className="flex flex-col gap-4 px-6 py-4 lg:flex-row lg:items-center lg:justify-between bg-white/[0.03] relative overflow-hidden">
                                             <div className="absolute top-0 right-0 w-64 h-64 bg-gold-accent/5 rounded-full -mr-32 -mt-32 blur-[80px] group-hover/group:bg-gold-accent/10 transition-all duration-700 backdrop-blur-md"></div>
                                             <button
-                                                className="flex flex-1 items-center gap-4 relative z-10 text-left group/title-btn"
+                                                className="flex min-w-0 flex-1 items-center gap-4 relative z-10 text-left group/title-btn lg:pr-4"
                                                 onClick={() => setCollapsedMap((prev) => ({ ...prev, [group.id]: !(prev[group.id] ?? true) }))}
                                                 type="button"
                                             >
@@ -695,16 +695,16 @@ function CustomerWorkspacePage({
                                                         <span className="material-symbols-outlined text-2xl">router</span>
                                                     )}
                                                 </div>
-                                                <div className="min-w-0">
+                                                <div className="min-w-0 flex-1">
                                                     <div className="flex items-center gap-3 mb-0.5">
                                                         <p className="text-[8px] font-black uppercase tracking-[0.4em] text-gold-accent">ISP MITRA</p>
                                                     </div>
-                                                    <h3 className="text-lg md:text-xl font-black text-gold-accent tracking-tight leading-none truncate transition-colors group-hover/title-btn:text-white">{group.name}</h3>
+                                                    <h3 className="isp-group-name text-lg md:text-xl font-black text-gold-accent tracking-tight leading-tight transition-colors group-hover/title-btn:text-white">{group.name}</h3>
                                                     <p className="text-[9px] font-black text-white/20 mt-1 uppercase tracking-widest truncate">{group.contractReference || "No reference index"}</p>
                                                 </div>
                                             </button>
 
-                                            <div className="flex flex-wrap items-center gap-2 relative z-10">
+                                            <div className="flex shrink-0 flex-wrap items-center gap-2 relative z-10">
                                                 {/* 1. Tombol Buka Tutup */}
                                                 <button
                                                     onClick={() => setCollapsedMap((prev) => ({ ...prev, [group.id]: !(prev[group.id] ?? true) }))}

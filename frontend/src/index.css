@@ -152,6 +152,15 @@
     }
   }
 
+  .isp-group-name {
+    display: -webkit-box;
+    max-width: min(100%, 44rem);
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow-wrap: anywhere;
+  }
+
   .glass-card {
     background: rgba(15, 20, 30, 0.42);
     backdrop-filter: blur(24px);
