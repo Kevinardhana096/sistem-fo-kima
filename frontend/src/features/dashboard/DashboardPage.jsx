@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState, useMemo } from "react";
-import AppShell from "../../components/layout/AppShell";
 import api from "../../lib/api";
 import { resolveCustomerOperationalStatus } from "../../app/utils";
 import {
@@ -474,7 +473,7 @@ export default function DashboardPage({
     const glassCardClass = "glass-card backdrop-blur-xl rounded-2xl p-3 relative overflow-hidden group";
 
     return (
-        <AppShell activeSection={activeSection} onNavigate={onNavigate} onLogout={onLogout} currentRole={currentRole}>
+        <>
             <div className="space-y-6 pb-20 pt-2 md:pt-4">
 
                 {/* Header Section */}
@@ -793,7 +792,7 @@ export default function DashboardPage({
                     </div>
                 </div>
             </div>
-        </AppShell>
+        </>
     );
 }
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { getSectionPath } from "../../app/routes";
 import { getRoleConfig } from "../../roles";
 import api from "../../lib/api";
@@ -59,8 +59,22 @@ export default function AppShell({
         || roleConfig.profileTitle;
     const profileAvatarName = profileDisplayName || roleConfig.profileTitle;
 
-    const handleMobileNavigate = (sectionKey) => {
+    const isNavigatingRef = useRef(false);
+
+    const safeNavigate = useCallback((sectionKey) => {
+        if (isNavigatingRef.current) return;
+        isNavigatingRef.current = true;
+        
         onNavigate(sectionKey);
+        
+        // Mencegah klik berulang dalam 300ms
+        setTimeout(() => {
+            isNavigatingRef.current = false;
+        }, 300);
+    }, [onNavigate]);
+
+    const handleMobileNavigate = (sectionKey) => {
+        safeNavigate(sectionKey);
         setIsMobileMenuOpen(false);
     };
 
@@ -206,7 +220,7 @@ export default function AppShell({
                 <Sidebar
                     onExpandedChange={setIsSidebarHoverExpanded}
                     activeSection={activeSection}
-                    onNavigate={onNavigate}
+                    onNavigate={safeNavigate}
                     roleConfig={roleConfig}
                 />
             )}
@@ -220,18 +234,32 @@ export default function AppShell({
                 </div>
             </main>
 
-            {isTransitioningAuth && (
+            {isLogoutTransitioning && (
                 <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/55 px-6 backdrop-blur-md">
                     <div className="flex w-full max-w-sm flex-col items-center gap-4 rounded-3xl border border-white/10 bg-slate-950/85 px-6 py-8 text-center shadow-2xl">
                         <div className="h-12 w-12 animate-spin rounded-full border-4 border-gold-accent border-t-transparent" />
                         <div>
                             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gold-accent/80">
-                                {isLogoutTransitioning ? "Mengakhiri Sesi" : pageTransitionTitle}
+                                Mengakhiri Sesi
                             </p>
                             <p className="mt-2 text-sm font-bold text-on-surface-variant">
-                                {isLogoutTransitioning
-                                    ? "Menyiapkan keluar dan memuat ulang halaman login..."
-                                    : pageTransitionDescription}
+                                Menyiapkan keluar dan memuat ulang halaman login...
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {isPageTransitioning && !isLogoutTransitioning && (
+                <div className={`fixed top-0 right-0 bottom-0 z-[120] flex items-center justify-center bg-black/55 px-6 backdrop-blur-md anim-layout-sidebar pointer-events-auto ${hideSidebar ? "left-0" : (isSidebarExpanded ? "left-0 lg:left-60" : "left-0 lg:left-24")}`}>
+                    <div className="flex w-full max-w-sm flex-col items-center gap-4 rounded-3xl border border-white/10 bg-slate-950/85 px-6 py-8 text-center shadow-2xl">
+                        <div className="h-12 w-12 animate-spin rounded-full border-4 border-gold-accent border-t-transparent" />
+                        <div>
+                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gold-accent/80">
+                                {pageTransitionTitle}
+                            </p>
+                            <p className="mt-2 text-sm font-bold text-on-surface-variant">
+                                {pageTransitionDescription}
                             </p>
                         </div>
                     </div>

@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import AppShell from "../../components/layout/AppShell";
 import { IssueCountRow } from "../../components/shared/AppShared";
 import { invoiceStatusLabelMap, monitoringMonths } from "../../app/constants";
 import {
@@ -1461,11 +1460,11 @@ function MonitoringSpreadsheetPage({
         }
 
         return (
-            <AppShell activeSection={activeSection} onNavigate={onNavigate} onLogout={onLogout} currentRole={currentRole}>
+            <>
                 <div className="relative z-10">
                     {tableOnlyContent}
                 </div>
-            </AppShell>
+            </>
         );
     }
 
@@ -1755,9 +1754,9 @@ function MonitoringSpreadsheetPage({
     }
 
     return (
-        <AppShell activeSection={activeSection} onNavigate={onNavigate} onLogout={onLogout} currentRole={currentRole}>
+        <>
             {content}
-        </AppShell>
+        </>
     );
 }
 

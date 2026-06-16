@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { createPortal } from "react-dom";
-import AppShell from "../../components/layout/AppShell";
 import {
   FieldInput,
   FieldSelect,
@@ -4539,13 +4538,7 @@ function TenantDetailPage({
 
   if (isPlannerJalurView) {
     return (
-      <AppShell
-        activeSection="customers"
-        onNavigate={onNavigate}
-        onLogout={onLogout}
-        hideSidebar={true}
-        full={true}
-      >
+      <>
         <div className="relative z-0 h-[100dvh] w-screen overflow-hidden bg-slate-950 font-manrope antialiased p-0 flex flex-col">
           {/* Map Container */}
           <div className="h-full w-full">
@@ -4593,18 +4586,12 @@ function TenantDetailPage({
             />
           </div>
         </div>
-      </AppShell>
+      </>
     );
   }
 
   return (
-    <AppShell
-      activeSection="customers"
-      onNavigate={onNavigate}
-      onLogout={onLogout}
-      hideSidebar={hideSidebar || isIsp}
-      currentRole={currentRole}
-    >
+    <>
       <div className="flex flex-col gap-2 pb-24">
         {/* ══════ MOBILE STICKY HEADER (TABS) ══════ */}
         {!isTeknisi && (
@@ -8352,7 +8339,7 @@ function TenantDetailPage({
           </div>
         )}
       </div>
-    </AppShell>
+    </>
   );
 }
 

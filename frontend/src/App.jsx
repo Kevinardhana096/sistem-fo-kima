@@ -667,6 +667,11 @@ function App() {
             return;
         }
 
+        const nextUrl = new URL(targetPath, window.location.origin);
+        if (nextUrl.pathname === window.location.pathname && nextUrl.search === window.location.search) {
+            return;
+        }
+
         const fallbackTransition = getPageTransitionCopy(targetPath, currentRole);
         const isAuthTransitionActive = getRuntimeTransitionState().logout;
 
@@ -683,8 +688,6 @@ function App() {
                 description: transitionDescription || fallbackTransition.description,
             });
         }
-
-        const nextUrl = new URL(targetPath, window.location.origin);
         const nextState = {
             pathname: nextUrl.pathname,
             search: nextUrl.search,
@@ -1224,684 +1227,699 @@ function App() {
         handleOpenTenantDetail(targetCustomer, initialTab);
     }, [appPaths, customers, handleOpenTenantDetail, navigateTo]);
 
-    if (!hasCheckedAuth || (!isLoggedIn && !PUBLIC_ROUTE_TYPES.has(route.type)) || (isLoggedIn && route.type === "login")) {
-        return (
-            <RouteLoadingPage
-                activeSection={activeSection}
-                currentRole={currentRole}
-                onNavigate={handleNavigate}
-                onLogout={handleLogout}
-                message="Memeriksa sesi login..."
-            />
-        );
-    }
-
-    if (route.type === "redirect") {
-        return (
-            <RouteLoadingPage
-                activeSection={activeSection}
-                currentRole={currentRole}
-                onNavigate={handleNavigate}
-                onLogout={handleLogout}
-                message="Mengarahkan ke halaman pelanggan..."
-            />
-        );
-    }
-
-    if (!isRouteAllowed) {
-        return (
-            <RouteForbiddenPage
-                activeSection={fallbackSection}
-                currentRole={currentRole}
-                onNavigate={handleNavigate}
-                onLogout={handleLogout}
-                defaultSection={fallbackSection}
-                roleLabel={roleConfig.label}
-            />
-        );
-    }
-
-    if (route.type === "login") {
-        return (
-            <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary/5 to-primary-container/10"><div className="text-sm text-on-surface-variant">Memuat...</div></div>}>
-                <LoginPage
-                    onLoginSuccess={async ({ user }) => {
-                        // Extract role from user metadata
-                        const nextRole = normalizeAppRole(user?.user_metadata?.role);
-                        const nextRolePaths = getAppPaths(nextRole);
-                        api.session.clearCaches();
-                        let loginIspAccount = null;
-                        if (nextRole === APP_ROLES.isp) {
-                            setHasRequestedCurrentIspAccount(true);
-                            setIsLoadingCurrentIspAccount(true);
-                            setCurrentIspAccountError("");
-                            try {
-                                loginIspAccount = await api.session.getCurrentIspAccount();
-                                setCurrentIspAccount(loginIspAccount);
-                                if (loginIspAccount?.isp) {
-                                    setIsps([loginIspAccount.isp]);
+    const renderRouteContent = () => {
+        if (!hasCheckedAuth || (!isLoggedIn && !PUBLIC_ROUTE_TYPES.has(route.type)) || (isLoggedIn && route.type === "login")) {
+            return (
+                <RouteLoadingPage
+                    activeSection={activeSection}
+                    currentRole={currentRole}
+                    onNavigate={handleNavigate}
+                    onLogout={handleLogout}
+                    message="Memeriksa sesi login..."
+                />
+            );
+        }
+    
+        if (route.type === "redirect") {
+            return (
+                <RouteLoadingPage
+                    activeSection={activeSection}
+                    currentRole={currentRole}
+                    onNavigate={handleNavigate}
+                    onLogout={handleLogout}
+                    message="Mengarahkan ke halaman pelanggan..."
+                />
+            );
+        }
+    
+        if (!isRouteAllowed) {
+            return (
+                <RouteForbiddenPage
+                    activeSection={fallbackSection}
+                    currentRole={currentRole}
+                    onNavigate={handleNavigate}
+                    onLogout={handleLogout}
+                    defaultSection={fallbackSection}
+                    roleLabel={roleConfig.label}
+                />
+            );
+        }
+    
+        if (route.type === "login") {
+            return (
+                <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary/5 to-primary-container/10"><div className="text-sm text-on-surface-variant">Memuat...</div></div>}>
+                    <LoginPage
+                        onLoginSuccess={async ({ user }) => {
+                            // Extract role from user metadata
+                            const nextRole = normalizeAppRole(user?.user_metadata?.role);
+                            const nextRolePaths = getAppPaths(nextRole);
+                            api.session.clearCaches();
+                            let loginIspAccount = null;
+                            if (nextRole === APP_ROLES.isp) {
+                                setHasRequestedCurrentIspAccount(true);
+                                setIsLoadingCurrentIspAccount(true);
+                                setCurrentIspAccountError("");
+                                try {
+                                    loginIspAccount = await api.session.getCurrentIspAccount();
+                                    setCurrentIspAccount(loginIspAccount);
+                                    if (loginIspAccount?.isp) {
+                                        setIsps([loginIspAccount.isp]);
+                                    }
+                                } catch (error) {
+                                    setCurrentIspAccount(null);
+                                    setCurrentIspAccountError(
+                                        error instanceof Error
+                                            ? error.message
+                                            : "Terjadi kesalahan saat memuat mapping akun ISP.",
+                                    );
+                                } finally {
+                                    setIsLoadingCurrentIspAccount(false);
                                 }
-                            } catch (error) {
-                                setCurrentIspAccount(null);
-                                setCurrentIspAccountError(
-                                    error instanceof Error
-                                        ? error.message
-                                        : "Terjadi kesalahan saat memuat mapping akun ISP.",
-                                );
-                            } finally {
-                                setIsLoadingCurrentIspAccount(false);
                             }
-                        }
-                        const landingPath = getLandingPathForRole(nextRole, nextRolePaths, user, loginIspAccount?.ispId);
-
-                        setAuthSession({ user });
-                        setCurrentRole(nextRole);
-                        persistRole(nextRole);
-                        setCustomersError("");
-                        setIspsError("");
-                        navigateTo(landingPath, { replace: true });
-                        void refreshAppData();
-                    }}
-                />
-            </Suspense>
-        );
-    }
-
-    if (route.type === "admin-register") {
-        return (
-            <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-[#0a0c12]"><div className="text-sm text-white/60">Memuat...</div></div>}>
-                <AdminRegisterPage onBackToLogin={() => navigateTo(appPaths.login, { replace: true })} />
-            </Suspense>
-        );
-    }
-
-    if (route.type === "section" && route.sectionKey === "dashboard") {
-        return (
-            <Suspense fallback={<RouteLoadingPage activeSection={activeSection} currentRole={currentRole} onNavigate={handleNavigate} onLogout={handleLogout} message="Memuat dashboard..." />}>
-                <DashboardPage
-                    activeSection={activeSection}
-                    customers={customers}
-                    isps={isps}
-                    notifications={notifications}
-                    isLoadingCustomers={isLoadingCustomers}
-                    currentRole={currentRole}
-                    onNavigate={handleNavigate}
-                    onLogout={handleLogout}
-                    refreshToken={dashboardRefreshToken}
-                />
-            </Suspense>
-        );
-    }
-
-    if (route.type === "section" && route.sectionKey === "monitoring") {
-        return (
-            <Suspense fallback={<RouteLoadingPage activeSection={activeSection} currentRole={currentRole} onNavigate={handleNavigate} onLogout={handleLogout} message="Memuat monitoring..." />}>
-                <MonitoringSpreadsheetPage
-                    activeSection={activeSection}
-                    ispOptions={ispOptions}
-                    currentRole={currentRole}
-                    onNavigate={handleNavigate}
-                    onLogout={handleLogout}
-                    onOpenIsp={handleOpenIspDetail}
-                    onOpenCustomerById={handleOpenCustomerById}
-                    onOpenTableOnly={() => navigateTo(appPaths.monitoringFullscreen)}
-                />
-            </Suspense>
-        );
-    }
-
-    if (route.type === "monitoring-fullscreen") {
-        return (
-            <Suspense fallback={<RouteLoadingPage activeSection="monitoring" currentRole={currentRole} onNavigate={handleNavigate} onLogout={handleLogout} message="Memuat monitoring..." />}>
-                <MonitoringSpreadsheetPage
-                    ispOptions={ispOptions}
-                    currentRole={currentRole}
-                    layout="plain"
-                    onLogout={handleLogout}
-                    onOpenIsp={handleOpenIspDetail}
-                    onOpenCustomerById={handleOpenCustomerById}
-                    tableOnly
-                    onCloseTableOnly={() => navigateTo(appPaths.monitoring)}
-                />
-            </Suspense>
-        );
-    }
-
-    if (route.type === "section" && route.sectionKey === "trash") {
-        return (
-            <Suspense fallback={<RouteLoadingPage activeSection={activeSection} currentRole={currentRole} onNavigate={handleNavigate} onLogout={handleLogout} message="Memuat trash..." />}>
-                <TrashPage
-                    activeSection={activeSection}
-                    currentRole={currentRole}
-                    onNavigate={handleNavigate}
-                    onLogout={handleLogout}
-                />
-            </Suspense>
-        );
-    }
-
-    if (route.type === "section" && route.sectionKey === "activity") {
-        return (
-            <Suspense fallback={<RouteLoadingPage activeSection={activeSection} currentRole={currentRole} onNavigate={handleNavigate} onLogout={handleLogout} message="Memuat activity log..." />}>
-                <ActivityLogPage
-                    activeSection={activeSection}
-                    currentRole={currentRole}
-                    onNavigate={handleNavigate}
-                    onLogout={handleLogout}
-                />
-            </Suspense>
-        );
-    }
-
-    if (route.type === "section" && route.sectionKey === "todos") {
-        return (
-            <Suspense fallback={<RouteLoadingPage activeSection={activeSection} currentRole={currentRole} onNavigate={handleNavigate} onLogout={handleLogout} message="Memuat to do list..." />}>
-                <TodoListPage
-                    activeSection={activeSection}
-                    currentRole={currentRole}
-                    onNavigate={handleNavigate}
-                    onNavigatePath={navigateTo}
-                    onLogout={handleLogout}
-                />
-            </Suspense>
-        );
-    }
-
-    if (route.type === "customer-create") {
-        if (currentRole === APP_ROLES.isp && !createTenantContextIsp) {
-            if (!hasRequestedIsps || isLoadingIsps) {
+                            const landingPath = getLandingPathForRole(nextRole, nextRolePaths, user, loginIspAccount?.ispId);
+    
+                            setAuthSession({ user });
+                            setCurrentRole(nextRole);
+                            persistRole(nextRole);
+                            setCustomersError("");
+                            setIspsError("");
+                            navigateTo(landingPath, { replace: true });
+                            void refreshAppData();
+                        }}
+                    />
+                </Suspense>
+            );
+        }
+    
+        if (route.type === "admin-register") {
+            return (
+                <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-[#0a0c12]"><div className="text-sm text-white/60">Memuat...</div></div>}>
+                    <AdminRegisterPage onBackToLogin={() => navigateTo(appPaths.login, { replace: true })} />
+                </Suspense>
+            );
+        }
+    
+        if (route.type === "section" && route.sectionKey === "dashboard") {
+            return (
+                <Suspense fallback={<RouteLoadingPage activeSection={activeSection} currentRole={currentRole} onNavigate={handleNavigate} onLogout={handleLogout} message="Memuat dashboard..." />}>
+                    <DashboardPage
+                        activeSection={activeSection}
+                        customers={customers}
+                        isps={isps}
+                        notifications={notifications}
+                        isLoadingCustomers={isLoadingCustomers}
+                        currentRole={currentRole}
+                        onNavigate={handleNavigate}
+                        onLogout={handleLogout}
+                        refreshToken={dashboardRefreshToken}
+                    />
+                </Suspense>
+            );
+        }
+    
+        if (route.type === "section" && route.sectionKey === "monitoring") {
+            return (
+                <Suspense fallback={<RouteLoadingPage activeSection={activeSection} currentRole={currentRole} onNavigate={handleNavigate} onLogout={handleLogout} message="Memuat monitoring..." />}>
+                    <MonitoringSpreadsheetPage
+                        activeSection={activeSection}
+                        ispOptions={ispOptions}
+                        currentRole={currentRole}
+                        onNavigate={handleNavigate}
+                        onLogout={handleLogout}
+                        onOpenIsp={handleOpenIspDetail}
+                        onOpenCustomerById={handleOpenCustomerById}
+                        onOpenTableOnly={() => navigateTo(appPaths.monitoringFullscreen)}
+                    />
+                </Suspense>
+            );
+        }
+    
+        if (route.type === "monitoring-fullscreen") {
+            return (
+                <Suspense fallback={<RouteLoadingPage activeSection="monitoring" currentRole={currentRole} onNavigate={handleNavigate} onLogout={handleLogout} message="Memuat monitoring..." />}>
+                    <MonitoringSpreadsheetPage
+                        ispOptions={ispOptions}
+                        currentRole={currentRole}
+                        layout="plain"
+                        onLogout={handleLogout}
+                        onOpenIsp={handleOpenIspDetail}
+                        onOpenCustomerById={handleOpenCustomerById}
+                        tableOnly
+                        onCloseTableOnly={() => navigateTo(appPaths.monitoring)}
+                    />
+                </Suspense>
+            );
+        }
+    
+        if (route.type === "section" && route.sectionKey === "trash") {
+            return (
+                <Suspense fallback={<RouteLoadingPage activeSection={activeSection} currentRole={currentRole} onNavigate={handleNavigate} onLogout={handleLogout} message="Memuat trash..." />}>
+                    <TrashPage
+                        activeSection={activeSection}
+                        currentRole={currentRole}
+                        onNavigate={handleNavigate}
+                        onLogout={handleLogout}
+                    />
+                </Suspense>
+            );
+        }
+    
+        if (route.type === "section" && route.sectionKey === "activity") {
+            return (
+                <Suspense fallback={<RouteLoadingPage activeSection={activeSection} currentRole={currentRole} onNavigate={handleNavigate} onLogout={handleLogout} message="Memuat activity log..." />}>
+                    <ActivityLogPage
+                        activeSection={activeSection}
+                        currentRole={currentRole}
+                        onNavigate={handleNavigate}
+                        onLogout={handleLogout}
+                    />
+                </Suspense>
+            );
+        }
+    
+        if (route.type === "section" && route.sectionKey === "todos") {
+            return (
+                <Suspense fallback={<RouteLoadingPage activeSection={activeSection} currentRole={currentRole} onNavigate={handleNavigate} onLogout={handleLogout} message="Memuat to do list..." />}>
+                    <TodoListPage
+                        activeSection={activeSection}
+                        currentRole={currentRole}
+                        onNavigate={handleNavigate}
+                        onNavigatePath={navigateTo}
+                        onLogout={handleLogout}
+                    />
+                </Suspense>
+            );
+        }
+    
+        if (route.type === "customer-create") {
+            if (currentRole === APP_ROLES.isp && !createTenantContextIsp) {
+                if (!hasRequestedIsps || isLoadingIsps) {
+                    return (
+                        <RouteLoadingPage
+                            activeSection={activeSection}
+                            currentRole={currentRole}
+                            onNavigate={handleNavigate}
+                            onLogout={handleLogout}
+                            message="Memuat data ISP untuk lokasi baru..."
+                        />
+                    );
+                }
+    
+                return (
+                    <RouteForbiddenPage
+                        activeSection={fallbackSection}
+                        currentRole={currentRole}
+                        onNavigate={handleNavigate}
+                        onLogout={handleLogout}
+                        defaultSection={fallbackSection}
+                        roleLabel={roleConfig.label}
+                    />
+                );
+            }
+    
+            return (
+                <Suspense fallback={<RouteLoadingPage activeSection={activeSection} currentRole={currentRole} onNavigate={handleNavigate} onLogout={handleLogout} message="Memuat form..." />}>
+                    <TenantAdminFormPage
+                        isps={isps}
+                        lockedIsp={createTenantContextIsp}
+                        currentRole={currentRole}
+                        onCancel={handleCancelCreate}
+                        onNavigate={handleNavigate}
+                        onLogout={handleLogout}
+                        onSaved={(entity) => handleEntitySaved(entity, "tenant")}
+                    />
+                </Suspense>
+            );
+        }
+    
+        if (route.type === "isp-create") {
+            return (
+                <Suspense fallback={<RouteLoadingPage activeSection={activeSection} currentRole={currentRole} onNavigate={handleNavigate} onLogout={handleLogout} message="Memuat form..." />}>
+                    <IspAdminFormPage
+                        onCancel={handleCancelCreate}
+                        onNavigate={handleNavigate}
+                        onLogout={handleLogout}
+                        onSaved={(entity) => handleEntitySaved(entity, "isp")}
+                    />
+                </Suspense>
+            );
+        }
+    
+        if (route.type === "customer-edit") {
+            if (!customerDetailReady) {
+                return (
+                    <RouteLoadingPage
+                        activeSection={activeSection}
+                        currentRole={currentRole}
+                        onNavigate={handleNavigate}
+                        message="Memuat data tenant untuk halaman edit..."
+                    />
+                );
+            }
+    
+            if (!editingCustomer) {
+                return (
+                    <RouteMissingPage
+                        activeSection={activeSection}
+                        currentRole={currentRole}
+                        onNavigate={handleNavigate}
+                        title="Tenant tidak ditemukan"
+                        description="Tenant yang diminta tidak tersedia atau belum dimuat."
+                    />
+                );
+            }
+    
+            return (
+                <Suspense fallback={<RouteLoadingPage activeSection={activeSection} currentRole={currentRole} onNavigate={handleNavigate} onLogout={handleLogout} message="Memuat form..." />}>
+                    <TenantAdminFormPage
+                        initialData={editingCustomer}
+                        isps={isps}
+                        mode="edit"
+                        currentRole={currentRole}
+                        onCancel={handleCancelCreate}
+                        onNavigate={handleNavigate}
+                        onLogout={handleLogout}
+                        onSaved={async () => {
+                            await refreshAppData();
+                            navigateTo(appPaths.customerDetail(editingCustomer.id), { replace: true });
+                        }}
+                    />
+                </Suspense>
+            );
+        }
+    
+        if (route.type === "isp-edit") {
+            if (!ispDetailReady) {
                 return (
                     <RouteLoadingPage
                         activeSection={activeSection}
                         currentRole={currentRole}
                         onNavigate={handleNavigate}
                         onLogout={handleLogout}
-                        message="Memuat data ISP untuk lokasi baru..."
+                        message="Memuat data ISP untuk halaman edit..."
                     />
                 );
             }
-
+    
+            if (!editingIsp) {
+                return (
+                    <RouteMissingPage
+                        activeSection={activeSection}
+                        currentRole={currentRole}
+                        onNavigate={handleNavigate}
+                        onLogout={handleLogout}
+                        title="ISP tidak ditemukan"
+                        description="ISP yang diminta tidak tersedia atau belum dimuat."
+                    />
+                );
+            }
+    
             return (
-                <RouteForbiddenPage
-                    activeSection={fallbackSection}
-                    currentRole={currentRole}
-                    onNavigate={handleNavigate}
-                    onLogout={handleLogout}
-                    defaultSection={fallbackSection}
-                    roleLabel={roleConfig.label}
-                />
+                <Suspense fallback={<RouteLoadingPage activeSection={activeSection} currentRole={currentRole} onNavigate={handleNavigate} onLogout={handleLogout} message="Memuat form..." />}>
+                    <IspAdminFormPage
+                        initialData={editingIsp}
+                        mode="edit"
+                        onCancel={handleCancelCreate}
+                        onNavigate={handleNavigate}
+                        onLogout={handleLogout}
+                        onSaved={async () => {
+                            await refreshAppData();
+                            navigateTo(appPaths.ispDetail(editingIsp.id), { replace: true });
+                        }}
+                    />
+                </Suspense>
             );
         }
-
-        return (
-            <Suspense fallback={<RouteLoadingPage activeSection={activeSection} currentRole={currentRole} onNavigate={handleNavigate} onLogout={handleLogout} message="Memuat form..." />}>
-                <TenantAdminFormPage
-                    isps={isps}
-                    lockedIsp={createTenantContextIsp}
-                    currentRole={currentRole}
-                    onCancel={handleCancelCreate}
-                    onNavigate={handleNavigate}
-                    onLogout={handleLogout}
-                    onSaved={(entity) => handleEntitySaved(entity, "tenant")}
-                />
-            </Suspense>
-        );
-    }
-
-    if (route.type === "isp-create") {
-        return (
-            <Suspense fallback={<RouteLoadingPage activeSection={activeSection} currentRole={currentRole} onNavigate={handleNavigate} onLogout={handleLogout} message="Memuat form..." />}>
-                <IspAdminFormPage
-                    onCancel={handleCancelCreate}
-                    onNavigate={handleNavigate}
-                    onLogout={handleLogout}
-                    onSaved={(entity) => handleEntitySaved(entity, "isp")}
-                />
-            </Suspense>
-        );
-    }
-
-    if (route.type === "customer-edit") {
-        if (!customerDetailReady) {
+    
+        if (route.type === "isp-detail") {
+            if (!ispDetailReady) {
+                return (
+                    <RouteLoadingPage
+                        activeSection={activeSection}
+                        currentRole={currentRole}
+                        onNavigate={handleNavigate}
+                        message="Memuat detail ISP..."
+                    />
+                );
+            }
+    
+            if (!resolvedIspDetail) {
+                const isUnresolvedSelfIspRoute = currentRole === APP_ROLES.isp && route.ispId === "me";
+                return (
+                    <RouteMissingPage
+                        activeSection={activeSection}
+                        currentRole={currentRole}
+                        onNavigate={handleNavigate}
+                        title={isUnresolvedSelfIspRoute ? "Akun ISP belum terhubung" : "ISP tidak ditemukan"}
+                        description={isUnresolvedSelfIspRoute
+                            ? currentIspAccountError || "Akun ini belum memiliki mapping ISP aktif. Hubungi admin untuk mengaitkan akun ke ISP yang benar."
+                            : ispDetailError || "Data ISP yang Anda buka belum tersedia."}
+                    />
+                );
+            }
+    
             return (
-                <RouteLoadingPage
-                    activeSection={activeSection}
-                    currentRole={currentRole}
-                    onNavigate={handleNavigate}
-                    message="Memuat data tenant untuk halaman edit..."
-                />
+                <Suspense fallback={<RouteLoadingPage activeSection={activeSection} currentRole={currentRole} onNavigate={handleNavigate} onLogout={handleLogout} message="Memuat detail ISP..." />}>
+                    <IspDetailPage
+                        isp={resolvedIspDetail}
+                        currentRole={currentRole}
+                        initialTab={route.initialTab}
+                        onBack={() => {
+                            const fallbackPath = currentRole === APP_ROLES.isp
+                                ? appPaths.ispDetail(resolvedIspDetail.id)
+                                : appPaths.customers;
+                            navigateTo(fallbackPath, { replace: true });
+                        }}
+                        onEditIsp={handleOpenEditIsp}
+                        onNavigate={handleNavigate}
+                        onLogout={handleLogout}
+                        onOpenCreateTenant={handleOpenCreateTenantFromIsp}
+                        onOpenTenant={(tenant, initialTab = "overview") =>
+                            handleOpenTenantDetail(tenant, initialTab, resolvedIspDetail)}
+                        onEditTenant={handleOpenEditTenant}
+                        onTabChange={(nextTab) => {
+                            navigateTo(appPaths.ispDetail(resolvedIspDetail.id, { tab: nextTab }), { replace: true });
+                        }}
+                        notifications={notificationsByIspId[Number(resolvedIspDetail.id)] ?? []}
+                        onRefreshAll={async () => {
+                            await refreshAppData();
+                        }}
+                        canCreateTenant={roleCapabilities.canCreateTenant}
+                        canDeleteIsp={roleCapabilities.canDeleteIsp}
+                        canDeleteTenant={roleCapabilities.canDeleteTenant}
+                        canEditIsp={roleCapabilities.canEditIsp}
+                        canEditTenant={roleCapabilities.canEditTenant}
+                    />
+                </Suspense>
             );
         }
-
-        if (!editingCustomer) {
+    
+        if (route.type === "customer-detail") {
+            if (!customerDetailReady) {
+                return (
+                    <RouteLoadingPage
+                        activeSection={activeSection}
+                        currentRole={currentRole}
+                        onNavigate={handleNavigate}
+                        message="Memuat detail tenant..."
+                    />
+                );
+            }
+    
+            if (!resolvedCustomerDetail) {
+                return (
+                    <RouteMissingPage
+                        activeSection={activeSection}
+                        currentRole={currentRole}
+                        onNavigate={handleNavigate}
+                        title="Tenant tidak ditemukan"
+                        description={customerDetailError || "Data tenant yang Anda buka belum tersedia."}
+                    />
+                );
+            }
+    
+            if (!isResolvedCustomerAllowedForIsp) {
+                return (
+                    <RouteForbiddenPage
+                        activeSection={fallbackSection}
+                        currentRole={currentRole}
+                        onNavigate={handleNavigate}
+                        onLogout={handleLogout}
+                        defaultSection={fallbackSection}
+                        roleLabel={roleConfig.label}
+                    />
+                );
+            }
+    
             return (
-                <RouteMissingPage
-                    activeSection={activeSection}
-                    currentRole={currentRole}
-                    onNavigate={handleNavigate}
-                    title="Tenant tidak ditemukan"
-                    description="Tenant yang diminta tidak tersedia atau belum dimuat."
-                />
+                <Suspense fallback={<RouteLoadingPage activeSection={activeSection} currentRole={currentRole} onNavigate={handleNavigate} onLogout={handleLogout} message="Memuat detail tenant..." />}>
+                    <TenantDetailPage
+                        customer={resolvedCustomerDetail}
+                        contextIsp={selectedCustomerContextIsp}
+                        initialTab={route.initialTab}
+                        currentRole={currentRole}
+                        backLabel={currentRole === APP_ROLES.isp ? "Kembali ke Halaman ISP" : "Kembali ke Daftar Tenant"}
+                        onBack={() => {
+                            if (currentRole === APP_ROLES.isp && resolvedCurrentIspId) {
+                                navigateTo(appPaths.ispDetail(resolvedCurrentIspId), { replace: true });
+                                return;
+                            }
+    
+                            navigateTo(appPaths.customers, { replace: true });
+                        }}
+                        onEditTenant={handleOpenEditTenant}
+                        onCreateIsp={handleOpenCreateIsp}
+                        onNavigate={handleNavigate}
+                        onLogout={handleLogout}
+                        onRefreshAll={async () => {
+                            await refreshAppData();
+                        }}
+                        onTabChange={(nextTab) => {
+                            if (nextTab === "jalur") {
+                                const jalurPath = typeof appPaths.customerJalur === "function"
+                                    ? appPaths.customerJalur(resolvedCustomerDetail.id)
+                                    : appPaths.customerDetail(resolvedCustomerDetail.id, { tab: "jalur", ispId: resolvedCurrentIspId });
+                                navigateTo(jalurPath, { replace: true });
+                                return;
+                            }
+    
+                            navigateTo(appPaths.customerDetail(resolvedCustomerDetail.id, {
+                                tab: nextTab,
+                                ispId: selectedCustomerContextIsp?.id ?? (currentRole === APP_ROLES.isp ? resolvedCurrentIspId : null),
+                            }), { replace: true });
+                        }}
+                        onOpenRoutePlanner={(tenant) => {
+                            const resolvedCustomerId = Number(tenant?.id ?? resolvedCustomerDetail.id);
+                            if (!Number.isFinite(resolvedCustomerId) || resolvedCustomerId <= 0) {
+                                setCustomersError("Data tenant tidak valid. ID tenant tidak ditemukan.");
+                                return;
+                            }
+    
+                            if (typeof appPaths.customerJalurPlanner === "function") {
+                                navigateTo(appPaths.customerJalurPlanner(resolvedCustomerId));
+                            }
+                        }}
+                        canDeleteTenant={roleCapabilities.canDeleteTenant}
+                        canEditTenant={roleCapabilities.canEditTenant}
+                    />
+                </Suspense>
             );
         }
-
-        return (
-            <Suspense fallback={<RouteLoadingPage activeSection={activeSection} currentRole={currentRole} onNavigate={handleNavigate} onLogout={handleLogout} message="Memuat form..." />}>
-                <TenantAdminFormPage
-                    initialData={editingCustomer}
-                    isps={isps}
-                    mode="edit"
-                    currentRole={currentRole}
-                    onCancel={handleCancelCreate}
-                    onNavigate={handleNavigate}
-                    onLogout={handleLogout}
-                    onSaved={async () => {
-                        await refreshAppData();
-                        navigateTo(appPaths.customerDetail(editingCustomer.id), { replace: true });
-                    }}
-                />
-            </Suspense>
-        );
-    }
-
-    if (route.type === "isp-edit") {
-        if (!ispDetailReady) {
+    
+        if (route.type === "customer-jalur-fullscreen") {
+            if (!customerDetailReady) {
+                return (
+                    <RouteLoadingPage
+                        activeSection={activeSection}
+                        currentRole={currentRole}
+                        onNavigate={handleNavigate}
+                        message="Memuat tampilan jalur..."
+                    />
+                );
+            }
+    
+            if (!resolvedCustomerDetail) {
+                return (
+                    <RouteMissingPage
+                        activeSection={activeSection}
+                        currentRole={currentRole}
+                        onNavigate={handleNavigate}
+                        title="Tenant tidak ditemukan"
+                        description={customerDetailError || "Data tenant yang Anda buka belum tersedia."}
+                    />
+                );
+            }
+    
             return (
-                <RouteLoadingPage
-                    activeSection={activeSection}
-                    currentRole={currentRole}
-                    onNavigate={handleNavigate}
-                    onLogout={handleLogout}
-                    message="Memuat data ISP untuk halaman edit..."
-                />
-            );
-        }
-
-        if (!editingIsp) {
-            return (
-                <RouteMissingPage
-                    activeSection={activeSection}
-                    currentRole={currentRole}
-                    onNavigate={handleNavigate}
-                    onLogout={handleLogout}
-                    title="ISP tidak ditemukan"
-                    description="ISP yang diminta tidak tersedia atau belum dimuat."
-                />
-            );
-        }
-
-        return (
-            <Suspense fallback={<RouteLoadingPage activeSection={activeSection} currentRole={currentRole} onNavigate={handleNavigate} onLogout={handleLogout} message="Memuat form..." />}>
-                <IspAdminFormPage
-                    initialData={editingIsp}
-                    mode="edit"
-                    onCancel={handleCancelCreate}
-                    onNavigate={handleNavigate}
-                    onLogout={handleLogout}
-                    onSaved={async () => {
-                        await refreshAppData();
-                        navigateTo(appPaths.ispDetail(editingIsp.id), { replace: true });
-                    }}
-                />
-            </Suspense>
-        );
-    }
-
-    if (route.type === "isp-detail") {
-        if (!ispDetailReady) {
-            return (
-                <RouteLoadingPage
-                    activeSection={activeSection}
-                    currentRole={currentRole}
-                    onNavigate={handleNavigate}
-                    message="Memuat detail ISP..."
-                />
-            );
-        }
-
-        if (!resolvedIspDetail) {
-            const isUnresolvedSelfIspRoute = currentRole === APP_ROLES.isp && route.ispId === "me";
-            return (
-                <RouteMissingPage
-                    activeSection={activeSection}
-                    currentRole={currentRole}
-                    onNavigate={handleNavigate}
-                    title={isUnresolvedSelfIspRoute ? "Akun ISP belum terhubung" : "ISP tidak ditemukan"}
-                    description={isUnresolvedSelfIspRoute
-                        ? currentIspAccountError || "Akun ini belum memiliki mapping ISP aktif. Hubungi admin untuk mengaitkan akun ke ISP yang benar."
-                        : ispDetailError || "Data ISP yang Anda buka belum tersedia."}
-                />
-            );
-        }
-
-        return (
-            <Suspense fallback={<RouteLoadingPage activeSection={activeSection} currentRole={currentRole} onNavigate={handleNavigate} onLogout={handleLogout} message="Memuat detail ISP..." />}>
-                <IspDetailPage
-                    isp={resolvedIspDetail}
-                    currentRole={currentRole}
-                    initialTab={route.initialTab}
-                    onBack={() => {
-                        const fallbackPath = currentRole === APP_ROLES.isp
-                            ? appPaths.ispDetail(resolvedIspDetail.id)
-                            : appPaths.customers;
-                        navigateTo(fallbackPath, { replace: true });
-                    }}
-                    onEditIsp={handleOpenEditIsp}
-                    onNavigate={handleNavigate}
-                    onLogout={handleLogout}
-                    onOpenCreateTenant={handleOpenCreateTenantFromIsp}
-                    onOpenTenant={(tenant, initialTab = "overview") =>
-                        handleOpenTenantDetail(tenant, initialTab, resolvedIspDetail)}
-                    onEditTenant={handleOpenEditTenant}
-                    onTabChange={(nextTab) => {
-                        navigateTo(appPaths.ispDetail(resolvedIspDetail.id, { tab: nextTab }), { replace: true });
-                    }}
-                    notifications={notificationsByIspId[Number(resolvedIspDetail.id)] ?? []}
-                    onRefreshAll={async () => {
-                        await refreshAppData();
-                    }}
-                    canCreateTenant={roleCapabilities.canCreateTenant}
-                    canDeleteIsp={roleCapabilities.canDeleteIsp}
-                    canDeleteTenant={roleCapabilities.canDeleteTenant}
-                    canEditIsp={roleCapabilities.canEditIsp}
-                    canEditTenant={roleCapabilities.canEditTenant}
-                />
-            </Suspense>
-        );
-    }
-
-    if (route.type === "customer-detail") {
-        if (!customerDetailReady) {
-            return (
-                <RouteLoadingPage
-                    activeSection={activeSection}
-                    currentRole={currentRole}
-                    onNavigate={handleNavigate}
-                    message="Memuat detail tenant..."
-                />
-            );
-        }
-
-        if (!resolvedCustomerDetail) {
-            return (
-                <RouteMissingPage
-                    activeSection={activeSection}
-                    currentRole={currentRole}
-                    onNavigate={handleNavigate}
-                    title="Tenant tidak ditemukan"
-                    description={customerDetailError || "Data tenant yang Anda buka belum tersedia."}
-                />
-            );
-        }
-
-        if (!isResolvedCustomerAllowedForIsp) {
-            return (
-                <RouteForbiddenPage
-                    activeSection={fallbackSection}
-                    currentRole={currentRole}
-                    onNavigate={handleNavigate}
-                    onLogout={handleLogout}
-                    defaultSection={fallbackSection}
-                    roleLabel={roleConfig.label}
-                />
-            );
-        }
-
-        return (
-            <Suspense fallback={<RouteLoadingPage activeSection={activeSection} currentRole={currentRole} onNavigate={handleNavigate} onLogout={handleLogout} message="Memuat detail tenant..." />}>
-                <TenantDetailPage
-                    customer={resolvedCustomerDetail}
-                    contextIsp={selectedCustomerContextIsp}
-                    initialTab={route.initialTab}
-                    currentRole={currentRole}
-                    backLabel={currentRole === APP_ROLES.isp ? "Kembali ke Halaman ISP" : "Kembali ke Daftar Tenant"}
-                    onBack={() => {
-                        if (currentRole === APP_ROLES.isp && resolvedCurrentIspId) {
-                            navigateTo(appPaths.ispDetail(resolvedCurrentIspId), { replace: true });
-                            return;
-                        }
-
-                        navigateTo(appPaths.customers, { replace: true });
-                    }}
-                    onEditTenant={handleOpenEditTenant}
-                    onCreateIsp={handleOpenCreateIsp}
-                    onNavigate={handleNavigate}
-                    onLogout={handleLogout}
-                    onRefreshAll={async () => {
-                        await refreshAppData();
-                    }}
-                    onTabChange={(nextTab) => {
-                        if (nextTab === "jalur") {
-                            const jalurPath = typeof appPaths.customerJalur === "function"
-                                ? appPaths.customerJalur(resolvedCustomerDetail.id)
-                                : appPaths.customerDetail(resolvedCustomerDetail.id, { tab: "jalur", ispId: resolvedCurrentIspId });
-                            navigateTo(jalurPath, { replace: true });
-                            return;
-                        }
-
-                        navigateTo(appPaths.customerDetail(resolvedCustomerDetail.id, {
-                            tab: nextTab,
-                            ispId: selectedCustomerContextIsp?.id ?? (currentRole === APP_ROLES.isp ? resolvedCurrentIspId : null),
-                        }), { replace: true });
-                    }}
-                    onOpenRoutePlanner={(tenant) => {
-                        const resolvedCustomerId = Number(tenant?.id ?? resolvedCustomerDetail.id);
-                        if (!Number.isFinite(resolvedCustomerId) || resolvedCustomerId <= 0) {
-                            setCustomersError("Data tenant tidak valid. ID tenant tidak ditemukan.");
-                            return;
-                        }
-
-                        if (typeof appPaths.customerJalurPlanner === "function") {
+                <Suspense fallback={<RouteLoadingPage activeSection={activeSection} currentRole={currentRole} onNavigate={handleNavigate} onLogout={handleLogout} message="Memuat tampilan jalur..." />}>
+                    <TenantDetailPage
+                        customer={resolvedCustomerDetail}
+                        initialTab="jalur"
+                        currentRole={currentRole}
+                        backLabel="Kembali ke Detail Tenant"
+                        onBack={() => {
+                            navigateTo(appPaths.customerDetail(resolvedCustomerDetail.id), { replace: true });
+                        }}
+                        onEditTenant={handleOpenEditTenant}
+                        onNavigate={handleNavigate}
+                        onLogout={handleLogout}
+                        onRefreshAll={async () => {
+                            await refreshAppData();
+                        }}
+                        onOpenRoutePlanner={(tenant) => {
+                            const resolvedCustomerId = Number(tenant?.id ?? resolvedCustomerDetail.id);
+                            if (!Number.isFinite(resolvedCustomerId) || resolvedCustomerId <= 0) return;
                             navigateTo(appPaths.customerJalurPlanner(resolvedCustomerId));
-                        }
-                    }}
-                    canDeleteTenant={roleCapabilities.canDeleteTenant}
-                    canEditTenant={roleCapabilities.canEditTenant}
-                />
-            </Suspense>
-        );
-    }
-
-    if (route.type === "customer-jalur-fullscreen") {
-        if (!customerDetailReady) {
-            return (
-                <RouteLoadingPage
-                    activeSection={activeSection}
-                    currentRole={currentRole}
-                    onNavigate={handleNavigate}
-                    message="Memuat tampilan jalur..."
-                />
+                        }}
+                        routeViewMode="standalone"
+                        hideSidebar={true}
+                        canDeleteTenant={roleCapabilities.canDeleteTenant}
+                        canEditTenant={roleCapabilities.canEditTenant}
+                    />
+                </Suspense>
             );
         }
-
-        if (!resolvedCustomerDetail) {
+    
+        if (route.type === "customer-jalur") {
+            if (!customerDetailReady) {
+                return (
+                    <RouteLoadingPage
+                        activeSection={activeSection}
+                        currentRole={currentRole}
+                        onNavigate={handleNavigate}
+                        message="Memuat pengaturan jalur tenant..."
+                    />
+                );
+            }
+    
+            if (!resolvedCustomerDetail) {
+                return (
+                    <RouteMissingPage
+                        activeSection={activeSection}
+                        currentRole={currentRole}
+                        onNavigate={handleNavigate}
+                        title="Tenant tidak ditemukan"
+                        description={customerDetailError || "Data tenant yang Anda buka belum tersedia."}
+                    />
+                );
+            }
+    
             return (
-                <RouteMissingPage
-                    activeSection={activeSection}
-                    currentRole={currentRole}
-                    onNavigate={handleNavigate}
-                    title="Tenant tidak ditemukan"
-                    description={customerDetailError || "Data tenant yang Anda buka belum tersedia."}
-                />
+                <Suspense fallback={<RouteLoadingPage activeSection={activeSection} currentRole={currentRole} onNavigate={handleNavigate} onLogout={handleLogout} message="Memuat pengaturan jalur..." />}>
+                    <TenantDetailPage
+                        customer={resolvedCustomerDetail}
+                        initialTab="jalur"
+                        currentRole={currentRole}
+                        backLabel="Kembali ke Detail Tenant"
+                        onBack={() => {
+                            navigateTo(appPaths.customerDetail(resolvedCustomerDetail.id), { replace: true });
+                        }}
+                        onEditTenant={handleOpenEditTenant}
+                        onNavigate={handleNavigate}
+                        onLogout={handleLogout}
+                        onRefreshAll={async () => {
+                            await refreshAppData();
+                        }}
+                        onOpenRoutePlanner={(tenant) => {
+                            const resolvedCustomerId = Number(tenant?.id ?? resolvedCustomerDetail.id);
+                            if (!Number.isFinite(resolvedCustomerId) || resolvedCustomerId <= 0) {
+                                setCustomersError("Data tenant tidak valid. ID tenant tidak ditemukan.");
+                                return;
+                            }
+    
+                            navigateTo(appPaths.customerJalurPlanner(resolvedCustomerId));
+                        }}
+                        routeViewMode="standalone"
+                        canDeleteTenant={roleCapabilities.canDeleteTenant}
+                        canEditTenant={roleCapabilities.canEditTenant}
+                    />
+                </Suspense>
             );
         }
-
-        return (
-            <Suspense fallback={<RouteLoadingPage activeSection={activeSection} currentRole={currentRole} onNavigate={handleNavigate} onLogout={handleLogout} message="Memuat tampilan jalur..." />}>
-                <TenantDetailPage
-                    customer={resolvedCustomerDetail}
-                    initialTab="jalur"
-                    currentRole={currentRole}
-                    backLabel="Kembali ke Detail Tenant"
-                    onBack={() => {
-                        navigateTo(appPaths.customerDetail(resolvedCustomerDetail.id), { replace: true });
-                    }}
-                    onEditTenant={handleOpenEditTenant}
-                    onNavigate={handleNavigate}
-                    onLogout={handleLogout}
-                    onRefreshAll={async () => {
-                        await refreshAppData();
-                    }}
-                    onOpenRoutePlanner={(tenant) => {
-                        const resolvedCustomerId = Number(tenant?.id ?? resolvedCustomerDetail.id);
-                        if (!Number.isFinite(resolvedCustomerId) || resolvedCustomerId <= 0) return;
-                        navigateTo(appPaths.customerJalurPlanner(resolvedCustomerId));
-                    }}
-                    routeViewMode="standalone"
-                    hideSidebar={true}
-                    canDeleteTenant={roleCapabilities.canDeleteTenant}
-                    canEditTenant={roleCapabilities.canEditTenant}
-                />
-            </Suspense>
-        );
-    }
-
-    if (route.type === "customer-jalur") {
-        if (!customerDetailReady) {
+    
+        if (route.type === "customer-jalur-planner") {
+            if (!customerDetailReady) {
+                return (
+                    <RouteLoadingPage
+                        activeSection={activeSection}
+                        currentRole={currentRole}
+                        onNavigate={handleNavigate}
+                        message="Memuat FO route planner tenant..."
+                    />
+                );
+            }
+    
+            if (!resolvedCustomerDetail) {
+                return (
+                    <RouteMissingPage
+                        activeSection={activeSection}
+                        currentRole={currentRole}
+                        onNavigate={handleNavigate}
+                        title="Tenant tidak ditemukan"
+                        description={customerDetailError || "Data tenant yang Anda buka belum tersedia."}
+                    />
+                );
+            }
+    
             return (
-                <RouteLoadingPage
-                    activeSection={activeSection}
-                    currentRole={currentRole}
-                    onNavigate={handleNavigate}
-                    message="Memuat pengaturan jalur tenant..."
-                />
+                <Suspense fallback={<RouteLoadingPage activeSection={activeSection} currentRole={currentRole} onNavigate={handleNavigate} onLogout={handleLogout} message="Memuat route planner..." />}>
+                    <TenantDetailPage
+                        customer={resolvedCustomerDetail}
+                        initialTab="jalur"
+                        currentRole={currentRole}
+                        backLabel="Kembali ke Halaman Jalur"
+                        onBack={() => {
+                            navigateTo(appPaths.customerJalur(resolvedCustomerDetail.id), { replace: true });
+                        }}
+                        onEditTenant={handleOpenEditTenant}
+                        onNavigate={handleNavigate}
+                        onLogout={handleLogout}
+                        onRefreshAll={async () => {
+                            await refreshAppData();
+                        }}
+                        routeViewMode="planner"
+                        canDeleteTenant={roleCapabilities.canDeleteTenant}
+                        canEditTenant={roleCapabilities.canEditTenant}
+                    />
+                </Suspense>
             );
         }
-
-        if (!resolvedCustomerDetail) {
-            return (
-                <RouteMissingPage
-                    activeSection={activeSection}
-                    currentRole={currentRole}
-                    onNavigate={handleNavigate}
-                    title="Tenant tidak ditemukan"
-                    description={customerDetailError || "Data tenant yang Anda buka belum tersedia."}
-                />
-            );
-        }
-
-        return (
-            <Suspense fallback={<RouteLoadingPage activeSection={activeSection} currentRole={currentRole} onNavigate={handleNavigate} onLogout={handleLogout} message="Memuat pengaturan jalur..." />}>
-                <TenantDetailPage
-                    customer={resolvedCustomerDetail}
-                    initialTab="jalur"
-                    currentRole={currentRole}
-                    backLabel="Kembali ke Detail Tenant"
-                    onBack={() => {
-                        navigateTo(appPaths.customerDetail(resolvedCustomerDetail.id), { replace: true });
-                    }}
-                    onEditTenant={handleOpenEditTenant}
-                    onNavigate={handleNavigate}
-                    onLogout={handleLogout}
-                    onRefreshAll={async () => {
-                        await refreshAppData();
-                    }}
-                    onOpenRoutePlanner={(tenant) => {
-                        const resolvedCustomerId = Number(tenant?.id ?? resolvedCustomerDetail.id);
-                        if (!Number.isFinite(resolvedCustomerId) || resolvedCustomerId <= 0) {
-                            setCustomersError("Data tenant tidak valid. ID tenant tidak ditemukan.");
-                            return;
-                        }
-
-                        navigateTo(appPaths.customerJalurPlanner(resolvedCustomerId));
-                    }}
-                    routeViewMode="standalone"
-                    canDeleteTenant={roleCapabilities.canDeleteTenant}
-                    canEditTenant={roleCapabilities.canEditTenant}
-                />
-            </Suspense>
-        );
-    }
-
-    if (route.type === "customer-jalur-planner") {
-        if (!customerDetailReady) {
-            return (
-                <RouteLoadingPage
-                    activeSection={activeSection}
-                    currentRole={currentRole}
-                    onNavigate={handleNavigate}
-                    message="Memuat FO route planner tenant..."
-                />
-            );
-        }
-
-        if (!resolvedCustomerDetail) {
+    
+        if (route.type === "not-found") {
             return (
                 <RouteMissingPage
                     activeSection={activeSection}
                     currentRole={currentRole}
                     onNavigate={handleNavigate}
-                    title="Tenant tidak ditemukan"
-                    description={customerDetailError || "Data tenant yang Anda buka belum tersedia."}
+                    title="Halaman tidak ditemukan"
+                    description="Path yang Anda buka belum terdaftar di aplikasi ini."
                 />
             );
         }
-
+    
         return (
-            <Suspense fallback={<RouteLoadingPage activeSection={activeSection} currentRole={currentRole} onNavigate={handleNavigate} onLogout={handleLogout} message="Memuat route planner..." />}>
-                <TenantDetailPage
-                    customer={resolvedCustomerDetail}
-                    initialTab="jalur"
+            <Suspense fallback={<RouteLoadingPage activeSection={activeSection} currentRole={currentRole} onNavigate={handleNavigate} onLogout={handleLogout} message="Memuat halaman..." />}>
+                <CustomerWorkspacePage
+                    activeSection={activeSection}
+                    customers={customers}
+                    customersPageInfo={customersPageInfo}
+                    notificationCountsByCustomerId={notificationCountsByCustomerId}
+                    notificationCountsByIspId={notificationCountsByIspId}
+                    isps={isps}
+                    error={customersError}
+                    secondaryError={ispsError}
+                    isLoading={isLoadingCustomers}
                     currentRole={currentRole}
-                    backLabel="Kembali ke Halaman Jalur"
-                    onBack={() => {
-                        navigateTo(appPaths.customerJalur(resolvedCustomerDetail.id), { replace: true });
-                    }}
-                    onEditTenant={handleOpenEditTenant}
                     onNavigate={handleNavigate}
                     onLogout={handleLogout}
-                    onRefreshAll={async () => {
+                    onOpenTenant={handleOpenTenantDetail}
+                    onOpenIsp={handleOpenIspDetail}
+                    onOpenCreateTenant={handleOpenCreateTenant}
+                    onOpenCreateIsp={handleOpenCreateIsp}
+                    onRefresh={async () => {
                         await refreshAppData();
                     }}
-                    routeViewMode="planner"
-                    canDeleteTenant={roleCapabilities.canDeleteTenant}
-                    canEditTenant={roleCapabilities.canEditTenant}
+                    onLoadMoreCustomers={loadMoreCustomers}
+                    canCreateIsp={roleCapabilities.canCreateIsp}
+                    canCreateTenant={roleCapabilities.canCreateTenant}
                 />
             </Suspense>
         );
-    }
+    };
 
-    if (route.type === "not-found") {
+    const content = renderRouteContent();
+    const needsAppShell = !["login", "admin-register", "redirect", "monitoring-fullscreen", "customer-jalur-fullscreen"].includes(route.type);
+
+    if (needsAppShell) {
         return (
-            <RouteMissingPage
-                activeSection={activeSection}
-                currentRole={currentRole}
-                onNavigate={handleNavigate}
-                title="Halaman tidak ditemukan"
-                description="Path yang Anda buka belum terdaftar di aplikasi ini."
-            />
+            <AppShell activeSection={activeSection} currentRole={currentRole} onNavigate={handleNavigate} onNavigatePath={navigateTo} onLogout={handleLogout} hideSidebar={currentRole === "isp"}>
+                {content}
+            </AppShell>
         );
     }
 
-    return (
-        <Suspense fallback={<RouteLoadingPage activeSection={activeSection} currentRole={currentRole} onNavigate={handleNavigate} onLogout={handleLogout} message="Memuat halaman..." />}>
-            <CustomerWorkspacePage
-                activeSection={activeSection}
-                customers={customers}
-                customersPageInfo={customersPageInfo}
-                notificationCountsByCustomerId={notificationCountsByCustomerId}
-                notificationCountsByIspId={notificationCountsByIspId}
-                isps={isps}
-                error={customersError}
-                secondaryError={ispsError}
-                isLoading={isLoadingCustomers}
-                currentRole={currentRole}
-                onNavigate={handleNavigate}
-                onLogout={handleLogout}
-                onOpenTenant={handleOpenTenantDetail}
-                onOpenIsp={handleOpenIspDetail}
-                onOpenCreateTenant={handleOpenCreateTenant}
-                onOpenCreateIsp={handleOpenCreateIsp}
-                onRefresh={async () => {
-                    await refreshAppData();
-                }}
-                onLoadMoreCustomers={loadMoreCustomers}
-                canCreateIsp={roleCapabilities.canCreateIsp}
-                canCreateTenant={roleCapabilities.canCreateTenant}
-            />
-        </Suspense>
-    );
-    }
+    return content;
+}
 
     function requestAppNavigationFallback(targetPath, options) {
     if (typeof window === "undefined") return;
@@ -1912,19 +1930,19 @@ function App() {
 
 function RouteLoadingPage({ activeSection, currentRole, onNavigate, onLogout, message }) {
     return (
-        <AppShell activeSection={activeSection} currentRole={currentRole} onNavigate={onNavigate} onNavigatePath={requestAppNavigationFallback} onLogout={onLogout} hideSidebar={currentRole === APP_ROLES.isp}>
+        <>
             <div className="mx-auto flex min-h-[50vh] max-w-4xl items-center justify-center">
                 <div className="rounded-2xl border border-slate-100 bg-surface-container-lowest px-6 py-5 text-sm text-on-surface-variant shadow-sm">
                     {message}
                 </div>
             </div>
-        </AppShell>
+        </>
     );
     }
 
     function RouteMissingPage({ activeSection, currentRole, onNavigate, onLogout, title, description }) {
     return (
-        <AppShell activeSection={activeSection} currentRole={currentRole} onNavigate={onNavigate} onNavigatePath={requestAppNavigationFallback} onLogout={onLogout} hideSidebar={currentRole === APP_ROLES.isp}>
+        <>
             <div className="mx-auto max-w-4xl">
                 <section className="rounded-2xl border border-slate-100 bg-surface-container-lowest p-8 shadow-sm">
                     <div className="mb-6 flex items-center gap-3">
@@ -1951,13 +1969,13 @@ function RouteLoadingPage({ activeSection, currentRole, onNavigate, onLogout, me
                     </button>
                 </section>
             </div>
-        </AppShell>
+        </>
     );
     }
 
     function RouteForbiddenPage({ activeSection, currentRole, onNavigate, onLogout, defaultSection, roleLabel }) {
     return (
-        <AppShell activeSection={activeSection} currentRole={currentRole} onNavigate={onNavigate} onNavigatePath={requestAppNavigationFallback} onLogout={onLogout} hideSidebar={currentRole === APP_ROLES.isp}>
+        <>
             <div className="mx-auto max-w-4xl">
                 <section className="rounded-2xl border border-amber-100 bg-surface-container-lowest p-8 shadow-sm">
                     <div className="mb-6 flex items-center gap-3">
@@ -1984,7 +2002,7 @@ function RouteLoadingPage({ activeSection, currentRole, onNavigate, onLogout, me
                     </button>
                 </section>
             </div>
-        </AppShell>
+        </>
     );
     }
 
@@ -1993,7 +2011,7 @@ function RouteLoadingPage({ activeSection, currentRole, onNavigate, onLogout, me
     const isTrashSection = activeSection === "trash";
 
     return (
-        <AppShell activeSection={activeSection} currentRole={currentRole} onNavigate={onNavigate} onNavigatePath={requestAppNavigationFallback} onLogout={onLogout} hideSidebar={currentRole === APP_ROLES.isp}>
+        <>
             <div className="mx-auto max-w-5xl">
                 <header className="mb-10">
                     <h1 className="text-4xl font-extrabold tracking-tight text-primary">{section.title}</h1>
@@ -2048,7 +2066,7 @@ function RouteLoadingPage({ activeSection, currentRole, onNavigate, onLogout, me
                     </button>
                 </section>
             </div>
-        </AppShell>
+        </>
     );
 }
 

@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useState, useRef } from "react";
-import AppShell from "../../components/layout/AppShell";
 import { formatDateTime as formatDate } from "../../app/utils";
 import api from "../../lib/api";
 import { requestAppNavigation } from "../../app/navigation-events";
@@ -217,7 +216,7 @@ export default function TodoListPage({ activeSection, onNavigate, onNavigatePath
     ];
 
     return (
-        <AppShell activeSection={activeSection} onNavigate={onNavigate} onNavigatePath={onNavigatePath} onLogout={onLogout} currentRole={currentRole}>
+        <>
             <div className="space-y-3 pb-20 pt-2 md:pt-4">
 
                 {/* Header */}
@@ -473,6 +472,6 @@ export default function TodoListPage({ activeSection, onNavigate, onNavigatePath
                     )}
                 </div>
             </div>
-        </AppShell>
+        </>
     );
 }

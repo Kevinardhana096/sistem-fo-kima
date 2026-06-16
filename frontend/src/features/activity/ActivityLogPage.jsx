@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { createPortal } from "react-dom";
-import AppShell from "../../components/layout/AppShell";
 import api from "../../lib/api";
 import DateInput from "../../components/shared/DateInput";
 
@@ -285,7 +284,7 @@ export default function ActivityLogPage({ activeSection, onNavigate, onLogout, c
 
 
     return (
-        <AppShell activeSection={activeSection} onNavigate={onNavigate} onLogout={onLogout} currentRole={currentRole}>
+        <>
             <div className="space-y-3 pb-20 pt-2 md:pt-4">
                 <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 mb-6">
                     <div>
@@ -643,6 +642,6 @@ export default function ActivityLogPage({ activeSection, onNavigate, onLogout, c
                 </div>,
                 document.body
             )}
-        </AppShell>
+        </>
     );
 }

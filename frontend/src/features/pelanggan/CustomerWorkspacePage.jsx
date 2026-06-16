@@ -1,5 +1,4 @@
 import { useMemo, useState, useEffect, useRef } from "react";
-import AppShell from "../../components/layout/AppShell";
 import { SummaryCard, StatCard } from "../../components/shared/AppShared";
 import api from "../../lib/api";
 import { getPackageDisplay, normalizeOperationalStatus, isStoppedStatus, resolveTenantOperationalStatus } from "./utils";
@@ -449,7 +448,7 @@ function CustomerWorkspacePage({
     };
 
     return (
-        <AppShell activeSection={activeSection} onNavigate={onNavigate} onLogout={onLogout} currentRole={currentRole}>
+        <>
             {/* Background Decorative Blobs */}
             <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
                 <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[40%] rounded-full bg-primary/5 blur-[120px]" />
@@ -975,7 +974,7 @@ function CustomerWorkspacePage({
                     )}
                 </section>
             </div>
-        </AppShell>
+        </>
     );
 }
 

@@ -1,5 +1,4 @@
 import React, { useCallback, useState, useEffect } from "react";
-import AppShell from "../../components/layout/AppShell";
 import { formatDate } from "../../app/utils";
 import api from "../../lib/api";
 
@@ -236,7 +235,7 @@ export default function TrashPage({ activeSection, onNavigate, onLogout: _onLogo
     const selectedCount = selectedItems.size;
 
     return (
-        <AppShell activeSection={activeSection} onNavigate={onNavigate} onLogout={_onLogout} currentRole={currentRole}>
+        <>
             <div className="space-y-3 pb-20 pt-2 md:pt-4">
                 {/* Premium Header Section */}
                 <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 mb-6">
@@ -473,6 +472,6 @@ export default function TrashPage({ activeSection, onNavigate, onLogout: _onLogo
                     </div>
                 </div>
             </div>
-        </AppShell>
+        </>
     );
 }

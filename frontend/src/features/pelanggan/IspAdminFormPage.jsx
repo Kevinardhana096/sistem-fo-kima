@@ -259,7 +259,7 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
     };
 
     return (
-        <AppShell activeSection="customers" onNavigate={onNavigate}>
+        <>
             {/* Background Glows */}
             <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
                 <div className="absolute bottom-[-5%] left-[-5%] w-[30%] h-[30%] rounded-full bg-gold-accent/5 blur-[100px] backdrop-blur-md" />
@@ -562,7 +562,7 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onNav
 
                 </div>
             </form>
-        </AppShell>
+        </>
     );
 }
 

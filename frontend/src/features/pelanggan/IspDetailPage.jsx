@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { createPortal } from "react-dom";
-import AppShell from "../../components/layout/AppShell";
 import { StatCard } from "../../components/shared/AppShared";
 import FoRouteMultiPreview from "./components/FoRouteMultiPreview";
 import DateInput from "../../components/shared/DateInput";
@@ -1595,7 +1594,7 @@ function IspDetailPage({
     const statusBerhentiCount = allTenants.filter(t => normalizeOperationalStatus(t.status) === "berhenti").length;
 
     return (
-        <AppShell activeSection="customers" onNavigate={onNavigate} onLogout={onLogout} currentRole={currentRole} hideSidebar={isIsp}>
+        <>
 
             {/* ── POPUP AKUN ISP ─────────────────────────────────────────── */}
             {userPopupOpen && createPortal(
@@ -4631,7 +4630,7 @@ function IspDetailPage({
                 document.body,
             )}
 
-        </AppShell>
+        </>
     );
 }
 
