@@ -1657,11 +1657,11 @@ function MonitoringSpreadsheetPage({
                             <span className="text-[10px] font-black uppercase tracking-widest text-on-surface/60">Lunas</span>
                         </div>
                         <div className="flex items-center gap-2">
-                            <span className="h-2 w-2 rounded-full bg-[#ff2400] shadow-[0_0_12px_rgba(255,36,0,0.4)]"></span>
+                            <span className="h-2 w-2 rounded-full bg-[#ffab00] shadow-[0_0_12px_rgba(255,171,0,0.4)]"></span>
                             <span className="text-[10px] font-black uppercase tracking-widest text-on-surface/60">Belum Bayar</span>
                         </div>
                         <div className="flex items-center gap-2">
-                            <span className="h-2 w-2 rounded-full bg-[#ffab00] shadow-[0_0_12px_rgba(255,171,0,0.4)]"></span>
+                            <span className="h-2 w-2 rounded-full bg-[#ff2400] shadow-[0_0_12px_rgba(255,36,0,0.4)]"></span>
                             <span className="text-[10px] font-black uppercase tracking-widest text-on-surface/60">Terlambat</span>
                         </div>
                         <div className="flex items-center gap-2">

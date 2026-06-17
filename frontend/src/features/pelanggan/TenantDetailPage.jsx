@@ -698,7 +698,17 @@ function TenantDetailPage({
   const [ispPopupOpen, setIspPopupOpen] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const [isDeletingTenant, setIsDeletingTenant] = useState(false);
+  const [manualSp2Visible, setManualSp2Visible] = useState(new Set());
   const [selectedInvoiceIds, setSelectedInvoiceIds] = useState(new Set());
+
+  const handleToggleManualSp2 = (invoiceId) => {
+    setManualSp2Visible((prev) => {
+      const next = new Set(prev);
+      if (next.has(invoiceId)) next.delete(invoiceId);
+      else next.add(invoiceId);
+      return next;
+    });
+  };
   const [invoiceBulkForm, setInvoiceBulkForm] = useState({ dueDate: "", amount: "", status: "" });
   const [invoicePaymentOrderSort, setInvoicePaymentOrderSort] = useState("asc");
   const [invoiceDrafts, setInvoiceDrafts] = useState({});
@@ -3691,6 +3701,30 @@ function TenantDetailPage({
       };
     });
   };
+  const resolveAutoInvoiceStatus = (currentStatus, hasInvoiceFile, dueDateStr) => {
+    let resolved = currentStatus;
+    if (resolved === "belum_ditagih" && hasInvoiceFile) {
+      resolved = "belum_bayar";
+    } else if (resolved === "belum_bayar" && !hasInvoiceFile) {
+      resolved = "belum_ditagih";
+    }
+
+    if (resolved === "belum_bayar" || resolved === "belum_ditagih") {
+      const todayMonth = new Date().toISOString().slice(0, 7);
+      const dueMonth = String(dueDateStr ?? "").slice(0, 7);
+      if (dueMonth && todayMonth > dueMonth) {
+        resolved = "terlambat";
+      }
+    } else if (resolved === "terlambat") {
+      const todayMonth = new Date().toISOString().slice(0, 7);
+      const dueMonth = String(dueDateStr ?? "").slice(0, 7);
+      if (!dueMonth || todayMonth <= dueMonth) {
+        resolved = hasInvoiceFile ? "belum_bayar" : "belum_ditagih";
+      }
+    }
+    return resolved;
+  };
+
 
   const getInvoiceDraft = (invoice) => {
     const existingDraft = invoiceDrafts[invoice.id] ?? {};
@@ -3703,11 +3737,18 @@ function TenantDetailPage({
       initialAmount = Number.isFinite(parsed) ? formatRupiahInput(Math.max(0, Math.round(parsed))) : "";
     }
 
+    let rawStatus = String(existingDraft.status ?? invoice?.status ?? "belum_ditagih");
+    if (!existingDraft.status) {
+      const hasInvoiceFile = hasAnyUploadedInvoiceFile(invoice);
+      const currentDueDate = String(existingDraft.dueDate ?? invoice?.dueDate ?? "");
+      rawStatus = resolveAutoInvoiceStatus(rawStatus, hasInvoiceFile, currentDueDate);
+    }
+
     return {
       invoiceNumber: String(existingDraft.invoiceNumber ?? invoice?.invoiceNumber ?? ""),
       dueDate: String(existingDraft.dueDate ?? invoice?.dueDate ?? ""),
       amount: initialAmount,
-      status: String(existingDraft.status ?? invoice?.status ?? "belum_ditagih"),
+      status: rawStatus,
       followUps: existingDraft.followUps ?? {},
     };
   };
@@ -3739,11 +3780,7 @@ function TenantDetailPage({
     return null;
   };
 
-  const validateInvoiceDraftForUpload = (draft, followUpDraft) => {
-    if (!followUpDraft.invoiceNumber.trim()) {
-      return "Nomor invoice wajib diisi bersamaan saat upload invoice.";
-    }
-
+  const validateInvoiceDraftForUpload = (draft) => {
     return validateInvoiceDraftBase(draft);
   };
 
@@ -3751,9 +3788,16 @@ function TenantDetailPage({
     const sourceAmount = Number(invoice?.amount);
     const currentAmount = Number.isFinite(sourceAmount) ? Math.max(0, Math.round(sourceAmount)) : 0;
     const draftAmount = parseRupiahInput(draft.amount);
-    const selectedStatus = INVOICE_STATUS_OPTIONS.some((option) => option.value === draft.status)
+    let selectedStatus = INVOICE_STATUS_OPTIONS.some((option) => option.value === draft.status)
       ? draft.status
       : "belum_ditagih";
+
+    const hasInvoiceFile = hasAnyUploadedInvoiceFile(invoice);
+    selectedStatus = resolveAutoInvoiceStatus(selectedStatus, hasInvoiceFile, draft.dueDate);
+
+    let sourceStatus = String(invoice?.status ?? "belum_ditagih");
+    sourceStatus = resolveAutoInvoiceStatus(sourceStatus, hasInvoiceFile, invoice?.dueDate);
+
     const hasFollowUpChanges = getInvoiceFollowUps(invoice).some((followUp) => (
       String(getInvoiceFollowUpDraft(invoice, followUp).invoiceNumber ?? "").trim() !==
       String(followUp?.invoiceNumber ?? "").trim()
@@ -3763,7 +3807,7 @@ function TenantDetailPage({
       String(draft.invoiceNumber ?? "").trim() !== String(invoice?.invoiceNumber ?? "").trim() ||
       String(draft.dueDate ?? "") !== String(invoice?.dueDate ?? "") ||
       draftAmount !== currentAmount ||
-      selectedStatus !== String(invoice?.status ?? "belum_ditagih") ||
+      selectedStatus !== sourceStatus ||
       hasFollowUpChanges
     );
   };
@@ -3794,9 +3838,11 @@ function TenantDetailPage({
     setError("");
     setInvoiceFeedback("");
     try {
-      const selectedStatus = INVOICE_STATUS_OPTIONS.some((option) => option.value === draft.status)
+      let selectedStatus = INVOICE_STATUS_OPTIONS.some((option) => option.value === draft.status)
         ? draft.status
         : "belum_ditagih";
+      const hasInvoiceFile = hasAnyUploadedInvoiceFile(invoice);
+      selectedStatus = resolveAutoInvoiceStatus(selectedStatus, hasInvoiceFile, draft.dueDate);
       const nextPaidAt = selectedStatus === "lunas"
         ? (invoice.paidAt || new Date().toISOString())
         : null;
@@ -3894,7 +3940,6 @@ function TenantDetailPage({
       return;
     }
 
-    const workflowMeta = invoice.workflowMeta ?? getInvoiceWorkflowMeta(invoice, workflowInvoiceRows);
     const draft = getInvoiceDraft(invoice);
     const targetFollowUp = splitOrder
       ? getInvoiceFollowUps(invoice).find(
@@ -3905,23 +3950,14 @@ function TenantDetailPage({
       ? getInvoiceFollowUpDraft(invoice, targetFollowUp)
       : { invoiceNumber: draft.invoiceNumber };
     const validationMessage = validateInvoiceDraftForUpload(
-      draft,
-      followUpDraft,
+      draft
     );
     if (validationMessage) {
       setError(validationMessage);
       return;
     }
 
-    if (splitOrder === 2 && !workflowMeta.canUploadSecondWarning) {
-      setError("Split upload peringatan kedua hanya tersedia pada tahap peringatan H-3.");
-      return;
-    }
 
-    if (!splitOrder && !workflowMeta.canUploadMainInvoice && !workflowMeta.canUploadFirstWarning) {
-      setError("Upload invoice belum tersedia untuk jadwal pembayaran ini.");
-      return;
-    }
 
     const amount = parseRupiahInput(draft.amount);
 
@@ -3934,7 +3970,7 @@ function TenantDetailPage({
         persistedInvoice = await persistActiveInvoice(invoice, {
           dueDate: draft.dueDate || invoice.dueDate,
           amount,
-          status: "belum_ditagih",
+          status: resolveAutoInvoiceStatus("belum_ditagih", true, draft.dueDate || invoice.dueDate),
           scheduleStatus: "active",
         });
       }
@@ -3946,14 +3982,35 @@ function TenantDetailPage({
           invoiceNumber: followUpDraft.invoiceNumber.trim(),
           invoiceFileUrl,
         });
+
+        const newStatus = resolveAutoInvoiceStatus(persistedInvoice.status, true, draft.dueDate || invoice.dueDate);
+        if (newStatus !== persistedInvoice.status) {
+          await tenantDetailData.invoices.update(persistedInvoice.id, {
+            status: newStatus,
+          });
+        }
       } else {
-        await tenantDetailData.invoices.update(persistedInvoice.id, {
+        const updatePayload = {
           invoiceNumber: followUpDraft.invoiceNumber.trim(),
           dueDate: draft.dueDate,
           amount,
           invoiceFileUrl,
-        });
+        };
+        const newStatus = resolveAutoInvoiceStatus(persistedInvoice.status, true, draft.dueDate || invoice.dueDate);
+        if (newStatus !== persistedInvoice.status) {
+          updatePayload.status = newStatus;
+        }
+        await tenantDetailData.invoices.update(persistedInvoice.id, updatePayload);
       }
+
+      const finalStatus = resolveAutoInvoiceStatus(persistedInvoice.status, true, draft.dueDate || invoice.dueDate);
+      setInvoiceDrafts((prev) => ({
+        ...prev,
+        [persistedInvoice.id]: {
+          ...prev[persistedInvoice.id],
+          status: finalStatus,
+        }
+      }));
       setInvoiceFeedback(`Invoice #${invoice.id} berhasil diunggah.`);
       await Promise.all([loadDetail(), onRefreshAll?.()]);
     } catch (requestError) {
@@ -6757,16 +6814,30 @@ function TenantDetailPage({
                       const hasInvoiceFile = isOpenableFileUrl(invoice?.invoiceFileUrl);
                       const hasPaymentProof = isOpenableFileUrl(invoice?.paymentProofFileUrl);
                       const hasAnyInvoiceFile = workflowMeta.hasAnyInvoiceFile;
+
                       const secondWarningDraftKey = String(workflowMeta.secondFollowUp?.id ?? "warning-2");
                       const secondWarningDraft = getInvoiceFollowUpDraft(invoice, workflowMeta.secondFollowUp ?? { id: secondWarningDraftKey, splitOrder: 2 });
-                      const canUploadInvoiceFile = !isIsp && !isSavingInvoice && (workflowMeta.canUploadMainInvoice || workflowMeta.canUploadFirstWarning || hasInvoiceFile);
-                      const canUploadSecondWarning = !isIsp && !isSavingInvoice && workflowMeta.canUploadSecondWarning;
+                      const hasSecondFollowUp = Boolean(workflowMeta.secondFollowUp) || Boolean(secondWarningDraft.invoiceNumber);
+                      const hasSecondFollowUpFile = isOpenableFileUrl(workflowMeta.secondFollowUp?.invoiceFileUrl);
+                      const isSp2Visible = hasSecondFollowUp || manualSp2Visible.has(invoice.id);
+
+                      const canUploadInvoiceFile = !isIsp && !isSavingInvoice;
+                      const canUploadSecondWarning = !isIsp && !isSavingInvoice && hasInvoiceFile;
                       const canUploadPaymentProof = !isIsp && !isSavingInvoice && hasAnyInvoiceFile;
 
                       const statusStyle = (() => {
+                        if (draft.status === "lunas") return "bg-emerald-500/10 border-emerald-500/20 text-emerald-400";
+                        if (draft.status === "terlambat") return "bg-[#ff2400]/10 border-[#ff2400]/30 text-[#ff2400]";
+                        if (draft.status === "belum_bayar") return "bg-[#ffab00]/10 border-[#ffab00]/30 text-[#ffab00]";
+                        if (draft.status === "belum_ditagih") {
+                          if (statusMeta.key === "pending_setup") return "bg-rose-500/10 border-rose-500/20 text-rose-300";
+                          if (statusMeta.key === "waiting_payment_confirmation") return "bg-blue-500/10 border-blue-500/20 text-blue-300";
+                          return "bg-white/5 border-white/10 text-white/30";
+                        }
+
                         if (statusMeta.key === "paid") return "bg-emerald-500/10 border-emerald-500/20 text-emerald-400";
                         if (statusMeta.key === "warning_unpaid") return "bg-[#ff2400]/10 border-[#ff2400]/30 text-[#ff2400]";
-                        if (statusMeta.key === "warning_required_h3") return "bg-orange-500/10 border-orange-500/20 text-orange-300";
+                        if (statusMeta.key === "warning_required_h3") return "bg-[#ffab00]/10 border-[#ffab00]/30 text-[#ffab00]";
                         if (statusMeta.key === "warning_required_h7") return "bg-amber-500/10 border-amber-500/20 text-amber-300";
                         if (statusMeta.key === "waiting_payment_confirmation") return "bg-blue-500/10 border-blue-500/20 text-blue-300";
                         if (statusMeta.key === "pending_setup") return "bg-rose-500/10 border-rose-500/20 text-rose-300";
@@ -6944,46 +7015,69 @@ function TenantDetailPage({
                           </td>
 
                           {/* Upload Invoice */}
-                          <td className="px-2.5 py-2 whitespace-nowrap border border-white/5 text-center">
+                          <td className="px-2.5 py-2 align-top border border-white/5">
                             {isIsp ? (
-                              <div className="flex flex-col items-center gap-1.5">
+                              <div className="flex flex-col items-center gap-1.5 pt-1">
                                 {hasInvoiceFile ? (
                                   <a
                                     className="inline-flex items-center justify-center gap-1 text-[9px] font-black text-gold-accent uppercase tracking-widest hover:underline underline-offset-2"
                                     href={invoice.invoiceFileUrl}
                                     target="_blank" rel="noopener noreferrer"
                                   >
-                                    <span className="material-symbols-outlined text-[12px]">open_in_new</span>
+                                    <span className="material-symbols-outlined" style={{ fontSize: '10px' }}>open_in_new</span>
                                     Lihat Invoice
                                   </a>
                                 ) : (
-                                  <span className="text-[12px] font-black text-white/20">-</span>
+                                  <span className="font-black text-white/20" style={{ fontSize: '10px' }}>-</span>
                                 )}
                               </div>
                             ) : (
-                              <div className="flex flex-col items-center justify-center gap-1.5">
-                                <label className={`relative inline-flex items-center justify-center gap-1.5 h-7 px-2.5 rounded border text-[8px] font-black uppercase tracking-widest transition-all cursor-pointer ${canUploadInvoiceFile ? 'border-white/10 bg-white/5 text-white/40 hover:border-white/20 hover:text-white' : 'border-white/5 bg-white/[0.02] text-white/10 cursor-not-allowed'}`}>
-                                  <span className="material-symbols-outlined text-[12px]">upload_file</span>
-                                  {hasInvoiceFile ? "Ganti" : "Upload"}
-                                  <input
-                                    className="absolute inset-0 opacity-0 cursor-pointer"
-                                    disabled={!canUploadInvoiceFile}
-                                    onChange={(e) => void handleInvoiceFileInputChange(e, invoice, "invoice")}
-                                    type="file"
-                                  />
-                                </label>
-                                {hasInvoiceFile && (
-                                  <a
-                                    className="inline-flex items-center justify-center gap-1 text-[8px] font-black text-gold-accent uppercase tracking-widest hover:underline underline-offset-2"
-                                    href={invoice.invoiceFileUrl}
-                                    target="_blank" rel="noopener noreferrer"
+                              <div className="flex flex-col gap-1 w-full max-w-[160px] mx-auto">
+                                {/* Invoice Utama */}
+                                <div className="flex items-center justify-between gap-2 bg-white/[0.02] border border-white/[0.05] rounded-lg px-2 py-1.5">
+                                  <div className="flex items-center gap-1.5 min-w-0">
+                                    <span className="material-symbols-outlined text-gold-accent/40" style={{ fontSize: '13px' }}>receipt_long</span>
+                                    <div className="min-w-0 flex flex-col items-start">
+                                      <p className="text-[7px] font-black uppercase tracking-widest text-white/30 leading-tight">Invoice Utama</p>
+                                      <p className="text-[8px] font-bold text-white/50 truncate max-w-[80px] leading-tight">{hasInvoiceFile ? "Tersedia" : <span className="text-white/20">Belum ada</span>}</p>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    {hasInvoiceFile && (
+                                      <a href={invoice.invoiceFileUrl} target="_blank" rel="noopener noreferrer"
+                                         className="h-6 w-6 rounded-lg bg-gold-accent/10 border border-gold-accent/20 text-gold-accent hover:bg-gold-accent hover:text-[#0f141e] transition-all flex items-center justify-center" title="Lihat">
+                                        <span className="material-symbols-outlined" style={{ fontSize: '11px' }}>visibility</span>
+                                      </a>
+                                    )}
+                                    <label className={`relative h-6 w-6 rounded-lg border flex items-center justify-center transition-all cursor-pointer ${canUploadInvoiceFile ? 'border-white/10 bg-white/5 text-white/40 hover:border-white/20 hover:text-white' : 'border-white/5 bg-white/[0.02] text-white/10 cursor-not-allowed'}`} title={hasInvoiceFile ? "Ganti File" : "Upload File"}>
+                                      <span className="material-symbols-outlined" style={{ fontSize: '11px' }}>{hasInvoiceFile ? "edit" : "upload"}</span>
+                                      <input className="absolute inset-0 opacity-0 cursor-pointer" disabled={!canUploadInvoiceFile} onChange={(e) => void handleInvoiceFileInputChange(e, invoice, "invoice")} type="file" />
+                                    </label>
+                                  </div>
+                                </div>
+
+                                {/* SP2 */}
+                                {!isSp2Visible && canUploadSecondWarning && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleToggleManualSp2(invoice.id)}
+                                    className="w-full flex items-center justify-center gap-1 py-1.5 rounded-lg border border-white/5 bg-white/[0.02] text-[8px] font-black uppercase tracking-widest text-white/40 hover:bg-white/5 hover:text-white transition-colors mt-0.5"
                                   >
-                                    <span className="material-symbols-outlined text-[10px]">open_in_new</span>
-                                    Lihat
-                                  </a>
+                                    <span className="material-symbols-outlined text-[10px]">add</span>
+                                    Split Invoice Ke-2
+                                  </button>
                                 )}
-                                {canUploadSecondWarning && (
-                                  <div className="mt-1 flex flex-col gap-1 w-full max-w-[140px] mx-auto rounded border border-orange-500/20 bg-orange-500/5 p-1.5">
+                                {isSp2Visible && canUploadSecondWarning && (
+                                  <div className="flex flex-col gap-1.5 rounded-lg border border-orange-500/20 bg-orange-500/5 p-1.5 relative mt-0.5">
+                                    {!hasSecondFollowUp && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleToggleManualSp2(invoice.id)}
+                                        className="absolute -top-1.5 -right-1.5 w-4 h-4 flex items-center justify-center rounded-full bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-colors z-10"
+                                      >
+                                        <span className="material-symbols-outlined text-[10px]">close</span>
+                                      </button>
+                                    )}
                                     <input
                                       className="h-6 w-full rounded border border-orange-500/20 bg-black/20 px-1.5 text-[8px] font-bold text-white outline-none placeholder:text-white/10 text-center"
                                       disabled={isSavingInvoice || isIsp}
@@ -6993,16 +7087,27 @@ function TenantDetailPage({
                                       type="text"
                                       value={secondWarningDraft.invoiceNumber}
                                     />
-                                    <label className="relative inline-flex h-6 w-full cursor-pointer items-center justify-center gap-1.5 rounded border border-orange-500/20 bg-orange-500/10 px-2 text-[7px] font-black uppercase tracking-widest text-orange-200 transition-all hover:border-orange-500/40">
-                                      <span className="material-symbols-outlined" style={{ fontSize: '10px' }}>upload_file</span>
-                                      Upload SP2
-                                      <input
-                                        className="absolute inset-0 cursor-pointer opacity-0"
-                                        disabled={!canUploadSecondWarning}
-                                        onChange={(e) => void handleInvoiceFileInputChange(e, invoice, "invoice", 2)}
-                                        type="file"
-                                      />
-                                    </label>
+                                    <div className="flex items-center justify-between gap-2 bg-white/[0.02] border border-orange-500/10 rounded-lg px-2 py-1.5">
+                                      <div className="flex items-center gap-1.5 min-w-0">
+                                        <span className="material-symbols-outlined text-orange-400/40" style={{ fontSize: '13px' }}>receipt_long</span>
+                                        <div className="min-w-0 flex flex-col items-start">
+                                          <p className="text-[7px] font-black uppercase tracking-widest text-orange-200/50 leading-tight">Split Ke-2</p>
+                                          <p className="text-[8px] font-bold text-orange-200/70 truncate max-w-[60px] leading-tight">{hasSecondFollowUpFile ? "Tersedia" : <span className="text-orange-200/30">Belum ada</span>}</p>
+                                        </div>
+                                      </div>
+                                      <div className="flex items-center gap-1 shrink-0">
+                                        {hasSecondFollowUpFile && (
+                                          <a href={workflowMeta.secondFollowUp?.invoiceFileUrl} target="_blank" rel="noopener noreferrer"
+                                             className="h-6 w-6 rounded-lg bg-orange-500/10 border border-orange-500/20 text-orange-400 hover:bg-orange-500 hover:text-[#0f141e] transition-all flex items-center justify-center" title="Lihat">
+                                            <span className="material-symbols-outlined" style={{ fontSize: '10px' }}>visibility</span>
+                                          </a>
+                                        )}
+                                        <label className={`relative h-6 w-6 rounded-lg border flex items-center justify-center transition-all cursor-pointer ${canUploadSecondWarning ? 'border-orange-500/20 bg-orange-500/10 text-orange-200 hover:border-orange-500/40 hover:text-orange-100' : 'border-white/5 bg-white/[0.02] text-white/10 cursor-not-allowed'}`} title={hasSecondFollowUpFile ? "Ganti File" : "Upload File"}>
+                                          <span className="material-symbols-outlined" style={{ fontSize: '10px' }}>{hasSecondFollowUpFile ? "edit" : "upload"}</span>
+                                          <input className="absolute inset-0 opacity-0 cursor-pointer" disabled={!canUploadSecondWarning} onChange={(e) => void handleInvoiceFileInputChange(e, invoice, "invoice", 2)} type="file" />
+                                        </label>
+                                      </div>
+                                    </div>
                                   </div>
                                 )}
                               </div>
@@ -7070,7 +7175,15 @@ function TenantDetailPage({
                     const hasInvoiceFile = isOpenableFileUrl(invoice?.invoiceFileUrl);
                     const hasPaymentProof = isOpenableFileUrl(invoice?.paymentProofFileUrl);
                     const hasAnyInvoiceFile = workflowMeta.hasAnyInvoiceFile;
-                    const canUploadInvoiceFile = !isIsp && !isSavingInvoice && (workflowMeta.canUploadMainInvoice || workflowMeta.canUploadFirstWarning || hasInvoiceFile);
+
+                    const secondWarningDraftKey = String(workflowMeta.secondFollowUp?.id ?? "warning-2");
+                    const secondWarningDraft = getInvoiceFollowUpDraft(invoice, workflowMeta.secondFollowUp ?? { id: secondWarningDraftKey, splitOrder: 2 });
+                    const hasSecondFollowUp = Boolean(workflowMeta.secondFollowUp) || Boolean(secondWarningDraft.invoiceNumber);
+                    const hasSecondFollowUpFile = isOpenableFileUrl(workflowMeta.secondFollowUp?.invoiceFileUrl);
+                    const isSp2Visible = hasSecondFollowUp || manualSp2Visible.has(invoice.id);
+
+                    const canUploadInvoiceFile = !isIsp && !isSavingInvoice;
+                    const canUploadSecondWarning = !isIsp && !isSavingInvoice && hasInvoiceFile;
                     const canUploadPaymentProof = !isIsp && !isSavingInvoice && hasAnyInvoiceFile;
                     
                     const statusStyle = (() => {
@@ -7195,26 +7308,83 @@ function TenantDetailPage({
                                 <span className="text-[9px] font-bold text-white/20 italic">—</span>
                               )
                             ) : (
-                              <div className="flex flex-col items-center w-full gap-1.5">
-                                <label className={`relative w-full inline-flex items-center justify-center gap-1.5 h-6 rounded border text-[7.5px] font-black uppercase tracking-widest transition-all cursor-pointer ${canUploadInvoiceFile ? 'border-white/10 bg-white/5 text-white/40 hover:border-white/20 hover:text-white' : 'border-white/5 bg-white/[0.02] text-white/10 cursor-not-allowed'}`}>
-                                  <span className="material-symbols-outlined text-[10px]">upload_file</span>
-                                  {hasInvoiceFile ? "Ganti" : "Upload"}
-                                  <input
-                                    className="absolute inset-0 opacity-0 cursor-pointer"
-                                    disabled={!canUploadInvoiceFile}
-                                    onChange={(e) => void handleInvoiceFileInputChange(e, invoice, "invoice")}
-                                    type="file"
-                                  />
-                                </label>
-                                {hasInvoiceFile && (
-                                  <a
-                                    className="w-full inline-flex items-center justify-center gap-1 py-1 rounded border border-gold-accent/10 text-[7px] font-black text-gold-accent uppercase tracking-widest hover:bg-gold-accent/10"
-                                    href={invoice.invoiceFileUrl}
-                                    target="_blank" rel="noopener noreferrer"
+                              <div className="flex flex-col gap-1 w-full mt-1.5">
+                                {/* Invoice Utama */}
+                                <div className="flex items-center justify-between gap-2 bg-white/[0.02] border border-white/[0.05] rounded-lg px-2 py-1.5">
+                                  <div className="flex items-center gap-1.5 min-w-0">
+                                    <span className="material-symbols-outlined text-gold-accent/40" style={{ fontSize: '13px' }}>receipt_long</span>
+                                    <div className="min-w-0 flex flex-col items-start">
+                                      <p className="text-[7px] font-black uppercase tracking-widest text-white/30 leading-tight">Invoice Utama</p>
+                                      <p className="text-[8px] font-bold text-white/50 truncate max-w-[120px] leading-tight">{hasInvoiceFile ? "Tersedia" : <span className="text-white/20">Belum ada</span>}</p>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    {hasInvoiceFile && (
+                                      <a href={invoice.invoiceFileUrl} target="_blank" rel="noopener noreferrer"
+                                         className="h-6 w-6 rounded-lg bg-gold-accent/10 border border-gold-accent/20 text-gold-accent hover:bg-gold-accent hover:text-[#0f141e] transition-all flex items-center justify-center" title="Lihat">
+                                        <span className="material-symbols-outlined" style={{ fontSize: '10px' }}>visibility</span>
+                                      </a>
+                                    )}
+                                    <label className={`relative h-6 w-6 rounded-lg border flex items-center justify-center transition-all cursor-pointer ${canUploadInvoiceFile ? 'border-white/10 bg-white/5 text-white/40 hover:border-white/20 hover:text-white' : 'border-white/5 bg-white/[0.02] text-white/10 cursor-not-allowed'}`} title={hasInvoiceFile ? "Ganti File" : "Upload File"}>
+                                      <span className="material-symbols-outlined" style={{ fontSize: '10px' }}>{hasInvoiceFile ? "edit" : "upload"}</span>
+                                      <input className="absolute inset-0 opacity-0 cursor-pointer" disabled={!canUploadInvoiceFile} onChange={(e) => void handleInvoiceFileInputChange(e, invoice, "invoice")} type="file" />
+                                    </label>
+                                  </div>
+                                </div>
+
+                                {/* SP2 */}
+                                {!isSp2Visible && canUploadSecondWarning && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleToggleManualSp2(invoice.id)}
+                                    className="w-full flex items-center justify-center gap-1 py-1.5 rounded-lg border border-white/5 bg-white/[0.02] text-[8px] font-black uppercase tracking-widest text-white/40 hover:bg-white/5 hover:text-white transition-colors mt-0.5"
                                   >
-                                    <span className="material-symbols-outlined text-[9px]">open_in_new</span>
-                                    Lihat
-                                  </a>
+                                    <span className="material-symbols-outlined text-[10px]">add</span>
+                                    Split Invoice Ke-2
+                                  </button>
+                                )}
+                                {isSp2Visible && canUploadSecondWarning && (
+                                  <div className="flex flex-col gap-1.5 rounded-lg border border-orange-500/20 bg-orange-500/5 p-1.5 relative mt-0.5">
+                                    {!hasSecondFollowUp && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleToggleManualSp2(invoice.id)}
+                                        className="absolute -top-1.5 -right-1.5 w-4 h-4 flex items-center justify-center rounded-full bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-colors z-10"
+                                      >
+                                        <span className="material-symbols-outlined text-[10px]">close</span>
+                                      </button>
+                                    )}
+                                    <input
+                                      className="h-6 w-full rounded border border-orange-500/20 bg-black/20 px-1.5 text-[8px] font-bold text-white outline-none placeholder:text-white/10 text-center"
+                                      disabled={isSavingInvoice || isIsp}
+                                      onBlur={() => handleInvoiceAutoSave(invoice)}
+                                      onChange={(e) => updateInvoiceFollowUpDraftField(invoice.id, secondWarningDraftKey, "invoiceNumber", e.target.value)}
+                                      placeholder="No. invoice ke-2"
+                                      type="text"
+                                      value={secondWarningDraft.invoiceNumber}
+                                    />
+                                    <div className="flex items-center justify-between gap-2 bg-white/[0.02] border border-orange-500/10 rounded-lg px-2 py-1.5">
+                                      <div className="flex items-center gap-1.5 min-w-0">
+                                        <span className="material-symbols-outlined text-orange-400/40" style={{ fontSize: '13px' }}>receipt_long</span>
+                                        <div className="min-w-0 flex flex-col items-start">
+                                          <p className="text-[7px] font-black uppercase tracking-widest text-orange-200/50 leading-tight">Split Ke-2</p>
+                                          <p className="text-[8px] font-bold text-orange-200/70 truncate max-w-[100px] leading-tight">{hasSecondFollowUpFile ? "Tersedia" : <span className="text-orange-200/30">Belum ada</span>}</p>
+                                        </div>
+                                      </div>
+                                      <div className="flex items-center gap-1 shrink-0">
+                                        {hasSecondFollowUpFile && (
+                                          <a href={workflowMeta.secondFollowUp?.invoiceFileUrl} target="_blank" rel="noopener noreferrer"
+                                             className="h-6 w-6 rounded-lg bg-orange-500/10 border border-orange-500/20 text-orange-400 hover:bg-orange-500 hover:text-[#0f141e] transition-all flex items-center justify-center" title="Lihat">
+                                            <span className="material-symbols-outlined" style={{ fontSize: '10px' }}>visibility</span>
+                                          </a>
+                                        )}
+                                        <label className={`relative h-6 w-6 rounded-lg border flex items-center justify-center transition-all cursor-pointer ${canUploadSecondWarning ? 'border-orange-500/20 bg-orange-500/10 text-orange-200 hover:border-orange-500/40 hover:text-orange-100' : 'border-white/5 bg-white/[0.02] text-white/10 cursor-not-allowed'}`} title={hasSecondFollowUpFile ? "Ganti File" : "Upload File"}>
+                                          <span className="material-symbols-outlined" style={{ fontSize: '10px' }}>{hasSecondFollowUpFile ? "edit" : "upload"}</span>
+                                          <input className="absolute inset-0 opacity-0 cursor-pointer" disabled={!canUploadSecondWarning} onChange={(e) => void handleInvoiceFileInputChange(e, invoice, "invoice", 2)} type="file" />
+                                        </label>
+                                      </div>
+                                    </div>
+                                  </div>
                                 )}
                               </div>
                             )}

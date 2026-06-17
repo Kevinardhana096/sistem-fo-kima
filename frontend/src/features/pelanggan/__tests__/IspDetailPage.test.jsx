@@ -94,7 +94,7 @@ describe('IspDetailPage - tab kontrak', () => {
     await userEvent.click(addButtons[0]);
 
     const contractNumberInputs = screen.getAllByPlaceholderText(/nomor kontrak/i);
-    await userEvent.type(contractNumberInputs[contractNumberInputs.length - 1], 'KTR-ISP-001');
+    fireEvent.change(contractNumberInputs[contractNumberInputs.length - 1], { target: { value: 'KTR-ISP-001' } });
     const dateInputs = document.querySelectorAll('input[type="date"]');
     fireEvent.change(dateInputs[0], { target: { value: '2026-01-10' } });
     fireEvent.change(dateInputs[1], { target: { value: '2026-02-01' } });
@@ -210,12 +210,16 @@ describe('IspDetailPage - tab kontrak', () => {
     renderPage();
 
     const editButtons = await screen.findAllByRole('button', { name: /draft-kontrak/i });
-    await userEvent.click(editButtons[0]);
+    for (const editButton of editButtons) {
+      fireEvent.click(editButton);
+      if (screen.queryAllByDisplayValue('DRAFT-KONTRAK').length > 0) {
+        break;
+      }
+    }
 
     const contractInput = screen.getAllByDisplayValue('DRAFT-KONTRAK')[0];
-    await userEvent.clear(contractInput);
-    await userEvent.type(contractInput, 'KTR-FINAL-001');
-    await userEvent.click(screen.getAllByTitle('Simpan')[0]);
+    fireEvent.change(contractInput, { target: { value: 'KTR-FINAL-001' } });
+    fireEvent.click(screen.getAllByTitle('Simpan')[0]);
 
     await waitFor(() => {
       expect(api.ispContractRows.update).toHaveBeenCalledWith(22, expect.objectContaining({

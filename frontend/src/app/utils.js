@@ -940,11 +940,11 @@ export const getMonthStatusClass = (status) => {
     }
 
     if (status === "belum_bayar") {
-        return "bg-[#ff2400] text-white shadow-[#ff2400]/20";
+        return "bg-[#ffab00] text-white shadow-[#ffab00]/20";
     }
 
     if (status === "terlambat") {
-        return "bg-[#ffab00] text-white shadow-[#ffab00]/20";
+        return "bg-[#ff2400] text-white shadow-[#ff2400]/20";
     }
 
     if (status === "belum_ditagih") {
