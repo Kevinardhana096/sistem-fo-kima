@@ -4554,10 +4554,6 @@ export const contractVersionsApi = {
     if (!contractId) throw new Error('Kontrak tidak valid untuk perubahan paket.');
     if (!requestedDate) throw new Error('Tanggal perubahan paket wajib diisi.');
 
-    const newEffectiveStart = getFirstDayOfNextMonthIso(requestedDate);
-    const oldEffectiveEnd = addDaysToIsoDate(newEffectiveStart, -1);
-    if (!newEffectiveStart || !oldEffectiveEnd) throw new Error('Tanggal perubahan paket tidak valid.');
-
     const { data: contract, error: contractError } = await supabase
       .from('contracts')
       .select('id,customer_id,contract_number,start_date,end_date,core_type,core_total,sharing_ratio,billing_every,billing_unit')
@@ -4565,6 +4561,19 @@ export const contractVersionsApi = {
       .single();
     if (contractError) throw contractError;
     if (!contract?.customer_id) throw new Error('Data kontrak tidak lengkap.');
+
+    const startDay = contract.start_date ? Number(contract.start_date.slice(8, 10)) : 1;
+    let newEffectiveStart;
+    if (startDay <= 15) {
+      const d = new Date(requestedDate);
+      newEffectiveStart = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1)).toISOString().slice(0, 10);
+    } else {
+      newEffectiveStart = getFirstDayOfNextMonthIso(requestedDate);
+    }
+
+    const oldEffectiveEnd = addDaysToIsoDate(newEffectiveStart, -1);
+    if (!newEffectiveStart || !oldEffectiveEnd) throw new Error('Tanggal perubahan paket tidak valid.');
+
     if (contract.end_date && newEffectiveStart > contract.end_date) {
       throw new Error('Tanggal efektif paket baru melewati akhir kontrak.');
     }
@@ -4654,26 +4663,31 @@ export const contractVersionsApi = {
 
     const { data: futureInvoices, error: invoicesError } = await supabase
       .from('invoices')
-      .select('id,status,paid_at,payment_proof_file_url,period_start_date,schedule_status')
+      .select('id,status,paid_at,payment_proof_file_url,period_start_date,due_date,schedule_status')
       .eq('customer_id', contract.customer_id)
       .eq('contract_id', contract.id)
-      .gte('period_start_date', newEffectiveStart)
       .is('deleted_at', null);
     if (invoicesError) throw invoicesError;
 
-    const unpaidActiveInvoices = (futureInvoices || []).filter((invoice) => (
-      invoice.schedule_status !== 'history'
-      && String(invoice.status || '').toLowerCase() !== 'lunas'
-      && !invoice.paid_at
-      && !invoice.payment_proof_file_url
-    ));
+    const unpaidActiveInvoices = (futureInvoices || []).filter((invoice) => {
+      if (invoice.schedule_status === 'history') return false;
+      if (String(invoice.status || '').toLowerCase() === 'lunas') return false;
+      if (invoice.paid_at || invoice.payment_proof_file_url) return false;
+      
+      const invoiceDueDate = invoice.due_date || (invoice.period_start_date ? resolveInvoiceDueMonthIsoDate(invoice.period_start_date) : null);
+      if (!invoiceDueDate || invoiceDueDate < newEffectiveStart) return false;
+
+      return true;
+    });
+
+    const invoiceNewAmount = resolveBillingCycleInvoiceAmount(monthlyAmount, { every: contract.billing_every, unit: contract.billing_unit });
 
     await Promise.all(unpaidActiveInvoices.map((invoice) => supabase
       .from('invoices')
       .update(withUpdatedAt({
         contract_version_id: newVersion.id,
         contract_number: newVersion.contract_number ?? null,
-        amount: monthlyAmount,
+        amount: invoiceNewAmount,
       }))
       .eq('id', invoice.id)
       .then(({ error }) => {

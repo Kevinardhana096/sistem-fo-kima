@@ -1024,7 +1024,8 @@ function TenantDetailPage({
 
     if (currentVersion) {
       const contractOverallStartDate = String(contract?.startDate ?? contract?.start_date ?? "").slice(0, 10);
-      const contractOverallEndDate = String(contract?.endDate ?? contract?.end_date ?? "").slice(0, 10);
+      const baseEndDate = String(contract?.endDate ?? contract?.end_date ?? "").slice(0, 10);
+      const contractOverallEndDate = latestOverallEnd && latestOverallEnd > baseEndDate ? latestOverallEnd : baseEndDate;
       return {
         contract,
         contractVersions,
@@ -2153,6 +2154,18 @@ function TenantDetailPage({
     return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 1)).toISOString().slice(0, 10);
   };
 
+  const getUpgradeEffectiveStartPreview = (reqDateStr) => {
+    if (!reqDateStr) return "";
+    const sd = contract?.startDate ?? contract?.start_date;
+    const startDay = sd ? Number(String(sd).slice(8, 10)) : 1;
+    if (startDay <= 15) {
+      const d = new Date(`${String(reqDateStr).slice(0, 10)}T00:00:00.000Z`);
+      if (Number.isNaN(d.getTime())) return "";
+      return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1)).toISOString().slice(0, 10);
+    }
+    return getFirstDayOfNextMonth(reqDateStr);
+  };
+
   const getRowPeriodTime = (row) => {
     const rawDate = row?.periodEnd ?? row?.periodStart ?? "";
     const timestamp = new Date(`${String(rawDate).slice(0, 10)}T00:00:00.000Z`).getTime();
@@ -2907,7 +2920,7 @@ function TenantDetailPage({
         yearlyAmount: Number.isFinite(yearlyAmount) && yearlyAmount > 0 ? yearlyAmount : monthlyAmount * 12,
         remarks: (versionEditor.reason ?? "ubah_paket") === "lainnya"
           ? String(versionEditor.customReason ?? "").trim()
-          : `Ubah paket efektif ${getFirstDayOfNextMonth(versionEditor.requestedDate)}.`,
+          : `Ubah paket efektif ${getUpgradeEffectiveStartPreview(versionEditor.requestedDate)}.`,
       });
       setVersionEditor(null);
       setDocumentFeedback(
@@ -4377,6 +4390,7 @@ function TenantDetailPage({
     followUpId = null,
     packageOverrides = null,
     billingCycle = null,
+    versionDates = null,
   ) => {
     if (!canManageTenantContracts) {
       setError("Hanya admin yang dapat mengunggah tanggapan perpanjangan tenant.");
@@ -4419,6 +4433,13 @@ function TenantDetailPage({
           billingUnit: billingCycle.unit,
         });
         await archiveActiveInvoicesForContract(row.contractId, invoiceIdsToArchiveAfterRenewal);
+      }
+
+      if (versionDates && versionDates.startDate && versionDates.endDate) {
+        await tenantDetailData.contractVersions.update(versionId, {
+          startDate: versionDates.startDate,
+          endDate: versionDates.endDate,
+        });
       }
 
       await Promise.all([loadDetail(), onRefreshAll?.()]);
@@ -4564,6 +4585,19 @@ function TenantDetailPage({
                               const prevMonthlyAmount = currentVersion?.monthlyAmount ?? currentVersion?.monthly_amount ?? currentContract?.monthlyAmount ?? currentContract?.monthly_amount ?? 0;
                               const prevBillingEvery = currentContract?.billingEvery ?? currentContract?.billing_every ?? contract?.billingEvery ?? 1;
                               const prevBillingUnit = currentContract?.billingUnit ?? currentContract?.billing_unit ?? contract?.billingUnit ?? "bulan";
+                              
+                              let nextStartDate = "";
+                              let nextEndDate = "";
+                              if (row.periodEnd) {
+                                const endDt = new Date(row.periodEnd);
+                                endDt.setDate(endDt.getDate() + 1);
+                                nextStartDate = endDt.toISOString().slice(0, 10);
+                                const endDt2 = new Date(nextStartDate);
+                                endDt2.setFullYear(endDt2.getFullYear() + 1);
+                                endDt2.setDate(endDt2.getDate() - 1);
+                                nextEndDate = endDt2.toISOString().slice(0, 10);
+                              }
+
                               setRenewalConfirmData({
                                 row,
                                 decision: "lanjut",
@@ -4577,6 +4611,8 @@ function TenantDetailPage({
                                 billingMode: resolveBillingMode(prevBillingEvery, prevBillingUnit),
                                 billingEvery: String(prevBillingEvery ?? 1),
                                 billingUnit: String(prevBillingUnit ?? "bulan"),
+                                startDate: nextStartDate,
+                                endDate: nextEndDate,
                               });
                             }}
                           />
@@ -8319,7 +8355,7 @@ function TenantDetailPage({
                 </div>
 
                 <div className="rounded-lg border border-blue-500/20 bg-blue-500/10 px-3 py-2 text-[9px] font-bold text-blue-400 leading-snug backdrop-blur-md">
-                  Paket lama berlaku sampai {formatDate(addDaysToIsoDate(getFirstDayOfNextMonth(versionEditor.requestedDate), -1))}. Paket baru aktif mulai {formatDate(getFirstDayOfNextMonth(versionEditor.requestedDate))}. Invoice belum lunas mulai bulan tersebut akan menyesuaikan.
+                  Paket lama berlaku sampai {formatDate(addDaysToIsoDate(getUpgradeEffectiveStartPreview(versionEditor.requestedDate), -1))}. Paket baru aktif mulai {formatDate(getUpgradeEffectiveStartPreview(versionEditor.requestedDate))}. Invoice belum lunas mulai bulan tersebut akan menyesuaikan.
                 </div>
 
                 {versionError && (
@@ -8381,6 +8417,27 @@ function TenantDetailPage({
 
               {/* Form */}
               <div className="space-y-3.5">
+                <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 p-3 rounded-xl border border-white/5 bg-white/[0.01]">
+                  <div className="flex flex-col gap-1.5">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-white/70 px-1">Periode Berjalan Awal</p>
+                    <DateInput
+                      value={renewalConfirmData.startDate}
+                      onChange={(val) => setRenewalConfirmData(prev => ({ ...prev, startDate: val }))}
+                      className="h-10 w-full rounded-xl border border-white/10 bg-white/[0.02] transition-all focus-within:border-gold-accent/50 focus-within:bg-white/5"
+                      inputClass="w-full h-full bg-transparent px-3 text-[10px] font-bold text-white outline-none disabled:cursor-not-allowed disabled:opacity-40"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-white/70 px-1">Periode Berjalan Akhir</p>
+                    <DateInput
+                      value={renewalConfirmData.endDate}
+                      onChange={(val) => setRenewalConfirmData(prev => ({ ...prev, endDate: val }))}
+                      className="h-10 w-full rounded-xl border border-white/10 bg-white/[0.02] transition-all focus-within:border-gold-accent/50 focus-within:bg-white/5"
+                      inputClass="w-full h-full bg-transparent px-3 text-[10px] font-bold text-white outline-none disabled:cursor-not-allowed disabled:opacity-40"
+                    />
+                  </div>
+                </div>
+
                 <div className="flex items-center gap-4 py-1.5">
                   <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-white/70 cursor-pointer">
                     <input
@@ -8542,7 +8599,7 @@ function TenantDetailPage({
                 <button
                   className="h-9 px-4 rounded-xl bg-emerald-500 text-[9px] font-black uppercase tracking-widest text-[#0f141e] transition-all hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
                   onClick={async () => {
-                    const { row, decision, file, followUpId, usePreviousPackage, packageType, coreTotal, ratio, monthlyAmount, billingMode, billingEvery, billingUnit } = renewalConfirmData;
+                    const { row, decision, file, followUpId, usePreviousPackage, packageType, coreTotal, ratio, monthlyAmount, billingMode, billingEvery, billingUnit, startDate, endDate } = renewalConfirmData;
 
                     let packageOverrides = null;
                     if (!usePreviousPackage) {
@@ -8589,7 +8646,7 @@ function TenantDetailPage({
                     }
 
                     setRenewalConfirmData(null);
-                    await handleRespondTenantRenewal(row, decision, file, followUpId, packageOverrides, nextBillingCycle);
+                    await handleRespondTenantRenewal(row, decision, file, followUpId, packageOverrides, nextBillingCycle, { startDate, endDate });
                   }}
                   type="button"
                 >
