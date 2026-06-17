@@ -559,22 +559,20 @@ function TopNav({
                                     </button>
                                 </div>
 
-                                <div className="border-b border-white/10 px-4 py-3">
-                                    {browserNotificationStatus.isSupported ? (
-                                        <div className="flex items-center justify-between gap-3">
-                                            <div className="min-w-0">
-                                                <p className="text-[11px] font-black text-on-surface">
-                                                    Notifikasi perangkat
-                                                </p>
-                                                <p className="mt-0.5 text-[10px] font-bold leading-snug text-on-surface-variant/75">
-                                                    {browserNotificationStatus.permission === "granted"
-                                                        ? "Aktif di perangkat ini."
-                                                        : browserNotificationStatus.permission === "denied"
+                                {browserNotificationStatus.permission !== "granted" && (
+                                    <div className="border-b border-white/10 px-4 py-3">
+                                        {browserNotificationStatus.isSupported ? (
+                                            <div className="flex items-center justify-between gap-3">
+                                                <div className="min-w-0">
+                                                    <p className="text-[11px] font-black text-on-surface">
+                                                        Notifikasi perangkat
+                                                    </p>
+                                                    <p className="mt-0.5 text-[10px] font-bold leading-snug text-on-surface-variant/75">
+                                                        {browserNotificationStatus.permission === "denied"
                                                             ? "Diblokir oleh browser. Ubah izin dari pengaturan browser."
                                                             : "Aktifkan agar notifikasi muncul di HP atau laptop ini."}
-                                                </p>
-                                            </div>
-                                            {browserNotificationStatus.permission !== "granted" && (
+                                                    </p>
+                                                </div>
                                                 <button
                                                     className="flex shrink-0 items-center gap-1.5 rounded-lg bg-gold-accent px-3 py-2 text-[9px] font-black uppercase tracking-widest text-black shadow-gold-glow anim-surface disabled:cursor-not-allowed disabled:opacity-60"
                                                     disabled={isEnablingBrowserNotifications || browserNotificationStatus.permission === "denied"}
@@ -586,17 +584,17 @@ function TopNav({
                                                     </span>
                                                     Aktifkan
                                                 </button>
-                                            )}
-                                        </div>
-                                    ) : (
-                                        <div className="flex items-start gap-2 rounded-xl bg-amber-500/10 px-3 py-2 text-amber-200">
-                                            <span className="material-symbols-outlined mt-0.5 text-base">info</span>
-                                            <p className="text-[10px] font-bold leading-snug">
-                                                {browserNotificationStatus.reason}
-                                            </p>
-                                        </div>
-                                    )}
-                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-start gap-2 rounded-xl bg-amber-500/10 px-3 py-2 text-amber-200">
+                                                <span className="material-symbols-outlined mt-0.5 text-base">info</span>
+                                                <p className="text-[10px] font-bold leading-snug">
+                                                    {browserNotificationStatus.reason}
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
 
                                 <div className="p-3">
                                     <div className="h-[20rem] min-h-[15rem] max-h-[80vh] space-y-2 overflow-y-auto pr-1 custom-scrollbar">
