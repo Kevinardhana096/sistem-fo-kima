@@ -4204,7 +4204,23 @@ export const invoicesApi = {
   async getByCustomerId(customerId) {
     const { data, error } = await supabase
       .from('invoices')
-      .select('*')
+      .select(`
+        *,
+        invoiceFollowUps:invoice_follow_ups(
+          id,
+          invoice_id,
+          split_order,
+          source,
+          trigger_code,
+          title,
+          description,
+          status,
+          invoice_number,
+          invoice_file_url,
+          created_at,
+          updated_at
+        )
+      `)
       .eq('customer_id', customerId)
       .order('period_year', { ascending: false })
       .order('period_month', { ascending: false });

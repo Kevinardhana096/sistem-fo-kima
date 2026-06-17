@@ -699,6 +699,7 @@ const getInvoiceWorkflowKeyForAttention = (invoice, rowsForSequence = [], todayI
     const followUps = getInvoiceFollowUpsForAttention(invoice);
     const firstFollowUp = followUps.find((followUp) => Number(followUp?.splitOrder ?? followUp?.split_order ?? 0) === 1) ?? null;
     const secondFollowUp = followUps.find((followUp) => Number(followUp?.splitOrder ?? followUp?.split_order ?? 0) === 2) ?? null;
+    const thirdFollowUp = followUps.find((followUp) => Number(followUp?.splitOrder ?? followUp?.split_order ?? 0) === 3) ?? null;
     const setupWarnings = getInvoiceSetupWarningsForAttention(invoice);
     const dueDate = String(invoice?.workflowDueDate ?? invoice?.dueDate ?? invoice?.due_date ?? "").trim().slice(0, 10);
     const h7Date = dueDate ? addDaysToIsoDate(dueDate, -7) : "";
@@ -706,11 +707,12 @@ const getInvoiceWorkflowKeyForAttention = (invoice, rowsForSequence = [], todayI
     const hasMainInvoiceFile = isOpenableFileUrl(invoice?.invoiceFileUrl ?? invoice?.invoice_file_url);
     const firstWarningUploaded = isOpenableFileUrl(firstFollowUp?.invoiceFileUrl ?? firstFollowUp?.invoice_file_url);
     const secondWarningUploaded = isOpenableFileUrl(secondFollowUp?.invoiceFileUrl ?? secondFollowUp?.invoice_file_url);
+    const thirdWarningUploaded = isOpenableFileUrl(thirdFollowUp?.invoiceFileUrl ?? thirdFollowUp?.invoice_file_url);
     const paid = isInvoicePaidForAttention(invoice);
     const h7Reached = Boolean(h7Date && h7Date <= todayIso);
     const h3Reached = Boolean(h3Date && h3Date <= todayIso);
     const dueDateReached = Boolean(dueDate && dueDate <= todayIso);
-    const hasAnyInvoiceFile = hasMainInvoiceFile || firstWarningUploaded || secondWarningUploaded;
+    const hasAnyInvoiceFile = hasMainInvoiceFile || firstWarningUploaded || secondWarningUploaded || thirdWarningUploaded;
     const hasBlockingPreviousUnpaid = rowsForSequence.some(
         (candidate) => Number(candidate.paymentOrder ?? 0) < Number(invoice.paymentOrder ?? 0) && !isInvoicePaidForAttention(candidate),
     );

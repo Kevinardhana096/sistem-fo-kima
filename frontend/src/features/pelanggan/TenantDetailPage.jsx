@@ -234,6 +234,7 @@ function getInvoiceWorkflowMeta(
   const followUps = getInvoiceFollowUps(invoice);
   const firstFollowUp = followUps.find((followUp) => Number(followUp?.splitOrder ?? 0) === 1) ?? null;
   const secondFollowUp = followUps.find((followUp) => Number(followUp?.splitOrder ?? 0) === 2) ?? null;
+  const thirdFollowUp = followUps.find((followUp) => Number(followUp?.splitOrder ?? 0) === 3) ?? null;
   const setupWarnings = getInvoiceSetupWarnings(invoice);
   const dueDate = String(invoice?.workflowDueDate ?? invoice?.dueDate ?? "").trim();
   const h7Date = dueDate ? addDaysToIsoDate(dueDate, -7) : "";
@@ -241,11 +242,12 @@ function getInvoiceWorkflowMeta(
   const hasMainInvoiceFile = isOpenableFileUrl(invoice?.invoiceFileUrl);
   const firstWarningUploaded = isOpenableFileUrl(firstFollowUp?.invoiceFileUrl);
   const secondWarningUploaded = isOpenableFileUrl(secondFollowUp?.invoiceFileUrl);
+  const thirdWarningUploaded = isOpenableFileUrl(thirdFollowUp?.invoiceFileUrl);
   const paid = isInvoicePaid(invoice);
   const h7Reached = Boolean(h7Date && h7Date <= todayIso);
   const h3Reached = Boolean(h3Date && h3Date <= todayIso);
   const dueDateReached = Boolean(dueDate && dueDate <= todayIso);
-  const hasAnyInvoiceFile = hasMainInvoiceFile || firstWarningUploaded || secondWarningUploaded;
+  const hasAnyInvoiceFile = hasMainInvoiceFile || firstWarningUploaded || secondWarningUploaded || thirdWarningUploaded;
   const hasBlockingPreviousUnpaid = rowsForSequence.some(
     (candidate) => candidate.paymentOrder < invoice.paymentOrder && !isInvoicePaid(candidate),
   );
@@ -257,9 +259,11 @@ function getInvoiceWorkflowMeta(
       setupWarnings,
       firstFollowUp,
       secondFollowUp,
+      thirdFollowUp,
       hasMainInvoiceFile,
       firstWarningUploaded,
       secondWarningUploaded,
+      thirdWarningUploaded,
       hasAnyInvoiceFile,
       canUploadMainInvoice: false,
       canUploadFirstWarning: false,
@@ -275,9 +279,11 @@ function getInvoiceWorkflowMeta(
       setupWarnings,
       firstFollowUp,
       secondFollowUp,
+      thirdFollowUp,
       hasMainInvoiceFile,
       firstWarningUploaded,
       secondWarningUploaded,
+      thirdWarningUploaded,
       hasAnyInvoiceFile,
       canUploadMainInvoice: false,
       canUploadFirstWarning: false,
@@ -293,9 +299,11 @@ function getInvoiceWorkflowMeta(
       setupWarnings,
       firstFollowUp,
       secondFollowUp,
+      thirdFollowUp,
       hasMainInvoiceFile,
       firstWarningUploaded,
       secondWarningUploaded,
+      thirdWarningUploaded,
       hasAnyInvoiceFile,
       canUploadMainInvoice: false,
       canUploadFirstWarning: false,
@@ -311,9 +319,11 @@ function getInvoiceWorkflowMeta(
       setupWarnings,
       firstFollowUp,
       secondFollowUp,
+      thirdFollowUp,
       hasMainInvoiceFile,
       firstWarningUploaded,
       secondWarningUploaded,
+      thirdWarningUploaded,
       hasAnyInvoiceFile,
       canUploadMainInvoice: false,
       canUploadFirstWarning: false,
@@ -329,9 +339,11 @@ function getInvoiceWorkflowMeta(
       setupWarnings,
       firstFollowUp,
       secondFollowUp,
+      thirdFollowUp,
       hasMainInvoiceFile,
       firstWarningUploaded,
       secondWarningUploaded,
+      thirdWarningUploaded,
       hasAnyInvoiceFile,
       canUploadMainInvoice: false,
       canUploadFirstWarning: false,
@@ -347,9 +359,11 @@ function getInvoiceWorkflowMeta(
       setupWarnings,
       firstFollowUp,
       secondFollowUp,
+      thirdFollowUp,
       hasMainInvoiceFile,
       firstWarningUploaded,
       secondWarningUploaded,
+      thirdWarningUploaded,
       hasAnyInvoiceFile,
       canUploadMainInvoice: true,
       canUploadFirstWarning: true,
@@ -364,9 +378,11 @@ function getInvoiceWorkflowMeta(
     setupWarnings,
     firstFollowUp,
     secondFollowUp,
+    thirdFollowUp,
     hasMainInvoiceFile,
     firstWarningUploaded,
     secondWarningUploaded,
+    thirdWarningUploaded,
     hasAnyInvoiceFile,
     canUploadMainInvoice: false,
     canUploadFirstWarning: false,
@@ -699,10 +715,20 @@ function TenantDetailPage({
   const [deleteError, setDeleteError] = useState("");
   const [isDeletingTenant, setIsDeletingTenant] = useState(false);
   const [manualSp2Visible, setManualSp2Visible] = useState(new Set());
+  const [manualSp3Visible, setManualSp3Visible] = useState(new Set());
   const [selectedInvoiceIds, setSelectedInvoiceIds] = useState(new Set());
 
   const handleToggleManualSp2 = (invoiceId) => {
     setManualSp2Visible((prev) => {
+      const next = new Set(prev);
+      if (next.has(invoiceId)) next.delete(invoiceId);
+      else next.add(invoiceId);
+      return next;
+    });
+  };
+
+  const handleToggleManualSp3 = (invoiceId) => {
+    setManualSp3Visible((prev) => {
       const next = new Set(prev);
       if (next.has(invoiceId)) next.delete(invoiceId);
       else next.add(invoiceId);
@@ -3886,17 +3912,32 @@ function TenantDetailPage({
       return existingFollowUp;
     }
 
+    const splitMetaByOrder = {
+      2: {
+        triggerCode: "h_minus_3",
+        title: "Peringatan H-3",
+        description: "Invoice peringatan kedua sebelum akhir periode reminder pembayaran.",
+      },
+      3: {
+        triggerCode: "manual_split_3",
+        title: "Split Invoice Ke-3",
+        description: "Invoice split ketiga untuk tindak lanjut pembayaran.",
+      },
+    };
+    const splitMeta = splitMetaByOrder[splitOrder] ?? {
+      triggerCode: "h_minus_7",
+      title: "Reminder Bulan Jatuh Tempo",
+      description: "Invoice peringatan pertama untuk bulan jatuh tempo pembayaran.",
+    };
+
     return tenantDetailData.invoiceFollowUps.create({
       invoiceId: invoice.id,
       splitOrder,
       source: "manual",
-      triggerCode: splitOrder === 2 ? "h_minus_3" : "h_minus_7",
-      title: splitOrder === 2 ? "Peringatan H-3" : "Reminder Bulan Jatuh Tempo",
-      description:
-        splitOrder === 2
-          ? "Invoice peringatan kedua sebelum akhir periode reminder pembayaran."
-          : "Invoice peringatan pertama untuk bulan jatuh tempo pembayaran.",
-      status: "pending_response",
+      triggerCode: splitMeta.triggerCode,
+      title: splitMeta.title,
+      description: splitMeta.description,
+      status: "warning",
     });
   };
 
@@ -4004,11 +4045,40 @@ function TenantDetailPage({
     setInvoiceFeedback("");
     try {
       const paymentProofFileUrl = await uploadFileForRecord(file, ["customers", customer.id, "payment-proofs"]);
+      const paidAt = new Date().toISOString();
       await tenantDetailData.invoices.update(invoice.id, {
         paymentProofFileUrl,
-        paidAt: new Date().toISOString(),
+        paidAt,
         status: "lunas",
       });
+      setDetail((previousDetail) => {
+        if (!previousDetail || !Array.isArray(previousDetail.invoices)) {
+          return previousDetail;
+        }
+
+        return {
+          ...previousDetail,
+          invoices: previousDetail.invoices.map((item) =>
+            Number(item?.id) === Number(invoice.id)
+              ? {
+                  ...item,
+                  status: "lunas",
+                  paidAt,
+                  paid_at: paidAt,
+                  paymentProofFileUrl,
+                  payment_proof_file_url: paymentProofFileUrl,
+                }
+              : item,
+          ),
+        };
+      });
+      setInvoiceDrafts((previousDrafts) => ({
+        ...previousDrafts,
+        [invoice.id]: {
+          ...previousDrafts[invoice.id],
+          status: "lunas",
+        },
+      }));
       setInvoiceFeedback(
         `Bukti bayar invoice #${invoice.id} berhasil diunggah.`,
       );
@@ -6775,10 +6845,14 @@ function TenantDetailPage({
 
                       const hasSecondFollowUp = Boolean(workflowMeta.secondFollowUp);
                       const hasSecondFollowUpFile = isOpenableFileUrl(workflowMeta.secondFollowUp?.invoiceFileUrl);
+                      const hasThirdFollowUp = Boolean(workflowMeta.thirdFollowUp);
+                      const hasThirdFollowUpFile = isOpenableFileUrl(workflowMeta.thirdFollowUp?.invoiceFileUrl);
                       const isSp2Visible = hasSecondFollowUp || manualSp2Visible.has(invoice.id);
+                      const isSp3Visible = hasThirdFollowUp || manualSp3Visible.has(invoice.id);
 
                       const canUploadInvoiceFile = !isIsp && !isSavingInvoice;
                       const canUploadSecondWarning = !isIsp && !isSavingInvoice && hasInvoiceFile;
+                      const canUploadThirdWarning = !isIsp && !isSavingInvoice && (hasSecondFollowUpFile || hasThirdFollowUpFile);
                       const canUploadPaymentProof = !isIsp && !isSavingInvoice && hasAnyInvoiceFile;
 
                       const statusStyle = (() => {
@@ -7057,6 +7131,52 @@ function TenantDetailPage({
                                     </div>
                                   </div>
                                 )}
+
+                                {/* SP3 */}
+                                {!isSp3Visible && canUploadThirdWarning && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleToggleManualSp3(invoice.id)}
+                                    className="w-full flex items-center justify-center gap-1 py-1.5 rounded-lg border border-white/5 bg-white/[0.02] text-[8px] font-black uppercase tracking-widest text-white/40 hover:bg-white/5 hover:text-white transition-colors mt-0.5"
+                                  >
+                                    <span className="material-symbols-outlined text-[10px]">add</span>
+                                    Split Invoice Ke-3
+                                  </button>
+                                )}
+                                {isSp3Visible && canUploadThirdWarning && (
+                                  <div className="flex flex-col gap-1.5 rounded-lg border border-sky-500/20 bg-sky-500/5 p-1.5 relative mt-0.5">
+                                    {!hasThirdFollowUp && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleToggleManualSp3(invoice.id)}
+                                        className="absolute -top-1.5 -right-1.5 w-4 h-4 flex items-center justify-center rounded-full bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-colors z-10"
+                                      >
+                                        <span className="material-symbols-outlined text-[10px]">close</span>
+                                      </button>
+                                    )}
+                                    <div className="flex items-center justify-between gap-2 bg-white/[0.02] border border-sky-500/10 rounded-lg px-2 py-1.5">
+                                      <div className="flex items-center gap-1.5 min-w-0">
+                                        <span className="material-symbols-outlined text-sky-400/40" style={{ fontSize: '13px' }}>receipt_long</span>
+                                        <div className="min-w-0 flex flex-col items-start">
+                                          <p className="text-[7px] font-black uppercase tracking-widest text-sky-200/50 leading-tight">Split Ke-3</p>
+                                          <p className="text-[8px] font-bold text-sky-200/70 truncate max-w-[60px] leading-tight">{hasThirdFollowUpFile ? "Tersedia" : <span className="text-sky-200/30">Belum ada</span>}</p>
+                                        </div>
+                                      </div>
+                                      <div className="flex items-center gap-1 shrink-0">
+                                        {hasThirdFollowUpFile && (
+                                          <a href={workflowMeta.thirdFollowUp?.invoiceFileUrl} target="_blank" rel="noopener noreferrer"
+                                             className="h-6 w-6 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-400 hover:bg-sky-500 hover:text-[#0f141e] transition-all flex items-center justify-center" title="Lihat">
+                                            <span className="material-symbols-outlined" style={{ fontSize: '10px' }}>visibility</span>
+                                          </a>
+                                        )}
+                                        <label className={`relative h-6 w-6 rounded-lg border flex items-center justify-center transition-all cursor-pointer ${canUploadThirdWarning ? 'border-sky-500/20 bg-sky-500/10 text-sky-200 hover:border-sky-500/40 hover:text-sky-100' : 'border-white/5 bg-white/[0.02] text-white/10 cursor-not-allowed'}`} title={hasThirdFollowUpFile ? "Ganti File" : "Upload File"}>
+                                          <span className="material-symbols-outlined" style={{ fontSize: '10px' }}>{hasThirdFollowUpFile ? "edit" : "upload"}</span>
+                                          <input className="absolute inset-0 opacity-0 cursor-pointer" disabled={!canUploadThirdWarning} onChange={(e) => void handleInvoiceFileInputChange(e, invoice, "invoice", 3)} type="file" />
+                                        </label>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             )}
                           </td>
@@ -7125,10 +7245,14 @@ function TenantDetailPage({
 
                     const hasSecondFollowUp = Boolean(workflowMeta.secondFollowUp);
                     const hasSecondFollowUpFile = isOpenableFileUrl(workflowMeta.secondFollowUp?.invoiceFileUrl);
+                    const hasThirdFollowUp = Boolean(workflowMeta.thirdFollowUp);
+                    const hasThirdFollowUpFile = isOpenableFileUrl(workflowMeta.thirdFollowUp?.invoiceFileUrl);
                     const isSp2Visible = hasSecondFollowUp || manualSp2Visible.has(invoice.id);
+                    const isSp3Visible = hasThirdFollowUp || manualSp3Visible.has(invoice.id);
 
                     const canUploadInvoiceFile = !isIsp && !isSavingInvoice;
                     const canUploadSecondWarning = !isIsp && !isSavingInvoice && hasInvoiceFile;
+                    const canUploadThirdWarning = !isIsp && !isSavingInvoice && (hasSecondFollowUpFile || hasThirdFollowUpFile);
                     const canUploadPaymentProof = !isIsp && !isSavingInvoice && hasAnyInvoiceFile;
                     
                     const statusStyle = (() => {
@@ -7317,6 +7441,52 @@ function TenantDetailPage({
                                         <label className={`relative h-6 w-6 rounded-lg border flex items-center justify-center transition-all cursor-pointer ${canUploadSecondWarning ? 'border-orange-500/20 bg-orange-500/10 text-orange-200 hover:border-orange-500/40 hover:text-orange-100' : 'border-white/5 bg-white/[0.02] text-white/10 cursor-not-allowed'}`} title={hasSecondFollowUpFile ? "Ganti File" : "Upload File"}>
                                           <span className="material-symbols-outlined" style={{ fontSize: '10px' }}>{hasSecondFollowUpFile ? "edit" : "upload"}</span>
                                           <input className="absolute inset-0 opacity-0 cursor-pointer" disabled={!canUploadSecondWarning} onChange={(e) => void handleInvoiceFileInputChange(e, invoice, "invoice", 2)} type="file" />
+                                        </label>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* SP3 */}
+                                {!isSp3Visible && canUploadThirdWarning && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleToggleManualSp3(invoice.id)}
+                                    className="w-full flex items-center justify-center gap-1 py-1.5 rounded-lg border border-white/5 bg-white/[0.02] text-[8px] font-black uppercase tracking-widest text-white/40 hover:bg-white/5 hover:text-white transition-colors mt-0.5"
+                                  >
+                                    <span className="material-symbols-outlined text-[10px]">add</span>
+                                    Split Invoice Ke-3
+                                  </button>
+                                )}
+                                {isSp3Visible && canUploadThirdWarning && (
+                                  <div className="flex flex-col gap-1.5 rounded-lg border border-sky-500/20 bg-sky-500/5 p-1.5 relative mt-0.5">
+                                    {!hasThirdFollowUp && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleToggleManualSp3(invoice.id)}
+                                        className="absolute -top-1.5 -right-1.5 w-4 h-4 flex items-center justify-center rounded-full bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-colors z-10"
+                                      >
+                                        <span className="material-symbols-outlined text-[10px]">close</span>
+                                      </button>
+                                    )}
+                                    <div className="flex items-center justify-between gap-2 bg-white/[0.02] border border-sky-500/10 rounded-lg px-2 py-1.5">
+                                      <div className="flex items-center gap-1.5 min-w-0">
+                                        <span className="material-symbols-outlined text-sky-400/40" style={{ fontSize: '13px' }}>receipt_long</span>
+                                        <div className="min-w-0 flex flex-col items-start">
+                                          <p className="text-[7px] font-black uppercase tracking-widest text-sky-200/50 leading-tight">Split Ke-3</p>
+                                          <p className="text-[8px] font-bold text-sky-200/70 truncate max-w-[100px] leading-tight">{hasThirdFollowUpFile ? "Tersedia" : <span className="text-sky-200/30">Belum ada</span>}</p>
+                                        </div>
+                                      </div>
+                                      <div className="flex items-center gap-1 shrink-0">
+                                        {hasThirdFollowUpFile && (
+                                          <a href={workflowMeta.thirdFollowUp?.invoiceFileUrl} target="_blank" rel="noopener noreferrer"
+                                             className="h-6 w-6 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-400 hover:bg-sky-500 hover:text-[#0f141e] transition-all flex items-center justify-center" title="Lihat">
+                                            <span className="material-symbols-outlined" style={{ fontSize: '10px' }}>visibility</span>
+                                          </a>
+                                        )}
+                                        <label className={`relative h-6 w-6 rounded-lg border flex items-center justify-center transition-all cursor-pointer ${canUploadThirdWarning ? 'border-sky-500/20 bg-sky-500/10 text-sky-200 hover:border-sky-500/40 hover:text-sky-100' : 'border-white/5 bg-white/[0.02] text-white/10 cursor-not-allowed'}`} title={hasThirdFollowUpFile ? "Ganti File" : "Upload File"}>
+                                          <span className="material-symbols-outlined" style={{ fontSize: '10px' }}>{hasThirdFollowUpFile ? "edit" : "upload"}</span>
+                                          <input className="absolute inset-0 opacity-0 cursor-pointer" disabled={!canUploadThirdWarning} onChange={(e) => void handleInvoiceFileInputChange(e, invoice, "invoice", 3)} type="file" />
                                         </label>
                                       </div>
                                     </div>
