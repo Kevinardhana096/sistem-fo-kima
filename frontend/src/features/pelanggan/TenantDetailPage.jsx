@@ -1023,14 +1023,15 @@ function TenantDetailPage({
     }) ?? contractVersions[0] ?? null;
 
     if (currentVersion) {
-      const startDate = String(currentVersion?.startDate ?? currentVersion?.start_date ?? "").slice(0, 10);
-      const endDate = String(currentVersion?.endDate ?? currentVersion?.end_date ?? "").slice(0, 10);
+      const contractOverallStartDate = String(contract?.startDate ?? contract?.start_date ?? "").slice(0, 10);
+      const contractOverallEndDate = String(contract?.endDate ?? contract?.end_date ?? "").slice(0, 10);
       return {
         contract,
+        contractVersions,
         version: currentVersion,
         versionId: currentVersion.id ?? null,
-        startDate,
-        endDate,
+        startDate: contractOverallStartDate,
+        endDate: contractOverallEndDate,
         contractId: contract.id,
         contractNumber: currentVersion?.contractNumber ?? currentVersion?.contract_number ?? contract?.contractNumber ?? null,
         amount: Number(
@@ -1051,6 +1052,7 @@ function TenantDetailPage({
 
     return {
       contract,
+      contractVersions: [],
       version: null,
       versionId: null,
       startDate,
@@ -1178,12 +1180,6 @@ function TenantDetailPage({
       return false;
     }
 
-    const activeVersionId = Number(activeBillingPeriod.versionId);
-    if (Number.isFinite(activeVersionId) && activeVersionId > 0) {
-      const invoiceVersionId = Number(invoice?.contractVersionId ?? invoice?.contract_version_id);
-      return invoiceVersionId === activeVersionId;
-    }
-
     const invoiceStartDate = String(invoice?.periodStartDate ?? invoice?.period_start_date ?? "").slice(0, 10);
     const invoiceEndDate = String(invoice?.periodEndDate ?? invoice?.period_end_date ?? "").slice(0, 10);
     return Boolean(
@@ -1207,8 +1203,6 @@ function TenantDetailPage({
       activeBillingPeriod.endDate,
       billingCycle,
     );
-    const scheduledAmount = resolveBillingCycleAmount(activeBillingPeriod.amount, billingCycle);
-
     const activeInvoiceMap = new Map();
     invoices
       .filter((invoice) => !shouldArchiveInvoice(invoice) || isInvoiceInActiveBillingPeriod(invoice))
@@ -1230,18 +1224,44 @@ function TenantDetailPage({
       }
 
       const periodDate = new Date(`${row.periodStartDate}T00:00:00.000Z`);
+
+      let rowAmount = resolveBillingCycleAmount(activeBillingPeriod.amount, billingCycle);
+      let rowVersionId = activeBillingPeriod.versionId ?? null;
+      let rowContractNumber = activeBillingPeriod.contractNumber ?? null;
+
+      if (activeBillingPeriod.contractVersions && activeBillingPeriod.contractVersions.length > 0) {
+        const matchingVersion = activeBillingPeriod.contractVersions.find((v) => {
+          const vStart = String(v?.startDate ?? v?.start_date ?? "").slice(0, 10);
+          const vEnd = String(v?.endDate ?? v?.end_date ?? "").slice(0, 10);
+          return row.periodStartDate >= vStart && row.periodStartDate <= vEnd;
+        });
+
+        if (matchingVersion) {
+          const versionMonthlyAmount = Number(
+            matchingVersion?.monthlyAmount
+            ?? matchingVersion?.monthly_amount
+            ?? activeBillingPeriod.contract?.monthlyAmount
+            ?? activeBillingPeriod.contract?.monthly_amount
+            ?? 0
+          );
+          rowAmount = resolveBillingCycleAmount(versionMonthlyAmount, billingCycle);
+          rowVersionId = matchingVersion.id ?? null;
+          rowContractNumber = matchingVersion.contractNumber ?? matchingVersion.contract_number ?? activeBillingPeriod.contractNumber ?? null;
+        }
+      }
+
       return {
         id: `schedule-${key}`,
         customerId: customer.id,
         contractId: activeBillingPeriod.contractId ?? null,
-        contractVersionId: activeBillingPeriod.versionId ?? null,
-        contractNumber: activeBillingPeriod.contractNumber ?? null,
+        contractVersionId: rowVersionId,
+        contractNumber: rowContractNumber,
         periodYear: Number.isFinite(periodDate.getTime()) ? periodDate.getUTCFullYear() : null,
         periodMonth: Number.isFinite(periodDate.getTime()) ? periodDate.getUTCMonth() + 1 : null,
         periodStartDate: row.periodStartDate,
         periodEndDate: row.periodEndDate,
         dueDate: resolveInvoiceDueMonthIsoDate(row.periodStartDate),
-        amount: scheduledAmount,
+        amount: rowAmount,
         status: "belum_ditagih",
         scheduleStatus: "active",
         invoiceFollowUps: [],
