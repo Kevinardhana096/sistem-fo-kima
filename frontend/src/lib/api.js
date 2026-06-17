@@ -3212,11 +3212,6 @@ export const monitoringApi = {
     });
 
     const getInvoiceKey = (contractId, periodYear, periodMonth) => `${contractId ?? 'none'}:${Number(periodYear)}:${Number(periodMonth)}`;
-    const getInvoiceDisplayMonthIndex = (invoice) => (
-      (Number(invoice?.displayYear ?? invoice?.period_year ?? 0) * 12)
-      + Number(invoice?.displayMonth ?? invoice?.period_month ?? 0)
-      - 1
-    );
     const getBillingCycleMonths = (contract) => {
       const every = Number(contract?.billing_every ?? 1);
       const unit = String(contract?.billing_unit ?? 'bulan').toLowerCase();
@@ -3225,8 +3220,6 @@ export const monitoringApi = {
       if (unit === 'bulan') return Math.round(every);
       return 1;
     };
-    const isPaidInvoice = (invoice) => String(invoice?.status ?? '').toLowerCase() === 'lunas';
-
     const invoiceLookupByCustomerId = new Map();
     invoicesByCustomerId.forEach((customerInvoices, customerId) => {
       const lookup = new Map();
@@ -3381,10 +3374,6 @@ export const monitoringApi = {
         : `${selectedYear}-12-31`;
       const effectiveVersion = getEffectiveVersion(currentContract, effectiveVersionDate);
       const currentMonthInvoice = invoiceLookup.get(getInvoiceKey(currentContract?.id ?? null, selectedYear, currentMonth)) || null;
-      const currentContractInvoices = [...invoiceLookup.values()]
-        .filter(invoice => Number(invoice.contract_id ?? 0) === Number(currentContract?.id ?? 0))
-        .sort((left, right) => getInvoiceDisplayMonthIndex(left) - getInvoiceDisplayMonthIndex(right));
-
       // Build months array (12 months)
       const months = Array.from({ length: 12 }, (_, monthIndex) => {
         const month = monthIndex + 1;
@@ -3397,37 +3386,6 @@ export const monitoringApi = {
           invoice,
         };
       });
-
-      const billingCycleMonths = getBillingCycleMonths(currentContract);
-      if (billingCycleMonths > 1 && currentContractInvoices.length > 0) {
-        currentContractInvoices.forEach((invoice, invoiceIndex) => {
-          if (!isPaidInvoice(invoice)) return;
-
-          const invoiceMonthIndex = getInvoiceDisplayMonthIndex(invoice);
-          const previousInvoice = currentContractInvoices[invoiceIndex - 1] || null;
-          const previousMonthIndex = previousInvoice
-            ? getInvoiceDisplayMonthIndex(previousInvoice)
-            : invoiceMonthIndex - 1;
-          const coverageStartMonthIndex = previousMonthIndex + 1;
-          const coverageEndMonthIndex = invoiceMonthIndex;
-
-          for (let monthIndex = 0; monthIndex < 12; monthIndex += 1) {
-            const selectedMonthIndex = (selectedYear * 12) + monthIndex;
-            if (selectedMonthIndex < coverageStartMonthIndex || selectedMonthIndex > coverageEndMonthIndex) {
-              continue;
-            }
-            if (months[monthIndex]?.status === 'di_luar_periode') {
-              continue;
-            }
-            months[monthIndex] = {
-              ...months[monthIndex],
-              status: 'lunas',
-              invoice: months[monthIndex]?.invoice || invoice,
-              coveredByInvoice: invoice,
-            };
-          }
-        });
-      }
 
       return {
         customerId: customer.id,
