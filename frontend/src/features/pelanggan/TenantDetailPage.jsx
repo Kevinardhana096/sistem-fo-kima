@@ -1211,7 +1211,7 @@ function TenantDetailPage({
 
     const activeInvoiceMap = new Map();
     invoices
-      .filter((invoice) => !shouldArchiveInvoice(invoice) || (isInvoiceInActiveBillingPeriod(invoice) && isInvoicePaid(invoice)))
+      .filter((invoice) => !shouldArchiveInvoice(invoice) || isInvoiceInActiveBillingPeriod(invoice))
       .forEach((invoice) => {
         const key = getInvoicePeriodKey(invoice);
         if (key) {
