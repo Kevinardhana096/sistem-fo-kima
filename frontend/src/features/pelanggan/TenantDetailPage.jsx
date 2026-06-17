@@ -3896,6 +3896,7 @@ function TenantDetailPage({
         splitOrder === 2
           ? "Invoice peringatan kedua sebelum akhir periode reminder pembayaran."
           : "Invoice peringatan pertama untuk bulan jatuh tempo pembayaran.",
+      status: "pending_response",
     });
   };
 
