@@ -3682,25 +3682,6 @@ function TenantDetailPage({
 
 
 
-  const updateInvoiceFollowUpDraftField = (invoiceId, followUpKey, field, value) => {
-    setInvoiceDrafts((previousDrafts) => {
-      const currentDraft = previousDrafts[invoiceId] ?? {};
-      const currentFollowUps = currentDraft.followUps ?? {};
-      return {
-        ...previousDrafts,
-        [invoiceId]: {
-          ...currentDraft,
-          followUps: {
-            ...currentFollowUps,
-            [followUpKey]: {
-              ...(currentFollowUps[followUpKey] ?? {}),
-              [field]: value,
-            },
-          },
-        },
-      };
-    });
-  };
   const resolveAutoInvoiceStatus = (currentStatus, hasInvoiceFile, dueDateStr) => {
     let resolved = currentStatus;
     if (resolved === "belum_ditagih" && hasInvoiceFile) {
@@ -3753,20 +3734,6 @@ function TenantDetailPage({
     };
   };
 
-  const getInvoiceFollowUpDraft = (invoice, followUp = null) => {
-    const draft = getInvoiceDraft(invoice);
-    const followUpKey = followUp?.id ? String(followUp.id) : "initial";
-    const fallbackKey = followUp?.splitOrder ? `warning-${followUp.splitOrder}` : followUpKey;
-    return {
-      invoiceNumber: String(
-        draft.followUps?.[followUpKey]?.invoiceNumber ??
-        draft.followUps?.[fallbackKey]?.invoiceNumber ??
-        followUp?.invoiceNumber ??
-        "",
-      ),
-    };
-  };
-
   const validateInvoiceDraftBase = (draft) => {
     if (!draft.dueDate) {
       return "Bulan jatuh tempo pembayaran wajib diisi sebelum upload invoice.";
@@ -3799,8 +3766,7 @@ function TenantDetailPage({
     sourceStatus = resolveAutoInvoiceStatus(sourceStatus, hasInvoiceFile, invoice?.dueDate);
 
     const hasFollowUpChanges = getInvoiceFollowUps(invoice).some((followUp) => (
-      String(getInvoiceFollowUpDraft(invoice, followUp).invoiceNumber ?? "").trim() !==
-      String(followUp?.invoiceNumber ?? "").trim()
+      String(draft.invoiceNumber ?? "").trim() !== String(followUp?.invoiceNumber ?? "").trim()
     ));
 
     return (
@@ -3848,9 +3814,7 @@ function TenantDetailPage({
         : null;
       const followUpPayload = getInvoiceFollowUps(invoice).map((followUp) => ({
         id: followUp.id,
-        invoiceNumber:
-          getInvoiceFollowUpDraft(invoice, followUp).invoiceNumber.trim() ||
-          null,
+        invoiceNumber: String(draft.invoiceNumber ?? "").trim() || null,
       }));
 
       let persistedInvoice;
@@ -3941,14 +3905,7 @@ function TenantDetailPage({
     }
 
     const draft = getInvoiceDraft(invoice);
-    const targetFollowUp = splitOrder
-      ? getInvoiceFollowUps(invoice).find(
-        (followUp) => Number(followUp?.splitOrder ?? 0) === Number(splitOrder),
-      ) ?? { splitOrder }
-      : null;
-    const followUpDraft = splitOrder
-      ? getInvoiceFollowUpDraft(invoice, targetFollowUp)
-      : { invoiceNumber: draft.invoiceNumber };
+    const uploadInvoiceNumber = String(draft.invoiceNumber ?? "").trim();
     const validationMessage = validateInvoiceDraftForUpload(
       draft
     );
@@ -3979,7 +3936,7 @@ function TenantDetailPage({
       if (splitOrder) {
         const followUp = await getOrCreateInvoiceFollowUp(persistedInvoice, splitOrder);
         await tenantDetailData.invoiceFollowUps.update(followUp.id, {
-          invoiceNumber: followUpDraft.invoiceNumber.trim(),
+          invoiceNumber: uploadInvoiceNumber || null,
           invoiceFileUrl,
         });
 
@@ -3991,7 +3948,7 @@ function TenantDetailPage({
         }
       } else {
         const updatePayload = {
-          invoiceNumber: followUpDraft.invoiceNumber.trim(),
+          invoiceNumber: uploadInvoiceNumber || null,
           dueDate: draft.dueDate,
           amount,
           invoiceFileUrl,
@@ -6815,9 +6772,7 @@ function TenantDetailPage({
                       const hasPaymentProof = isOpenableFileUrl(invoice?.paymentProofFileUrl);
                       const hasAnyInvoiceFile = workflowMeta.hasAnyInvoiceFile;
 
-                      const secondWarningDraftKey = String(workflowMeta.secondFollowUp?.id ?? "warning-2");
-                      const secondWarningDraft = getInvoiceFollowUpDraft(invoice, workflowMeta.secondFollowUp ?? { id: secondWarningDraftKey, splitOrder: 2 });
-                      const hasSecondFollowUp = Boolean(workflowMeta.secondFollowUp) || Boolean(secondWarningDraft.invoiceNumber);
+                      const hasSecondFollowUp = Boolean(workflowMeta.secondFollowUp);
                       const hasSecondFollowUpFile = isOpenableFileUrl(workflowMeta.secondFollowUp?.invoiceFileUrl);
                       const isSp2Visible = hasSecondFollowUp || manualSp2Visible.has(invoice.id);
 
@@ -7078,15 +7033,6 @@ function TenantDetailPage({
                                         <span className="material-symbols-outlined text-[10px]">close</span>
                                       </button>
                                     )}
-                                    <input
-                                      className="h-6 w-full rounded border border-orange-500/20 bg-black/20 px-1.5 text-[8px] font-bold text-white outline-none placeholder:text-white/10 text-center"
-                                      disabled={isSavingInvoice || isIsp}
-                                      onBlur={() => handleInvoiceAutoSave(invoice)}
-                                      onChange={(e) => updateInvoiceFollowUpDraftField(invoice.id, secondWarningDraftKey, "invoiceNumber", e.target.value)}
-                                      placeholder="No. invoice ke-2"
-                                      type="text"
-                                      value={secondWarningDraft.invoiceNumber}
-                                    />
                                     <div className="flex items-center justify-between gap-2 bg-white/[0.02] border border-orange-500/10 rounded-lg px-2 py-1.5">
                                       <div className="flex items-center gap-1.5 min-w-0">
                                         <span className="material-symbols-outlined text-orange-400/40" style={{ fontSize: '13px' }}>receipt_long</span>
@@ -7176,9 +7122,7 @@ function TenantDetailPage({
                     const hasPaymentProof = isOpenableFileUrl(invoice?.paymentProofFileUrl);
                     const hasAnyInvoiceFile = workflowMeta.hasAnyInvoiceFile;
 
-                    const secondWarningDraftKey = String(workflowMeta.secondFollowUp?.id ?? "warning-2");
-                    const secondWarningDraft = getInvoiceFollowUpDraft(invoice, workflowMeta.secondFollowUp ?? { id: secondWarningDraftKey, splitOrder: 2 });
-                    const hasSecondFollowUp = Boolean(workflowMeta.secondFollowUp) || Boolean(secondWarningDraft.invoiceNumber);
+                    const hasSecondFollowUp = Boolean(workflowMeta.secondFollowUp);
                     const hasSecondFollowUpFile = isOpenableFileUrl(workflowMeta.secondFollowUp?.invoiceFileUrl);
                     const isSp2Visible = hasSecondFollowUp || manualSp2Visible.has(invoice.id);
 
@@ -7354,15 +7298,6 @@ function TenantDetailPage({
                                         <span className="material-symbols-outlined text-[10px]">close</span>
                                       </button>
                                     )}
-                                    <input
-                                      className="h-6 w-full rounded border border-orange-500/20 bg-black/20 px-1.5 text-[8px] font-bold text-white outline-none placeholder:text-white/10 text-center"
-                                      disabled={isSavingInvoice || isIsp}
-                                      onBlur={() => handleInvoiceAutoSave(invoice)}
-                                      onChange={(e) => updateInvoiceFollowUpDraftField(invoice.id, secondWarningDraftKey, "invoiceNumber", e.target.value)}
-                                      placeholder="No. invoice ke-2"
-                                      type="text"
-                                      value={secondWarningDraft.invoiceNumber}
-                                    />
                                     <div className="flex items-center justify-between gap-2 bg-white/[0.02] border border-orange-500/10 rounded-lg px-2 py-1.5">
                                       <div className="flex items-center gap-1.5 min-w-0">
                                         <span className="material-symbols-outlined text-orange-400/40" style={{ fontSize: '13px' }}>receipt_long</span>
