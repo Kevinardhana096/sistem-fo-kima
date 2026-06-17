@@ -267,7 +267,7 @@ export default function AppShell({
             )}
 
             {isEditModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                <div className="fixed inset-0 z-[3000] flex items-center justify-center p-4">
                     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsEditModalOpen(false)}></div>
                     <div className="relative w-full max-w-sm rounded-2xl glass-popover anim-popover p-6 shadow-2xl animate-in fade-in zoom-in duration-300">
                         <div className="flex items-center justify-between mb-5">

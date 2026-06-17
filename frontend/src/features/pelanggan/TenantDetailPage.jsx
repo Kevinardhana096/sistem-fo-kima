@@ -739,6 +739,7 @@ function TenantDetailPage({
   const [invoicePaymentOrderSort, setInvoicePaymentOrderSort] = useState("asc");
   const [invoiceDrafts, setInvoiceDrafts] = useState({});
   const [invoiceFeedback, setInvoiceFeedback] = useState("");
+  const [invoiceError, setInvoiceError] = useState("");
   const [isSavingInvoice, setIsSavingInvoice] = useState(false);
   const [openInvoiceStatusId, setOpenInvoiceStatusId] = useState(null);
   const [dropdownPosition, setDropdownPosition] = useState(null);
@@ -3812,7 +3813,7 @@ function TenantDetailPage({
     const amount = parseRupiahInput(draft.amount);
 
     if (!Number.isFinite(amount) || amount < 0) {
-      setError("Jumlah dibayar harus berupa angka dan tidak boleh negatif.");
+      setInvoiceError("Jumlah dibayar harus berupa angka dan tidak boleh negatif.");
       return;
     }
 
@@ -3827,7 +3828,7 @@ function TenantDetailPage({
     savingInvoiceIdsRef.current.add(invoiceKey);
 
     setIsSavingInvoice(true);
-    setError("");
+    setInvoiceError("");
     setInvoiceFeedback("");
     try {
       let selectedStatus = INVOICE_STATUS_OPTIONS.some((option) => option.value === draft.status)
@@ -3873,7 +3874,7 @@ function TenantDetailPage({
       setInvoiceFeedback(`Invoice #${persistedInvoice.id} berhasil disimpan.`);
       await Promise.all([loadDetail(), onRefreshAll?.()]);
     } catch (requestError) {
-      setError(
+      setInvoiceError(
         requestError instanceof Error
           ? requestError.message
           : "Gagal menyimpan invoice.",
@@ -3952,7 +3953,7 @@ function TenantDetailPage({
       draft
     );
     if (validationMessage) {
-      setError(validationMessage);
+      setInvoiceError(validationMessage);
       return;
     }
 
@@ -3961,7 +3962,7 @@ function TenantDetailPage({
     const amount = parseRupiahInput(draft.amount);
 
     setIsSavingInvoice(true);
-    setError("");
+    setInvoiceError("");
     setInvoiceFeedback("");
     try {
       let persistedInvoice = invoice;
@@ -4013,7 +4014,7 @@ function TenantDetailPage({
       setInvoiceFeedback(`Invoice #${invoice.id} berhasil diunggah.`);
       await Promise.all([loadDetail(), onRefreshAll?.()]);
     } catch (requestError) {
-      setError(
+      setInvoiceError(
         requestError instanceof Error
           ? requestError.message
           : "Gagal mengunggah invoice.",
@@ -4029,19 +4030,19 @@ function TenantDetailPage({
     }
 
     if (!hasAnyUploadedInvoiceFile(invoice)) {
-      setError("Upload invoice terlebih dahulu sebelum upload bukti bayar.");
+      setInvoiceError("Upload invoice terlebih dahulu sebelum upload bukti bayar.");
       return;
     }
 
     const draft = getInvoiceDraft(invoice);
     const validationMessage = validateInvoiceDraftBase(draft);
     if (validationMessage) {
-      setError(validationMessage);
+      setInvoiceError(validationMessage);
       return;
     }
 
     setIsSavingInvoice(true);
-    setError("");
+    setInvoiceError("");
     setInvoiceFeedback("");
     try {
       const paymentProofFileUrl = await uploadFileForRecord(file, ["customers", customer.id, "payment-proofs"]);
@@ -4084,7 +4085,7 @@ function TenantDetailPage({
       );
       await Promise.all([loadDetail(), onRefreshAll?.()]);
     } catch (requestError) {
-      setError(
+      setInvoiceError(
         requestError instanceof Error
           ? requestError.message
           : "Gagal mengunggah bukti bayar.",
@@ -4115,7 +4116,7 @@ function TenantDetailPage({
 
   const handleApplyBulkInvoiceUpdates = async () => {
     if (!canManageTenantContracts) {
-      setError("Hanya admin yang dapat memperbarui invoice secara massal.");
+      setInvoiceError("Hanya admin yang dapat memperbarui invoice secara massal.");
       return;
     }
 
@@ -4125,7 +4126,7 @@ function TenantDetailPage({
       : invoiceRows;
 
     if (targetInvoices.length === 0) {
-      setError(`Belum ada data ${isSelectedMode ? "terpilih" : "invoice"} untuk diperbarui.`);
+      setInvoiceError(`Belum ada data ${isSelectedMode ? "terpilih" : "invoice"} untuk diperbarui.`);
       return;
     }
 
@@ -4135,23 +4136,23 @@ function TenantDetailPage({
     const hasStatus = Boolean(status);
 
     if (!hasDueDate && !hasAmount && !hasStatus) {
-      setError("Isi setidaknya satu field untuk diperbarui secara massal.");
+      setInvoiceError("Isi setidaknya satu field untuk diperbarui secara massal.");
       return;
     }
 
     if (hasDueDate && !isValidIsoDate(dueDate)) {
-      setError("Tanggal batas bayar harus berupa tanggal valid.");
+      setInvoiceError("Tanggal batas bayar harus berupa tanggal valid.");
       return;
     }
 
     const requestedAmount = hasAmount ? parseRupiahInput(amount) : null;
     if (hasAmount && (!Number.isFinite(requestedAmount) || requestedAmount < 0)) {
-      setError("Nominal harus diisi dengan angka valid.");
+      setInvoiceError("Nominal harus diisi dengan angka valid.");
       return;
     }
 
     setIsSavingInvoice(true);
-    setError("");
+    setInvoiceError("");
     setInvoiceFeedback("");
 
     try {
@@ -4214,7 +4215,7 @@ function TenantDetailPage({
           throw new Error(firstErrorMessage);
         }
 
-        setError(
+        setInvoiceError(
           `Sebagian invoice gagal diperbarui (${failedResults.length}/${targetInvoices.length}). Detail pertama: ${firstErrorMessage}`,
         );
         setInvoiceFeedback(`Berhasil memperbarui ${successfulInvoices.length} dari ${targetInvoices.length} data invoice.`);
@@ -4228,7 +4229,7 @@ function TenantDetailPage({
 
       await Promise.all([loadDetail(), onRefreshAll?.()]);
     } catch (requestError) {
-      setError(
+      setInvoiceError(
         requestError instanceof Error
           ? requestError.message
           : "Gagal menerapkan pembaruan massal.",
@@ -6760,6 +6761,13 @@ function TenantDetailPage({
                   </div>
                 </div>
               </section>
+            )}
+
+            {invoiceError && (
+              <div className="mb-4 rounded-2xl border border-[#ff2400]/20 bg-[#ff2400]/5 px-6 py-4 text-[11px] font-bold tracking-wide text-[#ff2400] animate-in fade-in slide-in-from-top-4 flex items-center gap-3">
+                <span className="material-symbols-outlined text-lg">error</span>
+                {invoiceError}
+              </div>
             )}
 
             {invoiceFeedback && (

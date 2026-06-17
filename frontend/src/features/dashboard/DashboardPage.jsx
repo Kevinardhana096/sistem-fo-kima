@@ -470,10 +470,10 @@ export default function DashboardPage({
 
     return (
         <>
-            <div className="space-y-6 pb-20 pt-2 md:pt-4">
+            <div className="space-y-4 pb-20 pt-2 md:pt-4">
 
                 {/* Header Section */}
-                <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-10">
+                <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 mb-5">
                     <div>
                         <div className="flex items-center gap-3 mb-2">
                             <span className="h-[2px] w-8 bg-gold-accent shadow-gold-glow"></span>
@@ -486,7 +486,7 @@ export default function DashboardPage({
                 </header>
 
                 {/* Row 1: KPI & Core Metrics Section */}
-                <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
                     <StatCard label="Total ISP" value={stats.ispCount} icon="hub" accent="gold" sub="Mitra ISP Terintegrasi" />
                     <StatCard label="Total Lokasi" value={stats.tenantCount} icon="groups" accent="gold" sub="Total Lokasi Terdata" />
                     <StatCard label="Kapasitas Core" value={capacityCore.total} icon="storage" accent="teal" sub="Total Core" />
@@ -495,7 +495,7 @@ export default function DashboardPage({
                 </section>
 
                 {/* Row 2: Core Trend & Sharing Details */}
-                <section className="relative z-30 grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-[300px]">
+                <section className="relative z-30 grid grid-cols-1 lg:grid-cols-3 gap-3 min-h-[300px]">
                     {/* Core Chart with Toggle */}
                     <div className={`${glassCardClass} z-[60] flex flex-col overflow-visible lg:col-span-2 h-full`}>
                         <div className="mb-3 flex flex-col gap-3 relative z-50">
