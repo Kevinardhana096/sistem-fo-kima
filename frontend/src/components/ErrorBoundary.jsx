@@ -5,6 +5,7 @@ import { Component } from "react";
  * (including lazy-loaded routes) and shows a friendly fallback instead of
  * a blank white screen. Module-load errors that occur before React renders
  * are not catchable here by design.
+ * 
  */
 export default class ErrorBoundary extends Component {
     constructor(props) {
