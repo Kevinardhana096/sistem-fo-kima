@@ -655,14 +655,22 @@ function CustomerWorkspacePage({
                 {/* 5. DATA LIST SECTION */}
                 <section className="space-y-4">
                     {isLoading && allGroups.length === 0 ? (
-                        <div className="rounded-premium bg-white/5 border border-white/10 py-32 px-6 text-center space-y-6 backdrop-blur-xl shadow-glass-depth">
-                            <div className="relative w-20 h-20 mx-auto">
-                                <div className="absolute inset-0 border-4 border-gold-accent/20 rounded-full"></div>
-                                <div className="absolute inset-0 border-4 border-t-gold-accent rounded-full animate-spin"></div>
+                        <div className="py-32 px-6 text-center relative overflow-hidden flex flex-col items-center justify-center">
+                            <div className="relative flex items-center justify-center h-24 w-24 mb-6">
+                                <div className="absolute inset-0 bg-gold-accent/10 rounded-full blur-xl animate-pulse"></div>
+                                <div className="absolute inset-0 rounded-full border-2 border-white/5 border-t-gold-accent/80 animate-[spin_1.5s_linear_infinite]"></div>
+                                <div className="absolute inset-2 rounded-full border-2 border-white/5 border-b-gold-accent/60 animate-[spin_2s_linear_infinite_reverse]"></div>
+                                <div className="h-10 w-10 flex items-center justify-center relative z-10">
+                                    <img alt="Kima" className="h-6 w-6 object-contain animate-[pulse_2s_ease-in-out_infinite]" src="/logo-kima.png" />
+                                </div>
                             </div>
-                            <div className="space-y-2">
-                                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-gold-accent animate-pulse">Menyelaraskan Data</p>
-                                <p className="text-xs font-bold text-white/30 uppercase tracking-widest">Menghubungkan ke pusat arsip kima...</p>
+                            <div className="flex flex-col items-center gap-2">
+                                <p className="text-[11px] font-black uppercase tracking-[0.3em] text-white">Menyelaraskan Data</p>
+                                <div className="flex items-center gap-1.5 opacity-50">
+                                    <div className="w-1 h-1 rounded-full bg-gold-accent animate-ping" style={{ animationDelay: '0ms' }}></div>
+                                    <div className="w-1 h-1 rounded-full bg-gold-accent animate-ping" style={{ animationDelay: '150ms' }}></div>
+                                    <div className="w-1 h-1 rounded-full bg-gold-accent animate-ping" style={{ animationDelay: '300ms' }}></div>
+                                </div>
                             </div>
                         </div>
                     ) : (

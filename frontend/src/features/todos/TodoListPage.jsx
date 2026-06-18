@@ -316,9 +316,23 @@ export default function TodoListPage({ onNavigatePath, currentRole = "admin" }) 
                     )}
 
                     {isLoading ? (
-                        <div className="flex flex-col items-center justify-center py-12">
-                            <div className="h-10 w-10 border-2 border-gold-accent border-t-transparent rounded-full animate-spin mb-3"></div>
-                            <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Memuat daftar tindakan...</p>
+                        <div className="flex flex-col items-center justify-center py-16">
+                            <div className="relative flex items-center justify-center h-16 w-16 mb-4 z-10">
+                                <div className="absolute inset-0 bg-gold-accent/10 rounded-full blur-xl animate-pulse"></div>
+                                <div className="absolute inset-0 rounded-full border-2 border-white/5 border-t-gold-accent/80 animate-[spin_1.5s_linear_infinite]"></div>
+                                <div className="absolute inset-2 rounded-full border-2 border-white/5 border-b-gold-accent/60 animate-[spin_2s_linear_infinite_reverse]"></div>
+                                <div className="h-6 w-6 flex items-center justify-center relative z-10">
+                                    <img alt="Kima" className="h-4 w-4 object-contain animate-[pulse_2s_ease-in-out_infinite]" src="/logo-kima.png" />
+                                </div>
+                            </div>
+                            <div className="flex flex-col items-center gap-1.5">
+                                <p className="text-[9px] font-black uppercase tracking-[0.3em] text-white/80">Menyelaraskan Data</p>
+                                <div className="flex items-center gap-1 opacity-50">
+                                    <div className="w-1 h-1 rounded-full bg-gold-accent animate-ping" style={{ animationDelay: '0ms' }}></div>
+                                    <div className="w-1 h-1 rounded-full bg-gold-accent animate-ping" style={{ animationDelay: '150ms' }}></div>
+                                    <div className="w-1 h-1 rounded-full bg-gold-accent animate-ping" style={{ animationDelay: '300ms' }}></div>
+                                </div>
+                            </div>
                         </div>
                     ) : filteredNotifications.length > 0 ? (
                         <div className="space-y-2.5">

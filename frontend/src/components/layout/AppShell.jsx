@@ -235,32 +235,42 @@ export default function AppShell({
             </main>
 
             {isLogoutTransitioning && (
-                <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/55 px-6 backdrop-blur-md">
-                    <div className="flex w-full max-w-sm flex-col items-center gap-4 rounded-3xl border border-white/10 bg-slate-950/85 px-6 py-8 text-center shadow-2xl">
-                        <div className="h-12 w-12 animate-spin rounded-full border-4 border-gold-accent border-t-transparent" />
-                        <div>
-                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gold-accent/80">
-                                Mengakhiri Sesi
-                            </p>
-                            <p className="mt-2 text-sm font-bold text-on-surface-variant">
-                                Menyiapkan keluar dan memuat ulang halaman login...
-                            </p>
+                <div className="fixed inset-0 z-[120] flex flex-col items-center justify-center bg-[#050914]/80 backdrop-blur-sm animate-fade-in duration-300">
+                    <div className="relative flex items-center justify-center h-24 w-24 mb-6">
+                        <div className="absolute inset-0 bg-gold-accent/20 rounded-full blur-xl animate-pulse"></div>
+                        <div className="absolute inset-0 rounded-full border-2 border-white/5 border-t-gold-accent/80 animate-[spin_1.5s_linear_infinite]"></div>
+                        <div className="absolute inset-2 rounded-full border-2 border-white/5 border-b-gold-accent/60 animate-[spin_2s_linear_infinite_reverse]"></div>
+                        <div className="h-10 w-10 flex items-center justify-center relative z-10">
+                            <img alt="Kima" className="h-6 w-6 object-contain animate-[pulse_2s_ease-in-out_infinite]" src="/logo-kima.png" />
+                        </div>
+                    </div>
+                    <div className="flex flex-col items-center gap-2">
+                        <h3 className="text-[11px] font-black text-white tracking-[0.3em] uppercase">Mengakhiri Sesi</h3>
+                        <div className="flex items-center gap-1.5 opacity-50">
+                            <div className="w-1 h-1 rounded-full bg-gold-accent animate-ping" style={{ animationDelay: '0ms' }}></div>
+                            <div className="w-1 h-1 rounded-full bg-gold-accent animate-ping" style={{ animationDelay: '150ms' }}></div>
+                            <div className="w-1 h-1 rounded-full bg-gold-accent animate-ping" style={{ animationDelay: '300ms' }}></div>
                         </div>
                     </div>
                 </div>
             )}
 
             {isPageTransitioning && !isLogoutTransitioning && (
-                <div className={`fixed top-0 right-0 bottom-0 z-[120] flex items-center justify-center bg-black/55 px-6 backdrop-blur-md anim-layout-sidebar pointer-events-auto ${hideSidebar ? "left-0" : (isSidebarExpanded ? "left-0 lg:left-60" : "left-0 lg:left-24")}`}>
-                    <div className="flex w-full max-w-sm flex-col items-center gap-4 rounded-3xl border border-white/10 bg-slate-950/85 px-6 py-8 text-center shadow-2xl">
-                        <div className="h-12 w-12 animate-spin rounded-full border-4 border-gold-accent border-t-transparent" />
-                        <div>
-                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gold-accent/80">
-                                {pageTransitionTitle}
-                            </p>
-                            <p className="mt-2 text-sm font-bold text-on-surface-variant">
-                                {pageTransitionDescription}
-                            </p>
+                <div className={`fixed top-0 right-0 bottom-0 z-[120] flex flex-col items-center justify-center bg-[#050914]/80 backdrop-blur-sm anim-layout-sidebar pointer-events-auto animate-fade-in duration-300 ${hideSidebar ? "left-0" : (isSidebarExpanded ? "left-0 lg:left-60" : "left-0 lg:left-24")}`}>
+                    <div className="relative flex items-center justify-center h-24 w-24 mb-6">
+                        <div className="absolute inset-0 bg-gold-accent/20 rounded-full blur-xl animate-pulse"></div>
+                        <div className="absolute inset-0 rounded-full border-2 border-white/5 border-t-gold-accent/80 animate-[spin_1.5s_linear_infinite]"></div>
+                        <div className="absolute inset-2 rounded-full border-2 border-white/5 border-b-gold-accent/60 animate-[spin_2s_linear_infinite_reverse]"></div>
+                        <div className="h-10 w-10 flex items-center justify-center relative z-10">
+                            <img alt="Kima" className="h-6 w-6 object-contain animate-[pulse_2s_ease-in-out_infinite]" src="/logo-kima.png" />
+                        </div>
+                    </div>
+                    <div className="flex flex-col items-center gap-2">
+                        <h3 className="text-[11px] font-black text-white tracking-[0.3em] uppercase">{pageTransitionTitle}</h3>
+                        <div className="flex items-center gap-1.5 opacity-50">
+                            <div className="w-1 h-1 rounded-full bg-gold-accent animate-ping" style={{ animationDelay: '0ms' }}></div>
+                            <div className="w-1 h-1 rounded-full bg-gold-accent animate-ping" style={{ animationDelay: '150ms' }}></div>
+                            <div className="w-1 h-1 rounded-full bg-gold-accent animate-ping" style={{ animationDelay: '300ms' }}></div>
                         </div>
                     </div>
                 </div>

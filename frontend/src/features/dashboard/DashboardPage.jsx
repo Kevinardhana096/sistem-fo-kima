@@ -23,7 +23,7 @@ const chartTooltipContentStyle = {
 };
 const chartTooltipItemStyle = { fontSize: "10px", fontWeight: 900 };
 const chartTooltipLabelStyle = { fontSize: "10px", fontWeight: 900, marginBottom: "8px" };
-const compactChartMargin = { top: 5, right: 5, bottom: 5, left: -25 };
+const compactChartMargin = { top: 15, right: 15, bottom: 5, left: -25 };
 
 /**
  * Premium Dashboard Page - Light Theme
@@ -495,7 +495,7 @@ export default function DashboardPage({
                 </section>
 
                 {/* Row 2: Core Trend & Sharing Details */}
-                <section className="relative z-30 grid grid-cols-1 lg:grid-cols-3 gap-3 min-h-[300px]">
+                <section className="relative z-30 grid grid-cols-1 lg:grid-cols-3 gap-3 items-stretch">
                     {/* Core Chart with Toggle */}
                     <div className={`${glassCardClass} z-[60] flex flex-col overflow-visible lg:col-span-2 h-full`}>
                         <div className="mb-3 flex flex-col gap-3 relative z-50">
@@ -562,8 +562,8 @@ export default function DashboardPage({
                                 <LegendItem dotColor="bg-[#f43f5e]" label="1:32" small />
                             </div>
                         )}
-                        <div ref={coreTrendChartRef} className="h-[220px] min-h-[220px] w-full min-w-[1px] md:h-[240px] md:min-h-[240px]">
-                            <ResponsiveContainer width="100%" height={240} minWidth={1} minHeight={1} debounce={100}>
+                        <div ref={coreTrendChartRef} className="flex-1 w-full min-w-[1px] min-h-[220px] md:min-h-[240px] -ml-2 pb-0">
+                            <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1} debounce={100}>
                                 <LineChart data={coreChartType === "sharing" ? visibleSharingTrendData : visibleCoreTrendData} margin={compactChartMargin}>
                                     <CartesianGrid strokeDasharray="0" vertical={false} stroke="rgba(255,255,255,0.08)" />
                                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 8, fontWeight: 900, fill: 'rgba(255,255,255,0.6)' }} dy={10} />
@@ -604,7 +604,7 @@ export default function DashboardPage({
                                     disabled={isExportingCoreTrend}
                                     className={`flex h-[24px] items-center justify-center gap-1 rounded-lg px-2.5 text-[8px] font-black uppercase tracking-widest anim-surface ${isExportingCoreTrend ? "bg-white/10 text-gold-accent" : "btn-premium"}`}
                                 >
-                                    <span className={`material-symbols-outlined text-[12px] ${isExportingCoreTrend ? "animate-spin" : ""}`}>{isExportingCoreTrend ? "sync" : "download"}</span>
+                                    <span className={`material-symbols-outlined text-[12px] scale-[0.8] origin-center ${isExportingCoreTrend ? "animate-spin" : ""}`}>{isExportingCoreTrend ? "sync" : "download"}</span>
                                     {isExportingCoreTrend ? "Menyiapkan" : "CSV"}
                                 </button>
                                 <button
@@ -613,7 +613,7 @@ export default function DashboardPage({
                                     disabled={isExportingCoreTrendXlsx}
                                     className={`flex h-[24px] items-center justify-center gap-1 rounded-lg px-2.5 text-[8px] font-black uppercase tracking-widest anim-surface ${isExportingCoreTrendXlsx ? "bg-white/10 text-gold-accent" : "btn-premium"}`}
                                 >
-                                    <span className={`material-symbols-outlined text-[12px] ${isExportingCoreTrendXlsx ? "animate-spin" : ""}`}>{isExportingCoreTrendXlsx ? "sync" : "insert_chart"}</span>
+                                    <span className={`material-symbols-outlined text-[12px] scale-[0.8] origin-center ${isExportingCoreTrendXlsx ? "animate-spin" : ""}`}>{isExportingCoreTrendXlsx ? "sync" : "insert_chart"}</span>
                                     {isExportingCoreTrendXlsx ? "Menyiapkan" : "XLSX Grafik"}
                                 </button>
                             </div>
@@ -646,7 +646,7 @@ export default function DashboardPage({
                                     </div>
                                 ))}
                             </div>
-                            <div className="mt-auto pt-3 border-t border-white/10">
+                            <div className="mt-auto pt-3">
                                 <div className="flex items-center justify-between p-2.5 rounded-lg bg-gold-accent/10 border border-gold-accent/20 backdrop-blur-md">
                                     <div className="flex items-center gap-2">
                                         <div>
@@ -691,7 +691,7 @@ export default function DashboardPage({
                             </div>
                         </div>
                         <div className="flex-1 w-full min-w-[1px] min-h-[220px] -ml-2 pb-2">
-                            <ResponsiveContainer width="100%" height={260} minWidth={1} minHeight={1} debounce={100}>
+                            <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1} debounce={100}>
                                 <LineChart data={growthData[growthType]} margin={compactChartMargin}>
                                     <CartesianGrid strokeDasharray="0" vertical={false} stroke="rgba(255,255,255,0.08)" />
                                     <XAxis dataKey="year" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 900, fill: 'rgba(255,255,255,0.6)' }} dy={15} />

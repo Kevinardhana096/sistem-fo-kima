@@ -698,6 +698,10 @@ function TenantDetailPage({
   const [documentFeedback, setDocumentFeedback] = useState("");
   const [documentSearch, setDocumentSearch] = useState("");
   const [documentSort, setDocumentSort] = useState("desc");
+  const [tenantDocCurrentPage, setTenantDocCurrentPage] = useState(1);
+  const [tenantDocItemsPerPage, setTenantDocItemsPerPage] = useState(10);
+  const tenantDocPaginationRef = useRef(null);
+  const isTenantDocScrollingProgrammatically = useRef(false);
   const [contractSearch, setContractSearch] = useState("");
   const [contractSort, setContractSort] = useState("desc");
   const [expandedContracts, setExpandedContracts] = useState({});
@@ -761,13 +765,18 @@ function TenantDetailPage({
   const [draftRoutePoints, setDraftRoutePoints] = useState([]);
   const [draftRouteStatus, setDraftRouteStatus] = useState("aktif");
   const [selectedEntryPointIds, setSelectedEntryPointIds] = useState([]);
+  
+  // Pagination State for Kelengkapan Berkas
+  const [berkasCurrentPage, setBerkasCurrentPage] = useState(1);
+  const [berkasItemsPerPage, setBerkasItemsPerPage] = useState(10);
+  const berkasPaginationRef = useRef(null);
+  const isBerkasScrollingProgrammatically = useRef(false);
   const [isMobileTabMenuOpen, setIsMobileTabMenuOpen] = useState(false);
   const [isProfileExpanded, setIsProfileExpanded] = useState(false);
   const emptyStateStorageKey = `tenant-contract-empty-state-${customer.id}`;
   const routeDraftStorageKey = `tenant-route-draft-${customer.id}`;
   const isStandaloneJalurView = routeViewMode !== "embedded";
   const isPlannerJalurView = routeViewMode === "planner";
-
   const loadDetail = useCallback(async () => {
     setError("");
     try {
@@ -1335,6 +1344,71 @@ function TenantDetailPage({
     ? detail.latestDocuments
     : [];
   const allDocuments = latestDocuments; // Now includes all documents uploaded by user
+  
+  // Filtered & Sorted Documents for Tenant
+  const filteredAndSortedDocs = useMemo(() => {
+    return allDocuments
+      .filter(doc => {
+        if (!documentSearch) return true;
+        const searchLower = documentSearch.toLowerCase();
+        const label = resolveDocumentTypeLabel(doc?.jenisDokumen).toLowerCase();
+        const noRef = (doc?.nomorDokumen || "").toLowerCase();
+        return label.includes(searchLower) || noRef.includes(searchLower);
+      })
+      .sort((a, b) => {
+        const dateA = a?.tanggalDokumen ? new Date(a.tanggalDokumen).getTime() : 0;
+        const dateB = b?.tanggalDokumen ? new Date(b.tanggalDokumen).getTime() : 0;
+        return documentSort === "desc" ? dateB - dateA : dateA - dateB;
+      });
+  }, [allDocuments, documentSearch, documentSort]);
+
+  useEffect(() => { setTenantDocCurrentPage(1); }, [documentSearch, documentSort, tenantDocItemsPerPage]);
+
+  const tenantDocTotalPages = Math.max(1, Math.ceil(filteredAndSortedDocs.length / tenantDocItemsPerPage));
+  const tenantDocStartIndex = (tenantDocCurrentPage - 1) * tenantDocItemsPerPage;
+  const paginatedTenantDocs = filteredAndSortedDocs.slice(tenantDocStartIndex, tenantDocStartIndex + tenantDocItemsPerPage);
+
+  const handleTenantDocPageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= tenantDocTotalPages) {
+      setTenantDocCurrentPage(newPage);
+      if (tenantDocPaginationRef.current) {
+        isTenantDocScrollingProgrammatically.current = true;
+        const container = tenantDocPaginationRef.current;
+        const buttonWidth = 28;
+        const gap = 6;
+        const itemTotalWidth = buttonWidth + gap;
+        const scrollPosition = (newPage - 1) * itemTotalWidth;
+        
+        container.scrollTo({
+          left: scrollPosition - (container.clientWidth / 2) + (buttonWidth / 2),
+          behavior: 'smooth'
+        });
+        
+        setTimeout(() => {
+          isTenantDocScrollingProgrammatically.current = false;
+        }, 400);
+      }
+    }
+  };
+
+  const handleTenantDocPaginationScroll = () => {
+    if (isTenantDocScrollingProgrammatically.current || !tenantDocPaginationRef.current) return;
+    
+    const container = tenantDocPaginationRef.current;
+    const buttonWidth = 28;
+    const gap = 6;
+    const itemTotalWidth = buttonWidth + gap;
+    
+    const scrollCenter = container.scrollLeft + (container.clientWidth / 2);
+    const closestIndex = Math.round((scrollCenter - (buttonWidth / 2)) / itemTotalWidth);
+    
+    const newPage = Math.max(1, Math.min(closestIndex + 1, tenantDocTotalPages));
+    if (newPage !== tenantDocCurrentPage) {
+      setTenantDocCurrentPage(newPage);
+    }
+  };
+
+  const tenantDocPageNumbers = Array.from({ length: tenantDocTotalPages }, (_, i) => i + 1);
   const contractDocumentByContractId = useMemo(() => {
     const docs = Array.isArray(allDocuments) ? [...allDocuments] : [];
     docs.sort((a, b) =>
@@ -2020,6 +2094,44 @@ function TenantDetailPage({
     emptyContractNumberRows,
     emptyBakRows,
   }).total;
+
+  const allBerkasTodos = useMemo(() => [
+    ...displayPriorityTodos,
+    ...displayNeedActionTodos,
+  ], [displayPriorityTodos, displayNeedActionTodos]);
+
+  const berkasTotalPages = Math.max(1, Math.ceil(allBerkasTodos.length / berkasItemsPerPage));
+  const berkasStartIndex = (berkasCurrentPage - 1) * berkasItemsPerPage;
+  const paginatedBerkasTodos = allBerkasTodos.slice(berkasStartIndex, berkasStartIndex + berkasItemsPerPage);
+
+  const paginatedPriorityTodos = paginatedBerkasTodos.filter(item => displayPriorityTodos.includes(item));
+  const paginatedNeedActionTodos = paginatedBerkasTodos.filter(item => displayNeedActionTodos.includes(item));
+
+  const handleBerkasPaginationScroll = useCallback((e) => {
+    if (isBerkasScrollingProgrammatically.current) return;
+    const scrollLeft = e.target.scrollLeft;
+    const page = Math.round(scrollLeft / 34) + 1;
+    if (page >= 1 && page <= berkasTotalPages && page !== berkasCurrentPage) {
+      setBerkasCurrentPage(page);
+    }
+  }, [berkasCurrentPage, berkasTotalPages]);
+
+  const handleBerkasPageChange = useCallback((page) => {
+    isBerkasScrollingProgrammatically.current = true;
+    setBerkasCurrentPage(page);
+    if (berkasPaginationRef.current) {
+      berkasPaginationRef.current.scrollTo({ left: (page - 1) * 34, behavior: 'smooth' });
+    }
+    setTimeout(() => { isBerkasScrollingProgrammatically.current = false; }, 400);
+  }, []);
+
+  const berkasPageNumbers = useMemo(() => {
+    const pages = [];
+    for (let i = 1; i <= berkasTotalPages; i++) {
+      pages.push(i);
+    }
+    return pages;
+  }, [berkasTotalPages]);
 
   const displayTimeline = useMemo(() => {
     const nonInvoiceTimeline = timeline.filter(
@@ -5291,16 +5403,16 @@ function TenantDetailPage({
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-2.5 mt-1.5">
-                  {(displayPriorityTodos.length > 0 || displayNeedActionTodos.length > 0) ? (
+                <div className="flex flex-col gap-2 mt-0.5">
+                  {allBerkasTodos.length > 0 ? (
                     <>
-                      {displayPriorityTodos.length > 0 && (
+                      {paginatedPriorityTodos.length > 0 && (
                         <div className="flex flex-col gap-1.5">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1.5">
                             <div className="h-px flex-1 bg-gradient-to-r from-red-500/40 to-transparent" />
                             <span className="text-[8px] font-black text-red-400 uppercase tracking-widest">Prioritas Tinggi</span>
                           </div>
-                          {displayPriorityTodos.map((item) => (
+                          {paginatedPriorityTodos.map((item) => (
                             <div
                               key={item.id}
                               className="p-2.5 rounded-xl bg-red-500/5 border border-red-500/10 group/item hover:bg-red-500/10 transition-all backdrop-blur-md cursor-pointer focus:outline-none focus:ring-2 focus:ring-red-400/40"
@@ -5328,13 +5440,13 @@ function TenantDetailPage({
                         </div>
                       )}
 
-                      {displayNeedActionTodos.length > 0 && (
-                        <div className="flex flex-col gap-1.5 mt-2">
-                          <div className="flex items-center gap-2">
+                      {paginatedNeedActionTodos.length > 0 && (
+                        <div className="flex flex-col gap-1.5 mt-1">
+                          <div className="flex items-center gap-1.5">
                             <div className="h-px flex-1 bg-gradient-to-r from-amber-500/40 to-transparent" />
                             <span className="text-[8px] font-black text-amber-400 uppercase tracking-widest">Perlu Tindakan</span>
                           </div>
-                          {displayNeedActionTodos.map((item) => (
+                          {paginatedNeedActionTodos.map((item) => (
                             <div
                               key={item.id}
                               className="p-2.5 rounded-xl bg-amber-500/5 border border-amber-500/10 group/item hover:bg-amber-500/10 transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-amber-400/40"
@@ -5384,6 +5496,76 @@ function TenantDetailPage({
                               </div>
                             </div>
                           ))}
+                        </div>
+                      )}
+
+                      {allBerkasTodos.length > 10 && (
+                        <div className="mt-4 flex items-center justify-between gap-2 border-t border-white/10 pt-3">
+                            <div className="flex items-center gap-3">
+                                <div className="relative z-[50] w-12">
+                                    <div className="relative group h-8 rounded-lg bg-white/5 border border-white/10 focus-within:border-gold-accent/40 focus-within:bg-black/40 transition-all backdrop-blur-md">
+                                        <CustomDropdown
+                                            value={berkasItemsPerPage}
+                                            onChange={(val) => { setBerkasItemsPerPage(Number(val)); setBerkasCurrentPage(1); }}
+                                            options={[10, 20, 50, 100].map(n => ({ value: n, label: String(n) }))}
+                                            triggerClass="text-[8px] font-black uppercase tracking-widest text-white/50 group-hover:text-white px-3 cursor-pointer text-center"
+                                            position="top"
+                                            hideArrow={true}
+                                            itemAlign="center"
+                                            menuWidth="min-w-[60px]"
+                                        />
+                                    </div>
+                                </div>
+                                <p className="text-[8px] font-black uppercase tracking-widest text-white/30 hidden xs:block">
+                                    {berkasStartIndex + 1}–{Math.min(berkasStartIndex + berkasItemsPerPage, allBerkasTodos.length)} dari {allBerkasTodos.length}
+                                </p>
+                            </div>
+                            <div className="flex items-center gap-1.5 w-full sm:w-auto justify-between sm:justify-end">
+                                <button
+                                    className="flex h-8 items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-3 text-[8px] font-black uppercase tracking-widest text-white/50 transition-all hover:bg-white/10 hover:text-white disabled:opacity-30 backdrop-blur-md"
+                                    type="button" disabled={berkasCurrentPage <= 1} onClick={() => handleBerkasPageChange(Math.max(1, berkasCurrentPage - 1))}
+                                >
+                                    <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>chevron_left</span> Prev
+                                </button>
+
+                                <div 
+                                    ref={berkasPaginationRef}
+                                    onScroll={handleBerkasPaginationScroll}
+                                    className="flex items-center gap-1.5 w-[96px] justify-start overflow-x-auto overflow-y-hidden snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden" 
+                                    style={{ scrollbarWidth: 'none' }}
+                                >
+                                    <div className="shrink-0 w-7 h-7 snap-center pointer-events-none opacity-0"></div>
+
+                                    {berkasPageNumbers.map((page) => {
+                                        const distance = Math.abs(berkasCurrentPage - page);
+                                        const isActive = distance === 0;
+
+                                        let scaleClass = "scale-100 opacity-100 z-10";
+                                        if (distance === 1) scaleClass = "scale-90 opacity-70 z-0";
+                                        if (distance > 1) scaleClass = "scale-75 opacity-30 -z-10";
+
+                                        return (
+                                            <button
+                                                key={`berkas-page-${page}`}
+                                                onClick={() => handleBerkasPageChange(page)}
+                                                className={`shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-black transition-all duration-300 snap-center ${isActive ? "bg-gold-accent text-white shadow-lg shadow-gold-accent/20" : "bg-white/5 text-white/50 hover:bg-white/10 hover:text-white"} ${scaleClass}`}
+                                                type="button"
+                                            >
+                                                {page}
+                                            </button>
+                                        );
+                                    })}
+
+                                    <div className="shrink-0 w-7 h-7 snap-center pointer-events-none opacity-0"></div>
+                                </div>
+
+                                <button
+                                    className="flex h-8 items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-3 text-[8px] font-black uppercase tracking-widest text-white/50 transition-all hover:bg-white/10 hover:text-white disabled:opacity-30 backdrop-blur-md"
+                                    type="button" disabled={berkasCurrentPage >= berkasTotalPages} onClick={() => handleBerkasPageChange(Math.min(berkasTotalPages, berkasCurrentPage + 1))}
+                                >
+                                    Next <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>chevron_right</span>
+                                </button>
+                            </div>
                         </div>
                       )}
                     </>
@@ -7791,77 +7973,139 @@ function TenantDetailPage({
                 </div>
 
                 <div className={isIsp ? "grid grid-cols-1 md:grid-cols-2 gap-3 flex-1 content-start" : "space-y-2.5 flex-1 flex flex-col"}>
-                  {(() => {
-                    const filteredAndSortedDocs = allDocuments
-                      .filter(doc => {
-                        if (!documentSearch) return true;
-                        const searchLower = documentSearch.toLowerCase();
-                        const label = resolveDocumentTypeLabel(doc?.jenisDokumen).toLowerCase();
-                        const noRef = (doc?.nomorDokumen || "").toLowerCase();
-                        return label.includes(searchLower) || noRef.includes(searchLower);
-                      })
-                      .sort((a, b) => {
-                        const dateA = a?.tanggalDokumen ? new Date(a.tanggalDokumen).getTime() : 0;
-                        const dateB = b?.tanggalDokumen ? new Date(b.tanggalDokumen).getTime() : 0;
-                        return documentSort === "desc" ? dateB - dateA : dateA - dateB;
-                      });
-
-                    return (
-                      <>
-                        {filteredAndSortedDocs.length === 0 && (
-                          <div className="col-span-full flex flex-col items-center justify-center gap-2 p-6 text-center border border-dashed border-white/5 rounded-xl bg-white/[0.01] min-h-[160px]">
-                            <span className="material-symbols-outlined text-[24px] text-white/10">folder_off</span>
-                            <p className="text-[10px] font-black text-white/20 uppercase tracking-widest">
-                              {documentSearch ? "Dokumen tidak ditemukan." : "Belum ada dokumen yang diunggah."}
-                            </p>
+                  {filteredAndSortedDocs.length === 0 && (
+                    <div className="col-span-full flex flex-col items-center justify-center gap-2 p-6 text-center border border-dashed border-white/5 rounded-xl bg-white/[0.01] h-full">
+                      <span className="material-symbols-outlined text-[24px] text-white/10">folder_off</span>
+                      <p className="text-[10px] font-black text-white/20 tracking-widest">
+                        {documentSearch ? "Dokumen tidak ditemukan." : "Belum ada dokumen yang diunggah."}
+                      </p>
+                    </div>
+                  )}
+                  {paginatedTenantDocs.map((doc) => (
+                    <div
+                      key={doc?.id}
+                      className="glass-card rounded-xl border border-white/10 px-3 py-2 flex items-center justify-between gap-3 shadow-glass-depth transition-all hover:border-white/15"
+                    >
+                      {/* Left: Icon & Info */}
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="h-[28px] w-[28px] flex items-center justify-center rounded-lg bg-white/5 border border-white/10 text-gold-accent shrink-0">
+                          <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>description</span>
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[10.5px] font-bold text-white/95 truncate" title={resolveDocumentTypeLabel(doc?.jenisDokumen)}>
+                            {resolveDocumentTypeLabel(doc?.jenisDokumen)}
+                          </p>
+                          <p className="text-[8px] font-medium text-white/40 mt-0.5 truncate">
+                            {doc?.nomorDokumen ? `${doc.nomorDokumen} · ` : ''}{formatDate(doc?.tanggalDokumen)}
+                          </p>
+                        </div>
+                      </div>
+                      {/* Right: Actions */}
+                      <div className="flex items-center gap-2 shrink-0">
+                        {isOpenableFileUrl(doc?.fileUrl) ? (
+                          <button
+                            onClick={() => window.open(doc.fileUrl, '_blank')}
+                            className="inline-flex items-center gap-1 text-emerald-400 hover:text-white font-bold text-[8.5px] leading-none uppercase tracking-wider bg-emerald-500/10 border border-emerald-500/20 px-2 py-1.5 rounded-md transition-all active:scale-95"
+                          >
+                            <span className="material-symbols-outlined" style={{ fontSize: '11px' }}>description</span>
+                            Buka
+                          </button>
+                        ) : (
+                          <span className="text-[8.5px] font-black uppercase tracking-widest text-white/20">Kosong</span>
+                        )}
+                        {!isIsp && (
+                          <div className="flex items-center gap-1 border-l border-white/10 pl-2">
+                            <button className="w-6 h-6 flex items-center justify-center rounded-md bg-white/5 border border-white/10 text-gold-accent hover:bg-gold-accent hover:text-white transition-all">
+                              <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>edit_note</span>
+                            </button>
                           </div>
                         )}
-                        {filteredAndSortedDocs.map((doc) => (
-                          <div
-                            key={doc?.id}
-                            className="glass-card rounded-xl border border-white/10 px-3 py-2 flex items-center justify-between gap-3 shadow-glass-depth transition-all hover:border-white/15"
-                          >
-                            {/* Left: Icon & Info */}
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <div className="h-[28px] w-[28px] flex items-center justify-center rounded-lg bg-white/5 border border-white/10 text-gold-accent shrink-0">
-                                <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>description</span>
-                              </div>
-                              <div className="min-w-0">
-                                <p className="text-[10.5px] font-bold text-white/95 truncate" title={resolveDocumentTypeLabel(doc?.jenisDokumen)}>
-                                  {resolveDocumentTypeLabel(doc?.jenisDokumen)}
-                                </p>
-                                <p className="text-[8px] font-medium text-white/40 mt-0.5 truncate">
-                                  {doc?.nomorDokumen ? `${doc.nomorDokumen} · ` : ''}{formatDate(doc?.tanggalDokumen)}
-                                </p>
-                              </div>
-                            </div>
-                            {/* Right: Actions */}
-                            <div className="flex items-center gap-2 shrink-0">
-                              {isOpenableFileUrl(doc?.fileUrl) ? (
-                                <button
-                                  onClick={() => window.open(doc.fileUrl, '_blank')}
-                                  className="inline-flex items-center gap-1 text-emerald-400 hover:text-white font-bold text-[8.5px] leading-none uppercase tracking-wider bg-emerald-500/10 border border-emerald-500/20 px-2 py-1.5 rounded-md transition-all active:scale-95"
-                                >
-                                  <span className="material-symbols-outlined" style={{ fontSize: '11px' }}>description</span>
-                                  Buka
-                                </button>
-                              ) : (
-                                <span className="text-[8.5px] font-black uppercase tracking-widest text-white/20">Kosong</span>
-                              )}
-                              {!isIsp && (
-                                <div className="flex items-center gap-1 border-l border-white/10 pl-2">
-                                  <button className="w-6 h-6 flex items-center justify-center rounded-md bg-white/5 border border-white/10 text-gold-accent hover:bg-gold-accent hover:text-white transition-all">
-                                    <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>edit_note</span>
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </>
-                    );
-                  })()}
+                      </div>
+                    </div>
+                  ))}
                 </div>
+
+                {/* Pagination */}
+                {filteredAndSortedDocs.length > 10 && (
+                  <div className="mt-auto flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-white/10 pt-4">
+                    <div className="flex items-center justify-between w-full sm:w-auto gap-3">
+                      <div className="relative z-[60] w-12">
+                        <div className="relative group h-8 rounded-lg bg-white/5 border border-white/10 focus-within:border-gold-accent/40 focus-within:bg-black/40 transition-all backdrop-blur-md">
+                          <CustomDropdown
+                            value={tenantDocItemsPerPage}
+                            onChange={(val) => setTenantDocItemsPerPage(Number(val))}
+                            options={[10, 20, 50, 100].map(n => ({ value: n, label: String(n) }))}
+                            triggerClass="text-[8px] font-black uppercase tracking-widest text-white/50 group-hover:text-white px-3 cursor-pointer text-center"
+                            position="top"
+                            hideArrow={true}
+                            itemAlign="center"
+                            menuWidth="min-w-[60px]"
+                          />
+                        </div>
+                      </div>
+                      <p className="text-[8px] font-black uppercase tracking-widest text-white/30 hidden sm:block">
+                        {filteredAndSortedDocs.length === 0 ? 0 : tenantDocStartIndex + 1}–{Math.min(tenantDocStartIndex + tenantDocItemsPerPage, filteredAndSortedDocs.length)} dari {filteredAndSortedDocs.length}
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-between w-full sm:w-auto gap-1.5">
+                      <button
+                        className="flex h-8 items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-3 text-[8px] font-black uppercase tracking-widest text-white/50 transition-all hover:bg-white/10 hover:text-white disabled:opacity-30 backdrop-blur-md"
+                        type="button" disabled={tenantDocCurrentPage <= 1} onClick={() => handleTenantDocPageChange(Math.max(1, tenantDocCurrentPage - 1))}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>chevron_left</span> <span className="hidden sm:inline">Prev</span>
+                      </button>
+                      
+                      <div 
+                        ref={tenantDocPaginationRef}
+                        onScroll={handleTenantDocPaginationScroll}
+                        className="flex items-center gap-1.5 w-[96px] justify-start overflow-x-auto overflow-y-hidden snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden" 
+                        style={{ scrollbarWidth: 'none' }}
+                      >
+                        <div className="shrink-0 w-7 h-7 snap-center pointer-events-none opacity-0"></div>
+
+                        {tenantDocPageNumbers.map((page) => {
+                          const distance = Math.abs(tenantDocCurrentPage - page);
+                          const isActive = distance === 0;
+                          
+                          let scaleClass = "scale-100 opacity-100 z-10";
+                          let bgClass = "bg-white/5 border border-white/5 text-white/50 hover:bg-white/10 hover:text-white";
+                          
+                          if (distance === 1) {
+                            scaleClass = "scale-90 opacity-80 z-0";
+                            bgClass = "bg-white/5 border border-white/5 text-white/40 hover:bg-white/10 hover:text-white";
+                          } else if (distance >= 2) {
+                            scaleClass = "scale-75 opacity-40 z-0";
+                            bgClass = "bg-white/5 border border-white/5 text-white/30";
+                          }
+
+                          if (isActive) {
+                            bgClass = "bg-gold-accent text-black shadow-gold-glow";
+                          }
+
+                          return (
+                            <button
+                              key={`page-${page}`}
+                              onClick={() => handleTenantDocPageChange(page)}
+                              className={`snap-center shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-[9px] font-black transition-all duration-300 ease-out transform ${scaleClass} ${bgClass} backdrop-blur-md`}
+                              type="button"
+                            >
+                              {page}
+                            </button>
+                          );
+                        })}
+
+                        <div className="shrink-0 w-7 h-7 snap-center pointer-events-none opacity-0"></div>
+                      </div>
+
+                      <button
+                        className="flex h-8 items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-3 text-[8px] font-black uppercase tracking-widest text-white/50 transition-all hover:bg-white/10 hover:text-white disabled:opacity-30 backdrop-blur-md"
+                        type="button" disabled={tenantDocCurrentPage >= tenantDocTotalPages} onClick={() => handleTenantDocPageChange(Math.min(tenantDocTotalPages, tenantDocCurrentPage + 1))}
+                      >
+                        <span className="hidden sm:inline">Next</span> <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>chevron_right</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </section>
 
@@ -7874,7 +8118,7 @@ function TenantDetailPage({
                   <div className="h-8 w-8 rounded-lg bg-gold-accent/10 border border-gold-accent/20 flex items-center justify-center text-gold-accent backdrop-blur-md">
                     <span className="material-symbols-outlined" style={{ fontSize: "16px" }}>upload</span>
                   </div>
-                  <h3 className="text-[10px] md:text-[11px] font-black uppercase tracking-[0.2em] text-white/60">Registrasi Dokumen Baru</h3>
+                  <h3 className="text-[10px] md:text-[11px] font-black uppercase tracking-[0.2em] text-white/60">Tambah Dokumen Baru</h3>
                 </div>
 
                 <form className="space-y-2.5" onSubmit={handleUploadDocument}>
@@ -7954,7 +8198,7 @@ function TenantDetailPage({
                     disabled={isUploadingDocument}
                     className="w-full h-10 rounded-xl bg-gold-accent text-[#0f141e] text-[10px] font-black uppercase tracking-widest shadow-gold-glow hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50"
                   >
-                    {isUploadingDocument ? "Memproses Unggahan..." : "Daftarkan Dokumen"}
+                    {isUploadingDocument ? "Memproses Unggahan..." : "Tambah Dokumen"}
                   </button>
                 </form>
               </div>

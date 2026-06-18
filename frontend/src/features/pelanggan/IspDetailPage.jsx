@@ -416,9 +416,21 @@ function IspDetailPage({
     const actionPaginationRef = useRef(null);
     const isActionScrollingProgrammatically = useRef(false);
 
+    // Pagination State for Tindak Lanjut ISP
+    const [ispActionCurrentPage, setIspActionCurrentPage] = useState(1);
+    const [ispActionItemsPerPage, setIspActionItemsPerPage] = useState(10);
+    const ispActionPaginationRef = useRef(null);
+    const isIspActionScrollingProgrammatically = useRef(false);
+
     // Filtering & Sorting State for Dokumen Table
     const [docSearch, setDocSearch] = useState("");
     const [docSortMethod, setDocSortMethod] = useState("newest");
+    // Pagination State for Dokumen Table
+    const [docCurrentPage, setDocCurrentPage] = useState(1);
+    const [docItemsPerPage, setDocItemsPerPage] = useState(10);
+    const docPaginationRef = useRef(null);
+    const isDocScrollingProgrammatically = useRef(false);
+
     // Filtering & Sorting State for Kontrak Table
     const [contractSearch, setContractSearch] = useState("");
     const [contractSortMethod, setContractSortMethod] = useState("newest");
@@ -816,6 +828,54 @@ function IspDetailPage({
         return result;
     }, [risalahRows, docSearch, docSortMethod]);
 
+    useEffect(() => { setDocCurrentPage(1); }, [docSearch, docSortMethod, docItemsPerPage]);
+
+    const docTotalPages = Math.max(1, Math.ceil(filteredDocs.length / docItemsPerPage));
+    const docStartIndex = (docCurrentPage - 1) * docItemsPerPage;
+    const paginatedDocs = filteredDocs.slice(docStartIndex, docStartIndex + docItemsPerPage);
+
+    const handleDocPageChange = (newPage) => {
+        if (newPage >= 1 && newPage <= docTotalPages) {
+            setDocCurrentPage(newPage);
+            if (docPaginationRef.current) {
+                isDocScrollingProgrammatically.current = true;
+                const container = docPaginationRef.current;
+                const buttonWidth = 28;
+                const gap = 6;
+                const itemTotalWidth = buttonWidth + gap;
+                const scrollPosition = (newPage - 1) * itemTotalWidth;
+                
+                container.scrollTo({
+                    left: scrollPosition - (container.clientWidth / 2) + (buttonWidth / 2),
+                    behavior: 'smooth'
+                });
+                
+                setTimeout(() => {
+                    isDocScrollingProgrammatically.current = false;
+                }, 400);
+            }
+        }
+    };
+
+    const handleDocPaginationScroll = () => {
+        if (isDocScrollingProgrammatically.current || !docPaginationRef.current) return;
+        
+        const container = docPaginationRef.current;
+        const buttonWidth = 28;
+        const gap = 6;
+        const itemTotalWidth = buttonWidth + gap;
+        
+        const scrollCenter = container.scrollLeft + (container.clientWidth / 2);
+        const closestIndex = Math.round((scrollCenter - (buttonWidth / 2)) / itemTotalWidth);
+        
+        const newPage = Math.max(1, Math.min(closestIndex + 1, docTotalPages));
+        if (newPage !== docCurrentPage) {
+            setDocCurrentPage(newPage);
+        }
+    };
+
+    const docPageNumbers = Array.from({ length: docTotalPages }, (_, i) => i + 1);
+
     // Filtered & Sorted Contracts
     const filteredContracts = useMemo(() => {
         let result = [...contractRows];
@@ -899,6 +959,36 @@ function IspDetailPage({
         }
         return pages;
     }, [actionTotalPages]);
+
+    const ispActionTotalPages = Math.max(1, Math.ceil(ispActionItems.length / ispActionItemsPerPage));
+    const ispActionStartIndex = (ispActionCurrentPage - 1) * ispActionItemsPerPage;
+    const paginatedIspActionItems = ispActionItems.slice(ispActionStartIndex, ispActionStartIndex + ispActionItemsPerPage);
+
+    const handleIspActionPaginationScroll = useCallback((e) => {
+        if (isIspActionScrollingProgrammatically.current) return;
+        const scrollLeft = e.target.scrollLeft;
+        const page = Math.round(scrollLeft / 34) + 1;
+        if (page >= 1 && page <= ispActionTotalPages && page !== ispActionCurrentPage) {
+            setIspActionCurrentPage(page);
+        }
+    }, [ispActionCurrentPage, ispActionTotalPages]);
+
+    const handleIspActionPageChange = useCallback((page) => {
+        isIspActionScrollingProgrammatically.current = true;
+        setIspActionCurrentPage(page);
+        if (ispActionPaginationRef.current) {
+            ispActionPaginationRef.current.scrollTo({ left: (page - 1) * 34, behavior: 'smooth' });
+        }
+        setTimeout(() => { isIspActionScrollingProgrammatically.current = false; }, 400);
+    }, []);
+
+    const ispActionPageNumbers = useMemo(() => {
+        const pages = [];
+        for (let i = 1; i <= ispActionTotalPages; i++) {
+            pages.push(i);
+        }
+        return pages;
+    }, [ispActionTotalPages]);
 
     const ispName = detail?.name ?? isp.name;
     const contractSummary = useMemo(
@@ -2123,12 +2213,23 @@ function IspDetailPage({
 
                 {/* 3. CONTENT AREA */}
                 {isLoading ? (
-                    <div className="rounded-premium bg-white/5 border border-white/10 p-32 text-center space-y-6 backdrop-blur-xl shadow-glass-depth">
-                        <div className="relative w-20 h-20 mx-auto">
-                            <div className="absolute inset-0 border-4 border-gold-accent/20 rounded-full"></div>
-                            <div className="absolute inset-0 border-4 border-t-gold-accent rounded-full animate-spin"></div>
+                    <div className="py-32 px-6 text-center relative overflow-hidden flex flex-col items-center justify-center">
+                        <div className="relative flex items-center justify-center h-24 w-24 mb-6">
+                            <div className="absolute inset-0 bg-gold-accent/10 rounded-full blur-xl animate-pulse"></div>
+                            <div className="absolute inset-0 rounded-full border-2 border-white/5 border-t-gold-accent/80 animate-[spin_1.5s_linear_infinite]"></div>
+                            <div className="absolute inset-2 rounded-full border-2 border-white/5 border-b-gold-accent/60 animate-[spin_2s_linear_infinite_reverse]"></div>
+                            <div className="h-10 w-10 flex items-center justify-center relative z-10">
+                                <img alt="Kima" className="h-6 w-6 object-contain animate-[pulse_2s_ease-in-out_infinite]" src="/logo-kima.png" />
+                            </div>
                         </div>
-                        <p className="text-[10px] font-bold text-gold-accent animate-pulse">Menyelaraskan Detail ISP</p>
+                        <div className="flex flex-col items-center gap-2">
+                            <p className="text-[11px] font-black uppercase tracking-[0.3em] text-white">Menyelaraskan Data</p>
+                            <div className="flex items-center gap-1.5 opacity-50">
+                                <div className="w-1 h-1 rounded-full bg-gold-accent animate-ping" style={{ animationDelay: '0ms' }}></div>
+                                <div className="w-1 h-1 rounded-full bg-gold-accent animate-ping" style={{ animationDelay: '150ms' }}></div>
+                                <div className="w-1 h-1 rounded-full bg-gold-accent animate-ping" style={{ animationDelay: '300ms' }}></div>
+                            </div>
+                        </div>
                     </div>
                 ) : (
                     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -2259,7 +2360,8 @@ function IspDetailPage({
                                                 {ispActionItems.length === 0 ? (
                                                     <p className="text-xs font-bold text-white/20 italic p-8 text-center border border-dashed border-white/10 rounded-2xl">Tidak ada tindak lanjut administrasi ISP.</p>
                                                 ) : (
-                                                    ispActionItems.map((item) => {
+                                                    <>
+                                                        {paginatedIspActionItems.map((item) => {
                                                         const severityToneMap = {
                                                             critical: "bg-[#ff2400]/10 border-[#ff2400]/20 text-[#ff2400]",
                                                             warning: "bg-amber-500/10 border-amber-500/20 text-amber-400",
@@ -2304,7 +2406,78 @@ function IspDetailPage({
                                                                 <span className="text-[8px] font-bold bg-white/10 px-3 py-1 rounded-full border border-white/10">{actionLabel}</span>
                                                             </div>
                                                         );
-                                                    })
+                                                    })}
+
+                                                    {ispActionItems.length > 10 && (
+                                                        <div className="mt-4 flex items-center justify-between gap-2 border-t border-white/10 pt-3">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="relative z-[50] w-12">
+                                                                    <div className="relative group h-8 rounded-lg bg-white/5 border border-white/10 focus-within:border-gold-accent/40 focus-within:bg-black/40 transition-all backdrop-blur-md">
+                                                                        <CustomDropdown
+                                                                            value={ispActionItemsPerPage}
+                                                                            onChange={(val) => { setIspActionItemsPerPage(Number(val)); setIspActionCurrentPage(1); }}
+                                                                            options={[10, 20, 50, 100].map(n => ({ value: n, label: String(n) }))}
+                                                                            triggerClass="text-[8px] font-black uppercase tracking-widest text-white/50 group-hover:text-white px-3 cursor-pointer text-center"
+                                                                            position="top"
+                                                                            hideArrow={true}
+                                                                            itemAlign="center"
+                                                                            menuWidth="min-w-[60px]"
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                                <p className="text-[8px] font-black uppercase tracking-widest text-white/30 hidden xs:block">
+                                                                    {ispActionStartIndex + 1}–{Math.min(ispActionStartIndex + ispActionItemsPerPage, ispActionItems.length)} dari {ispActionItems.length}
+                                                                </p>
+                                                            </div>
+                                                            <div className="flex items-center gap-1.5 w-full sm:w-auto justify-between sm:justify-end">
+                                                                <button
+                                                                    className="flex h-8 items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-3 text-[8px] font-black uppercase tracking-widest text-white/50 transition-all hover:bg-white/10 hover:text-white disabled:opacity-30 backdrop-blur-md"
+                                                                    type="button" disabled={ispActionCurrentPage <= 1} onClick={() => handleIspActionPageChange(Math.max(1, ispActionCurrentPage - 1))}
+                                                                >
+                                                                    <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>chevron_left</span> Prev
+                                                                </button>
+
+                                                                <div 
+                                                                    ref={ispActionPaginationRef}
+                                                                    onScroll={handleIspActionPaginationScroll}
+                                                                    className="flex items-center gap-1.5 w-[96px] justify-start overflow-x-auto overflow-y-hidden snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden" 
+                                                                    style={{ scrollbarWidth: 'none' }}
+                                                                >
+                                                                    <div className="shrink-0 w-7 h-7 snap-center pointer-events-none opacity-0"></div>
+
+                                                                    {ispActionPageNumbers.map((page) => {
+                                                                        const distance = Math.abs(ispActionCurrentPage - page);
+                                                                        const isActive = distance === 0;
+
+                                                                        let scaleClass = "scale-100 opacity-100 z-10";
+                                                                        if (distance === 1) scaleClass = "scale-90 opacity-70 z-0";
+                                                                        if (distance > 1) scaleClass = "scale-75 opacity-30 -z-10";
+
+                                                                        return (
+                                                                            <button
+                                                                                key={`isp-action-page-${page}`}
+                                                                                onClick={() => handleIspActionPageChange(page)}
+                                                                                className={`shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-black transition-all duration-300 snap-center ${isActive ? "bg-gold-accent text-white shadow-lg shadow-gold-accent/20" : "bg-white/5 text-white/50 hover:bg-white/10 hover:text-white"} ${scaleClass}`}
+                                                                                type="button"
+                                                                            >
+                                                                                {page}
+                                                                            </button>
+                                                                        );
+                                                                    })}
+
+                                                                    <div className="shrink-0 w-7 h-7 snap-center pointer-events-none opacity-0"></div>
+                                                                </div>
+
+                                                                <button
+                                                                    className="flex h-8 items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-3 text-[8px] font-black uppercase tracking-widest text-white/50 transition-all hover:bg-white/10 hover:text-white disabled:opacity-30 backdrop-blur-md"
+                                                                    type="button" disabled={ispActionCurrentPage >= ispActionTotalPages} onClick={() => handleIspActionPageChange(Math.min(ispActionTotalPages, ispActionCurrentPage + 1))}
+                                                                >
+                                                                    Next <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>chevron_right</span>
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </>
                                                 )}
                                             </div>
                                         </div>
@@ -2356,7 +2529,7 @@ function IspDetailPage({
                                                             );
                                                         })}
 
-                                                        {overviewIssues.length > 0 && (
+                                                        {overviewIssues.length > 10 && (
                                                             <div className="mt-4 flex items-center justify-between gap-2 border-t border-white/10 pt-3">
                                                                 <div className="flex items-center gap-3">
                                                                     <div className="relative z-[50] w-12">
@@ -3061,7 +3234,7 @@ function IspDetailPage({
                                         </div>
 
                                         {/* Pagination */}
-                                        {filteredTenants.length > 0 && (
+                                        {filteredTenants.length > 10 && (
                                             <div className="mt-5 flex items-center justify-between gap-2 border-t border-white/10 pt-4">
                                                 <div className="flex items-center gap-3">
                                                     <div className="relative z-[60] w-12">
@@ -3673,7 +3846,7 @@ function IspDetailPage({
                                                                     <span className="material-symbols-outlined text-2xl text-gold-accent/40">history_edu</span>
                                                                 </div>
                                                                 <h4 className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em]">BELUM ADA RINCIAN KONTRAK</h4>
-                                                                <p className="text-[8px] font-bold text-white/20 uppercase tracking-widest mt-1">Rincian kontrak atau adendum belum tersedia</p>
+                                                                <p className="text-[8px] font-bold text-white/20 tracking-widest mt-0.5">Rincian kontrak atau adendum belum tersedia</p>
                                                                 {canManageIspContracts && (
                                                                     <button
                                                                         className="mt-4 rounded-lg bg-gold-accent px-4 py-2 text-[9px] font-black uppercase tracking-widest text-slate-900 shadow-gold-glow active:scale-95 transition-all inline-flex items-center gap-1.5"
@@ -4079,7 +4252,7 @@ function IspDetailPage({
                                                         <span className="material-symbols-outlined text-2xl text-gold-accent/40">history_edu</span>
                                                     </div>
                                                     <h4 className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em]">BELUM ADA RINCIAN KONTRAK</h4>
-                                                    <p className="text-[8px] font-bold text-white/20 uppercase tracking-widest mt-1">Rincian kontrak atau adendum belum tersedia</p>
+                                                    <p className="text-[8px] font-bold text-white/20 tracking-widest mt-0.5">Rincian kontrak atau adendum belum tersedia</p>
                                                     {canManageIspContracts && (
                                                         <button
                                                             className="mt-4 rounded-lg bg-gold-accent px-4 py-2 text-[9px] font-black uppercase tracking-widest text-slate-900 shadow-gold-glow active:scale-95 transition-all inline-flex items-center gap-1.5"
@@ -4178,9 +4351,9 @@ function IspDetailPage({
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-white/10">
-                                                {filteredDocs.map((row, idx) => (
+                                                {paginatedDocs.map((row, idx) => (
                                                     <tr key={row.id} className="hover:bg-white/[0.02] transition-colors group/row">
-                                                        <td className="px-3 py-2.5 text-center text-[11px] font-bold text-white/20 border-r border-white/10">{String(idx + 1).padStart(2, '0')}</td>
+                                                        <td className="px-3 py-2.5 text-center text-[11px] font-bold text-white/20 border-r border-white/10">{String(docStartIndex + idx + 1).padStart(2, '0')}</td>
                                                         <td className="px-3 py-2.5 text-center border-r border-white/10">
                                                             <span className="text-[11px] font-bold text-white">{formatDate(row.tanggal)}</span>
                                                         </td>
@@ -4222,7 +4395,7 @@ function IspDetailPage({
                                                                     <span className="material-symbols-outlined text-2xl text-gold-accent/40">folder_off</span>
                                                                 </div>
                                                                 <h4 className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em]">BELUM ADA DOKUMEN</h4>
-                                                                <p className="text-[8px] font-bold text-white/20 uppercase tracking-widest mt-1">Silakan tambahkan dokumen administratif baru</p>
+                                                                <p className="text-[8px] font-bold text-white/20 tracking-widest mt-0.5">Silakan tambahkan dokumen administratif baru</p>
                                                             </div>
                                                         </td>
                                                     </tr>
@@ -4231,9 +4404,91 @@ function IspDetailPage({
                                         </table>
                                     </div>
 
+                                    {/* Pagination */}
+                                    {filteredDocs.length > 10 && (
+                                        <div className="hidden xl:flex mt-3 items-center justify-between gap-2 border-t border-white/10 pt-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="relative z-[60] w-12">
+                                                    <div className="relative group h-8 rounded-lg bg-white/5 border border-white/10 focus-within:border-gold-accent/40 focus-within:bg-black/40 transition-all backdrop-blur-md">
+                                                        <CustomDropdown
+                                                            value={docItemsPerPage}
+                                                            onChange={(val) => setDocItemsPerPage(Number(val))}
+                                                            options={[10, 20, 50, 100].map(n => ({ value: n, label: String(n) }))}
+                                                            triggerClass="text-[8px] font-black uppercase tracking-widest text-white/50 group-hover:text-white px-3 cursor-pointer text-center"
+                                                            position="top"
+                                                            hideArrow={true}
+                                                            itemAlign="center"
+                                                            menuWidth="min-w-[60px]"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <p className="text-[8px] font-black uppercase tracking-widest text-white/30">
+                                                    {filteredDocs.length === 0 ? 0 : docStartIndex + 1}–{Math.min(docStartIndex + docItemsPerPage, filteredDocs.length)} dari {filteredDocs.length}
+                                                </p>
+                                            </div>
+                                            <div className="flex items-center gap-1.5">
+                                                <button
+                                                    className="flex h-8 items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-3 text-[8px] font-black uppercase tracking-widest text-white/50 transition-all hover:bg-white/10 hover:text-white disabled:opacity-30 backdrop-blur-md"
+                                                    type="button" disabled={docCurrentPage <= 1} onClick={() => handleDocPageChange(Math.max(1, docCurrentPage - 1))}
+                                                >
+                                                    <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>chevron_left</span> Prev
+                                                </button>
+                                                
+                                                <div 
+                                                    ref={docPaginationRef}
+                                                    onScroll={handleDocPaginationScroll}
+                                                    className="flex items-center gap-1.5 w-[96px] justify-start overflow-x-auto overflow-y-hidden snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden" 
+                                                    style={{ scrollbarWidth: 'none' }}
+                                                >
+                                                    <div className="shrink-0 w-7 h-7 snap-center pointer-events-none opacity-0"></div>
+
+                                                    {docPageNumbers.map((page) => {
+                                                        const distance = Math.abs(docCurrentPage - page);
+                                                        const isActive = distance === 0;
+                                                        
+                                                        let scaleClass = "scale-100 opacity-100 z-10";
+                                                        let bgClass = "bg-white/5 border border-white/5 text-white/50 hover:bg-white/10 hover:text-white";
+                                                        
+                                                        if (distance === 1) {
+                                                            scaleClass = "scale-90 opacity-80 z-0";
+                                                            bgClass = "bg-white/5 border border-white/5 text-white/40 hover:bg-white/10 hover:text-white";
+                                                        } else if (distance >= 2) {
+                                                            scaleClass = "scale-75 opacity-40 z-0";
+                                                            bgClass = "bg-white/5 border border-white/5 text-white/30";
+                                                        }
+
+                                                        if (isActive) {
+                                                            bgClass = "bg-gold-accent text-black shadow-gold-glow";
+                                                        }
+
+                                                        return (
+                                                            <button
+                                                                key={`page-${page}`}
+                                                                onClick={() => handleDocPageChange(page)}
+                                                                className={`snap-center shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-[9px] font-black transition-all duration-300 ease-out transform ${scaleClass} ${bgClass} backdrop-blur-md`}
+                                                                type="button"
+                                                            >
+                                                                {page}
+                                                            </button>
+                                                        );
+                                                    })}
+
+                                                    <div className="shrink-0 w-7 h-7 snap-center pointer-events-none opacity-0"></div>
+                                                </div>
+
+                                                <button
+                                                    className="flex h-8 items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-3 text-[8px] font-black uppercase tracking-widest text-white/50 transition-all hover:bg-white/10 hover:text-white disabled:opacity-30 backdrop-blur-md"
+                                                    type="button" disabled={docCurrentPage >= docTotalPages} onClick={() => handleDocPageChange(Math.min(docTotalPages, docCurrentPage + 1))}
+                                                >
+                                                    Next <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>chevron_right</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+
                                     {/* Mobile View List */}
                                     <div className="xl:hidden flex flex-col gap-2 mt-2">
-                                        {filteredDocs.map((row) => (
+                                        {paginatedDocs.map((row) => (
                                             <div
                                                 key={row.id}
                                                 className="glass-card rounded-xl border border-white/10 px-3 py-2 flex items-center justify-between gap-3 shadow-glass-depth transition-all"
@@ -4295,6 +4550,89 @@ function IspDetailPage({
                                                         <span className="material-symbols-outlined text-2xl text-gold-accent/40">folder_off</span>
                                                     </div>
                                                     <h4 className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em]">BELUM ADA DOKUMEN</h4>
+                                                    <p className="text-[8px] font-bold text-white/20 tracking-widest mt-0.5 text-center">Silakan tambahkan dokumen administratif baru</p>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Mobile Pagination */}
+                                        {filteredDocs.length > 10 && (
+                                            <div className="mt-2 flex flex-col gap-3 border-t border-white/10 pt-4">
+                                                <div className="flex items-center justify-between w-full">
+                                                    <div className="relative z-[60] w-12">
+                                                        <div className="relative group h-8 rounded-lg bg-white/5 border border-white/10 focus-within:border-gold-accent/40 focus-within:bg-black/40 transition-all backdrop-blur-md">
+                                                            <CustomDropdown
+                                                                value={docItemsPerPage}
+                                                                onChange={(val) => setDocItemsPerPage(Number(val))}
+                                                                options={[10, 20, 50, 100].map(n => ({ value: n, label: String(n) }))}
+                                                                triggerClass="text-[8px] font-black uppercase tracking-widest text-white/50 group-hover:text-white px-3 cursor-pointer text-center"
+                                                                position="top"
+                                                                hideArrow={true}
+                                                                itemAlign="center"
+                                                                menuWidth="min-w-[60px]"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <p className="text-[8px] font-black uppercase tracking-widest text-white/30">
+                                                        {filteredDocs.length === 0 ? 0 : docStartIndex + 1}–{Math.min(docStartIndex + docItemsPerPage, filteredDocs.length)} dari {filteredDocs.length}
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-center justify-between w-full">
+                                                    <button
+                                                        className="flex h-8 items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-3 text-[8px] font-black uppercase tracking-widest text-white/50 transition-all hover:bg-white/10 hover:text-white disabled:opacity-30 backdrop-blur-md"
+                                                        type="button" disabled={docCurrentPage <= 1} onClick={() => handleDocPageChange(Math.max(1, docCurrentPage - 1))}
+                                                    >
+                                                        <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>chevron_left</span>
+                                                    </button>
+                                                    
+                                                    <div 
+                                                        ref={docPaginationRef}
+                                                        onScroll={handleDocPaginationScroll}
+                                                        className="flex items-center gap-1 w-[120px] justify-start overflow-x-auto overflow-y-hidden snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden" 
+                                                        style={{ scrollbarWidth: 'none' }}
+                                                    >
+                                                        <div className="shrink-0 w-7 h-7 snap-center pointer-events-none opacity-0"></div>
+
+                                                        {docPageNumbers.map((page) => {
+                                                            const distance = Math.abs(docCurrentPage - page);
+                                                            const isActive = distance === 0;
+                                                            
+                                                            let scaleClass = "scale-100 opacity-100 z-10";
+                                                            let bgClass = "bg-white/5 border border-white/5 text-white/50 hover:bg-white/10 hover:text-white";
+                                                            
+                                                            if (distance === 1) {
+                                                                scaleClass = "scale-90 opacity-80 z-0";
+                                                                bgClass = "bg-white/5 border border-white/5 text-white/40 hover:bg-white/10 hover:text-white";
+                                                            } else if (distance >= 2) {
+                                                                scaleClass = "scale-75 opacity-40 z-0";
+                                                                bgClass = "bg-white/5 border border-white/5 text-white/30";
+                                                            }
+
+                                                            if (isActive) {
+                                                                bgClass = "bg-gold-accent text-black shadow-gold-glow";
+                                                            }
+
+                                                            return (
+                                                                <button
+                                                                    key={`page-${page}`}
+                                                                    onClick={() => handleDocPageChange(page)}
+                                                                    className={`snap-center shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-[9px] font-black transition-all duration-300 ease-out transform ${scaleClass} ${bgClass} backdrop-blur-md`}
+                                                                    type="button"
+                                                                >
+                                                                    {page}
+                                                                </button>
+                                                            );
+                                                        })}
+
+                                                        <div className="shrink-0 w-7 h-7 snap-center pointer-events-none opacity-0"></div>
+                                                    </div>
+
+                                                    <button
+                                                        className="flex h-8 items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-3 text-[8px] font-black uppercase tracking-widest text-white/50 transition-all hover:bg-white/10 hover:text-white disabled:opacity-30 backdrop-blur-md"
+                                                        type="button" disabled={docCurrentPage >= docTotalPages} onClick={() => handleDocPageChange(Math.min(docTotalPages, docCurrentPage + 1))}
+                                                    >
+                                                        <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>chevron_right</span>
+                                                    </button>
                                                 </div>
                                             </div>
                                         )}
