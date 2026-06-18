@@ -2081,14 +2081,14 @@ function TenantDetailPage({
     }
   }
 
-  const displayPriorityTodos = [
+  const displayPriorityTodos = useMemo(() => [
     ...backendPriorityTodos,
     ...derivedPriorityTodos,
-  ];
-  const displayNeedActionTodos = [
+  ], [backendPriorityTodos, derivedPriorityTodos]);
+  const displayNeedActionTodos = useMemo(() => [
     ...backendNeedActionTodos,
     ...derivedNeedActionTodos,
-  ];
+  ], [backendNeedActionTodos, derivedNeedActionTodos]);
   const totalActionItems = getCustomerDisplayActionSummary(detail ?? customer, {
     todayIso,
     emptyContractNumberRows,

@@ -246,7 +246,8 @@ export default function AppShell({
                     </div>
                     <div className="flex flex-col items-center gap-2">
                         <h3 className="text-[11px] font-black text-white tracking-[0.3em] uppercase">Mengakhiri Sesi</h3>
-                        <div className="flex items-center gap-1.5 opacity-50">
+                        <p className="text-[10px] font-bold text-white/40 tracking-wider text-center">Menyiapkan keluar dan memuat ulang halaman login...</p>
+                        <div className="flex items-center gap-1.5 opacity-50 mt-1">
                             <div className="w-1 h-1 rounded-full bg-gold-accent animate-ping" style={{ animationDelay: '0ms' }}></div>
                             <div className="w-1 h-1 rounded-full bg-gold-accent animate-ping" style={{ animationDelay: '150ms' }}></div>
                             <div className="w-1 h-1 rounded-full bg-gold-accent animate-ping" style={{ animationDelay: '300ms' }}></div>
@@ -267,7 +268,8 @@ export default function AppShell({
                     </div>
                     <div className="flex flex-col items-center gap-2">
                         <h3 className="text-[11px] font-black text-white tracking-[0.3em] uppercase">{pageTransitionTitle}</h3>
-                        <div className="flex items-center gap-1.5 opacity-50">
+                        <p className="text-[10px] font-bold text-white/40 tracking-wider text-center">{pageTransitionDescription}</p>
+                        <div className="flex items-center gap-1.5 opacity-50 mt-1">
                             <div className="w-1 h-1 rounded-full bg-gold-accent animate-ping" style={{ animationDelay: '0ms' }}></div>
                             <div className="w-1 h-1 rounded-full bg-gold-accent animate-ping" style={{ animationDelay: '150ms' }}></div>
                             <div className="w-1 h-1 rounded-full bg-gold-accent animate-ping" style={{ animationDelay: '300ms' }}></div>
