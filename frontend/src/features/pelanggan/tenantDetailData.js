@@ -9,4 +9,5 @@ export const tenantDetailData = Object.freeze({
   customerRoutes: api.customerRoutes,
   invoiceFollowUps: api.invoiceFollowUps,
   contractVersionRenewalFollowUps: api.contractVersionRenewalFollowUps,
+  activityLogs: api.activityLogs,
 });

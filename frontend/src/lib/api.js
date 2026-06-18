@@ -1222,7 +1222,7 @@ const notificationsApi = {
 };
 
 const activityLogsApi = {
-  async list({ search = '', entityType = '', action = '', dateFrom = '', dateTo = '', limit = 100 } = {}) {
+  async list({ search = '', entityType = '', entityId = '', action = '', dateFrom = '', dateTo = '', limit = 100 } = {}) {
     let query = supabase
       .from('activity_logs')
       .select('*')
@@ -1230,6 +1230,7 @@ const activityLogsApi = {
       .limit(limit);
 
     if (entityType) query = query.eq('entity_type', entityType);
+    if (entityId) query = query.eq('entity_id', entityId);
     if (action) query = query.eq('action', action);
     if (dateFrom) query = query.gte('created_at', `${dateFrom}T00:00:00.000Z`);
     if (dateTo) query = query.lte('created_at', `${dateTo}T23:59:59.999Z`);

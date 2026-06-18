@@ -780,10 +780,19 @@ function TenantDetailPage({
   const loadDetail = useCallback(async () => {
     setError("");
     try {
-      const detailResult = await tenantDetailData.customers.getById(customer.id);
+      const [detailResult, timelineResult] = await Promise.all([
+        tenantDetailData.customers.getById(customer.id),
+        tenantDetailData.activityLogs.list({
+          entityType: 'customer',
+          entityId: customer.id,
+          limit: 100
+        }).catch(err => {
+          console.error("Gagal memuat timeline:", err);
+          return [];
+        })
+      ]);
       setDetail(detailResult ?? null);
-      // TODO: Implement timeline API
-      setTimeline([]);
+      setTimeline(timelineResult ?? []);
     } catch (requestError) {
       setError(
         requestError instanceof Error
