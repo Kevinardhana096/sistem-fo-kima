@@ -64,7 +64,10 @@ export default function LeafletRenderStabilizer({
     intersectionObserver?.observe(container);
 
     const handleWindowResize = () => invalidate(true);
-    const handleTransitionEnd = () => invalidate(true);
+    const handleTransitionEnd = (event) => {
+      if (event.target !== container) return;
+      invalidate(true);
+    };
     const handleZoomSettled = () => {
       invalidate();
       if (zoomSettleTimer) {
