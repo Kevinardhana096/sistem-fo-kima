@@ -1914,7 +1914,7 @@ function App() {
     };
 
     const content = renderRouteContent();
-    const needsAppShell = !["login", "admin-register", "redirect", "monitoring-fullscreen", "customer-jalur-fullscreen"].includes(route.type);
+    const needsAppShell = !["login", "admin-register", "redirect", "monitoring-fullscreen", "customer-jalur-fullscreen", "customer-jalur-planner"].includes(route.type);
 
     if (needsAppShell) {
         return (

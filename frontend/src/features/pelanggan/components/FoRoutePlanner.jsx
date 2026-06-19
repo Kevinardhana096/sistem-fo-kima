@@ -1766,7 +1766,7 @@ export default function FoRoutePlanner({
   }
 
   return (
-    <section className="relative h-full w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-900 text-on-surface shadow-lg">
+    <section className="relative h-full w-full overflow-hidden bg-slate-900 text-on-surface">
       <ToastStack onDismiss={dismissToast} toasts={toasts} />
 
       {/* Background Map - Fills entire container */}
