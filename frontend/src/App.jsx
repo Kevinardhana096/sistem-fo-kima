@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 import AppShell from "./components/layout/AppShell";
 import { sectionMeta } from "./app/constants";
 import { mapCustomerToRow } from "./app/utils";
-import { signOut, supabase } from "./lib/supabase";
+import { getStoredSessionSnapshot, isNetworkError, signOut, supabase } from "./lib/supabase";
 import api from "./lib/api";
 import { APP_NAVIGATION_EVENT } from "./app/navigation-events";
 import {
@@ -295,7 +295,7 @@ function getLandingPathForRole(roleKey, paths, user, resolvedIspId = null) {
 
 function App() {
     const [currentRole, setCurrentRole] = useState(() => getStoredRole());
-    const [authSession, setAuthSession] = useState(null);
+    const [authSession, setAuthSession] = useState(() => getStoredSessionSnapshot());
     const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
     const appPaths = useMemo(() => getAppPaths(currentRole), [currentRole]);
     const [locationState, setLocationState] = useState(() => ({
@@ -394,7 +394,13 @@ function App() {
             .then(({ data }) => {
                 applySession(data?.session ?? null);
             })
-            .catch(() => {
+            .catch((error) => {
+                if (isNetworkError(error)) {
+                    console.warn("Pengecekan sesi tertunda karena gangguan koneksi:", error);
+                    applySession(getStoredSessionSnapshot());
+                    return;
+                }
+
                 applySession(null);
             })
             .finally(() => {

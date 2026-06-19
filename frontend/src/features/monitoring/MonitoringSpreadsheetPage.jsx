@@ -1458,9 +1458,18 @@ function MonitoringSpreadsheetPage({
                 )}
                 {error && (
                     <div className="shrink-0 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-6 py-2.5 text-sm font-bold text-rose-400 backdrop-blur-md">
-                        <div className="flex items-center gap-3">
+                        <div className="flex flex-wrap items-center gap-3">
                             <span className="material-symbols-outlined" style={{ fontSize: "16px" }}>warning</span>
-                            {error}
+                            <span>{error}</span>
+                            <button
+                                type="button"
+                                onClick={handleRefreshMonitoring}
+                                disabled={isLoading}
+                                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-rose-300/30 bg-rose-300/10 px-3 text-[10px] font-black uppercase tracking-widest text-rose-100 transition-all hover:bg-rose-300/20 disabled:opacity-60"
+                            >
+                                <span className={`material-symbols-outlined text-sm ${isLoading ? "animate-spin" : ""}`}>sync</span>
+                                Coba Lagi
+                            </button>
                         </div>
                     </div>
                 )}
@@ -1527,8 +1536,17 @@ function MonitoringSpreadsheetPage({
                 </header>
 
                 {error && (
-                    <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-                        {error}
+                    <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                        <span>{error}</span>
+                        <button
+                            type="button"
+                            onClick={handleRefreshMonitoring}
+                            disabled={isLoading}
+                            className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 text-[10px] font-black uppercase tracking-widest text-red-700 transition-all hover:bg-red-100 disabled:opacity-60"
+                        >
+                            <span className={`material-symbols-outlined text-sm ${isLoading ? "animate-spin" : ""}`}>sync</span>
+                            Coba Lagi
+                        </button>
                     </div>
                 )}
 

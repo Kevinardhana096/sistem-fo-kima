@@ -498,7 +498,8 @@ function CustomerWorkspacePage({
 
                 {/* 2. ERROR STATE */}
                 {(error || secondaryError) && (
-                    <div className="rounded-premium bg-red-500/10 border border-red-500/20 p-8 flex items-center gap-6 animate-in fade-in slide-in-from-top-4 backdrop-blur-md">
+                    <div className="rounded-premium bg-red-500/10 border border-red-500/20 p-8 flex flex-col gap-5 animate-in fade-in slide-in-from-top-4 backdrop-blur-md sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex items-center gap-6">
                         <div className="w-14 h-14 rounded-2xl bg-red-500/20 flex items-center justify-center text-red-500 backdrop-blur-md">
                             <span className="material-symbols-outlined text-3xl">report</span>
                         </div>
@@ -506,6 +507,16 @@ function CustomerWorkspacePage({
                             <h4 className="text-sm font-black text-white uppercase tracking-widest mb-1">Terjadi Gangguan Sistem</h4>
                             <p className="text-xs font-bold text-red-200/60 uppercase tracking-wider">{error || secondaryError}</p>
                         </div>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => void onRefresh?.()}
+                            disabled={isLoading}
+                            className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-red-300/20 bg-red-300/10 px-4 text-[10px] font-black uppercase tracking-widest text-red-100 transition-all hover:bg-red-300/20 disabled:opacity-60"
+                        >
+                            <span className={`material-symbols-outlined text-base ${isLoading ? "animate-spin" : ""}`}>sync</span>
+                            Coba Lagi
+                        </button>
                     </div>
                 )}
 

@@ -3,7 +3,7 @@ import { getSectionPath } from "../../app/routes";
 import { getRoleConfig } from "../../roles";
 import api from "../../lib/api";
 import { requestAppNavigation } from "../../app/navigation-events";
-import { supabase, updateCurrentUserProfile } from "../../lib/supabase";
+import { getStoredSessionSnapshot, isNetworkError, supabase, updateCurrentUserProfile } from "../../lib/supabase";
 import {
     getBrowserNotificationSupport,
     requestBrowserNotificationPermission,
@@ -96,9 +96,18 @@ export default function AppShell({
     useEffect(() => {
         let isActive = true;
 
-        void supabase.auth.getSession().then(({ data }) => {
-            if (isActive) setAuthUser(data?.session?.user ?? null);
-        });
+        void supabase.auth.getSession()
+            .then(({ data }) => {
+                if (isActive) setAuthUser(data?.session?.user ?? null);
+            })
+            .catch((error) => {
+                if (!isActive) return;
+                if (isNetworkError(error)) {
+                    setAuthUser(getStoredSessionSnapshot()?.user ?? null);
+                    return;
+                }
+                setAuthUser(null);
+            });
 
         const { data: authListener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
             setAuthUser(nextSession?.user ?? null);

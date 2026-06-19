@@ -1964,131 +1964,153 @@ function TenantDetailPage({
     ? Boolean(emptyBakRows[activeContractRowId])
     : false;
 
-  const backendPriorityTodos = Array.isArray(todoSummary.priority)
-    ? todoSummary.priority.filter(
-      (item) => item.code !== "required_document_missing",
-    )
-    : [];
-  const backendNeedActionTodos = Array.isArray(todoSummary.needAction)
-    ? todoSummary.needAction.filter(
-      (item) =>
-        ![
-          "required_document_missing",
-          "invoice_not_uploaded",
-          "payment_pending",
-          "invoice_amount_missing",
-        ].includes(item.code),
-    )
-    : [];
+  const backendPriorityTodos = useMemo(() => (
+    Array.isArray(todoSummary.priority)
+      ? todoSummary.priority.filter(
+        (item) => item.code !== "required_document_missing",
+      )
+      : []
+  ), [todoSummary.priority]);
+  const backendNeedActionTodos = useMemo(() => (
+    Array.isArray(todoSummary.needAction)
+      ? todoSummary.needAction.filter(
+        (item) =>
+          ![
+            "required_document_missing",
+            "invoice_not_uploaded",
+            "payment_pending",
+            "invoice_amount_missing",
+          ].includes(item.code),
+      )
+      : []
+  ), [todoSummary.needAction]);
 
-  const derivedPriorityTodos = [];
+  const derivedPriorityTodos = useMemo(() => [], []);
 
-  const derivedNeedActionTodos = [];
-  if (setupIncompleteCount > 0) {
-    derivedNeedActionTodos.push({
-      id: "derived-setup-incomplete",
-      code: "invoice_setup_incomplete",
-      title: "Lengkapi set date dan jumlah dibayar",
-      message: `Set date (terakhir pembayaran) dan jumlah dibayar belum diisi pada ${setupIncompleteCount} pembayaran.`,
-      dueDate: null,
-    });
-  }
-
-  if (!activationFeePaidAt) {
-    derivedNeedActionTodos.push({
-      id: `derived-activation-unpaid-${customer.id}`,
-      code: "activation_fee_unpaid_local",
-      title: "Biaya aktivasi belum dibayar",
-      message: `Biaya aktivasi masih outstanding sebesar ${formatCurrency(activationFeeAmount)}.`,
-      dueDate: null,
-    });
-  }
-
-  if (nextActionMeta) {
-    derivedNeedActionTodos.push({
-      id: `derived-next-action-${nextActionInvoice?.id ?? "none"}`,
-      code: "invoice_next_action",
-      title: nextActionMeta.title,
-      message: nextActionMeta.message,
-      dueDate: nextActionMeta.dueDate,
-    });
-  }
-
-  if (contract && !hasContractNumberValue && !isContractNumberExplicitlyEmpty) {
-    derivedNeedActionTodos.push({
-      id: `derived-contract-number-missing-${customer.id}`,
-      code: "contract_number_missing_local",
-      title: "Nomor kontrak belum diisi",
-      message:
-        "Isi nomor kontrak lokasi atau tandai memang kosong jika datanya memang tidak ada.",
-      dueDate: null,
-    });
-  }
-
-  if (contract && !hasActiveContractFile) {
-    derivedNeedActionTodos.push({
-      id: `derived-contract-file-missing-${customer.id}`,
-      code: "contract_file_missing_local",
-      title: "Berkas kontrak belum diunggah",
-      message: "Upload berkas kontrak agar arsip legal lokasi lengkap.",
-      dueDate: null,
-    });
-  }
-
-  if (contract && !hasActiveBakFile && !isBakExplicitlyEmpty) {
-    derivedNeedActionTodos.push({
-      id: `derived-bak-missing-${customer.id}`,
-      code: "bak_missing_local",
-      title: "BAK belum tersedia",
-      message: "Upload Berita Acara Koneksi/BAK atau tandai tidak perlu jika tidak diwajibkan.",
-      dueDate: null,
-    });
-  }
-
-  // Contract renewal warnings (H-3, H-2, H-1 months)
-  if (activeContractRenewalMeta?.periodEnd && Number.isFinite(activeContractRenewalMeta.daysUntilEnd)) {
-    const {
-      daysUntilEnd,
-      hasRenewalUpload,
-      hasResponse,
-      periodEnd,
-      versionId,
-    } = activeContractRenewalMeta;
-    const renewalIdSuffix = versionId ? `version-${versionId}` : `contract-${activeContractRenewalMeta.contractId ?? customer.id}`;
-
-    // H-3 months warning (90 days before end)
-    if (daysUntilEnd <= 90 && daysUntilEnd > 60 && !hasRenewalUpload) {
-      derivedNeedActionTodos.push({
-        id: `derived-renewal-h3-${customer.id}-${renewalIdSuffix}`,
-        code: "renewal_h3_warning",
-        title: "Kontrak akan berakhir dalam 3 bulan",
-        message: `Kontrak akan berakhir dalam ${daysUntilEnd} hari (H-3 bulan). Segera buat dan upload surat perpanjangan kontrak.`,
-        dueDate: periodEnd,
+  const derivedNeedActionTodos = useMemo(() => {
+    const todos = [];
+    if (setupIncompleteCount > 0) {
+      todos.push({
+        id: "derived-setup-incomplete",
+        code: "invoice_setup_incomplete",
+        title: "Lengkapi set date dan jumlah dibayar",
+        message: `Set date (terakhir pembayaran) dan jumlah dibayar belum diisi pada ${setupIncompleteCount} pembayaran.`,
+        dueDate: null,
       });
     }
 
-    // H-2 months warning (60 days before end)
-    if (daysUntilEnd <= 60 && daysUntilEnd > 30 && hasRenewalUpload && !hasResponse) {
-      derivedNeedActionTodos.push({
-        id: `derived-renewal-h2-${customer.id}-${renewalIdSuffix}`,
-        code: "renewal_h2_warning",
-        title: "Kontrak akan berakhir dalam 2 bulan",
-        message: `Kontrak akan berakhir dalam ${daysUntilEnd} hari (H-2 bulan). Surat perpanjangan sudah diupload. Menunggu tanggapan dari lokasi.`,
-        dueDate: periodEnd,
+    if (!activationFeePaidAt) {
+      todos.push({
+        id: `derived-activation-unpaid-${customer.id}`,
+        code: "activation_fee_unpaid_local",
+        title: "Biaya aktivasi belum dibayar",
+        message: `Biaya aktivasi masih outstanding sebesar ${formatCurrency(activationFeeAmount)}.`,
+        dueDate: null,
       });
     }
 
-    // H-1 month warning (30 days before end)
-    if (daysUntilEnd <= 30 && daysUntilEnd > 0 && !hasResponse) {
-      derivedNeedActionTodos.push({
-        id: `derived-renewal-h1-${customer.id}-${renewalIdSuffix}`,
-        code: "renewal_h1_warning",
-        title: "Kontrak akan berakhir dalam 1 bulan",
-        message: `Kontrak akan berakhir dalam ${daysUntilEnd} hari (H-1 bulan). ${hasRenewalUpload ? 'Belum ada tanggapan perpanjangan. Segera follow up dengan lokasi.' : 'Segera upload surat perpanjangan kontrak!'}`,
-        dueDate: periodEnd,
+    if (nextActionMeta) {
+      todos.push({
+        id: `derived-next-action-${nextActionInvoice?.id ?? "none"}`,
+        code: "invoice_next_action",
+        title: nextActionMeta.title,
+        message: nextActionMeta.message,
+        dueDate: nextActionMeta.dueDate,
       });
     }
-  }
+
+    if (contract && !hasContractNumberValue && !isContractNumberExplicitlyEmpty) {
+      todos.push({
+        id: `derived-contract-number-missing-${customer.id}`,
+        code: "contract_number_missing_local",
+        title: "Nomor kontrak belum diisi",
+        message:
+          "Isi nomor kontrak lokasi atau tandai memang kosong jika datanya memang tidak ada.",
+        dueDate: null,
+      });
+    }
+
+    if (contract && !hasActiveContractFile) {
+      todos.push({
+        id: `derived-contract-file-missing-${customer.id}`,
+        code: "contract_file_missing_local",
+        title: "Berkas kontrak belum diunggah",
+        message: "Upload berkas kontrak agar arsip legal lokasi lengkap.",
+        dueDate: null,
+      });
+    }
+
+    if (contract && !hasActiveBakFile && !isBakExplicitlyEmpty) {
+      todos.push({
+        id: `derived-bak-missing-${customer.id}`,
+        code: "bak_missing_local",
+        title: "BAK belum tersedia",
+        message: "Upload Berita Acara Koneksi/BAK atau tandai tidak perlu jika tidak diwajibkan.",
+        dueDate: null,
+      });
+    }
+
+    // Contract renewal warnings (H-3, H-2, H-1 months)
+    if (activeContractRenewalMeta?.periodEnd && Number.isFinite(activeContractRenewalMeta.daysUntilEnd)) {
+      const {
+        daysUntilEnd,
+        hasRenewalUpload,
+        hasResponse,
+        periodEnd,
+        versionId,
+      } = activeContractRenewalMeta;
+      const renewalIdSuffix = versionId ? `version-${versionId}` : `contract-${activeContractRenewalMeta.contractId ?? customer.id}`;
+
+      // H-3 months warning (90 days before end)
+      if (daysUntilEnd <= 90 && daysUntilEnd > 60 && !hasRenewalUpload) {
+        todos.push({
+          id: `derived-renewal-h3-${customer.id}-${renewalIdSuffix}`,
+          code: "renewal_h3_warning",
+          title: "Kontrak akan berakhir dalam 3 bulan",
+          message: `Kontrak akan berakhir dalam ${daysUntilEnd} hari (H-3 bulan). Segera buat dan upload surat perpanjangan kontrak.`,
+          dueDate: periodEnd,
+        });
+      }
+
+      // H-2 months warning (60 days before end)
+      if (daysUntilEnd <= 60 && daysUntilEnd > 30 && hasRenewalUpload && !hasResponse) {
+        todos.push({
+          id: `derived-renewal-h2-${customer.id}-${renewalIdSuffix}`,
+          code: "renewal_h2_warning",
+          title: "Kontrak akan berakhir dalam 2 bulan",
+          message: `Kontrak akan berakhir dalam ${daysUntilEnd} hari (H-2 bulan). Surat perpanjangan sudah diupload. Menunggu tanggapan dari lokasi.`,
+          dueDate: periodEnd,
+        });
+      }
+
+      // H-1 month warning (30 days before end)
+      if (daysUntilEnd <= 30 && daysUntilEnd > 0 && !hasResponse) {
+        todos.push({
+          id: `derived-renewal-h1-${customer.id}-${renewalIdSuffix}`,
+          code: "renewal_h1_warning",
+          title: "Kontrak akan berakhir dalam 1 bulan",
+          message: `Kontrak akan berakhir dalam ${daysUntilEnd} hari (H-1 bulan). ${hasRenewalUpload ? 'Belum ada tanggapan perpanjangan. Segera follow up dengan lokasi.' : 'Segera upload surat perpanjangan kontrak!'}`,
+          dueDate: periodEnd,
+        });
+      }
+    }
+
+    return todos;
+  }, [
+    activationFeeAmount,
+    activationFeePaidAt,
+    activeContractRenewalMeta,
+    contract,
+    customer.id,
+    hasActiveBakFile,
+    hasActiveContractFile,
+    hasContractNumberValue,
+    isBakExplicitlyEmpty,
+    isContractNumberExplicitlyEmpty,
+    nextActionInvoice?.id,
+    nextActionMeta,
+    setupIncompleteCount,
+  ]);
 
   const displayPriorityTodos = useMemo(() => [
     ...backendPriorityTodos,

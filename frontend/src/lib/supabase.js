@@ -3,6 +3,9 @@ import { createClient } from '@supabase/supabase-js';
 // Supabase configuration (must be provided via env; see frontend/.env.example)
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const SUPABASE_REQUEST_TIMEOUT_MS = 15_000;
+const SUPABASE_SAFE_RETRY_ATTEMPTS = 3;
+const SUPABASE_RETRY_DELAYS_MS = [700, 1_500];
 
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error(
@@ -10,12 +13,135 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
+const supabaseStorageKey = `sb-${new URL(supabaseUrl).hostname.split('.')[0]}-auth-token`;
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const getRequestMethod = (input, init = {}) => (
+  init.method
+  || (typeof Request !== 'undefined' && input instanceof Request ? input.method : '')
+  || 'GET'
+).toUpperCase();
+
+const isRetryableMethod = (method) => method === 'GET' || method === 'HEAD';
+
+const isRetryableStatus = (status) => [408, 429, 500, 502, 503, 504].includes(Number(status));
+
+const createTimeoutError = (cause) => {
+  const error = new Error('Koneksi ke server terlalu lama merespons. Silakan coba lagi.');
+  error.name = 'SupabaseTimeoutError';
+  error.code = 'REQUEST_TIMEOUT';
+  error.cause = cause;
+  return error;
+};
+
+export const isNetworkError = (error) => {
+  if (!error) return false;
+
+  const text = [
+    error.name,
+    error.message,
+    error.code,
+    error.status,
+    error.cause?.name,
+    error.cause?.message,
+  ].filter(Boolean).join(' ').toLowerCase();
+
+  return error.code === 'REQUEST_TIMEOUT'
+    || error.name === 'SupabaseTimeoutError'
+    || error.name === 'AbortError'
+    || text.includes('failed to fetch')
+    || text.includes('networkerror')
+    || text.includes('network request failed')
+    || text.includes('load failed')
+    || text.includes('timeout')
+    || text.includes('timed out')
+    || text.includes('offline')
+    || text.includes('connection');
+};
+
+const fetchWithTimeout = async (input, init = {}) => {
+  const controller = new AbortController();
+  let didTimeout = false;
+
+  const timeoutId = setTimeout(() => {
+    didTimeout = true;
+    controller.abort();
+  }, SUPABASE_REQUEST_TIMEOUT_MS);
+
+  const abortFromCaller = () => controller.abort();
+  if (init.signal) {
+    if (init.signal.aborted) {
+      abortFromCaller();
+    } else {
+      init.signal.addEventListener('abort', abortFromCaller, { once: true });
+    }
+  }
+
+  try {
+    return await fetch(input, {
+      ...init,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (didTimeout) throw createTimeoutError(error);
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+    init.signal?.removeEventListener?.('abort', abortFromCaller);
+  }
+};
+
+const resilientFetch = async (input, init = {}) => {
+  const method = getRequestMethod(input, init);
+  const maxAttempts = isRetryableMethod(method) ? SUPABASE_SAFE_RETRY_ATTEMPTS : 1;
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      const response = await fetchWithTimeout(input, init);
+      if (attempt < maxAttempts && isRetryableStatus(response.status)) {
+        await sleep(SUPABASE_RETRY_DELAYS_MS[attempt - 1] ?? SUPABASE_RETRY_DELAYS_MS.at(-1));
+        continue;
+      }
+      return response;
+    } catch (error) {
+      lastError = error;
+      if (attempt >= maxAttempts || !isNetworkError(error)) {
+        throw error;
+      }
+      await sleep(SUPABASE_RETRY_DELAYS_MS[attempt - 1] ?? SUPABASE_RETRY_DELAYS_MS.at(-1));
+    }
+  }
+
+  throw lastError;
+};
+
+export const getStoredSessionSnapshot = () => {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const rawValue = window.localStorage.getItem(supabaseStorageKey);
+    if (!rawValue) return null;
+
+    const parsedValue = JSON.parse(rawValue);
+    const session = parsedValue?.currentSession ?? parsedValue?.session ?? parsedValue;
+    return session?.user ? session : null;
+  } catch {
+    return null;
+  }
+};
+
 // Create Supabase client
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: false
+    detectSessionInUrl: false,
+    storageKey: supabaseStorageKey,
+  },
+  global: {
+    fetch: resilientFetch,
   }
 });
 
