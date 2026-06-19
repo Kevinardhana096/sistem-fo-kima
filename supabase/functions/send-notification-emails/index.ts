@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "@supabase/supabase-js";
+import nodemailer from "npm:nodemailer";
 
 type NotificationItem = {
   id: string;
@@ -73,6 +74,10 @@ const emailFrom = Deno.env.get("EMAIL_FROM") || "";
 const emailProvider = (Deno.env.get("EMAIL_PROVIDER") || "resend").trim().toLowerCase();
 const brevoApiKey = Deno.env.get("BREVO_API_KEY") || "";
 const resendApiKey = Deno.env.get("RESEND_API_KEY") || "";
+const smtpHost = Deno.env.get("SMTP_HOST") || "";
+const smtpPort = Deno.env.get("SMTP_PORT") || "";
+const smtpUser = Deno.env.get("SMTP_USER") || "";
+const smtpPass = Deno.env.get("SMTP_PASS") || "";
 const jobSecret = Deno.env.get("EMAIL_JOB_SECRET") || "";
 const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
 const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || getDefaultSecretKey();
@@ -1073,7 +1078,40 @@ async function sendBrevoEmail(notification: NotificationItem, recipient: Recipie
   return typeof payload?.messageId === "string" ? payload.messageId : null;
 }
 
+async function sendSmtpEmail(notification: NotificationItem, recipient: Recipient) {
+  if (!smtpHost || !smtpPort || !smtpUser || !smtpPass || !emailFrom) {
+    throw new Error("SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, and EMAIL_FROM are required for SMTP.");
+  }
+
+  const transporter = nodemailer.createTransport({
+    host: smtpHost,
+    port: Number(smtpPort),
+    secure: Number(smtpPort) === 465,
+    auth: {
+      user: smtpUser,
+      pass: smtpPass,
+    },
+  });
+
+  const to = recipient.displayName 
+    ? `"${recipient.displayName}" <${recipient.email}>` 
+    : recipient.email;
+
+  const info = await transporter.sendMail({
+    from: emailFrom,
+    to,
+    subject: `[KIMA] ${notification.title}`,
+    html: buildEmailHtml(notification, recipient),
+  });
+
+  return info.messageId || null;
+}
+
 async function sendEmail(notification: NotificationItem, recipient: Recipient) {
+  if (emailProvider === "smtp") {
+    return sendSmtpEmail(notification, recipient);
+  }
+
   if (emailProvider === "brevo") {
     return sendBrevoEmail(notification, recipient);
   }

@@ -18,16 +18,15 @@ async function runTest() {
   let userData = null;
 
   try {
-    // 1. Injeksi Data Dummy (Create ISP)
-    console.log("1. Membuat data ISP dummy...");
+    // 1. Injeksi Data Dummy (Create Customer)
+    console.log("1. Membuat data Customer dummy...");
     const { data: ispData, error: ispError } = await supabase
-      .from('isps')
+      .from('customers')
       .insert({
-        name: 'ISP Uji Coba Otomatis',
+        name: 'Customer Uji Coba Otomatis',
+        customer_code: 'TEST-' + Math.floor(Math.random() * 1000),
+        isp_name: 'Dummy ISP',
         status: 'aktif',
-        paket: 'core',
-        jumlah: 100,
-        billing_period_mode: 'monthly',
         updated_at: new Date().toISOString()
       })
       .select('id')
@@ -35,7 +34,7 @@ async function runTest() {
 
     if (ispError) throw ispError;
     dummyIspId = ispData.id;
-    console.log(`   Berhasil membuat ISP dummy dengan ID: ${dummyIspId}`);
+    console.log(`   Berhasil membuat Customer dummy dengan ID: ${dummyIspId}`);
 
     // 1.5 Membuat dummy user untuk bypass Auth Edge Function
     console.log("1.5 Membuat dummy user admin...");
@@ -67,9 +66,9 @@ async function runTest() {
       },
       body: {
         trigger: 'entity_saved',
-        entityType: 'isp',
+        entityType: 'customer',
         entityId: dummyIspId,
-        recipientEmail: 'kevinardhana096@gmail.com',
+        recipientEmail: 'kevinardana12@gmail.com',
         limit: 10
       }
     });
@@ -78,8 +77,8 @@ async function runTest() {
       console.error("   Gagal memanggil Edge Function:", funcError.message);
       if (funcError.context) {
         try {
-          const body = await funcError.context.json();
-          console.error("   Error body:", body);
+           const body = await funcError.context.json();
+           console.error("   Error body:", body);
         } catch(e) {}
       }
     } else {
@@ -99,13 +98,13 @@ async function runTest() {
     if (delivError) throw delivError;
 
     if (deliveries && deliveries.length > 0) {
-      console.log(`   Ditemukan ${deliveries.length} antrean notifikasi untuk ISP dummy ini:`);
+      console.log(`   Ditemukan ${deliveries.length} antrean notifikasi untuk Customer dummy ini:`);
       deliveries.forEach(d => {
         console.log(`   - Key: ${d.notification_key} | To: ${d.recipient_email} | Status: ${d.status} | Provider: ${d.provider} | MessageID: ${d.provider_message_id} | Error: ${d.error_message}`);
       });
       console.log("   => KESIMPULAN: Pengecekan Provider selesai.");
     } else {
-      console.log("   Tidak ada notifikasi yang ditemukan untuk ISP dummy ini.");
+      console.log("   Tidak ada notifikasi yang ditemukan untuk Customer dummy ini.");
       console.log("   => KESIMPULAN: Mekanisme mungkin gagal atau tidak ada penerima valid.");
     }
 
@@ -114,17 +113,17 @@ async function runTest() {
   } finally {
     // 4. Pembersihan Data (Cleanup)
     if (dummyIspId) {
-      console.log("4. Melakukan pembersihan (cleanup) data ISP dummy...");
+      console.log("4. Melakukan pembersihan (cleanup) data Customer dummy...");
       
       // Hapus delivery records (hard delete spy bersih)
-      await supabase.from('notification_email_deliveries').delete().like('notification_key', `%-${dummyIspId}-%`);
+      await supabase.from('notification_email_deliveries').delete().like('notification_key', `%-${dummyIspId}`);
       
-      // Hard delete ISP dummy
-      const { error: deleteError } = await supabase.from('isps').delete().eq('id', dummyIspId);
+      // Hard delete Customer dummy
+      const { error: deleteError } = await supabase.from('customers').delete().eq('id', dummyIspId);
       if (deleteError) {
-        console.error("   Gagal menghapus ISP dummy:", deleteError.message);
+        console.error("   Gagal menghapus Customer dummy:", deleteError.message);
       } else {
-        console.log("   Berhasil menghapus ISP dummy.");
+        console.log("   Berhasil menghapus Customer dummy.");
       }
       
       // Delete dummy user
