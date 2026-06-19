@@ -217,7 +217,7 @@ function EntryPointMapSurface({
         scrollWheelZoom
         wheelPxPerZoomLevel={90}
         zoom={DEFAULT_ZOOM}
-        zoomSnap={0.5}
+        zoomSnap={1}
       >
         
         <TileLayer
