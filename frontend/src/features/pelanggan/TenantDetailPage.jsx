@@ -1619,16 +1619,10 @@ function TenantDetailPage({
       .filter(Number.isFinite);
 
     if (explicitSelectedIds.length > 0) {
-      return explicitSelectedIds.slice(0, 1);
+      return explicitSelectedIds;
     }
 
-    const fallbackEntryPoint =
-      availableIspEntryPoints.find((point) => Boolean(point?.isDefault ?? point?.is_default)) ??
-      availableIspEntryPoints[0] ??
-      null;
-    const fallbackId = Number(fallbackEntryPoint?.id);
-
-    return Number.isFinite(fallbackId) ? [fallbackId] : [];
+    return availableIspEntryPoints.map((point) => Number(point.id)).filter(Number.isFinite);
   }, [availableIspEntryPoints, selectedEntryPointIds]);
 
   const primaryProviderIconUrl = isps[0]?.logoUrl || isps[0]?.logo_url || "";
