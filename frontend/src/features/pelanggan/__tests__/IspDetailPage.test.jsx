@@ -34,6 +34,15 @@ vi.mock('../../../lib/files', () => ({
   uploadFileForRecord: vi.fn(),
 }));
 
+vi.mock('../../../components/UploadProgressProvider', () => ({
+  useUpload: () => ({
+    uploadWithProgress: vi.fn().mockImplementation(async (file, pathParts) => {
+      const { uploadFileForRecord } = await import('../../../lib/files');
+      return uploadFileForRecord(file, pathParts);
+    }),
+  }),
+}));
+
 vi.mock('../../../lib/api', () => ({
   default: {
     isps: {

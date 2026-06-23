@@ -4,12 +4,15 @@ import './index.css'
 import App from './App.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import { registerNotificationServiceWorker } from './lib/browser-notifications'
+import { UploadProgressProvider } from './components/UploadProgressProvider'
 
 void registerNotificationServiceWorker()
 
 const appNode = (
   <ErrorBoundary>
-    <App />
+    <UploadProgressProvider>
+      <App />
+    </UploadProgressProvider>
   </ErrorBoundary>
 )
 

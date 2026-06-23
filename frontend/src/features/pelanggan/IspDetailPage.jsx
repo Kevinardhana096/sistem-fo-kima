@@ -14,7 +14,7 @@ import {
     resolveCustomerPackageInfo,
 } from "../../app/utils";
 import api from "../../lib/api";
-import { uploadFileForRecord } from "../../lib/files";
+import { useUpload } from "../../components/UploadProgressProvider";
 import {
     getPackageDisplay,
     normalizeOperationalStatus,
@@ -367,6 +367,7 @@ function IspDetailPage({
     notifications = [],
     onTabChange,
 }) {
+    const { uploadWithProgress } = useUpload();
     const isAdminRole = currentRole === "admin" || currentRole === "super_admin";
     const isTeknisi = currentRole === "teknisi";
     const isIsp = currentRole === "isp";
@@ -1092,7 +1093,7 @@ function IspDetailPage({
                     throw new Error("Gagal membuat baris perpanjangan.");
                 }
 
-                const fileDataUrl = await uploadFileForRecord(file, ["isps", isp.id, "renewals"]);
+                const fileDataUrl = await uploadWithProgress(file, ["isps", isp.id, "renewals"]);
                 await api.ispRenewalFollowUps.update(actualFollowUpId, {
                     renewal_file_url: fileDataUrl,
                     renewal_file_name: file.name,
@@ -1112,7 +1113,7 @@ function IspDetailPage({
                 return;
             }
 
-            const fileDataUrl = await uploadFileForRecord(file, ["isps", isp.id, type]);
+            const fileDataUrl = await uploadWithProgress(file, ["isps", isp.id, type]);
             if (targetRow?.isPrimaryIspContract) {
                 const fieldMap = {
                     bak: { bakFileUrl: fileDataUrl, bakFileName: file.name },
@@ -1155,7 +1156,7 @@ function IspDetailPage({
                 throw new Error("Unggah berkas perpanjangan terlebih dahulu sebelum mengirim tanggapan.");
             }
 
-            const fileDataUrl = await uploadFileForRecord(file, ["isps", isp.id, "responses"]);
+            const fileDataUrl = await uploadWithProgress(file, ["isps", isp.id, "responses"]);
             if (isPendingPrimaryRenewalFollowUpId(followUpId)) {
                 if (!canManageIspContracts) {
                     throw new Error("Baris perpanjangan utama belum tersimpan. Minta admin menyiapkan baris perpanjangan sebelum ISP mengirim tanggapan.");
@@ -1492,11 +1493,11 @@ function IspDetailPage({
         setIsSavingContractRow(true);
         try {
             if (currentEditor.contractUploadedFile instanceof File) {
-                updates.contract_file_url = await uploadFileForRecord(currentEditor.contractUploadedFile, ["isps", isp.id, "contract"]);
+                updates.contract_file_url = await uploadWithProgress(currentEditor.contractUploadedFile, ["isps", isp.id, "contract"]);
                 updates.contract_file_name = currentEditor.contractUploadedFile.name;
             }
             if (currentEditor.bakUploadedFile instanceof File) {
-                updates.bak_file_url = await uploadFileForRecord(currentEditor.bakUploadedFile, ["isps", isp.id, "bak"]);
+                updates.bak_file_url = await uploadWithProgress(currentEditor.bakUploadedFile, ["isps", isp.id, "bak"]);
                 updates.bak_file_name = currentEditor.bakUploadedFile.name;
             }
             if (!(currentEditor.contractUploadedFile instanceof File) && !String(currentEditor.contractFileUrl ?? "").trim()) {
@@ -1585,10 +1586,10 @@ function IspDetailPage({
         setError("");
         try {
             const contractFileUrl = contractDraft.contractUploadedFile instanceof File
-                ? await uploadFileForRecord(contractDraft.contractUploadedFile, ["isps", isp.id, "contracts"])
+                ? await uploadWithProgress(contractDraft.contractUploadedFile, ["isps", isp.id, "contracts"])
                 : String(contractDraft.contractFileUrl ?? "").trim() || null;
             const bakFileUrl = contractDraft.bakUploadedFile instanceof File
-                ? await uploadFileForRecord(contractDraft.bakUploadedFile, ["isps", isp.id, "bak"])
+                ? await uploadWithProgress(contractDraft.bakUploadedFile, ["isps", isp.id, "bak"])
                 : String(contractDraft.bakFileUrl ?? "").trim() || null;
 
             const payload = {
@@ -1626,7 +1627,7 @@ function IspDetailPage({
 
     const handleRisalahEditorFileChange = (file) => {
         if (!file) { setRisalahEditor((p) => p ? { ...p, fileUrl: "", uploadedFileName: "" } : p); return; }
-        void uploadFileForRecord(file, ["isps", isp.id, "risalah"]).then((fileUrl) => { setRisalahEditor((p) => p ? { ...p, fileUrl, uploadedFileName: file.name } : p); }).catch((re) => { setError(re instanceof Error ? re.message : "Gagal membaca berkas."); });
+        void uploadWithProgress(file, ["isps", isp.id, "risalah"]).then((fileUrl) => { setRisalahEditor((p) => p ? { ...p, fileUrl, uploadedFileName: file.name } : p); }).catch((re) => { setError(re instanceof Error ? re.message : "Gagal membaca berkas."); });
     };
 
     const handleSaveRisalah = () => {

@@ -30,7 +30,7 @@ import {
   resolveInvoiceDueMonthIsoDate,
   toTitleCase,
 } from "../../app/utils";
-import { uploadFileForRecord } from "../../lib/files";
+import { useUpload } from "../../components/UploadProgressProvider";
 
 const ROUTE_OPERATION_LABEL_MAP = {
   add: "Tambah Titik",
@@ -674,6 +674,7 @@ function TenantDetailPage({
   canDeleteTenant = true,
   currentRole = "admin",
 }) {
+  const { uploadWithProgress } = useUpload();
   const {
     isTeknisi,
     isIsp,
@@ -3326,7 +3327,7 @@ function TenantDetailPage({
           return;
         }
 
-        const fileUrl = await uploadFileForRecord(file, ["customers", customer.id, "documents"]);
+        const fileUrl = await uploadWithProgress(file, ["customers", customer.id, "documents"]);
         await tenantDetailData.documents.create({
           customer_id: customer.id,
           contract_id: editorState.contractId,
@@ -3415,7 +3416,7 @@ function TenantDetailPage({
     setDocumentError("");
     setDocumentFeedback("");
     try {
-      const fileUrl = await uploadFileForRecord(documentDraft.uploadedFile, ["customers", customer.id, "documents"]);
+      const fileUrl = await uploadWithProgress(documentDraft.uploadedFile, ["customers", customer.id, "documents"]);
       await tenantDetailData.documents.create({
         customer_id: customer.id,
         contract_id: contract?.id ?? null,
@@ -4207,7 +4208,7 @@ function TenantDetailPage({
         });
       }
 
-      const invoiceFileUrl = await uploadFileForRecord(file, ["customers", customer.id, "invoices"]);
+      const invoiceFileUrl = await uploadWithProgress(file, ["customers", customer.id, "invoices"]);
       if (splitOrder) {
         const followUp = await getOrCreateInvoiceFollowUp(persistedInvoice, splitOrder);
         await tenantDetailData.invoiceFollowUps.update(followUp.id, {
@@ -4277,7 +4278,7 @@ function TenantDetailPage({
     setInvoiceError("");
     setInvoiceFeedback("");
     try {
-      const paymentProofFileUrl = await uploadFileForRecord(file, ["customers", customer.id, "payment-proofs"]);
+      const paymentProofFileUrl = await uploadWithProgress(file, ["customers", customer.id, "payment-proofs"]);
       const paidAt = new Date().toISOString();
       await tenantDetailData.invoices.update(invoice.id, {
         paymentProofFileUrl,
@@ -4557,7 +4558,7 @@ function TenantDetailPage({
     setError("");
     try {
       const versionId = await ensureContractRenewalVersionId(row);
-      const renewalFileUrl = await uploadFileForRecord(file, ["customers", customer.id, "renewals"]);
+      const renewalFileUrl = await uploadWithProgress(file, ["customers", customer.id, "renewals"]);
       if (followUpId) {
         await tenantDetailData.contractVersionRenewalFollowUps.update(followUpId, {
           renewal_file_url: renewalFileUrl,
@@ -4606,7 +4607,7 @@ function TenantDetailPage({
         ? getActivePersistedInvoiceIdsForContract(row.contractId)
         : [];
       const versionId = await ensureContractRenewalVersionId(row);
-      const responseFileUrl = await uploadFileForRecord(file, ["customers", customer.id, "renewal-responses"]);
+      const responseFileUrl = await uploadWithProgress(file, ["customers", customer.id, "renewal-responses"]);
       const updatePayload = {
         response_file_url: responseFileUrl,
         response_file_name: file.name,
