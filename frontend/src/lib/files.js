@@ -70,7 +70,7 @@ export const uploadFileForRecord = async (file, pathParts = [], onProgress = nul
               try {
                 const res = JSON.parse(xhr.responseText);
                 if (res.message) errMsg = res.message;
-              } catch (e) {
+              } catch {
                 // ignore
               }
               reject(new Error(errMsg));
