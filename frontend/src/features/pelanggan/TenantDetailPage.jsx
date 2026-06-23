@@ -752,6 +752,10 @@ function TenantDetailPage({
   const [billingError, setBillingError] = useState("");
   const [isSavingBilling, setIsSavingBilling] = useState(false);
   const [expandedSettlementPeriods, setExpandedSettlementPeriods] = useState({});
+  const [settlementDrafts, setSettlementDrafts] = useState({});
+  const [savingSettlementIds, setSavingSettlementIds] = useState(new Set());
+  const [settlementFeedback, setSettlementFeedback] = useState("");
+  const [settlementError, setSettlementError] = useState("");
   const [isMarkingActivationFeePaid, setIsMarkingActivationFeePaid] = useState(false);
   const [contractNumberInputs, setContractNumberInputs] = useState({});
   const [isSavingContractNumber, setIsSavingContractNumber] = useState(false);
@@ -1778,6 +1782,65 @@ function TenantDetailPage({
       ...previous,
       [periodKey]: !previous[periodKey],
     }));
+  };
+
+  useEffect(() => {
+    setSettlementDrafts((previousDrafts) => {
+      const nextDrafts = {};
+      historyInvoiceRows.forEach((invoice) => {
+        const previousDraft = previousDrafts[invoice.id] ?? {};
+        const normalizedAmount = Number.isFinite(Number(invoice.amount))
+          ? formatRupiahInput(Math.max(0, Math.round(Number(invoice.amount))))
+          : "";
+        nextDrafts[invoice.id] = {
+          invoiceNumber: previousDraft.invoiceNumber ?? String(invoice.invoiceNumber ?? ""),
+          amount: previousDraft.amount ?? normalizedAmount,
+          status: previousDraft.status ?? String(invoice.status ?? "belum_ditagih"),
+          paidAt: previousDraft.paidAt ?? String(invoice.paidAt ?? "").slice(0, 10),
+        };
+      });
+      return nextDrafts;
+    });
+  }, [historyInvoiceRows]);
+
+  const handleSaveSettlementRow = async (invoice) => {
+    const draft = settlementDrafts[invoice.id];
+    if (!draft) return;
+    if (savingSettlementIds.has(invoice.id)) return;
+
+    setSavingSettlementIds((prev) => new Set([...prev, invoice.id]));
+    setSettlementError("");
+    setSettlementFeedback("");
+    try {
+      const amount = parseRupiahInput(draft.amount);
+      const selectedStatus = INVOICE_STATUS_OPTIONS.some((opt) => opt.value === draft.status)
+        ? draft.status
+        : "belum_ditagih";
+      const paidAt = selectedStatus === "lunas"
+        ? (draft.paidAt && draft.paidAt.trim() ? draft.paidAt.trim() : (invoice.paidAt?.slice(0, 10) || new Date().toISOString().slice(0, 10)))
+        : null;
+
+      await tenantDetailData.invoices.update(invoice.id, {
+        invoice_number: String(draft.invoiceNumber ?? "").trim() || null,
+        amount,
+        status: selectedStatus,
+        paid_at: paidAt,
+      });
+      setSettlementFeedback(`Invoice #${invoice.id} berhasil disimpan.`);
+      await Promise.all([loadDetail(), onRefreshAll?.()]);
+    } catch (requestError) {
+      setSettlementError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Gagal menyimpan data settlement.",
+      );
+    } finally {
+      setSavingSettlementIds((prev) => {
+        const next = new Set(prev);
+        next.delete(invoice.id);
+        return next;
+      });
+    }
   };
 
   useEffect(() => {
@@ -7827,6 +7890,18 @@ function TenantDetailPage({
                 </span>
               </div>
 
+              {settlementFeedback && (
+                <div className="mx-4 mt-3 md:mx-6 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-2.5 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-emerald-400" style={{ fontSize: '14px' }}>check_circle</span>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-emerald-400">{settlementFeedback}</p>
+                </div>
+              )}
+              {settlementError && (
+                <div className="mx-4 mt-3 md:mx-6 rounded-xl border border-rose-500/20 bg-rose-500/5 px-4 py-2.5 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-rose-400" style={{ fontSize: '14px' }}>error</span>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-rose-400">{settlementError}</p>
+                </div>
+              )}
               {settlementPeriodGroups.length === 0 ? (
                 <div className="flex flex-col items-center justify-center p-8 md:p-12 text-center bg-white/[0.01]">
                   <div className="h-14 w-14 md:h-16 md:w-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-3 md:mb-4 shadow-glass-depth">
@@ -7886,7 +7961,7 @@ function TenantDetailPage({
 
                         {isExpanded && (
                           <div className="overflow-x-auto no-scrollbar border-t border-white/5 px-3 py-3 md:px-5 md:py-4">
-                            <table className="w-full text-left min-w-[1100px] border-collapse">
+                            <table className="w-full text-left min-w-[1200px] border-collapse">
                               <thead>
                                 <tr className="bg-white/[0.02]">
                                   <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">No</th>
@@ -7897,16 +7972,21 @@ function TenantDetailPage({
                                   <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Status Akhir</th>
                                   <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Waktu Bayar</th>
                                   <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Berkas</th>
+                                  {!isIsp && canManageTenantContracts && (
+                                    <th className="px-4 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap border border-white/5 text-center">Aksi</th>
+                                  )}
                                 </tr>
                               </thead>
                               <tbody>
                                 {group.rows.map((invoice, idx) => {
-                                  const statusMeta = invoice.statusMeta ?? resolveInvoiceStatusMeta(invoice);
+                                  const draft = settlementDrafts[invoice.id] ?? {};
+                                  const hasInvoiceFile = isOpenableFileUrl(invoice.invoiceFileUrl);
+                                  const hasPaymentProof = isOpenableFileUrl(invoice.paymentProofFileUrl);
                                   const periodLabel = invoice.periodStartDate && invoice.periodEndDate
                                     ? `${formatDate(invoice.periodStartDate)} - ${formatDate(invoice.periodEndDate)}`
                                     : formatDate(invoice.dueDate);
-                                  const hasInvoiceFile = isOpenableFileUrl(invoice.invoiceFileUrl);
-                                  const hasPaymentProof = isOpenableFileUrl(invoice.paymentProofFileUrl);
+                                  const canEdit = !isIsp && canManageTenantContracts;
+                                  const isRowSaving = savingSettlementIds.has(invoice.id);
 
                                   return (
                                     <tr key={invoice.id} className="hover:bg-white/[0.03] transition-colors group/row">
@@ -7914,19 +7994,98 @@ function TenantDetailPage({
                                       <td className="px-4 py-3 whitespace-nowrap border border-white/5 text-center">
                                         <span className="text-[11px] font-black text-white">Siklus #{idx + 1}</span>
                                       </td>
-                                      <td className="px-4 py-3 whitespace-nowrap border border-white/5">
-                                        <span className="text-[11px] font-black text-white/60">{invoice.invoiceNumber || <span className="text-white/20 italic font-normal">—</span>}</span>
+
+                                      {/* No. Invoice — editable */}
+                                      <td className="px-3 py-2 border border-white/5 min-w-[140px]">
+                                        {canEdit ? (
+                                          <input
+                                            type="text"
+                                            value={draft.invoiceNumber ?? ""}
+                                            onChange={(e) => setSettlementDrafts((prev) => ({
+                                              ...prev,
+                                              [invoice.id]: { ...prev[invoice.id], invoiceNumber: e.target.value },
+                                            }))}
+                                            disabled={isRowSaving}
+                                            placeholder="No. Invoice..."
+                                            className="h-8 w-full rounded-lg border border-white/5 bg-white/[0.01] px-2.5 text-[9px] font-black uppercase tracking-widest text-white outline-none transition-all focus:border-gold-accent/40 focus:bg-white/[0.04] disabled:opacity-40 placeholder:text-white/20 placeholder:normal-case placeholder:tracking-normal"
+                                          />
+                                        ) : (
+                                          <span className="text-[11px] font-black text-white/60">{invoice.invoiceNumber || <span className="text-white/20 italic font-normal">—</span>}</span>
+                                        )}
                                       </td>
+
+                                      {/* Masa Invoice — read-only */}
                                       <td className="px-4 py-3 text-[10px] font-bold text-white/30 uppercase whitespace-nowrap border border-white/5">{periodLabel}</td>
-                                      <td className="px-4 py-3 whitespace-nowrap border border-white/5 text-right">
-                                        <span className="text-[11px] font-black text-white/80">{formatCurrency(invoice.amount ?? 0).replace("Rp", "").trim()}</span>
+
+                                      {/* Settlement (Amount) — editable */}
+                                      <td className="px-3 py-2 border border-white/5 min-w-[130px]">
+                                        {canEdit ? (
+                                          <input
+                                            type="text"
+                                            inputMode="numeric"
+                                            value={draft.amount ?? ""}
+                                            onChange={(e) => {
+                                              const formatted = formatRupiahInput(e.target.value);
+                                              setSettlementDrafts((prev) => ({
+                                                ...prev,
+                                                [invoice.id]: { ...prev[invoice.id], amount: formatted },
+                                              }));
+                                            }}
+                                            disabled={isRowSaving}
+                                            placeholder="0"
+                                            className="h-8 w-full rounded-lg border border-white/5 bg-white/[0.01] px-2.5 text-[9px] font-black tracking-widest text-white text-right outline-none transition-all focus:border-gold-accent/40 focus:bg-white/[0.04] disabled:opacity-40 placeholder:text-white/20"
+                                          />
+                                        ) : (
+                                          <span className="text-[11px] font-black text-white/80 block text-right">{formatCurrency(invoice.amount ?? 0).replace("Rp", "").trim()}</span>
+                                        )}
                                       </td>
-                                      <td className="px-4 py-3 whitespace-nowrap border border-white/5 text-center">
-                                        <span className={`inline-flex justify-center items-center w-full max-w-[120px] px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-widest border ${statusMeta.badgeClass.includes("emerald") ? "bg-emerald-500/5 text-emerald-500/50 border-emerald-500/10" : "bg-white/5 text-white/25 border-white/5"}`}>
-                                          <span className="truncate">{statusMeta.label}</span>
-                                        </span>
+
+                                      {/* Status Akhir — editable dropdown */}
+                                      <td className="px-3 py-2 border border-white/5 min-w-[150px]">
+                                        {canEdit ? (
+                                          <GlassSelect
+                                            value={draft.status ?? invoice.status ?? "belum_ditagih"}
+                                            onChange={(val) => setSettlementDrafts((prev) => ({
+                                              ...prev,
+                                              [invoice.id]: { ...prev[invoice.id], status: val },
+                                            }))}
+                                            options={INVOICE_STATUS_OPTIONS}
+                                            disabled={isRowSaving}
+                                            className="h-8"
+                                            textClass="text-[9px] font-black uppercase tracking-widest"
+                                            optionTextClass="text-[9px] font-black uppercase tracking-widest"
+                                          />
+                                        ) : (
+                                          (() => {
+                                            const statusMeta = invoice.statusMeta ?? resolveInvoiceStatusMeta(invoice);
+                                            return (
+                                              <span className={`inline-flex justify-center items-center w-full max-w-[120px] px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-widest border ${statusMeta.badgeClass.includes("emerald") ? "bg-emerald-500/5 text-emerald-500/50 border-emerald-500/10" : "bg-white/5 text-white/25 border-white/5"}`}>
+                                                <span className="truncate">{statusMeta.label}</span>
+                                              </span>
+                                            );
+                                          })()
+                                        )}
                                       </td>
-                                      <td className="px-4 py-3 text-[10px] font-bold text-white/30 whitespace-nowrap border border-white/5 text-center">{formatDate(invoice.paidAt)}</td>
+
+                                      {/* Waktu Bayar — editable date */}
+                                      <td className="px-3 py-2 border border-white/5 min-w-[150px]">
+                                        {canEdit ? (
+                                          <input
+                                            type="date"
+                                            value={draft.paidAt ?? ""}
+                                            onChange={(e) => setSettlementDrafts((prev) => ({
+                                              ...prev,
+                                              [invoice.id]: { ...prev[invoice.id], paidAt: e.target.value },
+                                            }))}
+                                            disabled={isRowSaving}
+                                            className="h-8 w-full rounded-lg border border-white/5 bg-white/[0.01] px-2.5 text-[9px] font-black uppercase tracking-widest text-white outline-none transition-all focus:border-gold-accent/40 focus:bg-white/[0.04] disabled:opacity-40 [color-scheme:dark]"
+                                          />
+                                        ) : (
+                                          <span className="text-[10px] font-bold text-white/30 block text-center">{formatDate(invoice.paidAt)}</span>
+                                        )}
+                                      </td>
+
+                                      {/* Berkas — read-only */}
                                       <td className="px-4 py-3 whitespace-nowrap border border-white/5">
                                         <div className="flex items-center justify-center gap-2">
                                           {hasInvoiceFile ? (
@@ -7941,6 +8100,25 @@ function TenantDetailPage({
                                           )}
                                         </div>
                                       </td>
+
+                                      {/* Aksi — tombol simpan */}
+                                      {canEdit && (
+                                        <td className="px-3 py-2 whitespace-nowrap border border-white/5 text-center">
+                                          <button
+                                            type="button"
+                                            disabled={isRowSaving}
+                                            onClick={() => handleSaveSettlementRow(invoice)}
+                                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gold-accent/30 bg-gold-accent/10 text-[8px] font-black uppercase tracking-widest text-gold-accent transition-all hover:bg-gold-accent hover:text-black active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+                                          >
+                                            {isRowSaving ? (
+                                              <span className="material-symbols-outlined animate-spin" style={{ fontSize: '11px' }}>progress_activity</span>
+                                            ) : (
+                                              <span className="material-symbols-outlined" style={{ fontSize: '11px' }}>save</span>
+                                            )}
+                                            {isRowSaving ? "Menyimpan..." : "Simpan"}
+                                          </button>
+                                        </td>
+                                      )}
                                     </tr>
                                   );
                                 })}
