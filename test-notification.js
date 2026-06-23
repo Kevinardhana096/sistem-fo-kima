@@ -68,7 +68,7 @@ async function runTest() {
         trigger: 'entity_saved',
         entityType: 'customer',
         entityId: dummyIspId,
-        recipientEmail: 'kevinardana12@gmail.com',
+        recipientEmail: 'kevinardhana096@gmail.com',
         limit: 10
       }
     });

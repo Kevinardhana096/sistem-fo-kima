@@ -987,21 +987,87 @@ async function getExistingDeliveryKeys(notificationIds: string[], recipientIds: 
   return new Set((data || []).map((row) => `${row.notification_key}:${row.recipient_user_id}`));
 }
 
-function buildEmailHtml(notification: NotificationItem, recipient: Recipient) {
-  const link = targetUrl(notification.targetPath);
+function buildDigestEmailHtml(notifications: NotificationItem[], recipient: Recipient) {
+  const isMultiple = notifications.length > 1;
+  const greeting = `Halo ${recipient.displayName},`;
+  const summaryText = isMultiple 
+    ? `Ada <strong>${notifications.length}</strong> notifikasi baru untuk role <strong>${recipient.role}</strong>.`
+    : `Ada <strong>1</strong> notifikasi baru untuk role <strong>${recipient.role}</strong>.`;
+
+  const notificationItemsHtml = notifications.map((notification) => {
+    const link = targetUrl(notification.targetPath);
+    
+    // Severity styling
+    let severityBg = "#f3f4f6";
+    let severityColor = "#374151";
+    let severityBorder = "#e5e7eb";
+    if (notification.severity === "critical") {
+      severityBg = "#fee2e2";
+      severityColor = "#b91c1c";
+      severityBorder = "#fca5a5";
+    } else if (notification.severity === "warning") {
+      severityBg = "#fef3c7";
+      severityColor = "#b45309";
+      severityBorder = "#fde68a";
+    } else if (notification.severity === "info") {
+      severityBg = "#dbeafe";
+      severityColor = "#1d4ed8";
+      severityBorder = "#bfdbfe";
+    }
+
+    return `
+      <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 16px; background-color: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+          <h3 style="margin: 0; font-size: 16px; font-weight: 600; color: #111827;">${notification.title}</h3>
+          <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; padding: 2px 8px; border-radius: 9999px; background-color: ${severityBg}; color: ${severityColor}; border: 1px solid ${severityBorder}; margin-left: 8px; white-space: nowrap;">
+            ${notification.severity}
+          </span>
+        </div>
+        <p style="margin: 0 0 12px 0; font-size: 14px; color: #4b5563; line-height: 1.5;">${notification.message}</p>
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; border-top: 1px solid #f3f4f6; padding-top: 12px;">
+          <span style="font-size: 11px; color: #9ca3af; font-family: monospace;">Kode: ${notification.id}</span>
+          <a href="${link}" style="display: inline-block; background-color: #d4af37; color: #111827; padding: 6px 12px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 700; transition: background-color 0.2s;">
+            ${notification.actionLabel} &rarr;
+          </a>
+        </div>
+      </div>
+    `;
+  }).join("");
+
   return `
-    <div style="font-family:Inter,Arial,sans-serif;line-height:1.5;color:#111827">
-      <p>Halo ${recipient.displayName},</p>
-      <p>Ada notifikasi ${notification.severity} untuk role <strong>${recipient.role}</strong>.</p>
-      <h2 style="margin:16px 0 8px">${notification.title}</h2>
-      <p>${notification.message}</p>
-      <p style="margin:20px 0">
-        <a href="${link}" style="background:#d4af37;color:#111827;padding:10px 14px;border-radius:8px;text-decoration:none;font-weight:700">
-          ${notification.actionLabel}
-        </a>
-      </p>
-      <p style="font-size:12px;color:#6b7280">Kode: ${notification.id}</p>
-    </div>
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Notifikasi KIMA</title>
+      </head>
+      <body style="margin: 0; padding: 0; background-color: #f9fafb; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+        <div style="max-width: 600px; margin: 0 auto; padding: 24px 16px;">
+          <!-- Header / Logo -->
+          <div style="text-align: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid #e5e7eb;">
+            <h1 style="margin: 0; font-size: 20px; font-weight: 800; color: #111827; letter-spacing: -0.025em;">SISTEM FO <span style="color: #d4af37;">KIMA</span></h1>
+          </div>
+          
+          <!-- Greeting -->
+          <div style="margin-bottom: 20px;">
+            <p style="margin: 0 0 8px 0; font-size: 16px; color: #111827; font-weight: 500;">${greeting}</p>
+            <p style="margin: 0; font-size: 14px; color: #4b5563;">${summaryText}</p>
+          </div>
+
+          <!-- Notification Items -->
+          <div style="margin-bottom: 24px;">
+            ${notificationItemsHtml}
+          </div>
+
+          <!-- Footer -->
+          <div style="text-align: center; padding-top: 16px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #9ca3af;">
+            <p style="margin: 0 0 4px 0;">Email ini dikirim secara otomatis oleh Sistem FO KIMA.</p>
+            <p style="margin: 0;">&copy; ${new Date().getFullYear()} KIMA. All rights reserved.</p>
+          </div>
+        </div>
+      </body>
+    </html>
   `;
 }
 
@@ -1021,10 +1087,15 @@ function parseEmailAddress(value: string) {
   };
 }
 
-async function sendResendEmail(notification: NotificationItem, recipient: Recipient) {
+async function sendResendEmail(notifications: NotificationItem[], recipient: Recipient) {
   if (!resendApiKey || !emailFrom) {
     throw new Error("RESEND_API_KEY and EMAIL_FROM are required to send email.");
   }
+
+  const isMultiple = notifications.length > 1;
+  const subject = isMultiple
+    ? `[KIMA] Rangkuman Harian: ${notifications.length} Notifikasi`
+    : `[KIMA] ${notifications[0].title}`;
 
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -1035,8 +1106,8 @@ async function sendResendEmail(notification: NotificationItem, recipient: Recipi
     body: JSON.stringify({
       from: emailFrom,
       to: recipient.email,
-      subject: `[KIMA] ${notification.title}`,
-      html: buildEmailHtml(notification, recipient),
+      subject,
+      html: buildDigestEmailHtml(notifications, recipient),
     }),
   });
 
@@ -1047,12 +1118,17 @@ async function sendResendEmail(notification: NotificationItem, recipient: Recipi
   return typeof payload?.id === "string" ? payload.id : null;
 }
 
-async function sendBrevoEmail(notification: NotificationItem, recipient: Recipient) {
+async function sendBrevoEmail(notifications: NotificationItem[], recipient: Recipient) {
   if (!brevoApiKey || !emailFrom) {
     throw new Error("BREVO_API_KEY and EMAIL_FROM are required to send email.");
   }
 
   const sender = parseEmailAddress(emailFrom);
+  const isMultiple = notifications.length > 1;
+  const subject = isMultiple
+    ? `[KIMA] Rangkuman Harian: ${notifications.length} Notifikasi`
+    : `[KIMA] ${notifications[0].title}`;
+
   const response = await fetch("https://api.brevo.com/v3/smtp/email", {
     method: "POST",
     headers: {
@@ -1066,8 +1142,8 @@ async function sendBrevoEmail(notification: NotificationItem, recipient: Recipie
         email: recipient.email,
         name: recipient.displayName || undefined,
       }],
-      subject: `[KIMA] ${notification.title}`,
-      htmlContent: buildEmailHtml(notification, recipient),
+      subject,
+      htmlContent: buildDigestEmailHtml(notifications, recipient),
     }),
   });
 
@@ -1078,7 +1154,7 @@ async function sendBrevoEmail(notification: NotificationItem, recipient: Recipie
   return typeof payload?.messageId === "string" ? payload.messageId : null;
 }
 
-async function sendSmtpEmail(notification: NotificationItem, recipient: Recipient) {
+async function sendSmtpEmail(notifications: NotificationItem[], recipient: Recipient) {
   if (!smtpHost || !smtpPort || !smtpUser || !smtpPass || !emailFrom) {
     throw new Error("SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, and EMAIL_FROM are required for SMTP.");
   }
@@ -1097,27 +1173,32 @@ async function sendSmtpEmail(notification: NotificationItem, recipient: Recipien
     ? `"${recipient.displayName}" <${recipient.email}>` 
     : recipient.email;
 
+  const isMultiple = notifications.length > 1;
+  const subject = isMultiple
+    ? `[KIMA] Rangkuman Harian: ${notifications.length} Notifikasi`
+    : `[KIMA] ${notifications[0].title}`;
+
   const info = await transporter.sendMail({
     from: emailFrom,
     to,
-    subject: `[KIMA] ${notification.title}`,
-    html: buildEmailHtml(notification, recipient),
+    subject,
+    html: buildDigestEmailHtml(notifications, recipient),
   });
 
   return info.messageId || null;
 }
 
-async function sendEmail(notification: NotificationItem, recipient: Recipient) {
+async function sendEmail(notifications: NotificationItem[], recipient: Recipient) {
   if (emailProvider === "smtp") {
-    return sendSmtpEmail(notification, recipient);
+    return sendSmtpEmail(notifications, recipient);
   }
 
   if (emailProvider === "brevo") {
-    return sendBrevoEmail(notification, recipient);
+    return sendBrevoEmail(notifications, recipient);
   }
 
   if (emailProvider === "resend") {
-    return sendResendEmail(notification, recipient);
+    return sendResendEmail(notifications, recipient);
   }
 
   throw new Error(`Unsupported EMAIL_PROVIDER: ${emailProvider}`);
@@ -1257,53 +1338,61 @@ async function handleRequest(req: Request) {
     );
 
   const attempts = [];
-  for (const notification of notifications) {
-    const scopedRecipients = recipients.filter((recipient) => canReceiveNotification(recipient, notification));
-    for (const recipient of scopedRecipients) {
+  for (const recipient of recipients) {
+    const recipientNotifications = notifications.filter((notification) => canReceiveNotification(recipient, notification));
+    const pendingNotifications = recipientNotifications.filter((notification) => {
       const deliveryKey = `${notification.id}:${recipient.id}`;
-      if (existingKeys.has(deliveryKey)) continue;
+      return !existingKeys.has(deliveryKey);
+    });
 
-      const attemptedAt = new Date().toISOString();
-      let status = dryRun ? "dry_run" : "sent";
-      let providerMessageId: string | null = null;
-      let errorMessage: string | null = null;
+    if (pendingNotifications.length === 0) continue;
 
-      if (!dryRun) {
-        try {
-          providerMessageId = await sendEmail(notification, recipient);
-        } catch (error) {
-          status = "failed";
-          errorMessage = error instanceof Error ? error.message : String(error);
-        }
+    const attemptedAt = new Date().toISOString();
+    let status = dryRun ? "dry_run" : "sent";
+    let providerMessageId: string | null = null;
+    let errorMessage: string | null = null;
+
+    if (!dryRun) {
+      try {
+        providerMessageId = await sendEmail(pendingNotifications, recipient);
+      } catch (error) {
+        status = "failed";
+        errorMessage = error instanceof Error ? error.message : String(error);
       }
+    }
 
-      await recordDelivery({
-        notification_key: notification.id,
-        recipient_user_id: recipient.id,
-        recipient_email: recipient.email,
-        recipient_role: recipient.role,
-        notification_type: notification.type,
-        notification_code: notification.code,
-        severity: notification.severity,
-        target_path: notification.targetPath,
-        status,
-        provider: emailProvider,
-        provider_message_id: providerMessageId,
-        error_message: errorMessage,
-        sent_at: status === "sent" ? attemptedAt : null,
-        attempted_at: attemptedAt,
-        updated_at: attemptedAt,
-        metadata: {
-          title: notification.title,
-          message: notification.message,
-          customerId: notification.customerId || null,
-          customerName: notification.customerName || null,
-          ispId: notification.ispId || null,
-          ispName: notification.ispName || null,
-          targetUrl: targetUrl(notification.targetPath),
-          dryRun,
-        },
-      });
+    for (const notification of pendingNotifications) {
+      try {
+        await recordDelivery({
+          notification_key: notification.id,
+          recipient_user_id: recipient.id,
+          recipient_email: recipient.email,
+          recipient_role: recipient.role,
+          notification_type: notification.type,
+          notification_code: notification.code,
+          severity: notification.severity,
+          target_path: notification.targetPath,
+          status,
+          provider: emailProvider,
+          provider_message_id: providerMessageId,
+          error_message: errorMessage,
+          sent_at: status === "sent" ? attemptedAt : null,
+          attempted_at: attemptedAt,
+          updated_at: attemptedAt,
+          metadata: {
+            title: notification.title,
+            message: notification.message,
+            customerId: notification.customerId || null,
+            customerName: notification.customerName || null,
+            ispId: notification.ispId || null,
+            ispName: notification.ispName || null,
+            targetUrl: targetUrl(notification.targetPath),
+            dryRun,
+          },
+        });
+      } catch (dbError) {
+        console.error(`Failed to record delivery for key ${notification.id} to ${recipient.email}:`, dbError);
+      }
 
       attempts.push({
         notificationKey: notification.id,
