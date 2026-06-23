@@ -765,7 +765,7 @@ function TenantDetailPage({
   const [draftRoutePoints, setDraftRoutePoints] = useState([]);
   const [draftRouteStatus, setDraftRouteStatus] = useState("aktif");
   const [selectedEntryPointIds, setSelectedEntryPointIds] = useState([]);
-  
+
   // Pagination State for Kelengkapan Berkas
   const [berkasCurrentPage, setBerkasCurrentPage] = useState(1);
   const [berkasItemsPerPage, setBerkasItemsPerPage] = useState(10);
@@ -1353,7 +1353,7 @@ function TenantDetailPage({
     ? detail.latestDocuments
     : [];
   const allDocuments = latestDocuments; // Now includes all documents uploaded by user
-  
+
   // Filtered & Sorted Documents for Tenant
   const filteredAndSortedDocs = useMemo(() => {
     return allDocuments
@@ -1387,12 +1387,12 @@ function TenantDetailPage({
         const gap = 6;
         const itemTotalWidth = buttonWidth + gap;
         const scrollPosition = (newPage - 1) * itemTotalWidth;
-        
+
         container.scrollTo({
           left: scrollPosition - (container.clientWidth / 2) + (buttonWidth / 2),
           behavior: 'smooth'
         });
-        
+
         setTimeout(() => {
           isTenantDocScrollingProgrammatically.current = false;
         }, 400);
@@ -1402,15 +1402,15 @@ function TenantDetailPage({
 
   const handleTenantDocPaginationScroll = () => {
     if (isTenantDocScrollingProgrammatically.current || !tenantDocPaginationRef.current) return;
-    
+
     const container = tenantDocPaginationRef.current;
     const buttonWidth = 28;
     const gap = 6;
     const itemTotalWidth = buttonWidth + gap;
-    
+
     const scrollCenter = container.scrollLeft + (container.clientWidth / 2);
     const closestIndex = Math.round((scrollCenter - (buttonWidth / 2)) / itemTotalWidth);
-    
+
     const newPage = Math.max(1, Math.min(closestIndex + 1, tenantDocTotalPages));
     if (newPage !== tenantDocCurrentPage) {
       setTenantDocCurrentPage(newPage);
@@ -2557,19 +2557,19 @@ function TenantDetailPage({
 
   const filteredContractRowsForTable = useMemo(() => {
     let result = [...contractRowsForTable];
-    
+
     if (contractSearch) {
       const q = contractSearch.toLowerCase();
-      result = result.filter(r => 
+      result = result.filter(r =>
         (r.contractNumber || "").toLowerCase().includes(q) ||
         (r.note || "").toLowerCase().includes(q)
       );
     }
-    
+
     if (contractSort === "asc") {
       result.reverse();
     }
-    
+
     return result.map((row, idx) => ({ ...row, number: idx + 1 }));
   }, [contractRowsForTable, contractSearch, contractSort]);
 
@@ -4232,13 +4232,13 @@ function TenantDetailPage({
           invoices: previousDetail.invoices.map((item) =>
             Number(item?.id) === Number(invoice.id)
               ? {
-                  ...item,
-                  status: "lunas",
-                  paidAt,
-                  paid_at: paidAt,
-                  paymentProofFileUrl,
-                  payment_proof_file_url: paymentProofFileUrl,
-                }
+                ...item,
+                status: "lunas",
+                paidAt,
+                paid_at: paidAt,
+                paymentProofFileUrl,
+                payment_proof_file_url: paymentProofFileUrl,
+              }
               : item,
           ),
         };
@@ -4557,6 +4557,12 @@ function TenantDetailPage({
       if (billingCycle) {
         updatePayload.billingCycle = billingCycle;
       }
+      if (versionDates?.startDate) {
+        updatePayload.startDate = versionDates.startDate;
+      }
+      if (versionDates?.endDate) {
+        updatePayload.endDate = versionDates.endDate;
+      }
       if (followUpId) {
         await tenantDetailData.contractVersionRenewalFollowUps.update(followUpId, updatePayload);
       } else {
@@ -4570,13 +4576,6 @@ function TenantDetailPage({
           billingUnit: billingCycle.unit,
         });
         await archiveActiveInvoicesForContract(row.contractId, invoiceIdsToArchiveAfterRenewal);
-      }
-
-      if (versionDates && versionDates.startDate && versionDates.endDate) {
-        await tenantDetailData.contractVersions.update(versionId, {
-          startDate: versionDates.startDate,
-          endDate: versionDates.endDate,
-        });
       }
 
       await Promise.all([loadDetail(), onRefreshAll?.()]);
@@ -4624,7 +4623,7 @@ function TenantDetailPage({
               className={`inline-flex h-5 items-center gap-1 rounded-md border px-1.5 text-[8px] font-black uppercase tracking-widest transition-all shrink-0 ${columnType === "response"
                 ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-[#0f141e]"
                 : "border-gold-accent/20 bg-gold-accent/10 text-gold-accent hover:bg-gold-accent hover:text-[#0f141e]"
-              }`}
+                }`}
               type="button"
             >
               <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>
@@ -4650,7 +4649,7 @@ function TenantDetailPage({
     }
 
     const itemsToRender = columnType === "response"
-      ? (followUps.length > 0 ? [ [...followUps].reverse().find(f => isOpenableFileUrl(f?.renewalFileUrl)) || followUps[followUps.length - 1] ] : [])
+      ? (followUps.length > 0 ? [[...followUps].reverse().find(f => isOpenableFileUrl(f?.renewalFileUrl)) || followUps[followUps.length - 1]] : [])
       : followUps;
 
     return (
@@ -4671,140 +4670,140 @@ function TenantDetailPage({
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="flex items-center gap-1 rounded-lg border border-white/[0.06] bg-white/[0.02] p-1 backdrop-blur-md w-[130px] shrink-0">
-                {columnType === "renewal" ? (
-                  <>
-                    {hasRenewalFile ? (
-                      <>
-                        <button onClick={() => openSafeFile(followUp.renewalFileUrl, followUp.renewalFileName)} className="flex-1 w-full justify-center inline-flex h-5 items-center gap-1 rounded-md border border-gold-accent/20 bg-gold-accent/10 px-1 text-[8px] font-black uppercase tracking-widest text-gold-accent hover:bg-gold-accent hover:text-[#0f141e] transition-all">
-                          <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>visibility</span>Lihat
-                        </button>
-                        <label className="flex-1 w-full justify-center relative inline-flex h-5 items-center gap-1 rounded-md border border-white/10 bg-white/5 px-1 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all cursor-pointer">
-                          <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>upload_file</span>Ganti
-                          <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => void handleUploadTenantRenewal(row, e.target.files?.[0] ?? null, followUp.id)} />
-                        </label>
-                      </>
-                    ) : (
-                      <>
-                        <label className="w-full justify-center relative inline-flex h-5 items-center gap-1 rounded-md border border-white/10 bg-white/5 px-1.5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all cursor-pointer shrink-0">
-                          <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>upload_file</span>Upload
-                          <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => void handleUploadTenantRenewal(row, e.target.files?.[0] ?? null, followUp.id)} />
-                        </label>
-                      </>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    {hasResponseFile ? (
-                      <>
-                        <button onClick={() => openSafeFile(followUp.responseFileUrl, followUp.responseFileName)} className="flex-1 w-full justify-center inline-flex h-5 items-center gap-1 rounded-md border border-emerald-500/20 bg-emerald-500/10 px-1 text-[8px] font-black uppercase tracking-widest text-emerald-400 hover:bg-emerald-500 hover:text-[#0f141e] transition-all">
-                          <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>visibility</span>Lihat
-                        </button>
-                        <label className="flex-1 w-full justify-center relative inline-flex h-5 items-center gap-1 rounded-md border border-white/10 bg-white/5 px-1 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all cursor-pointer">
-                          <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>upload_file</span>Ganti
-                          <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => void handleRespondTenantRenewal(row, currentDecision, e.target.files?.[0] ?? null, followUp.id)} />
-                        </label>
-                      </>
-                    ) : (
-                      <>
-                        <label className="flex-1 w-full justify-center relative inline-flex h-5 items-center gap-0.5 rounded-md border border-emerald-500/20 bg-emerald-500/10 px-1 text-[8px] font-black uppercase tracking-widest text-emerald-400 hover:bg-emerald-500 hover:text-[#0f141e] transition-all cursor-pointer">
-                          <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>check</span>Lanjut
-                          <input
-                            type="file"
-                            className="absolute inset-0 opacity-0 cursor-pointer"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0] ?? null;
-                              if (!file) return;
-                              const currentVersion = versions.find(v => v.id === row.versionId) ?? null;
-                              const currentContract = contractsList.find(c => c.id === row.contractId) ?? null;
-                              const prevCoreType = currentVersion?.coreType ?? currentVersion?.core_type ?? currentContract?.coreType ?? currentContract?.core_type ?? "core";
-                              const prevCoreTotal = currentVersion?.coreTotal ?? currentVersion?.core_total ?? currentContract?.coreTotal ?? currentContract?.core_total ?? 1;
-                              const prevRatio = currentVersion?.sharedCoreRatio ?? currentVersion?.shared_core_ratio ?? currentContract?.sharingRatio ?? currentContract?.sharing_ratio ?? "1/32";
-                              const prevMonthlyAmount = currentVersion?.monthlyAmount ?? currentVersion?.monthly_amount ?? currentContract?.monthlyAmount ?? currentContract?.monthly_amount ?? 0;
-                              const prevBillingEvery = currentContract?.billingEvery ?? currentContract?.billing_every ?? contract?.billingEvery ?? 1;
-                              const prevBillingUnit = currentContract?.billingUnit ?? currentContract?.billing_unit ?? contract?.billingUnit ?? "bulan";
-                              
-                              let nextStartDate = "";
-                              let nextEndDate = "";
-                              if (row.periodEnd) {
-                                const endDt = new Date(row.periodEnd);
-                                endDt.setDate(endDt.getDate() + 1);
-                                nextStartDate = endDt.toISOString().slice(0, 10);
-                                const endDt2 = new Date(nextStartDate);
-                                endDt2.setFullYear(endDt2.getFullYear() + 1);
-                                endDt2.setDate(endDt2.getDate() - 1);
-                                nextEndDate = endDt2.toISOString().slice(0, 10);
-                              }
+                  {columnType === "renewal" ? (
+                    <>
+                      {hasRenewalFile ? (
+                        <>
+                          <button onClick={() => openSafeFile(followUp.renewalFileUrl, followUp.renewalFileName)} className="flex-1 w-full justify-center inline-flex h-5 items-center gap-1 rounded-md border border-gold-accent/20 bg-gold-accent/10 px-1 text-[8px] font-black uppercase tracking-widest text-gold-accent hover:bg-gold-accent hover:text-[#0f141e] transition-all">
+                            <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>visibility</span>Lihat
+                          </button>
+                          <label className="flex-1 w-full justify-center relative inline-flex h-5 items-center gap-1 rounded-md border border-white/10 bg-white/5 px-1 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all cursor-pointer">
+                            <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>upload_file</span>Ganti
+                            <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => void handleUploadTenantRenewal(row, e.target.files?.[0] ?? null, followUp.id)} />
+                          </label>
+                        </>
+                      ) : (
+                        <>
+                          <label className="w-full justify-center relative inline-flex h-5 items-center gap-1 rounded-md border border-white/10 bg-white/5 px-1.5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all cursor-pointer shrink-0">
+                            <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>upload_file</span>Upload
+                            <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => void handleUploadTenantRenewal(row, e.target.files?.[0] ?? null, followUp.id)} />
+                          </label>
+                        </>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      {hasResponseFile ? (
+                        <>
+                          <button onClick={() => openSafeFile(followUp.responseFileUrl, followUp.responseFileName)} className="flex-1 w-full justify-center inline-flex h-5 items-center gap-1 rounded-md border border-emerald-500/20 bg-emerald-500/10 px-1 text-[8px] font-black uppercase tracking-widest text-emerald-400 hover:bg-emerald-500 hover:text-[#0f141e] transition-all">
+                            <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>visibility</span>Lihat
+                          </button>
+                          <label className="flex-1 w-full justify-center relative inline-flex h-5 items-center gap-1 rounded-md border border-white/10 bg-white/5 px-1 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all cursor-pointer">
+                            <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>upload_file</span>Ganti
+                            <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => void handleRespondTenantRenewal(row, currentDecision, e.target.files?.[0] ?? null, followUp.id)} />
+                          </label>
+                        </>
+                      ) : (
+                        <>
+                          <label className="flex-1 w-full justify-center relative inline-flex h-5 items-center gap-0.5 rounded-md border border-emerald-500/20 bg-emerald-500/10 px-1 text-[8px] font-black uppercase tracking-widest text-emerald-400 hover:bg-emerald-500 hover:text-[#0f141e] transition-all cursor-pointer">
+                            <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>check</span>Lanjut
+                            <input
+                              type="file"
+                              className="absolute inset-0 opacity-0 cursor-pointer"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0] ?? null;
+                                if (!file) return;
+                                const currentVersion = versions.find(v => v.id === row.versionId) ?? null;
+                                const currentContract = contractsList.find(c => c.id === row.contractId) ?? null;
+                                const prevCoreType = currentVersion?.coreType ?? currentVersion?.core_type ?? currentContract?.coreType ?? currentContract?.core_type ?? "core";
+                                const prevCoreTotal = currentVersion?.coreTotal ?? currentVersion?.core_total ?? currentContract?.coreTotal ?? currentContract?.core_total ?? 1;
+                                const prevRatio = currentVersion?.sharedCoreRatio ?? currentVersion?.shared_core_ratio ?? currentContract?.sharingRatio ?? currentContract?.sharing_ratio ?? "1/32";
+                                const prevMonthlyAmount = currentVersion?.monthlyAmount ?? currentVersion?.monthly_amount ?? currentContract?.monthlyAmount ?? currentContract?.monthly_amount ?? 0;
+                                const prevBillingEvery = currentContract?.billingEvery ?? currentContract?.billing_every ?? contract?.billingEvery ?? 1;
+                                const prevBillingUnit = currentContract?.billingUnit ?? currentContract?.billing_unit ?? contract?.billingUnit ?? "bulan";
 
-                              setRenewalConfirmData({
-                                row,
-                                decision: "lanjut",
-                                file,
-                                followUpId: followUp.id,
-                                usePreviousPackage: true,
-                                packageType: prevCoreType,
-                                coreTotal: prevCoreTotal,
-                                ratio: prevRatio,
-                                monthlyAmount: prevMonthlyAmount,
-                                billingMode: resolveBillingMode(prevBillingEvery, prevBillingUnit),
-                                billingEvery: String(prevBillingEvery ?? 1),
-                                billingUnit: String(prevBillingUnit ?? "bulan"),
-                                startDate: nextStartDate,
-                                endDate: nextEndDate,
-                              });
-                            }}
-                          />
-                        </label>
-                        <label className="flex-1 w-full justify-center relative inline-flex h-5 items-center gap-0.5 rounded-md border border-white/10 bg-white/5 px-1 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all cursor-pointer">
-                          <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>close</span>Tidak
-                          <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => void handleRespondTenantRenewal(row, "tidak", e.target.files?.[0] ?? null, followUp.id)} />
-                        </label>
-                      </>
-                    )}
-                  </>
-                )}
-              </div>
-              {columnType === "renewal" && canManageTenantContracts && (
-                <div className="flex items-center gap-1 w-[44px] shrink-0 justify-start">
-                  {!isFirst ? (
-                    <button 
-                      onClick={async () => {
-                        if (window.confirm("Apakah Anda yakin ingin menghapus split tindak lanjut ini?")) {
-                          try {
-                            setIsActionLoading(true);
-                            await tenantDetailData.contractVersionRenewalFollowUps.delete(followUp.id);
-                            await loadDetail();
-                            if (onRefreshAll) onRefreshAll();
-                          } catch (err) {
-                            setError(err instanceof Error ? err.message : "Gagal menghapus split.");
-                          } finally {
-                            setIsActionLoading(false);
-                          }
-                        }
-                      }}
-                      className="h-5 w-5 shrink-0 rounded-md flex items-center justify-center border border-[#ff2400]/20 bg-[#ff2400]/10 text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all"
-                      title="Hapus split"
-                    >
-                      <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>close</span>
-                    </button>
-                  ) : (
-                    <div className="w-5 h-5 shrink-0" />
-                  )}
-                  
-                  {isLast && hasInitialTenantRenewalUpload(row) ? (
-                    <button
-                      className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-white/10 bg-white/5 text-white/40 hover:bg-white/10 hover:text-white transition-all disabled:opacity-30 shadow-sm"
-                      disabled={!hasInitialTenantRenewalUpload(row)}
-                      onClick={() => handleAddTenantRenewalSplit(row)}
-                      type="button"
-                      title="Tambah split perpanjangan"
-                    >
-                      <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
-                    </button>
-                  ) : (
-                    <div className="w-5 h-5 shrink-0" />
+                                let nextStartDate = "";
+                                let nextEndDate = "";
+                                if (row.periodEnd) {
+                                  const endDt = new Date(row.periodEnd);
+                                  endDt.setDate(endDt.getDate() + 1);
+                                  nextStartDate = endDt.toISOString().slice(0, 10);
+                                  const endDt2 = new Date(nextStartDate);
+                                  endDt2.setFullYear(endDt2.getFullYear() + 1);
+                                  endDt2.setDate(endDt2.getDate() - 1);
+                                  nextEndDate = endDt2.toISOString().slice(0, 10);
+                                }
+
+                                setRenewalConfirmData({
+                                  row,
+                                  decision: "lanjut",
+                                  file,
+                                  followUpId: followUp.id,
+                                  usePreviousPackage: true,
+                                  packageType: prevCoreType,
+                                  coreTotal: prevCoreTotal,
+                                  ratio: prevRatio,
+                                  monthlyAmount: prevMonthlyAmount,
+                                  billingMode: resolveBillingMode(prevBillingEvery, prevBillingUnit),
+                                  billingEvery: String(prevBillingEvery ?? 1),
+                                  billingUnit: String(prevBillingUnit ?? "bulan"),
+                                  startDate: nextStartDate,
+                                  endDate: nextEndDate,
+                                });
+                              }}
+                            />
+                          </label>
+                          <label className="flex-1 w-full justify-center relative inline-flex h-5 items-center gap-0.5 rounded-md border border-white/10 bg-white/5 px-1 text-[8px] font-black uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-all cursor-pointer">
+                            <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>close</span>Tidak
+                            <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => void handleRespondTenantRenewal(row, "tidak", e.target.files?.[0] ?? null, followUp.id)} />
+                          </label>
+                        </>
+                      )}
+                    </>
                   )}
                 </div>
-              )}
+                {columnType === "renewal" && canManageTenantContracts && (
+                  <div className="flex items-center gap-1 w-[44px] shrink-0 justify-start">
+                    {!isFirst ? (
+                      <button
+                        onClick={async () => {
+                          if (window.confirm("Apakah Anda yakin ingin menghapus split tindak lanjut ini?")) {
+                            try {
+                              setIsActionLoading(true);
+                              await tenantDetailData.contractVersionRenewalFollowUps.delete(followUp.id);
+                              await loadDetail();
+                              if (onRefreshAll) onRefreshAll();
+                            } catch (err) {
+                              setError(err instanceof Error ? err.message : "Gagal menghapus split.");
+                            } finally {
+                              setIsActionLoading(false);
+                            }
+                          }
+                        }}
+                        className="h-5 w-5 shrink-0 rounded-md flex items-center justify-center border border-[#ff2400]/20 bg-[#ff2400]/10 text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all"
+                        title="Hapus split"
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>close</span>
+                      </button>
+                    ) : (
+                      <div className="w-5 h-5 shrink-0" />
+                    )}
+
+                    {isLast && hasInitialTenantRenewalUpload(row) ? (
+                      <button
+                        className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-white/10 bg-white/5 text-white/40 hover:bg-white/10 hover:text-white transition-all disabled:opacity-30 shadow-sm"
+                        disabled={!hasInitialTenantRenewalUpload(row)}
+                        onClick={() => handleAddTenantRenewalSplit(row)}
+                        type="button"
+                        title="Tambah split perpanjangan"
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
+                      </button>
+                    ) : (
+                      <div className="w-5 h-5 shrink-0" />
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           );
@@ -4911,8 +4910,8 @@ function TenantDetailPage({
                           setIsMobileTabMenuOpen(false);
                         }}
                         className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left ${activeTab === tab.id
-                            ? 'bg-gold-accent/10 text-gold-accent border border-gold-accent/20'
-                            : 'text-white/70 hover:bg-white/10 hover:text-white'
+                          ? 'bg-gold-accent/10 text-gold-accent border border-gold-accent/20'
+                          : 'text-white/70 hover:bg-white/10 hover:text-white'
                           }`}
                         type="button"
                       >
@@ -5379,7 +5378,7 @@ function TenantDetailPage({
                 <div className={`absolute inset-x-0 top-0 h-px bg-gradient-to-r ${detail?.activationFeePaidAt ? 'from-emerald-400/60 via-emerald-400/20 to-transparent' : 'from-red-400/60 via-red-400/20 to-transparent'}`} />
                 <p className="text-[7px] font-black uppercase tracking-[0.3em] text-white/30 mb-1.5">Biaya Aktivasi</p>
                 <div className="flex items-end justify-between gap-1 mb-1.5">
-                  <span className={`text-[12px] font-black leading-none min-w-0 overflow-hidden ${detail?.activationFeePaidAt ? 'text-emerald-400' : 'text-red-400/80'}`} style={{fontSize: 'clamp(9px, 2.5vw, 12px)'}}>
+                  <span className={`text-[12px] font-black leading-none min-w-0 overflow-hidden ${detail?.activationFeePaidAt ? 'text-emerald-400' : 'text-red-400/80'}`} style={{ fontSize: 'clamp(9px, 2.5vw, 12px)' }}>
                     {formatCurrency(detail?.activationFeeAmount ?? customer?.activationFeeAmount)}
                   </span>
                   <span className={`shrink-0 text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border ${detail?.activationFeePaidAt ? 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10' : 'text-red-400 border-red-500/30 bg-red-500/10'}`}>
@@ -5526,71 +5525,71 @@ function TenantDetailPage({
 
                       {allBerkasTodos.length > 10 && (
                         <div className="mt-4 flex items-center justify-between gap-2 border-t border-white/10 pt-3">
-                            <div className="flex items-center gap-3">
-                                <div className="relative z-[50] w-12">
-                                    <div className="relative group h-8 rounded-lg bg-white/5 border border-white/10 focus-within:border-gold-accent/40 focus-within:bg-black/40 transition-all backdrop-blur-md">
-                                        <CustomDropdown
-                                            value={berkasItemsPerPage}
-                                            onChange={(val) => { setBerkasItemsPerPage(Number(val)); setBerkasCurrentPage(1); }}
-                                            options={[10, 20, 50, 100].map(n => ({ value: n, label: String(n) }))}
-                                            triggerClass="text-[8px] font-black uppercase tracking-widest text-white/50 group-hover:text-white px-3 cursor-pointer text-center"
-                                            position="top"
-                                            hideArrow={true}
-                                            itemAlign="center"
-                                            menuWidth="min-w-[60px]"
-                                        />
-                                    </div>
-                                </div>
-                                <p className="text-[8px] font-black uppercase tracking-widest text-white/30 hidden xs:block">
-                                    {berkasStartIndex + 1}–{Math.min(berkasStartIndex + berkasItemsPerPage, allBerkasTodos.length)} dari {allBerkasTodos.length}
-                                </p>
+                          <div className="flex items-center gap-3">
+                            <div className="relative z-[50] w-12">
+                              <div className="relative group h-8 rounded-lg bg-white/5 border border-white/10 focus-within:border-gold-accent/40 focus-within:bg-black/40 transition-all backdrop-blur-md">
+                                <CustomDropdown
+                                  value={berkasItemsPerPage}
+                                  onChange={(val) => { setBerkasItemsPerPage(Number(val)); setBerkasCurrentPage(1); }}
+                                  options={[10, 20, 50, 100].map(n => ({ value: n, label: String(n) }))}
+                                  triggerClass="text-[8px] font-black uppercase tracking-widest text-white/50 group-hover:text-white px-3 cursor-pointer text-center"
+                                  position="top"
+                                  hideArrow={true}
+                                  itemAlign="center"
+                                  menuWidth="min-w-[60px]"
+                                />
+                              </div>
                             </div>
-                            <div className="flex items-center gap-1.5 w-full sm:w-auto justify-between sm:justify-end">
-                                <button
-                                    className="flex h-8 items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-3 text-[8px] font-black uppercase tracking-widest text-white/50 transition-all hover:bg-white/10 hover:text-white disabled:opacity-30 backdrop-blur-md"
-                                    type="button" disabled={berkasCurrentPage <= 1} onClick={() => handleBerkasPageChange(Math.max(1, berkasCurrentPage - 1))}
-                                >
-                                    <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>chevron_left</span> Prev
-                                </button>
+                            <p className="text-[8px] font-black uppercase tracking-widest text-white/30 hidden xs:block">
+                              {berkasStartIndex + 1}–{Math.min(berkasStartIndex + berkasItemsPerPage, allBerkasTodos.length)} dari {allBerkasTodos.length}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-1.5 w-full sm:w-auto justify-between sm:justify-end">
+                            <button
+                              className="flex h-8 items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-3 text-[8px] font-black uppercase tracking-widest text-white/50 transition-all hover:bg-white/10 hover:text-white disabled:opacity-30 backdrop-blur-md"
+                              type="button" disabled={berkasCurrentPage <= 1} onClick={() => handleBerkasPageChange(Math.max(1, berkasCurrentPage - 1))}
+                            >
+                              <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>chevron_left</span> Prev
+                            </button>
 
-                                <div 
-                                    ref={berkasPaginationRef}
-                                    onScroll={handleBerkasPaginationScroll}
-                                    className="flex items-center gap-1.5 w-[96px] justify-start overflow-x-auto overflow-y-hidden snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden" 
-                                    style={{ scrollbarWidth: 'none' }}
-                                >
-                                    <div className="shrink-0 w-7 h-7 snap-center pointer-events-none opacity-0"></div>
+                            <div
+                              ref={berkasPaginationRef}
+                              onScroll={handleBerkasPaginationScroll}
+                              className="flex items-center gap-1.5 w-[96px] justify-start overflow-x-auto overflow-y-hidden snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden"
+                              style={{ scrollbarWidth: 'none' }}
+                            >
+                              <div className="shrink-0 w-7 h-7 snap-center pointer-events-none opacity-0"></div>
 
-                                    {berkasPageNumbers.map((page) => {
-                                        const distance = Math.abs(berkasCurrentPage - page);
-                                        const isActive = distance === 0;
+                              {berkasPageNumbers.map((page) => {
+                                const distance = Math.abs(berkasCurrentPage - page);
+                                const isActive = distance === 0;
 
-                                        let scaleClass = "scale-100 opacity-100 z-10";
-                                        if (distance === 1) scaleClass = "scale-90 opacity-70 z-0";
-                                        if (distance > 1) scaleClass = "scale-75 opacity-30 -z-10";
+                                let scaleClass = "scale-100 opacity-100 z-10";
+                                if (distance === 1) scaleClass = "scale-90 opacity-70 z-0";
+                                if (distance > 1) scaleClass = "scale-75 opacity-30 -z-10";
 
-                                        return (
-                                            <button
-                                                key={`berkas-page-${page}`}
-                                                onClick={() => handleBerkasPageChange(page)}
-                                                className={`shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-black transition-all duration-300 snap-center ${isActive ? "bg-gold-accent text-white shadow-lg shadow-gold-accent/20" : "bg-white/5 text-white/50 hover:bg-white/10 hover:text-white"} ${scaleClass}`}
-                                                type="button"
-                                            >
-                                                {page}
-                                            </button>
-                                        );
-                                    })}
+                                return (
+                                  <button
+                                    key={`berkas-page-${page}`}
+                                    onClick={() => handleBerkasPageChange(page)}
+                                    className={`shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-black transition-all duration-300 snap-center ${isActive ? "bg-gold-accent text-white shadow-lg shadow-gold-accent/20" : "bg-white/5 text-white/50 hover:bg-white/10 hover:text-white"} ${scaleClass}`}
+                                    type="button"
+                                  >
+                                    {page}
+                                  </button>
+                                );
+                              })}
 
-                                    <div className="shrink-0 w-7 h-7 snap-center pointer-events-none opacity-0"></div>
-                                </div>
-
-                                <button
-                                    className="flex h-8 items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-3 text-[8px] font-black uppercase tracking-widest text-white/50 transition-all hover:bg-white/10 hover:text-white disabled:opacity-30 backdrop-blur-md"
-                                    type="button" disabled={berkasCurrentPage >= berkasTotalPages} onClick={() => handleBerkasPageChange(Math.min(berkasTotalPages, berkasCurrentPage + 1))}
-                                >
-                                    Next <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>chevron_right</span>
-                                </button>
+                              <div className="shrink-0 w-7 h-7 snap-center pointer-events-none opacity-0"></div>
                             </div>
+
+                            <button
+                              className="flex h-8 items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-3 text-[8px] font-black uppercase tracking-widest text-white/50 transition-all hover:bg-white/10 hover:text-white disabled:opacity-30 backdrop-blur-md"
+                              type="button" disabled={berkasCurrentPage >= berkasTotalPages} onClick={() => handleBerkasPageChange(Math.min(berkasTotalPages, berkasCurrentPage + 1))}
+                            >
+                              Next <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>chevron_right</span>
+                            </button>
+                          </div>
                         </div>
                       )}
                     </>
@@ -6225,9 +6224,8 @@ function TenantDetailPage({
                   return (
                     <div
                       key={row.id}
-                      className={`glass-card rounded-xl border shadow-glass-depth flex flex-col transition-all ${
-                        row.isHistory ? 'border-white/5 opacity-60' : row.isFuture ? 'border-blue-500/20' : 'border-white/10'
-                      }`}
+                      className={`glass-card rounded-xl border shadow-glass-depth flex flex-col transition-all ${row.isHistory ? 'border-white/5 opacity-60' : row.isFuture ? 'border-blue-500/20' : 'border-white/10'
+                        }`}
                     >
                       {/* Header — always visible, tap to expand */}
                       <button
@@ -6538,13 +6536,13 @@ function TenantDetailPage({
                               )}
 
                               {isEditingContractRow ? (
-                                                                <label
-                                                                    className="inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-white/10 bg-white/5 text-white/40 hover:text-white hover:border-white/20 transition-all shrink-0"
-                                                                    onClick={() => { isSelectingFileRef.current = true; }}
-                                                                    title="Ganti berkas"
-                                                                >
-                                                                    <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>upload_file</span>
-                                                                    <input
+                                <label
+                                  className="inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-white/10 bg-white/5 text-white/40 hover:text-white hover:border-white/20 transition-all shrink-0"
+                                  onClick={() => { isSelectingFileRef.current = true; }}
+                                  title="Ganti berkas"
+                                >
+                                  <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>upload_file</span>
+                                  <input
                                     type="file"
                                     className="hidden"
                                     disabled={isSavingContractRow}
@@ -6571,16 +6569,16 @@ function TenantDetailPage({
                                     }}
                                   />
                                 </label>
-                                                            ) : canManageTenantContracts && row.contractFileUrl && (
-                                                                <button
-                                                                    type="button"
-                                                                    className="inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-white/10 bg-white/5 text-white/40 hover:text-white hover:border-white/20 transition-all shrink-0"
-                                                                    onClick={() => openContractRowEditor(row, "contractFile")}
-                                                                    title="Ganti berkas"
-                                                                >
-                                                                    <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>upload_file</span>
-                                                                </button>
-                                                            )}
+                              ) : canManageTenantContracts && row.contractFileUrl && (
+                                <button
+                                  type="button"
+                                  className="inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-white/10 bg-white/5 text-white/40 hover:text-white hover:border-white/20 transition-all shrink-0"
+                                  onClick={() => openContractRowEditor(row, "contractFile")}
+                                  title="Ganti berkas"
+                                >
+                                  <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>upload_file</span>
+                                </button>
+                              )}
                             </div>
                           </td>
 
@@ -6606,8 +6604,8 @@ function TenantDetailPage({
                               inputClass="w-full h-full bg-transparent px-2 text-[10px] font-black text-white border-transparent focus:border-gold-accent/40 focus:bg-white/[0.04] hover:bg-white/[0.02] outline-none transition-all text-center disabled:opacity-50"
                               disabled={true}
                               value={(contractPeriodInfo.contractStartDate ?? "").slice(0, 10)}
-                              onChange={() => {}}
-                              onFocus={() => {}}
+                              onChange={() => { }}
+                              onFocus={() => { }}
                               onKeyDown={(e) => {
                                 if (e.key === "Enter") {
                                   e.currentTarget.blur();
@@ -6775,13 +6773,13 @@ function TenantDetailPage({
                               )}
 
                               {isEditingContractRow && canManageTenantContracts ? (
-                                    <label
-                                        className="inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-white/10 bg-white/5 text-white/40 hover:text-white hover:border-white/20 transition-all shrink-0"
-                                        onClick={() => { isSelectingFileRef.current = true; }}
-                                        title="Ganti berkas"
-                                    >
-                                        <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>upload_file</span>
-                                        <input
+                                <label
+                                  className="inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-white/10 bg-white/5 text-white/40 hover:text-white hover:border-white/20 transition-all shrink-0"
+                                  onClick={() => { isSelectingFileRef.current = true; }}
+                                  title="Ganti berkas"
+                                >
+                                  <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>upload_file</span>
+                                  <input
                                     type="file"
                                     className="hidden"
                                     disabled={isSavingContractRow}
@@ -6808,16 +6806,16 @@ function TenantDetailPage({
                                     }}
                                   />
                                 </label>
-                                ) : canManageTenantContracts && row.bakFileUrl && (
-                                    <button
-                                        type="button"
-                                        className="inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-white/10 bg-white/5 text-white/40 hover:text-white hover:border-white/20 transition-all shrink-0"
-                                        onClick={() => openContractRowEditor(row, "bakFile")}
-                                        title="Ganti berkas"
-                                    >
-                                        <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>upload_file</span>
-                                    </button>
-                                )}
+                              ) : canManageTenantContracts && row.bakFileUrl && (
+                                <button
+                                  type="button"
+                                  className="inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-white/10 bg-white/5 text-white/40 hover:text-white hover:border-white/20 transition-all shrink-0"
+                                  onClick={() => openContractRowEditor(row, "bakFile")}
+                                  title="Ganti berkas"
+                                >
+                                  <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>upload_file</span>
+                                </button>
+                              )}
                             </div>
                           </td>
 
@@ -6964,7 +6962,7 @@ function TenantDetailPage({
                       {selectedInvoiceIds.size > 0 ? `Mode Terpilih (${selectedInvoiceIds.size})` : "Mode Global (Semua)"}
                     </span>
                   </div>
-                  
+
                   <div className="flex flex-wrap items-end gap-3">
                     <div className="flex flex-col gap-1.5">
                       <p className="text-[8px] font-black uppercase tracking-[0.3em] text-white/30 px-1">Bulan Jatuh Tempo</p>
@@ -7271,7 +7269,7 @@ function TenantDetailPage({
                                 {openInvoiceStatusId === invoice.id && dropdownPosition && createPortal(
                                   <>
                                     <div className="fixed inset-0 z-[110]" onClick={() => { setOpenInvoiceStatusId(null); setDropdownPosition(null); }} />
-                                    <div 
+                                    <div
                                       className="fixed z-[120] rounded-lg border border-white/10 bg-[#0a0f18]/95 p-1 shadow-2xl backdrop-blur-2xl animate-in fade-in zoom-in-95 duration-200"
                                       style={{
                                         top: `${dropdownPosition.top}px`,
@@ -7346,7 +7344,7 @@ function TenantDetailPage({
                                   <div className="flex items-center gap-1 shrink-0">
                                     {hasInvoiceFile && (
                                       <a href={invoice.invoiceFileUrl} target="_blank" rel="noopener noreferrer"
-                                         className="h-6 w-6 rounded-lg bg-gold-accent/10 border border-gold-accent/20 text-gold-accent hover:bg-gold-accent hover:text-[#0f141e] transition-all flex items-center justify-center" title="Lihat">
+                                        className="h-6 w-6 rounded-lg bg-gold-accent/10 border border-gold-accent/20 text-gold-accent hover:bg-gold-accent hover:text-[#0f141e] transition-all flex items-center justify-center" title="Lihat">
                                         <span className="material-symbols-outlined" style={{ fontSize: '11px' }}>visibility</span>
                                       </a>
                                     )}
@@ -7390,7 +7388,7 @@ function TenantDetailPage({
                                       <div className="flex items-center gap-1 shrink-0">
                                         {hasSecondFollowUpFile && (
                                           <a href={workflowMeta.secondFollowUp?.invoiceFileUrl} target="_blank" rel="noopener noreferrer"
-                                             className="h-6 w-6 rounded-lg bg-orange-500/10 border border-orange-500/20 text-orange-400 hover:bg-orange-500 hover:text-[#0f141e] transition-all flex items-center justify-center" title="Lihat">
+                                            className="h-6 w-6 rounded-lg bg-orange-500/10 border border-orange-500/20 text-orange-400 hover:bg-orange-500 hover:text-[#0f141e] transition-all flex items-center justify-center" title="Lihat">
                                             <span className="material-symbols-outlined" style={{ fontSize: '10px' }}>visibility</span>
                                           </a>
                                         )}
@@ -7436,7 +7434,7 @@ function TenantDetailPage({
                                       <div className="flex items-center gap-1 shrink-0">
                                         {hasThirdFollowUpFile && (
                                           <a href={workflowMeta.thirdFollowUp?.invoiceFileUrl} target="_blank" rel="noopener noreferrer"
-                                             className="h-6 w-6 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-400 hover:bg-sky-500 hover:text-[#0f141e] transition-all flex items-center justify-center" title="Lihat">
+                                            className="h-6 w-6 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-400 hover:bg-sky-500 hover:text-[#0f141e] transition-all flex items-center justify-center" title="Lihat">
                                             <span className="material-symbols-outlined" style={{ fontSize: '10px' }}>visibility</span>
                                           </a>
                                         )}
@@ -7525,7 +7523,7 @@ function TenantDetailPage({
                     const canUploadSecondWarning = !isIsp && !isSavingInvoice && hasInvoiceFile;
                     const canUploadThirdWarning = !isIsp && !isSavingInvoice && (hasSecondFollowUpFile || hasThirdFollowUpFile);
                     const canUploadPaymentProof = !isIsp && !isSavingInvoice && hasAnyInvoiceFile;
-                    
+
                     const statusStyle = (() => {
                       if (statusMeta.key === "paid") return "bg-emerald-500/10 border-emerald-500/20 text-emerald-400";
                       if (statusMeta.key === "warning_unpaid") return "bg-[#ff2400]/10 border-[#ff2400]/30 text-[#ff2400]";
@@ -7587,7 +7585,7 @@ function TenantDetailPage({
                             <span className="material-symbols-outlined text-white/40 text-[18px] transition-transform duration-300 group-open:-rotate-180">expand_more</span>
                           </div>
                         </summary>
-                        
+
                         {/* Body of card grid (Collapsible Content) */}
                         <div className="flex flex-col gap-3 px-3.5 pb-3.5 pt-0 mt-0 border-t border-white/5 animate-in fade-in slide-in-from-top-2 duration-300">
                           <div className="grid grid-cols-2 gap-2.5 mt-3">
@@ -7607,208 +7605,208 @@ function TenantDetailPage({
                                 />
                               )}
                             </div>
-                          <div className="bg-white/[0.02] rounded-lg border border-white/5 p-2 flex flex-col gap-1">
-                            <span className="text-[7.5px] font-black uppercase tracking-widest text-white/30">Jumlah (Rp)</span>
-                            {isIsp ? (
-                              <span className="text-[10px] font-bold text-emerald-400 truncate">{draft.amount ? `Rp ${draft.amount}` : "-"}</span>
-                            ) : (
-                              <input
-                                className="h-6 w-full rounded border border-white/10 bg-white/[0.03] px-2 text-[9px] font-black text-white outline-none focus:border-gold-accent/50"
-                                onBlur={() => handleInvoiceAutoSave(invoice)}
-                                onChange={(e) => handleInvoiceDraftAmountChange(e, invoice.id)}
-                                placeholder="0"
-                                type="text"
-                                value={draft.amount}
-                              />
-                            )}
-                          </div>
-                          <div className="bg-white/[0.02] rounded-lg border border-white/5 p-2 flex flex-col gap-1">
-                            <span className="text-[7.5px] font-black uppercase tracking-widest text-white/30">Waktu Bayar</span>
-                            <span className="text-[9px] font-bold text-white/50 truncate">
-                              {invoice.paidAt ? formatDate(invoice.paidAt) : <span className="text-white/20 italic font-normal">—</span>}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="flex gap-2 mt-0.5">
-                          {/* Invoice File Column */}
-                          <div className="flex-1 bg-white/[0.02] rounded-lg border border-white/5 p-2 flex flex-col items-center justify-center gap-1.5 min-h-[50px]">
-                            <span className="text-[7px] font-black uppercase tracking-widest text-white/30 text-center">Berkas Invoice</span>
-                            {isIsp ? (
-                              hasInvoiceFile ? (
-                                <a
-                                  className="w-full inline-flex items-center justify-center gap-1.5 py-1.5 rounded-md border border-gold-accent/20 bg-gold-accent/5 text-[8px] font-black text-gold-accent uppercase tracking-widest hover:bg-gold-accent hover:text-[#0f141e] transition-colors"
-                                  href={invoice.invoiceFileUrl}
-                                  target="_blank" rel="noopener noreferrer"
-                                >
-                                  <span className="material-symbols-outlined text-[11px]">receipt</span>
-                                  Buka
-                                </a>
+                            <div className="bg-white/[0.02] rounded-lg border border-white/5 p-2 flex flex-col gap-1">
+                              <span className="text-[7.5px] font-black uppercase tracking-widest text-white/30">Jumlah (Rp)</span>
+                              {isIsp ? (
+                                <span className="text-[10px] font-bold text-emerald-400 truncate">{draft.amount ? `Rp ${draft.amount}` : "-"}</span>
                               ) : (
-                                <span className="text-[9px] font-bold text-white/20 italic">—</span>
-                              )
-                            ) : (
-                              <div className="flex flex-col gap-1 w-full mt-1.5">
-                                {/* Invoice Utama */}
-                                <div className="flex items-center justify-between gap-2 bg-white/[0.02] border border-white/[0.05] rounded-lg px-2 py-1.5">
-                                  <div className="flex items-center gap-1.5 min-w-0">
-                                    <span className="material-symbols-outlined text-gold-accent/40" style={{ fontSize: '13px' }}>receipt_long</span>
-                                    <div className="min-w-0 flex flex-col items-start">
-                                      <p className="text-[7px] font-black uppercase tracking-widest text-white/30 leading-tight">Invoice Utama</p>
-                                      <p className="text-[8px] font-bold text-white/50 truncate max-w-[120px] leading-tight">{hasInvoiceFile ? "Tersedia" : <span className="text-white/20">Belum ada</span>}</p>
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center gap-1 shrink-0">
-                                    {hasInvoiceFile && (
-                                      <a href={invoice.invoiceFileUrl} target="_blank" rel="noopener noreferrer"
-                                         className="h-6 w-6 rounded-lg bg-gold-accent/10 border border-gold-accent/20 text-gold-accent hover:bg-gold-accent hover:text-[#0f141e] transition-all flex items-center justify-center" title="Lihat">
-                                        <span className="material-symbols-outlined" style={{ fontSize: '10px' }}>visibility</span>
-                                      </a>
-                                    )}
-                                    <label className={`relative h-6 w-6 rounded-lg border flex items-center justify-center transition-all cursor-pointer ${canUploadInvoiceFile ? 'border-white/10 bg-white/5 text-white/40 hover:border-white/20 hover:text-white' : 'border-white/5 bg-white/[0.02] text-white/10 cursor-not-allowed'}`} title={hasInvoiceFile ? "Ganti File" : "Upload File"}>
-                                      <span className="material-symbols-outlined" style={{ fontSize: '10px' }}>{hasInvoiceFile ? "edit" : "upload"}</span>
-                                      <input className="absolute inset-0 opacity-0 cursor-pointer" disabled={!canUploadInvoiceFile} onChange={(e) => void handleInvoiceFileInputChange(e, invoice, "invoice")} type="file" />
-                                    </label>
-                                  </div>
-                                </div>
-
-                                {/* SP2 */}
-                                {!isSp2Visible && canUploadSecondWarning && (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleToggleManualSp2(invoice.id)}
-                                    className="w-full flex items-center justify-center gap-1 py-1.5 rounded-lg border border-white/5 bg-white/[0.02] text-[8px] font-black uppercase tracking-widest text-white/40 hover:bg-white/5 hover:text-white transition-colors mt-0.5"
-                                  >
-                                    <span className="material-symbols-outlined text-[10px]">add</span>
-                                    Split Invoice Ke-2
-                                  </button>
-                                )}
-                                {isSp2Visible && canUploadSecondWarning && (
-                                  <div className="flex flex-col gap-1.5 rounded-lg border border-orange-500/20 bg-orange-500/5 p-1.5 relative mt-0.5">
-                                    {!hasSecondFollowUp && (
-                                      <button
-                                        type="button"
-                                        onClick={() => handleToggleManualSp2(invoice.id)}
-                                        className="absolute -top-1.5 -right-1.5 w-4 h-4 flex items-center justify-center rounded-full bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-colors z-10"
-                                      >
-                                        <span className="material-symbols-outlined text-[10px]">close</span>
-                                      </button>
-                                    )}
-                                    <div className="flex items-center justify-between gap-2 bg-white/[0.02] border border-orange-500/10 rounded-lg px-2 py-1.5">
-                                      <div className="flex items-center gap-1.5 min-w-0">
-                                        <span className="material-symbols-outlined text-orange-400/40" style={{ fontSize: '13px' }}>receipt_long</span>
-                                        <div className="min-w-0 flex flex-col items-start">
-                                          <p className="text-[7px] font-black uppercase tracking-widest text-orange-200/50 leading-tight">Split Ke-2</p>
-                                          <p className="text-[8px] font-bold text-orange-200/70 truncate max-w-[100px] leading-tight">{hasSecondFollowUpFile ? "Tersedia" : <span className="text-orange-200/30">Belum ada</span>}</p>
-                                        </div>
-                                      </div>
-                                      <div className="flex items-center gap-1 shrink-0">
-                                        {hasSecondFollowUpFile && (
-                                          <a href={workflowMeta.secondFollowUp?.invoiceFileUrl} target="_blank" rel="noopener noreferrer"
-                                             className="h-6 w-6 rounded-lg bg-orange-500/10 border border-orange-500/20 text-orange-400 hover:bg-orange-500 hover:text-[#0f141e] transition-all flex items-center justify-center" title="Lihat">
-                                            <span className="material-symbols-outlined" style={{ fontSize: '10px' }}>visibility</span>
-                                          </a>
-                                        )}
-                                        <label className={`relative h-6 w-6 rounded-lg border flex items-center justify-center transition-all cursor-pointer ${canUploadSecondWarning ? 'border-orange-500/20 bg-orange-500/10 text-orange-200 hover:border-orange-500/40 hover:text-orange-100' : 'border-white/5 bg-white/[0.02] text-white/10 cursor-not-allowed'}`} title={hasSecondFollowUpFile ? "Ganti File" : "Upload File"}>
-                                          <span className="material-symbols-outlined" style={{ fontSize: '10px' }}>{hasSecondFollowUpFile ? "edit" : "upload"}</span>
-                                          <input className="absolute inset-0 opacity-0 cursor-pointer" disabled={!canUploadSecondWarning} onChange={(e) => void handleInvoiceFileInputChange(e, invoice, "invoice", 2)} type="file" />
-                                        </label>
-                                      </div>
-                                    </div>
-                                  </div>
-                                )}
-
-                                {/* SP3 */}
-                                {!isSp3Visible && canUploadThirdWarning && (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleToggleManualSp3(invoice.id)}
-                                    className="w-full flex items-center justify-center gap-1 py-1.5 rounded-lg border border-white/5 bg-white/[0.02] text-[8px] font-black uppercase tracking-widest text-white/40 hover:bg-white/5 hover:text-white transition-colors mt-0.5"
-                                  >
-                                    <span className="material-symbols-outlined text-[10px]">add</span>
-                                    Split Invoice Ke-3
-                                  </button>
-                                )}
-                                {isSp3Visible && canUploadThirdWarning && (
-                                  <div className="flex flex-col gap-1.5 rounded-lg border border-sky-500/20 bg-sky-500/5 p-1.5 relative mt-0.5">
-                                    {!hasThirdFollowUp && (
-                                      <button
-                                        type="button"
-                                        onClick={() => handleToggleManualSp3(invoice.id)}
-                                        className="absolute -top-1.5 -right-1.5 w-4 h-4 flex items-center justify-center rounded-full bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-colors z-10"
-                                      >
-                                        <span className="material-symbols-outlined text-[10px]">close</span>
-                                      </button>
-                                    )}
-                                    <div className="flex items-center justify-between gap-2 bg-white/[0.02] border border-sky-500/10 rounded-lg px-2 py-1.5">
-                                      <div className="flex items-center gap-1.5 min-w-0">
-                                        <span className="material-symbols-outlined text-sky-400/40" style={{ fontSize: '13px' }}>receipt_long</span>
-                                        <div className="min-w-0 flex flex-col items-start">
-                                          <p className="text-[7px] font-black uppercase tracking-widest text-sky-200/50 leading-tight">Split Ke-3</p>
-                                          <p className="text-[8px] font-bold text-sky-200/70 truncate max-w-[100px] leading-tight">{hasThirdFollowUpFile ? "Tersedia" : <span className="text-sky-200/30">Belum ada</span>}</p>
-                                        </div>
-                                      </div>
-                                      <div className="flex items-center gap-1 shrink-0">
-                                        {hasThirdFollowUpFile && (
-                                          <a href={workflowMeta.thirdFollowUp?.invoiceFileUrl} target="_blank" rel="noopener noreferrer"
-                                             className="h-6 w-6 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-400 hover:bg-sky-500 hover:text-[#0f141e] transition-all flex items-center justify-center" title="Lihat">
-                                            <span className="material-symbols-outlined" style={{ fontSize: '10px' }}>visibility</span>
-                                          </a>
-                                        )}
-                                        <label className={`relative h-6 w-6 rounded-lg border flex items-center justify-center transition-all cursor-pointer ${canUploadThirdWarning ? 'border-sky-500/20 bg-sky-500/10 text-sky-200 hover:border-sky-500/40 hover:text-sky-100' : 'border-white/5 bg-white/[0.02] text-white/10 cursor-not-allowed'}`} title={hasThirdFollowUpFile ? "Ganti File" : "Upload File"}>
-                                          <span className="material-symbols-outlined" style={{ fontSize: '10px' }}>{hasThirdFollowUpFile ? "edit" : "upload"}</span>
-                                          <input className="absolute inset-0 opacity-0 cursor-pointer" disabled={!canUploadThirdWarning} onChange={(e) => void handleInvoiceFileInputChange(e, invoice, "invoice", 3)} type="file" />
-                                        </label>
-                                      </div>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            )}
+                                <input
+                                  className="h-6 w-full rounded border border-white/10 bg-white/[0.03] px-2 text-[9px] font-black text-white outline-none focus:border-gold-accent/50"
+                                  onBlur={() => handleInvoiceAutoSave(invoice)}
+                                  onChange={(e) => handleInvoiceDraftAmountChange(e, invoice.id)}
+                                  placeholder="0"
+                                  type="text"
+                                  value={draft.amount}
+                                />
+                              )}
+                            </div>
+                            <div className="bg-white/[0.02] rounded-lg border border-white/5 p-2 flex flex-col gap-1">
+                              <span className="text-[7.5px] font-black uppercase tracking-widest text-white/30">Waktu Bayar</span>
+                              <span className="text-[9px] font-bold text-white/50 truncate">
+                                {invoice.paidAt ? formatDate(invoice.paidAt) : <span className="text-white/20 italic font-normal">—</span>}
+                              </span>
+                            </div>
                           </div>
 
-                          {/* Payment Proof Column */}
-                          <div className="flex-1 bg-white/[0.02] rounded-lg border border-white/5 p-2 flex flex-col items-center justify-center gap-1.5 min-h-[50px]">
-                            <span className="text-[7px] font-black uppercase tracking-widest text-white/30 text-center">Bukti Bayar</span>
-                            {isIsp ? (
-                              hasPaymentProof ? (
-                                <a
-                                  className="w-full inline-flex items-center justify-center gap-1.5 py-1.5 rounded-md border border-emerald-500/20 bg-emerald-500/5 text-[8px] font-black text-emerald-400 uppercase tracking-widest hover:bg-emerald-500 hover:text-white transition-colors"
-                                  href={invoice.paymentProofFileUrl}
-                                  target="_blank" rel="noopener noreferrer"
-                                >
-                                  <span className="material-symbols-outlined text-[11px]">verified</span>
-                                  Buka
-                                </a>
-                              ) : (
-                                <span className="text-[9px] font-bold text-white/20 italic">—</span>
-                              )
-                            ) : (
-                              <div className="flex flex-col items-center w-full gap-1.5">
-                                <label className={`relative w-full inline-flex items-center justify-center gap-1.5 h-6 rounded border text-[7.5px] font-black uppercase tracking-widest transition-all cursor-pointer ${canUploadPaymentProof ? 'border-white/10 bg-white/5 text-white/40 hover:border-white/20 hover:text-white' : 'border-white/5 bg-white/[0.02] text-white/10 cursor-not-allowed'}`}>
-                                  <span className="material-symbols-outlined text-[10px]">receipt_long</span>
-                                  {hasPaymentProof ? "Ganti" : "Upload"}
-                                  <input
-                                    className="absolute inset-0 opacity-0 cursor-pointer"
-                                    disabled={!canUploadPaymentProof}
-                                    onChange={(e) => void handleInvoiceFileInputChange(e, invoice, "payment-proof")}
-                                    type="file"
-                                  />
-                                </label>
-                                {hasPaymentProof && (
+                          <div className="flex gap-2 mt-0.5">
+                            {/* Invoice File Column */}
+                            <div className="flex-1 bg-white/[0.02] rounded-lg border border-white/5 p-2 flex flex-col items-center justify-center gap-1.5 min-h-[50px]">
+                              <span className="text-[7px] font-black uppercase tracking-widest text-white/30 text-center">Berkas Invoice</span>
+                              {isIsp ? (
+                                hasInvoiceFile ? (
                                   <a
-                                    className="w-full inline-flex items-center justify-center gap-1 py-1 rounded border border-emerald-500/10 text-[7px] font-black text-emerald-400 uppercase tracking-widest hover:bg-emerald-500/10"
+                                    className="w-full inline-flex items-center justify-center gap-1.5 py-1.5 rounded-md border border-gold-accent/20 bg-gold-accent/5 text-[8px] font-black text-gold-accent uppercase tracking-widest hover:bg-gold-accent hover:text-[#0f141e] transition-colors"
+                                    href={invoice.invoiceFileUrl}
+                                    target="_blank" rel="noopener noreferrer"
+                                  >
+                                    <span className="material-symbols-outlined text-[11px]">receipt</span>
+                                    Buka
+                                  </a>
+                                ) : (
+                                  <span className="text-[9px] font-bold text-white/20 italic">—</span>
+                                )
+                              ) : (
+                                <div className="flex flex-col gap-1 w-full mt-1.5">
+                                  {/* Invoice Utama */}
+                                  <div className="flex items-center justify-between gap-2 bg-white/[0.02] border border-white/[0.05] rounded-lg px-2 py-1.5">
+                                    <div className="flex items-center gap-1.5 min-w-0">
+                                      <span className="material-symbols-outlined text-gold-accent/40" style={{ fontSize: '13px' }}>receipt_long</span>
+                                      <div className="min-w-0 flex flex-col items-start">
+                                        <p className="text-[7px] font-black uppercase tracking-widest text-white/30 leading-tight">Invoice Utama</p>
+                                        <p className="text-[8px] font-bold text-white/50 truncate max-w-[120px] leading-tight">{hasInvoiceFile ? "Tersedia" : <span className="text-white/20">Belum ada</span>}</p>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-1 shrink-0">
+                                      {hasInvoiceFile && (
+                                        <a href={invoice.invoiceFileUrl} target="_blank" rel="noopener noreferrer"
+                                          className="h-6 w-6 rounded-lg bg-gold-accent/10 border border-gold-accent/20 text-gold-accent hover:bg-gold-accent hover:text-[#0f141e] transition-all flex items-center justify-center" title="Lihat">
+                                          <span className="material-symbols-outlined" style={{ fontSize: '10px' }}>visibility</span>
+                                        </a>
+                                      )}
+                                      <label className={`relative h-6 w-6 rounded-lg border flex items-center justify-center transition-all cursor-pointer ${canUploadInvoiceFile ? 'border-white/10 bg-white/5 text-white/40 hover:border-white/20 hover:text-white' : 'border-white/5 bg-white/[0.02] text-white/10 cursor-not-allowed'}`} title={hasInvoiceFile ? "Ganti File" : "Upload File"}>
+                                        <span className="material-symbols-outlined" style={{ fontSize: '10px' }}>{hasInvoiceFile ? "edit" : "upload"}</span>
+                                        <input className="absolute inset-0 opacity-0 cursor-pointer" disabled={!canUploadInvoiceFile} onChange={(e) => void handleInvoiceFileInputChange(e, invoice, "invoice")} type="file" />
+                                      </label>
+                                    </div>
+                                  </div>
+
+                                  {/* SP2 */}
+                                  {!isSp2Visible && canUploadSecondWarning && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleToggleManualSp2(invoice.id)}
+                                      className="w-full flex items-center justify-center gap-1 py-1.5 rounded-lg border border-white/5 bg-white/[0.02] text-[8px] font-black uppercase tracking-widest text-white/40 hover:bg-white/5 hover:text-white transition-colors mt-0.5"
+                                    >
+                                      <span className="material-symbols-outlined text-[10px]">add</span>
+                                      Split Invoice Ke-2
+                                    </button>
+                                  )}
+                                  {isSp2Visible && canUploadSecondWarning && (
+                                    <div className="flex flex-col gap-1.5 rounded-lg border border-orange-500/20 bg-orange-500/5 p-1.5 relative mt-0.5">
+                                      {!hasSecondFollowUp && (
+                                        <button
+                                          type="button"
+                                          onClick={() => handleToggleManualSp2(invoice.id)}
+                                          className="absolute -top-1.5 -right-1.5 w-4 h-4 flex items-center justify-center rounded-full bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-colors z-10"
+                                        >
+                                          <span className="material-symbols-outlined text-[10px]">close</span>
+                                        </button>
+                                      )}
+                                      <div className="flex items-center justify-between gap-2 bg-white/[0.02] border border-orange-500/10 rounded-lg px-2 py-1.5">
+                                        <div className="flex items-center gap-1.5 min-w-0">
+                                          <span className="material-symbols-outlined text-orange-400/40" style={{ fontSize: '13px' }}>receipt_long</span>
+                                          <div className="min-w-0 flex flex-col items-start">
+                                            <p className="text-[7px] font-black uppercase tracking-widest text-orange-200/50 leading-tight">Split Ke-2</p>
+                                            <p className="text-[8px] font-bold text-orange-200/70 truncate max-w-[100px] leading-tight">{hasSecondFollowUpFile ? "Tersedia" : <span className="text-orange-200/30">Belum ada</span>}</p>
+                                          </div>
+                                        </div>
+                                        <div className="flex items-center gap-1 shrink-0">
+                                          {hasSecondFollowUpFile && (
+                                            <a href={workflowMeta.secondFollowUp?.invoiceFileUrl} target="_blank" rel="noopener noreferrer"
+                                              className="h-6 w-6 rounded-lg bg-orange-500/10 border border-orange-500/20 text-orange-400 hover:bg-orange-500 hover:text-[#0f141e] transition-all flex items-center justify-center" title="Lihat">
+                                              <span className="material-symbols-outlined" style={{ fontSize: '10px' }}>visibility</span>
+                                            </a>
+                                          )}
+                                          <label className={`relative h-6 w-6 rounded-lg border flex items-center justify-center transition-all cursor-pointer ${canUploadSecondWarning ? 'border-orange-500/20 bg-orange-500/10 text-orange-200 hover:border-orange-500/40 hover:text-orange-100' : 'border-white/5 bg-white/[0.02] text-white/10 cursor-not-allowed'}`} title={hasSecondFollowUpFile ? "Ganti File" : "Upload File"}>
+                                            <span className="material-symbols-outlined" style={{ fontSize: '10px' }}>{hasSecondFollowUpFile ? "edit" : "upload"}</span>
+                                            <input className="absolute inset-0 opacity-0 cursor-pointer" disabled={!canUploadSecondWarning} onChange={(e) => void handleInvoiceFileInputChange(e, invoice, "invoice", 2)} type="file" />
+                                          </label>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* SP3 */}
+                                  {!isSp3Visible && canUploadThirdWarning && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleToggleManualSp3(invoice.id)}
+                                      className="w-full flex items-center justify-center gap-1 py-1.5 rounded-lg border border-white/5 bg-white/[0.02] text-[8px] font-black uppercase tracking-widest text-white/40 hover:bg-white/5 hover:text-white transition-colors mt-0.5"
+                                    >
+                                      <span className="material-symbols-outlined text-[10px]">add</span>
+                                      Split Invoice Ke-3
+                                    </button>
+                                  )}
+                                  {isSp3Visible && canUploadThirdWarning && (
+                                    <div className="flex flex-col gap-1.5 rounded-lg border border-sky-500/20 bg-sky-500/5 p-1.5 relative mt-0.5">
+                                      {!hasThirdFollowUp && (
+                                        <button
+                                          type="button"
+                                          onClick={() => handleToggleManualSp3(invoice.id)}
+                                          className="absolute -top-1.5 -right-1.5 w-4 h-4 flex items-center justify-center rounded-full bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-colors z-10"
+                                        >
+                                          <span className="material-symbols-outlined text-[10px]">close</span>
+                                        </button>
+                                      )}
+                                      <div className="flex items-center justify-between gap-2 bg-white/[0.02] border border-sky-500/10 rounded-lg px-2 py-1.5">
+                                        <div className="flex items-center gap-1.5 min-w-0">
+                                          <span className="material-symbols-outlined text-sky-400/40" style={{ fontSize: '13px' }}>receipt_long</span>
+                                          <div className="min-w-0 flex flex-col items-start">
+                                            <p className="text-[7px] font-black uppercase tracking-widest text-sky-200/50 leading-tight">Split Ke-3</p>
+                                            <p className="text-[8px] font-bold text-sky-200/70 truncate max-w-[100px] leading-tight">{hasThirdFollowUpFile ? "Tersedia" : <span className="text-sky-200/30">Belum ada</span>}</p>
+                                          </div>
+                                        </div>
+                                        <div className="flex items-center gap-1 shrink-0">
+                                          {hasThirdFollowUpFile && (
+                                            <a href={workflowMeta.thirdFollowUp?.invoiceFileUrl} target="_blank" rel="noopener noreferrer"
+                                              className="h-6 w-6 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-400 hover:bg-sky-500 hover:text-[#0f141e] transition-all flex items-center justify-center" title="Lihat">
+                                              <span className="material-symbols-outlined" style={{ fontSize: '10px' }}>visibility</span>
+                                            </a>
+                                          )}
+                                          <label className={`relative h-6 w-6 rounded-lg border flex items-center justify-center transition-all cursor-pointer ${canUploadThirdWarning ? 'border-sky-500/20 bg-sky-500/10 text-sky-200 hover:border-sky-500/40 hover:text-sky-100' : 'border-white/5 bg-white/[0.02] text-white/10 cursor-not-allowed'}`} title={hasThirdFollowUpFile ? "Ganti File" : "Upload File"}>
+                                            <span className="material-symbols-outlined" style={{ fontSize: '10px' }}>{hasThirdFollowUpFile ? "edit" : "upload"}</span>
+                                            <input className="absolute inset-0 opacity-0 cursor-pointer" disabled={!canUploadThirdWarning} onChange={(e) => void handleInvoiceFileInputChange(e, invoice, "invoice", 3)} type="file" />
+                                          </label>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Payment Proof Column */}
+                            <div className="flex-1 bg-white/[0.02] rounded-lg border border-white/5 p-2 flex flex-col items-center justify-center gap-1.5 min-h-[50px]">
+                              <span className="text-[7px] font-black uppercase tracking-widest text-white/30 text-center">Bukti Bayar</span>
+                              {isIsp ? (
+                                hasPaymentProof ? (
+                                  <a
+                                    className="w-full inline-flex items-center justify-center gap-1.5 py-1.5 rounded-md border border-emerald-500/20 bg-emerald-500/5 text-[8px] font-black text-emerald-400 uppercase tracking-widest hover:bg-emerald-500 hover:text-white transition-colors"
                                     href={invoice.paymentProofFileUrl}
                                     target="_blank" rel="noopener noreferrer"
                                   >
-                                    <span className="material-symbols-outlined text-[9px]">open_in_new</span>
-                                    Lihat
+                                    <span className="material-symbols-outlined text-[11px]">verified</span>
+                                    Buka
                                   </a>
-                                )}
-                              </div>
-                            )}
+                                ) : (
+                                  <span className="text-[9px] font-bold text-white/20 italic">—</span>
+                                )
+                              ) : (
+                                <div className="flex flex-col items-center w-full gap-1.5">
+                                  <label className={`relative w-full inline-flex items-center justify-center gap-1.5 h-6 rounded border text-[7.5px] font-black uppercase tracking-widest transition-all cursor-pointer ${canUploadPaymentProof ? 'border-white/10 bg-white/5 text-white/40 hover:border-white/20 hover:text-white' : 'border-white/5 bg-white/[0.02] text-white/10 cursor-not-allowed'}`}>
+                                    <span className="material-symbols-outlined text-[10px]">receipt_long</span>
+                                    {hasPaymentProof ? "Ganti" : "Upload"}
+                                    <input
+                                      className="absolute inset-0 opacity-0 cursor-pointer"
+                                      disabled={!canUploadPaymentProof}
+                                      onChange={(e) => void handleInvoiceFileInputChange(e, invoice, "payment-proof")}
+                                      type="file"
+                                    />
+                                  </label>
+                                  {hasPaymentProof && (
+                                    <a
+                                      className="w-full inline-flex items-center justify-center gap-1 py-1 rounded border border-emerald-500/10 text-[7px] font-black text-emerald-400 uppercase tracking-widest hover:bg-emerald-500/10"
+                                      href={invoice.paymentProofFileUrl}
+                                      target="_blank" rel="noopener noreferrer"
+                                    >
+                                      <span className="material-symbols-outlined text-[9px]">open_in_new</span>
+                                      Lihat
+                                    </a>
+                                  )}
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        </div>
                         </div>
                       </details>
                     );
@@ -8079,11 +8077,11 @@ function TenantDetailPage({
                       >
                         <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>chevron_left</span> <span className="hidden sm:inline">Prev</span>
                       </button>
-                      
-                      <div 
+
+                      <div
                         ref={tenantDocPaginationRef}
                         onScroll={handleTenantDocPaginationScroll}
-                        className="flex items-center gap-1.5 w-[96px] justify-start overflow-x-auto overflow-y-hidden snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden" 
+                        className="flex items-center gap-1.5 w-[96px] justify-start overflow-x-auto overflow-y-hidden snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden"
                         style={{ scrollbarWidth: 'none' }}
                       >
                         <div className="shrink-0 w-7 h-7 snap-center pointer-events-none opacity-0"></div>
@@ -8091,10 +8089,10 @@ function TenantDetailPage({
                         {tenantDocPageNumbers.map((page) => {
                           const distance = Math.abs(tenantDocCurrentPage - page);
                           const isActive = distance === 0;
-                          
+
                           let scaleClass = "scale-100 opacity-100 z-10";
                           let bgClass = "bg-white/5 border border-white/5 text-white/50 hover:bg-white/10 hover:text-white";
-                          
+
                           if (distance === 1) {
                             scaleClass = "scale-90 opacity-80 z-0";
                             bgClass = "bg-white/5 border border-white/5 text-white/40 hover:bg-white/10 hover:text-white";
@@ -8137,97 +8135,97 @@ function TenantDetailPage({
             {/* Upload Section */}
             {!isIsp && (
               <section className="lg:col-span-5 space-y-4">
-              <div className="glass-card backdrop-blur-xl rounded-xl p-4 border-white/10 shadow-glass-depth relative overflow-hidden">
-                <div className="absolute -right-12 -top-12 h-32 w-32 rounded-full bg-gold-accent/5 blur-2xl backdrop-blur-md" />
-                <div className="flex items-center gap-3 mb-5">
-                  <div className="h-8 w-8 rounded-lg bg-gold-accent/10 border border-gold-accent/20 flex items-center justify-center text-gold-accent backdrop-blur-md">
-                    <span className="material-symbols-outlined" style={{ fontSize: "16px" }}>upload</span>
+                <div className="glass-card backdrop-blur-xl rounded-xl p-4 border-white/10 shadow-glass-depth relative overflow-hidden">
+                  <div className="absolute -right-12 -top-12 h-32 w-32 rounded-full bg-gold-accent/5 blur-2xl backdrop-blur-md" />
+                  <div className="flex items-center gap-3 mb-5">
+                    <div className="h-8 w-8 rounded-lg bg-gold-accent/10 border border-gold-accent/20 flex items-center justify-center text-gold-accent backdrop-blur-md">
+                      <span className="material-symbols-outlined" style={{ fontSize: "16px" }}>upload</span>
+                    </div>
+                    <h3 className="text-[10px] md:text-[11px] font-black uppercase tracking-[0.2em] text-white/60">Tambah Dokumen Baru</h3>
                   </div>
-                  <h3 className="text-[10px] md:text-[11px] font-black uppercase tracking-[0.2em] text-white/60">Tambah Dokumen Baru</h3>
-                </div>
 
-                <form className="space-y-2.5" onSubmit={handleUploadDocument}>
-                  <GlassSelect
-                    label="Kategori Dokumen"
-                    value={documentDraft.jenisDokumen}
-                    onChange={(value) => setDocumentDraft(p => ({ ...p, jenisDokumen: value }))}
-                    options={[
-                      { value: "penawaran", label: "Surat Penawaran Harga" },
-                      { value: "tanggapan", label: "Surat Tanggapan" },
-                      { value: "hasil_nego", label: "Surat Negosiasi" },
-                      { value: "custom", label: "Lainnya / Manual" }
-                    ]}
-                  />
+                  <form className="space-y-2.5" onSubmit={handleUploadDocument}>
+                    <GlassSelect
+                      label="Kategori Dokumen"
+                      value={documentDraft.jenisDokumen}
+                      onChange={(value) => setDocumentDraft(p => ({ ...p, jenisDokumen: value }))}
+                      options={[
+                        { value: "penawaran", label: "Surat Penawaran Harga" },
+                        { value: "tanggapan", label: "Surat Tanggapan" },
+                        { value: "hasil_nego", label: "Surat Negosiasi" },
+                        { value: "custom", label: "Lainnya / Manual" }
+                      ]}
+                    />
 
-                  {documentDraft.jenisDokumen === "custom" && (
+                    {documentDraft.jenisDokumen === "custom" && (
+                      <GlassInput
+                        label="Nama Dokumen Kustom"
+                        icon="edit_note"
+                        value={documentDraft.customJenisDokumen}
+                        onChange={(e) => setDocumentDraft(p => ({ ...p, customJenisDokumen: e.target.value }))}
+                        placeholder="MISAL: SURAT KUASA"
+                      />
+                    )}
+
                     <GlassInput
-                      label="Nama Dokumen Kustom"
-                      icon="edit_note"
-                      value={documentDraft.customJenisDokumen}
-                      onChange={(e) => setDocumentDraft(p => ({ ...p, customJenisDokumen: e.target.value }))}
-                      placeholder="MISAL: SURAT KUASA"
+                      label="Nomor Referensi (Opsional)"
+                      icon="tag"
+                      value={documentDraft.nomorDokumen}
+                      onChange={(e) => setDocumentDraft(p => ({ ...p, nomorDokumen: e.target.value }))}
+                      placeholder="MASUKKAN NOMOR SURAT"
                     />
-                  )}
 
-                  <GlassInput
-                    label="Nomor Referensi (Opsional)"
-                    icon="tag"
-                    value={documentDraft.nomorDokumen}
-                    onChange={(e) => setDocumentDraft(p => ({ ...p, nomorDokumen: e.target.value }))}
-                    placeholder="MASUKKAN NOMOR SURAT"
-                  />
-
-                  <GlassInput
-                    label="Tanggal Terbit"
-                    icon="calendar_today"
-                    type="date"
-                    value={documentDraft.tanggalDokumen}
-                    onChange={(e) => setDocumentDraft(p => ({ ...p, tanggalDokumen: e.target.value }))}
-                  />
-
-                  <div className="p-4 rounded-xl bg-white/5 border border-dashed border-white/10 relative group/file backdrop-blur-md">
-                    <input
-                      type="file"
-                      className="absolute inset-0 opacity-0 cursor-pointer z-10"
-                      onChange={(event) => {
-                        const file = event.target.files?.[0] ?? null;
-                        setDocumentDraft((previous) => ({
-                          ...previous,
-                          fileUrl: "",
-                          uploadedFileName: file?.name ?? "",
-                          uploadedFile: file,
-                        }));
-                      }}
+                    <GlassInput
+                      label="Tanggal Terbit"
+                      icon="calendar_today"
+                      type="date"
+                      value={documentDraft.tanggalDokumen}
+                      onChange={(e) => setDocumentDraft(p => ({ ...p, tanggalDokumen: e.target.value }))}
                     />
-                    <div className="flex flex-col items-center gap-2 text-center">
-                      <span className="material-symbols-outlined text-white/10 group-hover/file:text-gold-accent transition-colors" style={{ fontSize: "24px" }}>cloud_upload</span>
-                      <p className="text-[9px] md:text-[10px] font-black text-white/20 uppercase tracking-widest">
-                        {documentDraft.uploadedFileName ? <span className="text-gold-accent">{documentDraft.uploadedFileName}</span> : "Klik atau seret file dokumen ke sini"}
-                      </p>
-                    </div>
-                  </div>
 
-                  {documentError && (
-                    <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[10px] font-bold">
-                      {documentError}
+                    <div className="p-4 rounded-xl bg-white/5 border border-dashed border-white/10 relative group/file backdrop-blur-md">
+                      <input
+                        type="file"
+                        className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                        onChange={(event) => {
+                          const file = event.target.files?.[0] ?? null;
+                          setDocumentDraft((previous) => ({
+                            ...previous,
+                            fileUrl: "",
+                            uploadedFileName: file?.name ?? "",
+                            uploadedFile: file,
+                          }));
+                        }}
+                      />
+                      <div className="flex flex-col items-center gap-2 text-center">
+                        <span className="material-symbols-outlined text-white/10 group-hover/file:text-gold-accent transition-colors" style={{ fontSize: "24px" }}>cloud_upload</span>
+                        <p className="text-[9px] md:text-[10px] font-black text-white/20 uppercase tracking-widest">
+                          {documentDraft.uploadedFileName ? <span className="text-gold-accent">{documentDraft.uploadedFileName}</span> : "Klik atau seret file dokumen ke sini"}
+                        </p>
+                      </div>
                     </div>
-                  )}
-                  {documentFeedback && (
-                    <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold backdrop-blur-md">
-                      {documentFeedback}
-                    </div>
-                  )}
 
-                  <button
-                    type="submit"
-                    disabled={isUploadingDocument}
-                    className="w-full h-10 rounded-xl bg-gold-accent text-[#0f141e] text-[10px] font-black uppercase tracking-widest shadow-gold-glow hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50"
-                  >
-                    {isUploadingDocument ? "Memproses Unggahan..." : "Tambah Dokumen"}
-                  </button>
-                </form>
-              </div>
-            </section>
+                    {documentError && (
+                      <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[10px] font-bold">
+                        {documentError}
+                      </div>
+                    )}
+                    {documentFeedback && (
+                      <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold backdrop-blur-md">
+                        {documentFeedback}
+                      </div>
+                    )}
+
+                    <button
+                      type="submit"
+                      disabled={isUploadingDocument}
+                      className="w-full h-10 rounded-xl bg-gold-accent text-[#0f141e] text-[10px] font-black uppercase tracking-widest shadow-gold-glow hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50"
+                    >
+                      {isUploadingDocument ? "Memproses Unggahan..." : "Tambah Dokumen"}
+                    </button>
+                  </form>
+                </div>
+              </section>
             )}
           </div>
         )}
@@ -8786,8 +8784,8 @@ function TenantDetailPage({
                     ].map((option) => (
                       <label
                         className={`flex h-10 items-center justify-center rounded-xl border text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer ${renewalConfirmData.billingMode === option.value
-                            ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-300"
-                            : "border-white/10 bg-white/[0.02] text-white/45 hover:bg-white/[0.05] hover:text-white"
+                          ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-300"
+                          : "border-white/10 bg-white/[0.02] text-white/45 hover:bg-white/[0.05] hover:text-white"
                           }`}
                         key={option.value}
                       >

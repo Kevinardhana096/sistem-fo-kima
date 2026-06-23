@@ -5284,7 +5284,14 @@ export const contractVersionRenewalFollowUpsApi = {
         ? Number(packageOverrides.yearlyAmount ?? packageOverrides.yearly_amount ?? (monthlyAmount * 12))
         : currentVersion.yearly_amount;
 
-      const nextPeriod = inferNextContractPeriod(currentVersion.start_date, currentVersion.end_date);
+      const userStartDate = followUpData.startDate ?? followUpData.start_date ?? null;
+      const userEndDate = followUpData.endDate ?? followUpData.end_date ?? null;
+
+      const nextPeriod = {
+        startDate: userStartDate ?? inferNextContractPeriod(currentVersion.start_date, currentVersion.end_date).startDate,
+        endDate: userEndDate ?? inferNextContractPeriod(currentVersion.start_date, currentVersion.end_date).endDate,
+      };
+
       if (!nextPeriod.startDate || !nextPeriod.endDate) {
         throw new Error('Periode kontrak berjalan tidak valid untuk membuat perpanjangan otomatis.');
       }
