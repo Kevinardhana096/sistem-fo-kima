@@ -585,39 +585,7 @@ export default function DashboardPage({
                             </ResponsiveContainer>
                         </div>
 
-                        <div className="relative z-50 mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                                {coreTrendTimeMode === "yearly" ? (
-                                    <ChartFilterSelector filter={coreTrendExportFilter} setFilter={setCoreTrendExportFilter} availableYears={availableYears} modeOptions={coreTrendModeOptions} compact />
-                                ) : (
-                                    <div className="flex h-[24px] max-w-full flex-wrap items-center gap-2 rounded-lg border border-white/15 bg-white/10 px-2 backdrop-blur-md sm:gap-2 sm:px-2.5">
-                                        <span className="text-[8px] font-black uppercase tracking-widest text-white/60">
-                                            Export Bulanan {coreTrendDisplayYear}
-                                        </span>
-                                    </div>
-                                )}
-                            </div>
-                            <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center">
-                                <button
-                                    type="button"
-                                    onClick={handleExportCoreTrend}
-                                    disabled={isExportingCoreTrend}
-                                    className={`flex h-[24px] items-center justify-center gap-1 rounded-lg px-2.5 text-[8px] font-black uppercase tracking-widest anim-surface ${isExportingCoreTrend ? "bg-white/10 text-gold-accent" : "btn-premium"}`}
-                                >
-                                    <span className={`material-symbols-outlined text-[12px] scale-[0.8] origin-center ${isExportingCoreTrend ? "animate-spin" : ""}`}>{isExportingCoreTrend ? "sync" : "download"}</span>
-                                    {isExportingCoreTrend ? "Menyiapkan" : "CSV"}
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={handleExportCoreTrendXlsx}
-                                    disabled={isExportingCoreTrendXlsx}
-                                    className={`flex h-[24px] items-center justify-center gap-1 rounded-lg px-2.5 text-[8px] font-black uppercase tracking-widest anim-surface ${isExportingCoreTrendXlsx ? "bg-white/10 text-gold-accent" : "btn-premium"}`}
-                                >
-                                    <span className={`material-symbols-outlined text-[12px] scale-[0.8] origin-center ${isExportingCoreTrendXlsx ? "animate-spin" : ""}`}>{isExportingCoreTrendXlsx ? "sync" : "insert_chart"}</span>
-                                    {isExportingCoreTrendXlsx ? "Menyiapkan" : "XLSX Grafik"}
-                                </button>
-                            </div>
-                        </div>
+
                     </div>
 
                     {/* Card 2: Sewa Sharing Core (Tabel) */}
