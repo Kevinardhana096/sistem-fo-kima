@@ -214,7 +214,7 @@ function CustomerWorkspacePage({
     const isTeknisi = currentRole === "teknisi";
     const [searchTerm, setSearchTerm] = useState("");
     const [listType, setListType] = useState("current");
-    const [ispSortMethod, setIspSortMethod] = useState("newest");
+    const [ispSortMethod, setIspSortMethod] = useState("name_asc");
     const [contractStatusFilter, setContractStatusFilter] = useState("all");
     const [routeStatusFilter, setRouteStatusFilter] = useState("all");
     const [todoFilter, setTodoFilter] = useState("all");
@@ -365,11 +365,11 @@ function CustomerWorkspacePage({
         || contractStatusFilter !== "all"
         || routeStatusFilter !== "all"
         || todoFilter !== "all"
-        || ispSortMethod !== "newest";
+        || ispSortMethod !== "name_asc";
 
     const handleResetFilters = () => {
         setSearchTerm("");
-        setIspSortMethod("newest");
+        setIspSortMethod("name_asc");
         setContractStatusFilter("all");
         setRouteStatusFilter("all");
         setTodoFilter("all");
