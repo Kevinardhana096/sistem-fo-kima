@@ -1041,16 +1041,15 @@ function TenantDetailPage({
     }) ?? contractVersions[0] ?? null;
 
     if (currentVersion) {
-      const contractOverallStartDate = String(contract?.startDate ?? contract?.start_date ?? "").slice(0, 10);
-      const baseEndDate = String(contract?.endDate ?? contract?.end_date ?? "").slice(0, 10);
-      const contractOverallEndDate = latestOverallEnd && latestOverallEnd > baseEndDate ? latestOverallEnd : baseEndDate;
+      const vStart = String(currentVersion?.startDate ?? currentVersion?.start_date ?? "").slice(0, 10);
+      const vEnd = String(currentVersion?.endDate ?? currentVersion?.end_date ?? "").slice(0, 10);
       return {
         contract,
         contractVersions,
         version: currentVersion,
         versionId: currentVersion.id ?? null,
-        startDate: contractOverallStartDate,
-        endDate: contractOverallEndDate,
+        startDate: vStart,
+        endDate: vEnd,
         contractId: contract.id,
         contractNumber: currentVersion?.contractNumber ?? currentVersion?.contract_number ?? contract?.contractNumber ?? null,
         amount: Number(
