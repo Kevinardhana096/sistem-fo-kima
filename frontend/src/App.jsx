@@ -1152,6 +1152,21 @@ function App() {
         });
     }, [appPaths, navigateTo]);
 
+    const handleDeleteTenant = useCallback(async (tenant) => {
+        if (!tenant) return;
+        const confirmDelete = window.confirm(`Apakah Anda yakin ingin memindahkan lokasi "${tenant.name}" ke sampah?`);
+        if (!confirmDelete) return;
+
+        try {
+            await api.customers.delete(tenant.id);
+            alert("Lokasi berhasil dipindahkan ke sampah.");
+            await refreshAppData();
+        } catch (error) {
+            console.error(error);
+            alert(error instanceof Error ? error.message : "Terjadi kesalahan saat mengarsipkan lokasi.");
+        }
+    }, [refreshAppData]);
+
     const handleEntitySaved = useCallback(async (savedEntity, type) => {
         await refreshAppData();
 
@@ -1603,6 +1618,7 @@ function App() {
                         onOpenTenant={(tenant, initialTab = "overview") =>
                             handleOpenTenantDetail(tenant, initialTab, resolvedIspDetail)}
                         onEditTenant={handleOpenEditTenant}
+                        onDeleteTenant={handleDeleteTenant}
                         onTabChange={(nextTab) => {
                             navigateTo(appPaths.ispDetail(resolvedIspDetail.id, { tab: nextTab }), { replace: true });
                         }}
