@@ -1828,6 +1828,11 @@ function TenantDetailPage({
         paid_at: paidAt,
       });
       setSettlementFeedback(`Invoice #${invoice.id} berhasil disimpan.`);
+      setSettlementDrafts((prev) => {
+        const next = { ...prev };
+        delete next[invoice.id];
+        return next;
+      });
       await Promise.all([loadDetail(), onRefreshAll?.()]);
     } catch (requestError) {
       setSettlementError(
@@ -7989,6 +7994,30 @@ function TenantDetailPage({
                                   const canEdit = !isIsp && canManageTenantContracts;
                                   const isRowSaving = savingSettlementIds.has(invoice.id);
 
+                                  const originalInvoiceNumber = String(invoice.invoiceNumber ?? "");
+                                  const originalAmount = Number(invoice.amount ?? 0);
+                                  const originalStatus = String(invoice.status ?? "belum_ditagih");
+                                  const originalPaidAt = String(invoice.paidAt ?? "").slice(0, 10);
+
+                                  const draftInvoiceNumber = draft.invoiceNumber !== undefined
+                                    ? String(draft.invoiceNumber)
+                                    : originalInvoiceNumber;
+                                  const draftAmount = draft.amount !== undefined
+                                    ? parseRupiahInput(draft.amount)
+                                    : originalAmount;
+                                  const draftStatus = draft.status !== undefined
+                                    ? String(draft.status)
+                                    : originalStatus;
+                                  const draftPaidAt = draft.paidAt !== undefined
+                                    ? String(draft.paidAt).slice(0, 10)
+                                    : originalPaidAt;
+
+                                  const isDraftChanged =
+                                    draftInvoiceNumber !== originalInvoiceNumber ||
+                                    draftAmount !== originalAmount ||
+                                    draftStatus !== originalStatus ||
+                                    draftPaidAt !== originalPaidAt;
+
                                   return (
                                     <tr key={invoice.id} className="hover:bg-white/[0.03] transition-colors group/row">
                                       <td className="px-4 py-3 text-[10px] font-black text-white/20 whitespace-nowrap border border-white/5 text-center">{idx + 1}</td>
@@ -8107,7 +8136,7 @@ function TenantDetailPage({
                                         <td className="px-3 py-2 whitespace-nowrap border border-white/5 text-center">
                                           <button
                                             type="button"
-                                            disabled={isRowSaving}
+                                            disabled={isRowSaving || !isDraftChanged}
                                             onClick={() => handleSaveSettlementRow(invoice)}
                                             className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gold-accent/30 bg-gold-accent/10 text-[8px] font-black uppercase tracking-widest text-gold-accent transition-all hover:bg-gold-accent hover:text-black active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
                                           >
