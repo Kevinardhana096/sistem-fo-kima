@@ -529,9 +529,12 @@ export const getCustomerInitialContract = (customer) => (
 export const getCustomerSharedCoreRatio = (customer) => {
     const contract = getCustomerPrimaryContract(customer);
     const effectiveVersion = getEffectiveContractVersion(contract);
+    const latestVersion = getLatestContractVersion(contract);
 
     return effectiveVersion?.sharedCoreRatio
         ?? effectiveVersion?.shared_core_ratio
+        ?? latestVersion?.sharedCoreRatio
+        ?? latestVersion?.shared_core_ratio
         ?? contract?.sharingRatio
         ?? contract?.sharing_ratio
         ?? customer.contractSharingRatio
@@ -542,10 +545,13 @@ export const getCustomerSharedCoreRatio = (customer) => {
 export const resolveCustomerPackageInfo = (customer) => {
     const contract = getCustomerPrimaryContract(customer);
     const effectiveVersion = getEffectiveContractVersion(contract);
+    const latestVersion = getLatestContractVersion(contract);
     const sharedCoreRatio = getCustomerSharedCoreRatio(customer);
     const rawPackage = String(
         effectiveVersion?.core_type
             ?? effectiveVersion?.coreType
+            ?? latestVersion?.core_type
+            ?? latestVersion?.coreType
             ?? contract?.core_type
             ?? contract?.coreType
             ?? customer.paket
@@ -561,6 +567,8 @@ export const resolveCustomerPackageInfo = (customer) => {
                 sharedCoreRatio
                     ?? effectiveVersion?.shared_core_ratio
                     ?? effectiveVersion?.sharedCoreRatio
+                    ?? latestVersion?.shared_core_ratio
+                    ?? latestVersion?.sharedCoreRatio
                     ?? contract?.sharing_ratio
                     ?? contract?.sharingRatio
                     ?? customer.jumlah,
@@ -573,6 +581,8 @@ export const resolveCustomerPackageInfo = (customer) => {
             paket: "core",
             jumlah: effectiveVersion?.core_total
                 ?? effectiveVersion?.coreTotal
+                ?? latestVersion?.core_total
+                ?? latestVersion?.coreTotal
                 ?? contract?.core_total
                 ?? contract?.coreTotal
                 ?? customer.jumlah
@@ -590,6 +600,7 @@ export const resolveCustomerContractPeriodInfo = (customer) => {
     const contract = getCustomerPrimaryContract(customer);
     const initialContract = getCustomerInitialContract(customer);
     const effectiveVersion = getEffectiveContractVersion(contract);
+    const latestVersion = getLatestContractVersion(contract);
 
     return {
         contractStartDate: customer.contractStartDate
@@ -604,9 +615,13 @@ export const resolveCustomerContractPeriodInfo = (customer) => {
             ?? contract?.startDate
             ?? effectiveVersion?.start_date
             ?? effectiveVersion?.startDate
+            ?? latestVersion?.start_date
+            ?? latestVersion?.startDate
             ?? null,
         contractPeriodStart: effectiveVersion?.start_date
             ?? effectiveVersion?.startDate
+            ?? latestVersion?.start_date
+            ?? latestVersion?.startDate
             ?? contract?.start_date
             ?? contract?.startDate
             ?? customer.contractPeriodStart
@@ -614,6 +629,8 @@ export const resolveCustomerContractPeriodInfo = (customer) => {
             ?? null,
         contractPeriodEnd: effectiveVersion?.end_date
             ?? effectiveVersion?.endDate
+            ?? latestVersion?.end_date
+            ?? latestVersion?.endDate
             ?? contract?.end_date
             ?? contract?.endDate
             ?? customer.contractPeriodEnd
@@ -659,10 +676,13 @@ const normalizeDisplayContractNumber = (value) => {
 export const resolveCustomerContractNumber = (customer) => {
     const contract = getCustomerPrimaryContract(customer);
     const effectiveVersion = getEffectiveContractVersion(contract);
+    const latestVersion = getLatestContractVersion(contract);
 
     return normalizeDisplayContractNumber(
         effectiveVersion?.contractNumber
             ?? effectiveVersion?.contract_number
+            ?? latestVersion?.contractNumber
+            ?? latestVersion?.contract_number
             ?? contract?.contractNumber
             ?? contract?.contract_number
             ?? customer.contractNumber

@@ -1706,6 +1706,7 @@ const mapCustomerDetail = (customer) => {
     ?? null;
   const initialContract = [...contracts].sort((left, right) => getDateValue(left.startDate ?? left.start_date) - getDateValue(right.startDate ?? right.start_date))[0] ?? null;
   const effectiveContractVersion = getEffectiveContractVersion(activeContract, today);
+  const latestContractVersion = getLatestContractVersion(activeContract);
   const routeVersions = Array.isArray(customer.routeVersions)
     ? customer.routeVersions.map(mapRouteVersion).sort((left, right) => Number(right.versionNumber ?? 0) - Number(left.versionNumber ?? 0))
     : [];
@@ -1719,8 +1720,8 @@ const mapCustomerDetail = (customer) => {
     activationFeeAmount: customer.activationFeeAmount ?? customer.activation_fee_amount ?? 0,
     activationFeePaidAt: customer.activationFeePaidAt ?? customer.activation_fee_paid_at ?? null,
     contractStartDate: customer.contractStartDate ?? customer.contract_start_date ?? initialContract?.startDate ?? null,
-    contractPeriodStart: customer.contractPeriodStart ?? customer.contract_period_start ?? effectiveContractVersion?.startDate ?? activeContract?.startDate ?? null,
-    contractPeriodEnd: customer.contractPeriodEnd ?? customer.contract_period_end ?? effectiveContractVersion?.endDate ?? activeContract?.endDate ?? null,
+    contractPeriodStart: customer.contractPeriodStart ?? customer.contract_period_start ?? effectiveContractVersion?.startDate ?? latestContractVersion?.startDate ?? activeContract?.startDate ?? null,
+    contractPeriodEnd: customer.contractPeriodEnd ?? customer.contract_period_end ?? effectiveContractVersion?.endDate ?? latestContractVersion?.endDate ?? activeContract?.endDate ?? null,
     isps: Array.isArray(customer.ispMemberships)
       ? customer.ispMemberships.map(membership => mapIsp(membership.isp)).filter(Boolean)
       : [],
