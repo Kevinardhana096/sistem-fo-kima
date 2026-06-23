@@ -6497,7 +6497,7 @@ function TenantDetailPage({
                                   onChange={(e) => {
                                     setContractRowEditor((previous) => previous ? { ...previous, contractNumber: e.target.value } : previous);
                                   }}
-                                  autoFocus
+                                  autoFocus={!contractRowEditor?.focusField || contractRowEditor.focusField === "contractNumber"}
                                   onKeyDown={(e) => {
                                     if (e.key === "Enter") {
                                       e.preventDefault();
@@ -6532,7 +6532,7 @@ function TenantDetailPage({
                                 title={String(contractNumberValue)}
                                 type="button"
                                 disabled={!canManageTenantContracts}
-                                onClick={() => openContractRowEditor(row, null)}
+                                onClick={() => openContractRowEditor(row, "contractNumber")}
                               >
                                 {contractNumberValue || <span className="text-white/20">Nomor kontrak / BAK</span>}
                               </button>
@@ -6698,9 +6698,10 @@ function TenantDetailPage({
                               }}
                               onFocus={() => {
                                 if (!isEditingContractRow) {
-                                  openContractRowEditor(row, null);
+                                  openContractRowEditor(row, "startDate");
                                 }
                               }}
+                              autoFocus={contractRowEditor?.focusField === "startDate"}
                               onKeyDown={(e) => {
                                 if (e.key === "Enter") {
                                   e.currentTarget.blur();
@@ -6725,9 +6726,10 @@ function TenantDetailPage({
                               }}
                               onFocus={() => {
                                 if (!isEditingContractRow) {
-                                  openContractRowEditor(row, null);
+                                  openContractRowEditor(row, "endDate");
                                 }
                               }}
+                              autoFocus={contractRowEditor?.focusField === "endDate"}
                               onKeyDown={(e) => {
                                 if (e.key === "Enter") {
                                   e.currentTarget.blur();
@@ -6762,9 +6764,10 @@ function TenantDetailPage({
                               }}
                               onFocus={() => {
                                 if (!isEditingContractRow) {
-                                  openContractRowEditor(row, null);
+                                  openContractRowEditor(row, "monthlyAmount");
                                 }
                               }}
+                              autoFocus={contractRowEditor?.focusField === "monthlyAmount"}
                               onKeyDown={(e) => {
                                 if (e.key === "Enter") {
                                   e.currentTarget.blur();
