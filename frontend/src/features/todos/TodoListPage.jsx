@@ -125,9 +125,9 @@ export default function TodoListPage({ onNavigatePath, currentRole = "admin" }) 
 
     const counts = useMemo(() => roleFilteredNotifications.reduce((acc, n) => {
         const key = getStatusKey(n);
-        acc.total += 1; acc[key] += 1;
+        acc.total += 1; acc[key] += 1; // key === "active" or "resolved"
         if (!n.resolvedAt) {
-            acc.active += 1;
+            // acc.active sudah di-increment via acc[key] di atas, jangan increment lagi
             const isISP = n.type?.startsWith("isp_") || n.code?.startsWith("isp_") || getTypeLabel(n).includes("ISP");
             if (isISP) {
                 acc.isp_active += 1;
