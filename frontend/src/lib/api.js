@@ -2985,12 +2985,17 @@ export const ispsApi = {
     if (error) throw error;
 
     let authAccountSynced = false;
-    if (ispData.userEmail) {
+    // Hanya panggil RPC sinkronisasi akun jika ada password baru yang diisi.
+    // Jika hanya userEmail yang ada (tanpa password), ini berarti admin hanya
+    // mengedit data ISP biasa (nama, status, dll), bukan mengubah akun login.
+    // Memanggil RPC tanpa password akan menyebabkan error "Password is required
+    // for new accounts" pada ISP yang belum punya auth account.
+    if (ispData.userEmail && ispData.userPassword) {
       try {
         const { error: rpcError } = await supabase.rpc('upsert_isp_account', {
           p_isp_id: id,
           p_email: ispData.userEmail.trim().toLowerCase(),
-          p_password: ispData.userPassword || null,
+          p_password: ispData.userPassword,
           p_name: ispData.name || data.name
         });
         if (rpcError) {
