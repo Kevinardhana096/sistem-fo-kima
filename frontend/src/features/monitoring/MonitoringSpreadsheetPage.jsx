@@ -240,7 +240,7 @@ function MonitoringSpreadsheetPage({
     const monitoringTableColSpan = isTeknisi ? 11 : 26;
 
     const invoiceDetailModal = selectedInvoiceCell && typeof document !== "undefined" && createPortal(
-        <div className="fixed inset-0 z-[200] flex items-center justify-center px-4">
+        <div className="fixed inset-0 z-[2050] flex items-center justify-center px-4">
             <div className="fixed inset-0 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setSelectedInvoiceCell(null)}></div>
             <div className="relative w-full max-w-lg rounded-2xl bg-[#0a0d16] backdrop-blur-3xl p-6 shadow-2xl animate-in fade-in zoom-in duration-300 border border-white/10 overflow-hidden group">
                 <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-gold-accent/5 blur-3xl transition-all duration-700 group-hover:bg-gold-accent/10 backdrop-blur-md" />
