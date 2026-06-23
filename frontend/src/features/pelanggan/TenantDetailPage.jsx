@@ -716,6 +716,7 @@ function TenantDetailPage({
   const [isSavingContractRow, setIsSavingContractRow] = useState(false);
   const [, setIsActionLoading] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deletePermanently, setDeletePermanently] = useState(false);
   const [ispPopupOpen, setIspPopupOpen] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const [isDeletingTenant, setIsDeletingTenant] = useState(false);
@@ -3459,7 +3460,7 @@ function TenantDetailPage({
     setIsDeletingTenant(true);
     setDeleteError("");
     try {
-      await tenantDetailData.customers.delete(customer.id);
+      await tenantDetailData.customers.delete(customer.id, { permanent: deletePermanently });
       setDeleteModalOpen(false);
       onBack?.();
       await onRefreshAll?.();
@@ -3476,6 +3477,7 @@ function TenantDetailPage({
 
   const handleOpenDeleteModal = () => {
     setDeleteError("");
+    setDeletePermanently(false);
     setDeleteModalOpen(true);
   };
 
@@ -9137,7 +9139,7 @@ function TenantDetailPage({
 
         {deleteModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/20 px-4">
-            <div className="w-full max-w-md rounded-2xl border border-slate-100 bg-white p-6 shadow-2xl">
+            <div className="w-full max-w-md rounded-2xl border border-slate-100 bg-white p-6 shadow-2xl text-[#0f141e]">
               <div className="mb-4">
                 <p className="text-xs font-black uppercase tracking-widest text-red-600">
                   Hapus Lokasi
@@ -9147,8 +9149,21 @@ function TenantDetailPage({
                 </h3>
               </div>
               <p className="text-sm text-on-surface-variant">
-                Lokasi ini akan dipindahkan ke sampah dan tidak lagi tampil di daftar lokasi aktif.
+                {deletePermanently 
+                  ? "Peringatan: Lokasi ini beserta seluruh riwayat kontrak, invoice, dokumen, dan jalurnya akan dihapus secara PERMANEN dari database. Tindakan ini tidak dapat dibatalkan!"
+                  : "Lokasi ini akan dipindahkan ke sampah dan tidak lagi tampil di daftar lokasi aktif."}
               </p>
+
+              <label className="mt-4 flex items-center gap-2 cursor-pointer select-none p-2.5 rounded-xl border border-red-100 bg-red-50/30 hover:bg-red-50/60 transition-all text-left">
+                <input
+                  type="checkbox"
+                  checked={deletePermanently}
+                  onChange={(e) => setDeletePermanently(e.target.checked)}
+                  className="h-4 w-4 rounded border-slate-300 text-red-600 focus:ring-red-500"
+                />
+                <span className="text-xs font-bold text-red-700 uppercase tracking-wider">Hapus Permanen dari Database</span>
+              </label>
+
               {deleteError && (
                 <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
                   {deleteError}
@@ -9168,7 +9183,11 @@ function TenantDetailPage({
                   onClick={() => void handleDeleteTenant()}
                   type="button"
                 >
-                  {isDeletingTenant ? "Menghapus..." : "Hapus Lokasi"}
+                  {isDeletingTenant 
+                    ? "Menghapus..." 
+                    : deletePermanently 
+                      ? "Hapus Permanen" 
+                      : "Hapus Lokasi"}
                 </button>
               </div>
             </div>

@@ -356,7 +356,6 @@ function IspDetailPage({
     onOpenTenant,
     onRefreshAll,
     onEditTenant,
-    onDeleteTenant,
     canEditIsp = true,
     canDeleteIsp = true,
     canCreateTenant = true,
@@ -397,6 +396,10 @@ function IspDetailPage({
     // Entry Point CRUD state
     const [entryPointEditor, setEntryPointEditor] = useState(null); // null | { mode: "add"|"edit", data: {...} }
     const [entryPointSaving, setEntryPointSaving] = useState(false);
+
+    const [deleteConfirmData, setDeleteConfirmData] = useState(null);
+    const [deletePermanently, setDeletePermanently] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     // Filtering & Sorting State for Lokasi Table
     const [tenantSearch, setTenantSearch] = useState("");
@@ -1642,20 +1645,48 @@ function IspDetailPage({
 
     const handleDeleteRisalah = (rowId) => { setRisalahRows((pr) => pr.filter((r) => r.id !== rowId)); };
 
-    const handleDeleteIsp = async () => {
-        const confirmMessage = `PERINGATAN: Menghapus ISP "${ispName}" akan menghapus SEMUA pelanggan yang terkait dengan ISP ini!\n\nApakah Anda yakin ingin melanjutkan?`;
-        if (!window.confirm(confirmMessage)) return;
-        setIsLoading(true);
+    const handleDeleteIsp = () => {
+        setDeletePermanently(false);
+        setDeleteConfirmData({ type: 'isp', item: isp });
+    };
+
+    const executeDelete = async () => {
+        if (!deleteConfirmData) return;
+        setIsDeleting(true);
         try {
-            const result = await api.isps.delete(isp.id);
-            const deletedCount = result?.deletedCustomersCount || 0;
-            if (deletedCount > 0) {
-                alert(`ISP berhasil dihapus bersama ${deletedCount} pelanggan terkait.`);
+            if (deleteConfirmData.type === 'isp') {
+                const result = await api.isps.delete(deleteConfirmData.item.id, { permanent: deletePermanently });
+                const deletedCount = result?.deletedCustomersCount || 0;
+                if (deletePermanently) {
+                    if (deletedCount > 0) {
+                        alert(`ISP "${deleteConfirmData.item.name}" berhasil dihapus permanen bersama ${deletedCount} pelanggan terkait.`);
+                    } else {
+                        alert(`ISP "${deleteConfirmData.item.name}" berhasil dihapus permanen.`);
+                    }
+                } else {
+                    if (deletedCount > 0) {
+                        alert(`ISP berhasil dipindahkan ke sampah bersama ${deletedCount} pelanggan terkait.`);
+                    } else {
+                        alert("ISP berhasil dipindahkan ke sampah.");
+                    }
+                }
+                onBack();
+            } else {
+                await api.customers.delete(deleteConfirmData.item.id, { permanent: deletePermanently });
+                if (deletePermanently) {
+                    alert(`Lokasi "${deleteConfirmData.item.name}" berhasil dihapus permanen.`);
+                } else {
+                    alert("Lokasi berhasil dipindahkan ke sampah.");
+                }
             }
-            onBack();
+            setDeleteConfirmData(null);
             if (onRefreshAll) onRefreshAll();
+        } catch (err) {
+            console.error(err);
+            alert(err instanceof Error ? err.message : "Terjadi kesalahan saat menghapus.");
+        } finally {
+            setIsDeleting(false);
         }
-        catch (err) { setError(err instanceof Error ? err.message : "Gagal menghapus ISP."); setIsLoading(false); }
     };
 
     const renderEmptyState = (message) => (
@@ -3055,7 +3086,7 @@ function IspDetailPage({
                                                                         </button>
                                                                     )}
                                                                     {!isTeknisi && canDeleteTenant && (
-                                                                        <button className="w-6 h-6 flex items-center justify-center rounded-md bg-[#ff2400]/10 text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all shadow-sm" onClick={() => onDeleteTenant?.(tenant)} title="Hapus">
+                                                                        <button className="w-6 h-6 flex items-center justify-center rounded-md bg-[#ff2400]/10 text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all shadow-sm" onClick={() => { setDeletePermanently(false); setDeleteConfirmData({ type: 'tenant', item: tenant }); }} title="Hapus">
                                                                             <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>delete</span>
                                                                         </button>
                                                                     )}
@@ -3207,7 +3238,7 @@ function IspDetailPage({
                                                             {!isTeknisi && canDeleteTenant && (
                                                                 <button
                                                                     className="w-11 h-9 flex items-center justify-center text-[#ff2400]/70 hover:bg-[#ff2400]/10 transition-colors border-l border-white/[0.06]"
-                                                                    onClick={() => onDeleteTenant?.(tenant)}
+                                                                    onClick={() => { setDeletePermanently(false); setDeleteConfirmData({ type: 'tenant', item: tenant }); }}
                                                                 >
                                                                     <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>delete</span>
                                                                 </button>
@@ -4965,6 +4996,62 @@ function IspDetailPage({
                     </div>
                 </div>,
                 document.body,
+            )}
+
+            {deleteConfirmData && (
+                <div className="fixed inset-0 z-[2200] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+                    <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#0d1117] p-6 shadow-2xl text-white">
+                        <div className="mb-4">
+                            <p className="text-xs font-black uppercase tracking-widest text-[#ff2400]">
+                                Hapus {deleteConfirmData.type === 'isp' ? 'ISP' : 'Lokasi'}
+                            </p>
+                            <h3 className="text-xl font-black text-white mt-1">
+                                {deleteConfirmData.item.name}
+                            </h3>
+                        </div>
+                        <p className="text-xs font-bold text-white/60 leading-relaxed uppercase tracking-wide">
+                            {deleteConfirmData.type === 'isp'
+                                ? (deletePermanently
+                                    ? `Peringatan: Menghapus ISP ini akan menghapus permanen ISP "${deleteConfirmData.item.name}" beserta seluruh data kontrak, entry points, dan SEMUA pelanggan/lokasi yang terkait dari database! Tindakan ini tidak dapat dibatalkan.`
+                                    : `Menghapus ISP "${deleteConfirmData.item.name}" akan memindahkan ISP and semua pelanggan/lokasi yang terkait ke tempat sampah.`)
+                                : (deletePermanently
+                                    ? `Peringatan: Menghapus lokasi ini akan menghapus permanen lokasi "${deleteConfirmData.item.name}" beserta seluruh riwayat kontrak, invoice, dokumen, dan jalurnya dari database! Tindakan ini tidak dapat dibatalkan.`
+                                    : `Apakah Anda yakin ingin memindahkan lokasi "${deleteConfirmData.item.name}" ke sampah?`)}
+                        </p>
+
+                        <label className="mt-6 flex items-center gap-3 cursor-pointer select-none p-3 rounded-xl border border-red-500/20 bg-red-500/5 hover:bg-red-500/10 transition-all text-left">
+                            <input
+                                type="checkbox"
+                                checked={deletePermanently}
+                                onChange={(e) => setDeletePermanently(e.target.checked)}
+                                className="h-4 w-4 rounded border-white/10 bg-black/20 text-[#ff2400] focus:ring-[#ff2400] focus:ring-offset-0"
+                            />
+                            <span className="text-[10px] font-black text-red-400 uppercase tracking-widest">Hapus Permanen dari Database</span>
+                        </label>
+
+                        <div className="mt-6 flex justify-end gap-3">
+                            <button
+                                className="h-9 px-4 rounded-xl border border-white/10 bg-white/5 text-[9px] font-black uppercase tracking-widest text-white/75 hover:bg-white/10 hover:text-white transition-all active:scale-95"
+                                onClick={() => setDeleteConfirmData(null)}
+                                type="button"
+                            >
+                                Batal
+                            </button>
+                            <button
+                                className="h-9 px-4 rounded-xl bg-[#ff2400] text-[9px] font-black uppercase tracking-widest text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
+                                disabled={isDeleting}
+                                onClick={() => void executeDelete()}
+                                type="button"
+                            >
+                                {isDeleting 
+                                    ? "Menghapus..." 
+                                    : deletePermanently 
+                                        ? "Hapus Permanen" 
+                                        : `Hapus ${deleteConfirmData.type === 'isp' ? 'ISP' : 'Lokasi'}`}
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
 
         </>

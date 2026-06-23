@@ -2423,8 +2423,8 @@ export const customersApi = {
     return data;
   },
 
-  // Delete customer (soft delete)
-  async delete(id) {
+  // Delete customer (soft delete or permanent delete)
+  async delete(id, { permanent = false } = {}) {
     const { user } = await getCurrentActor();
     const deletedAt = new Date().toISOString();
     const { data: previousCustomer, error: previousError } = await supabase
@@ -2434,6 +2434,25 @@ export const customersApi = {
       .single();
 
     if (previousError) throw previousError;
+
+    if (permanent) {
+      await deleteCustomerTrashGroup([id]);
+      await createActivityLog({
+        action: 'customer.deleted',
+        entity_type: 'customer',
+        entity_id: id,
+        entity_name: previousCustomer?.name,
+        description: `Menghapus PERMANEN pelanggan ${previousCustomer?.name || id}`,
+        metadata: {
+          before: previousCustomer,
+          deleted_at: deletedAt,
+          deleted_by: user?.id ?? null,
+          permanent: true,
+        },
+      });
+      clearNotificationListCache();
+      return;
+    }
 
     const { error } = await supabase
       .from('customers')
@@ -3028,8 +3047,8 @@ export const ispsApi = {
     return data;
   },
 
-  // Delete ISP (soft delete with cascade to customers)
-  async delete(id) {
+  // Delete ISP (soft delete or permanent delete with cascade to customers)
+  async delete(id, { permanent = false } = {}) {
     const { user } = await getCurrentActor();
     const now = new Date().toISOString();
     const { data: previousIsp, error: previousError } = await supabase
@@ -3049,6 +3068,45 @@ export const ispsApi = {
     if (membershipError) throw membershipError;
 
     const customerIds = memberships?.map(m => m.customer_id) || [];
+
+    if (permanent) {
+      // Step 2: Permanently delete all related customers
+      if (customerIds.length > 0) {
+        await deleteCustomerTrashGroup(customerIds);
+      }
+
+      // Permanently delete other ISP dependencies: entry points and contract rows
+      await deleteRows('isp_entry_points', (query) => query.eq('isp_id', id));
+      await deleteRows('isp_contract_rows', (query) => query.eq('isp_id', id));
+
+      // Step 3: Permanently delete the ISP
+      const { error } = await supabase
+        .from('isps')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      await createActivityLog({
+        action: 'isp.deleted',
+        entity_type: 'isp',
+        entity_id: id,
+        entity_name: previousIsp?.name,
+        description: `Menghapus PERMANEN ISP ${previousIsp?.name || id}`,
+        metadata: {
+          before: previousIsp,
+          deleted_at: now,
+          deleted_by: user?.id ?? null,
+          deleted_customers_count: customerIds.length,
+          deleted_customer_ids: customerIds,
+          permanent: true,
+        },
+      });
+
+      clearIspListCache();
+      clearNotificationListCache();
+      return { deletedCustomersCount: customerIds.length };
+    }
 
     // Step 2: Soft delete all related customers
     if (customerIds.length > 0) {
