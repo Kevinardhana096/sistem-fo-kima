@@ -1,10 +1,158 @@
 import { describe, expect, it } from "vitest";
 import {
+    buildInvoiceScheduleReconciliation,
+    buildInvoiceScheduleRows,
     formatMonthYear,
     getIspContractRowCoverage,
     resolveCustomerOperationalStatus,
     resolveInvoiceDueMonthIsoDate,
 } from "../utils";
+
+describe("buildInvoiceScheduleReconciliation", () => {
+    it("creates missing invoice cycles when a contract period is extended", () => {
+        const existing = [
+            { id: 1, period_start_date: "2026-01-01", period_end_date: "2026-01-31" },
+            { id: 2, period_start_date: "2026-02-01", period_end_date: "2026-02-28" },
+        ];
+        const expected = buildInvoiceScheduleRows(
+            "2026-01-01",
+            "2026-04-30",
+            { every: 1, unit: "bulan" },
+        );
+
+        const result = buildInvoiceScheduleReconciliation(existing, expected);
+
+        expect(result.updates).toHaveLength(2);
+        expect(result.creates).toHaveLength(2);
+        expect(result.removals).toHaveLength(0);
+        expect(result.blockedRemovals).toHaveLength(0);
+    });
+
+    it("removes surplus empty cycles when a contract period is shortened", () => {
+        const existing = buildInvoiceScheduleRows(
+            "2026-01-01",
+            "2026-04-30",
+            { every: 1, unit: "bulan" },
+        ).map((row, index) => ({ id: index + 1, ...row }));
+        const expected = buildInvoiceScheduleRows(
+            "2026-01-01",
+            "2026-02-28",
+            { every: 1, unit: "bulan" },
+        );
+
+        const result = buildInvoiceScheduleReconciliation(existing, expected);
+
+        expect(result.updates).toHaveLength(2);
+        expect(result.removals.map((invoice) => invoice.id)).toEqual([3, 4]);
+        expect(result.blockedRemovals).toHaveLength(0);
+    });
+
+    it("blocks shortening when a surplus cycle has settlement data", () => {
+        const existing = buildInvoiceScheduleRows(
+            "2026-01-01",
+            "2026-03-31",
+            { every: 1, unit: "bulan" },
+        ).map((row, index) => ({
+            id: index + 1,
+            ...row,
+            status: index === 2 ? "lunas" : "belum_ditagih",
+        }));
+        const expected = buildInvoiceScheduleRows(
+            "2026-01-01",
+            "2026-02-28",
+            { every: 1, unit: "bulan" },
+        );
+
+        const result = buildInvoiceScheduleReconciliation(existing, expected);
+
+        expect(result.removals).toHaveLength(0);
+        expect(result.blockedRemovals.map((invoice) => invoice.id)).toEqual([3]);
+    });
+
+    it("reuses existing rows and preserves their identity when dates shift", () => {
+        const existing = [
+            { id: 10, period_start_date: "2026-01-01", period_end_date: "2026-01-31", status: "lunas" },
+            { id: 11, period_start_date: "2026-02-01", period_end_date: "2026-02-28" },
+        ];
+        const expected = buildInvoiceScheduleRows(
+            "2026-01-15",
+            "2026-03-14",
+            { every: 1, unit: "bulan" },
+        );
+
+        const result = buildInvoiceScheduleReconciliation(existing, expected);
+
+        expect(result.updates.map(({ invoice }) => invoice.id)).toEqual([10, 11]);
+        expect(result.updates.map(({ row }) => row.periodStartDate)).toEqual(["2026-01-15", "2026-02-15"]);
+        expect(result.creates).toHaveLength(0);
+        expect(result.blockedRemovals).toHaveLength(0);
+    });
+
+    it("creates correct rows for quarterly and yearly billing cycles", () => {
+        const quarterly = buildInvoiceScheduleRows(
+            "2026-01-01",
+            "2026-06-30",
+            { every: 3, unit: "bulan" }
+        );
+        expect(quarterly).toHaveLength(2);
+        expect(quarterly[0].periodStartDate).toBe("2026-01-01");
+        expect(quarterly[0].periodEndDate).toBe("2026-03-31");
+        expect(quarterly[1].periodStartDate).toBe("2026-04-01");
+        expect(quarterly[1].periodEndDate).toBe("2026-06-30");
+
+        const yearly = buildInvoiceScheduleRows(
+            "2026-01-01",
+            "2027-12-31",
+            { every: 1, unit: "tahun" }
+        );
+        expect(yearly).toHaveLength(2);
+        expect(yearly[0].periodStartDate).toBe("2026-01-01");
+        expect(yearly[0].periodEndDate).toBe("2026-12-31");
+        expect(yearly[1].periodStartDate).toBe("2027-01-01");
+        expect(yearly[1].periodEndDate).toBe("2027-12-31");
+    });
+
+    it("reconciles quarterly and yearly cycles when extended", () => {
+        const existing = [
+            { id: 1, period_start_date: "2026-01-01", period_end_date: "2026-03-31" }
+        ];
+        const expected = buildInvoiceScheduleRows(
+            "2026-01-01",
+            "2026-09-30",
+            { every: 3, unit: "bulan" }
+        );
+        const result = buildInvoiceScheduleReconciliation(existing, expected);
+        expect(result.updates).toHaveLength(1);
+        expect(result.creates).toHaveLength(2);
+        expect(result.removals).toHaveLength(0);
+    });
+
+    it("blocks shortening if any surplus cycle has payment proof, files, document_id, or follow-ups", () => {
+        const scenarios = [
+            { status: "Lunas" },
+            { paid_at: "2026-02-15T00:00:00Z" },
+            { invoice_file_url: "https://example.com/invoice.pdf" },
+            { payment_proof_file_url: "https://example.com/proof.pdf" },
+            { document_id: 42 },
+            { invoice_follow_ups: [{ id: 1 }] }
+        ];
+
+        scenarios.forEach((extraProps) => {
+            const existing = [
+                { id: 10, period_start_date: "2026-01-01", period_end_date: "2026-01-31" },
+                { id: 11, period_start_date: "2026-02-01", period_end_date: "2026-02-28", ...extraProps }
+            ];
+            const expected = buildInvoiceScheduleRows(
+                "2026-01-01",
+                "2026-01-31",
+                { every: 1, unit: "bulan" }
+            );
+            const result = buildInvoiceScheduleReconciliation(existing, expected);
+            expect(result.removals).toHaveLength(0);
+            expect(result.blockedRemovals.map(inv => inv.id)).toEqual([11]);
+        });
+    });
+});
 
 describe("resolveInvoiceDueMonthIsoDate", () => {
     it("returns the first day of the same month for period starts on days 1-15", () => {
@@ -93,3 +241,4 @@ describe("resolveCustomerOperationalStatus", () => {
         }, "2026-06-12")).toBe("aktif");
     });
 });
+

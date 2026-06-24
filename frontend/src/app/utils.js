@@ -288,6 +288,66 @@ export const buildInvoiceScheduleRows = (periodStartDate, periodEndDate, billing
     return rows;
 };
 
+const getInvoicePeriodKey = (invoice) => {
+    const startDate = String(invoice?.periodStartDate ?? invoice?.period_start_date ?? "").slice(0, 10);
+    const endDate = String(invoice?.periodEndDate ?? invoice?.period_end_date ?? "").slice(0, 10);
+    return startDate && endDate ? `${startDate}-${endDate}` : "";
+};
+
+export const hasProtectedInvoiceSettlement = (invoice) => (
+    String(invoice?.status ?? "").toLowerCase() === "lunas"
+    || Boolean(invoice?.paidAt ?? invoice?.paid_at)
+    || Boolean(invoice?.invoiceFileUrl ?? invoice?.invoice_file_url)
+    || Boolean(invoice?.paymentProofFileUrl ?? invoice?.payment_proof_file_url)
+    || Boolean(invoice?.documentId ?? invoice?.document_id)
+    || (Array.isArray(invoice?.invoiceFollowUps ?? invoice?.invoice_follow_ups)
+        && (invoice.invoiceFollowUps ?? invoice.invoice_follow_ups).length > 0)
+);
+
+export const buildInvoiceScheduleReconciliation = (existingInvoices = [], expectedRows = []) => {
+    const existing = [...existingInvoices].sort((left, right) => {
+        const dateCompare = String(left?.periodStartDate ?? left?.period_start_date ?? "")
+            .localeCompare(String(right?.periodStartDate ?? right?.period_start_date ?? ""));
+        return dateCompare || Number(left?.id ?? 0) - Number(right?.id ?? 0);
+    });
+    const expected = [...expectedRows];
+    const matchedInvoiceIds = new Set();
+    const matchedExpectedIndexes = new Set();
+    const updates = [];
+
+    expected.forEach((row, expectedIndex) => {
+        const key = `${row.periodStartDate}-${row.periodEndDate}`;
+        const invoice = existing.find((candidate) => (
+            !matchedInvoiceIds.has(candidate.id) && getInvoicePeriodKey(candidate) === key
+        ));
+        if (!invoice) return;
+        matchedInvoiceIds.add(invoice.id);
+        matchedExpectedIndexes.add(expectedIndex);
+        updates.push({ invoice, row });
+    });
+
+    const remainingInvoices = existing.filter((invoice) => !matchedInvoiceIds.has(invoice.id));
+    const remainingExpected = expected
+        .map((row, index) => ({ row, index }))
+        .filter(({ index }) => !matchedExpectedIndexes.has(index));
+    const reusableCount = Math.min(remainingInvoices.length, remainingExpected.length);
+
+    for (let index = 0; index < reusableCount; index += 1) {
+        updates.push({ invoice: remainingInvoices[index], row: remainingExpected[index].row });
+    }
+
+    const removals = remainingInvoices.slice(reusableCount);
+    const blockedRemovals = removals.filter(hasProtectedInvoiceSettlement);
+    const creates = remainingExpected.slice(reusableCount).map(({ row }) => row);
+
+    return {
+        updates,
+        creates,
+        removals: removals.filter((invoice) => !hasProtectedInvoiceSettlement(invoice)),
+        blockedRemovals,
+    };
+};
+
 export const getRemainingRentalDays = (contractEndDate) => {
     const parsedEndDate = parseDateValue(contractEndDate);
     if (!parsedEndDate) {

@@ -1,4 +1,5 @@
 import {
+  buildInvoiceScheduleReconciliation,
   buildInvoiceScheduleRows,
   getIspContractRowCoverage,
   resolveCustomerOperationalStatus,
@@ -4516,17 +4517,57 @@ export const contractVersionsApi = {
       .single();
     if (oldVersionError) throw oldVersionError;
 
-    const { data, error } = await supabase
-      .from('contract_versions')
-      .update(withUpdatedAt(payload))
-      .eq('id', id)
-      .select()
-      .single();
+    const oldStart = String(oldVersion?.start_date ?? '').slice(0, 10);
+    const oldEnd = String(oldVersion?.end_date ?? '').slice(0, 10);
+    const nextStart = String(payload.start_date ?? oldStart).slice(0, 10);
+    const nextEnd = String(payload.end_date ?? oldEnd).slice(0, 10);
+    const shouldReconcileInvoices = Boolean(nextStart && nextEnd);
+    let invoiceReconciliation = null;
+    let billingCycle = null;
 
-    if (error) throw error;
+    if (shouldReconcileInvoices) {
+      const [{ data: mainContract, error: mainContractError }, { data: versionInvoices, error: versionInvoicesError }] = await Promise.all([
+        supabase
+          .from('contracts')
+          .select('billing_every, billing_unit')
+          .eq('id', oldVersion.contract_id)
+          .single(),
+        supabase
+          .from('invoices')
+          .select(`
+            id,
+            status,
+            paid_at,
+            invoice_file_url,
+            payment_proof_file_url,
+            document_id,
+            period_start_date,
+            period_end_date,
+            schedule_status,
+            invoiceFollowUps:invoice_follow_ups(id)
+          `)
+          .eq('contract_version_id', id)
+          .is('deleted_at', null),
+      ]);
+      if (mainContractError) throw mainContractError;
+      if (versionInvoicesError) throw versionInvoicesError;
+
+      billingCycle = {
+        every: mainContract?.billing_every ?? 1,
+        unit: mainContract?.billing_unit ?? 'bulan',
+      };
+      const expectedRows = buildInvoiceScheduleRows(nextStart, nextEnd, billingCycle);
+      invoiceReconciliation = buildInvoiceScheduleReconciliation(versionInvoices ?? [], expectedRows);
+
+      if (invoiceReconciliation.blockedRemovals.length > 0) {
+        throw new Error(
+          `Periode tidak dapat dipendekkan karena ${invoiceReconciliation.blockedRemovals.length} invoice di luar periode sudah memiliki data settlement.`,
+        );
+      }
+    }
 
     // Sinkronisasi data ke kontrak induk jika versi ini adalah versi terbaru
-    const contractId = data.contract_id;
+    const contractId = oldVersion.contract_id;
     const { data: latestVersions, error: latestVersionsError } = await supabase
       .from('contract_versions')
       .select('id')
@@ -4536,8 +4577,9 @@ export const contractVersionsApi = {
       .limit(1);
     if (latestVersionsError) throw latestVersionsError;
 
-    if (Number(latestVersions?.[0]?.id) === Number(id)) {
-      const contractPayload = {};
+    const isLatest = Number(latestVersions?.[0]?.id) === Number(id);
+    const contractPayload = {};
+    if (isLatest) {
       const newEndDate = versionData.endDate ?? versionData.end_date;
       const newContractNumber = versionData.contractNumber ?? versionData.contract_number;
       if (newEndDate) {
@@ -4546,70 +4588,63 @@ export const contractVersionsApi = {
       if (newContractNumber) {
         contractPayload.contract_number = newContractNumber;
       }
-      if (Object.keys(contractPayload).length > 0) {
-        const { error: contractUpdateError } = await supabase
-          .from('contracts')
-          .update(withUpdatedAt(contractPayload))
-          .eq('id', contractId);
-        if (contractUpdateError) throw contractUpdateError;
-      }
     }
 
-    // Buat invoice baru jika tanggal berubah dari kosong menjadi terisi
-    const oldStart = oldVersion?.start_date;
-    const oldEnd = oldVersion?.end_date;
-    const newStart = versionData.startDate ?? versionData.start_date;
-    const newEnd = versionData.endDate ?? versionData.end_date;
+    let invoiceUpdates = [];
+    let invoiceCreates = [];
+    let invoiceRemovals = [];
 
-    if (!oldStart && !oldEnd && newStart && newEnd) {
-      // Tandai invoice lama menjadi 'history' sebelum membuat jadwal aktif versi baru.
-      const { error: invoiceHistoryError } = await supabase
-        .from('invoices')
-        .update(withUpdatedAt({ schedule_status: 'history' }))
-        .eq('contract_id', data.contract_id)
-        .is('deleted_at', null);
-      if (invoiceHistoryError) throw invoiceHistoryError;
+    if (invoiceReconciliation) {
+      const contractNumber = payload.contract_number ?? oldVersion.contract_number;
+      const monthlyAmount = payload.monthly_amount ?? oldVersion.monthly_amount;
+      const existingScheduleStatus = invoiceReconciliation.updates
+        .map(({ invoice }) => invoice.schedule_status)
+        .find(Boolean);
+      const scheduleStatus = existingScheduleStatus
+        ?? (nextEnd < new Date().toISOString().slice(0, 10) ? 'history' : 'active');
+      const invoiceAmount = resolveBillingCycleInvoiceAmount(monthlyAmount, billingCycle);
 
-      const { data: mainContract, error: mainContractError } = await supabase
-        .from('contracts')
-        .select('billing_every, billing_unit')
-        .eq('id', data.contract_id)
-        .single();
-      if (mainContractError) throw mainContractError;
-
-      const billingCycle = {
-        every: mainContract?.billing_every ?? 1,
-        unit: mainContract?.billing_unit ?? 'bulan'
+      const toInvoicePeriodPayload = (row) => {
+        const periodDate = new Date(`${row.periodStartDate}T00:00:00.000Z`);
+        return {
+          contract_number: contractNumber,
+          period_start_date: row.periodStartDate,
+          period_end_date: row.periodEndDate,
+          period_year: periodDate.getUTCFullYear(),
+          period_month: periodDate.getUTCMonth() + 1,
+          due_date: resolveInvoiceDueDate(row.periodStartDate),
+          schedule_status: scheduleStatus,
+        };
       };
-      const invoiceAmount = resolveBillingCycleInvoiceAmount(data.monthly_amount, billingCycle);
 
-      const newInvoiceRows = buildInvoiceScheduleRows(newStart, newEnd, billingCycle);
-      if (newInvoiceRows.length > 0) {
-        const newInvoicePayload = newInvoiceRows.map((row) => {
-          const periodDate = new Date(`${row.periodStartDate}T00:00:00.000Z`);
-          const periodYear = periodDate.getUTCFullYear();
-          const periodMonth = periodDate.getUTCMonth() + 1;
-          return {
-            customer_id: data.customer_id,
-            contract_id: data.contract_id,
-            contract_version_id: data.id,
-            contract_number: data.contract_number,
-            period_start_date: row.periodStartDate,
-            period_end_date: row.periodEndDate,
-            period_year: periodYear,
-            period_month: periodMonth,
-            due_date: resolveInvoiceDueDate(row.periodStartDate),
-            amount: invoiceAmount,
-            status: 'belum_ditagih',
-            schedule_status: 'active',
-            updated_at: new Date().toISOString()
-          };
-        });
-        const { error: invoiceInsertError } = await supabase.from('invoices').insert(newInvoicePayload);
-        if (invoiceInsertError) throw invoiceInsertError;
-      }
+      invoiceUpdates = invoiceReconciliation.updates.map(({ invoice, row }) => ({
+        id: invoice.id,
+        ...toInvoicePeriodPayload(row),
+      }));
+
+      invoiceCreates = invoiceReconciliation.creates.map((row) => ({
+        customer_id: oldVersion.customer_id,
+        contract_id: oldVersion.contract_id,
+        contract_version_id: id,
+        ...toInvoicePeriodPayload(row),
+        amount: invoiceAmount,
+        status: 'belum_ditagih',
+      }));
+
+      invoiceRemovals = invoiceReconciliation.removals.map((invoice) => invoice.id);
     }
 
+    const { data, error } = await supabase.rpc('reconcile_contract_version_and_invoices', {
+      p_version_id: id,
+      p_version_payload: payload,
+      p_is_latest: isLatest,
+      p_contract_payload: Object.keys(contractPayload).length > 0 ? contractPayload : null,
+      p_invoice_updates: invoiceUpdates,
+      p_invoice_creates: invoiceCreates,
+      p_invoice_removals: invoiceRemovals,
+    });
+
+    if (error) throw error;
     return data;
   },
 

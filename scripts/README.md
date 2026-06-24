@@ -47,6 +47,8 @@ Urutan setup environment baru (ringkas): **auth users → RLS → kolom/feature 
 | [maintenance/allow-teknisi-route-management.sql](maintenance/allow-teknisi-route-management.sql) | Membuka policy tulis RLS untuk role teknisi pada tabel versi jalur, titik jalur, dan riwayat jalur FO agar hasil planner bisa disimpan. |
 | [maintenance/add-customer-logo-url.sql](maintenance/add-customer-logo-url.sql) | Menambahkan kolom `logo_url` (opsional) pada `customers`. |
 | [maintenance/add-contract-version-contract-number.sql](maintenance/add-contract-version-contract-number.sql) | Menambahkan kolom `contract_number` pada `contract_versions`. |
+| [maintenance/reconcile-contract-invoices-rpc.sql](maintenance/reconcile-contract-invoices-rpc.sql) | RPC `reconcile_contract_version_and_invoices` — Update versi kontrak dan rekonsiliasi invoice secara atomik (admin only). |
+
 
 ### Index & optimasi performa
 
@@ -67,6 +69,8 @@ Urutan setup environment baru (ringkas): **auth users → RLS → kolom/feature 
 | [maintenance/fix-merapi-move-contracts.sql](maintenance/fix-merapi-move-contracts.sql) | Memindahkan kontrak PT Merapi ke customer yang benar (bertanggal). |
 | [maintenance/fix-wastec-active-contract-number.sql](maintenance/fix-wastec-active-contract-number.sql) | Memperbaiki nomor kontrak aktif customer Wastec. |
 | [maintenance/backfill-btn-monthly-invoices.sql](maintenance/backfill-btn-monthly-invoices.sql) | Backfill invoice bulanan untuk customer BTN. |
+| [maintenance/check-and-fix-stale-invoices.sql](maintenance/check-and-fix-stale-invoices.sql) | Script dan RPC `fix_out_of_sync_invoices` — Memeriksa dan merekonsiliasi jadwal invoice lama yang tidak sinkron secara aman. |
+
 
 ## `seed/` — Seed, Upsert & Rollback Data Production
 
