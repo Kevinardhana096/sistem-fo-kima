@@ -722,8 +722,6 @@ function TenantDetailPage({
   const [deleteError, setDeleteError] = useState("");
   const [isDeletingTenant, setIsDeletingTenant] = useState(false);
 
-  useScrollLock(deleteModalOpen || ispPopupOpen || !!billingEditor || !!versionEditor || !!renewalConfirmData);
-
   const [manualSp2Visible, setManualSp2Visible] = useState(new Set());
   const [manualSp3Visible, setManualSp3Visible] = useState(new Set());
   const [selectedInvoiceIds, setSelectedInvoiceIds] = useState(new Set());
@@ -763,6 +761,8 @@ function TenantDetailPage({
   const [settlementFeedback, setSettlementFeedback] = useState("");
   const [settlementError, setSettlementError] = useState("");
   const [isMarkingActivationFeePaid, setIsMarkingActivationFeePaid] = useState(false);
+
+  useScrollLock(deleteModalOpen || ispPopupOpen || !!billingEditor || !!versionEditor || !!renewalConfirmData);
   const [contractNumberInputs, setContractNumberInputs] = useState({});
   const [isSavingContractNumber, setIsSavingContractNumber] = useState(false);
   const [emptyContractNumberRows, setEmptyContractNumberRows] = useState({});
