@@ -691,13 +691,6 @@ function CustomerWorkspacePage({
                         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-widest text-white/60 shadow-sm backdrop-blur-md">
                             <span><span className="text-white font-black">{allGroups.length}</span> ISP Terkait</span>
                         </div>
-                        <button
-                            onClick={() => setIsPaketMatrixOpen(true)}
-                            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-[9px] font-black uppercase tracking-widest text-indigo-400 hover:bg-indigo-500/20 transition-all active:scale-95 shadow-sm backdrop-blur-md"
-                        >
-                            <span className="material-symbols-outlined text-[15px]">analytics</span>
-                            Paket
-                        </button>
 
                         {hasMoreCustomers && (
                             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-[9px] font-black uppercase tracking-widest text-blue-200/80 shadow-sm backdrop-blur-md">
@@ -705,6 +698,13 @@ function CustomerWorkspacePage({
                                 Data dimuat {customers.length} dari {totalCustomerCount}
                             </div>
                         )}
+                        <button
+                            onClick={() => setIsPaketMatrixOpen(true)}
+                            className="ml-auto inline-flex items-center gap-2 px-4 h-[34px] rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-[9px] font-black uppercase tracking-widest text-indigo-400 hover:bg-indigo-500/20 transition-all active:scale-95 shadow-sm backdrop-blur-md"
+                        >
+                            <span className="material-symbols-outlined text-[15px]">analytics</span>
+                            Paket
+                        </button>
                     </div>
                 </section>
 
