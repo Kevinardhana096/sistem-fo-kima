@@ -8,6 +8,7 @@ import {
 import FoRoutePlanner from "./components/FoRoutePlanner";
 import DateInput from "../../components/shared/DateInput";
 import { resolveTenantDetailAccess } from "./tenantDetailAccess";
+import { useScrollLock } from "../../hooks/useScrollLock";
 import { tenantDetailData } from "./tenantDetailData";
 import {
   documentTypeLabelMap,
@@ -720,6 +721,9 @@ function TenantDetailPage({
   const [ispPopupOpen, setIspPopupOpen] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const [isDeletingTenant, setIsDeletingTenant] = useState(false);
+
+  useScrollLock(deleteModalOpen || ispPopupOpen || !!billingEditor || !!versionEditor || !!renewalConfirmData);
+
   const [manualSp2Visible, setManualSp2Visible] = useState(new Set());
   const [manualSp3Visible, setManualSp3Visible] = useState(new Set());
   const [selectedInvoiceIds, setSelectedInvoiceIds] = useState(new Set());
@@ -8873,9 +8877,9 @@ function TenantDetailPage({
           document.body
         )}
 
-        {renewalConfirmData && createPortal(
+         {renewalConfirmData && createPortal(
           <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0f141e]/80 backdrop-blur-sm px-4">
-            <div className="max-h-[90vh] w-full max-w-xl overflow-y-auto glass-card rounded-premium border border-white/10 shadow-glass-depth p-4 md:p-5 relative">
+            <div className="max-h-[90vh] w-full max-w-xl overflow-y-auto overscroll-contain glass-card rounded-premium border border-white/10 shadow-glass-depth p-4 md:p-5 relative">
               {/* Header */}
               <div className="mb-3 flex items-start justify-between gap-4 border-b border-white/[0.05] pb-3">
                 <div className="space-y-1.5">

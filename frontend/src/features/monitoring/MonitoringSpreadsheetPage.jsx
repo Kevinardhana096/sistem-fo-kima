@@ -12,6 +12,7 @@ import {
     toTitleCase,
 } from "../../app/utils";
 import api from "../../lib/api";
+import { useScrollLock } from "../../hooks/useScrollLock";
 
 // --- Custom UI Components ---
 const CustomSelect = ({ value, onChange, options, icon, label, variant = "default", menuPosition = "bottom", menuClassName = "", hideArrow = false }) => {
@@ -238,6 +239,8 @@ function MonitoringSpreadsheetPage({
     const supplementaryRequestIdRef = useRef(0);
     const historyRequestIdRef = useRef(0);
     const monitoringTableColSpan = isTeknisi ? 11 : 26;
+
+    useScrollLock(!!selectedInvoiceCell);
 
     const invoiceDetailModal = selectedInvoiceCell && typeof document !== "undefined" && createPortal(
         <div className="fixed inset-0 z-[2050] flex items-center justify-center px-4">

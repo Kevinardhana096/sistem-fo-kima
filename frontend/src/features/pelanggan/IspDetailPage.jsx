@@ -4,6 +4,7 @@ import { StatCard } from "../../components/shared/AppShared";
 import FoRouteMultiPreview from "./components/FoRouteMultiPreview";
 import DateInput from "../../components/shared/DateInput";
 import IspEntryPointMap from "./components/IspEntryPointMap";
+import { useScrollLock } from "../../hooks/useScrollLock";
 import {
     formatDate,
     getCustomerDisplayActionSummary,
@@ -454,6 +455,8 @@ function IspDetailPage({
     const [userPopupMode, setUserPopupMode] = useState("view"); // "view" | "edit"
     const [userForm, setUserForm] = useState({ username: "", email: "", password: "", displayName: "" });
     const [showPassword, setShowPassword] = useState(false);
+
+    useScrollLock(!!userPopupOpen || !!entryPointEditor || !!risalahEditor || !!contractDraft || !!deleteConfirmData || isPaketStatsOpen);
 
     const openContractRowEditor = (row, focusField = null) => {
         if (!canManageIspContracts) return;

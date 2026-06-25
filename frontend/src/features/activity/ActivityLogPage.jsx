@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState, useRef } from "react"
 import { createPortal } from "react-dom";
 import api from "../../lib/api";
 import DateInput from "../../components/shared/DateInput";
+import { useScrollLock } from "../../hooks/useScrollLock";
 
 const ACTION_LABELS = {
     "customer.created": "Menambahkan pelanggan baru",
@@ -145,6 +146,8 @@ export default function ActivityLogPage() {
     const [selectedLog, setSelectedLog] = useState(null);
     const [selectedLogIds, setSelectedLogIds] = useState(() => new Set());
     const [isLoading, setIsLoading] = useState(false);
+
+    useScrollLock(!!selectedLog);
     const [isDeletingLogs, setIsDeletingLogs] = useState(false);
     const [error, setError] = useState("");
 
@@ -599,7 +602,7 @@ export default function ActivityLogPage() {
                     {/* Outer: rounded + overflow:hidden clips scrollbar */}
                     <div className="w-full max-w-2xl rounded-2xl border border-white/10 bg-[#0f141e] shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
                         {/* Inner: scrollable, scrollbar stays inside */}
-                        <div className="max-h-[85vh] overflow-y-auto p-5 [&::-webkit-scrollbar]:w-[2px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gold-accent/30 [&::-webkit-scrollbar-thumb]:rounded-full">
+                        <div className="max-h-[85vh] overflow-y-auto overscroll-contain p-5 [&::-webkit-scrollbar]:w-[2px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gold-accent/30 [&::-webkit-scrollbar-thumb]:rounded-full">
 
                             {/* Header */}
                             <div className="mb-4 flex items-start justify-between gap-4">

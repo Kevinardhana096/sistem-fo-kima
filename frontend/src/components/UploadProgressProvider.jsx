@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useCallback } from "react";
 import { uploadFileForRecord } from "../lib/files";
+import { useScrollLock } from "../hooks/useScrollLock";
 
 const UploadProgressContext = createContext(null);
 
@@ -18,6 +19,8 @@ export const UploadProgressProvider = ({ children }) => {
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState("idle"); // 'idle' | 'uploading' | 'success' | 'error'
   const [errorMessage, setErrorMessage] = useState("");
+
+  useScrollLock(isOpen);
 
   const uploadWithProgress = useCallback(async (file, pathParts = []) => {
     if (!(file instanceof File)) {

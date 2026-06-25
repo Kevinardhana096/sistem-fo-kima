@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { SummaryCard, StatCard } from "../../components/shared/AppShared";
 import api from "../../lib/api";
 import { getPackageDisplay, normalizeOperationalStatus, isStoppedStatus, resolveTenantOperationalStatus } from "./utils";
+import { useScrollLock } from "../../hooks/useScrollLock";
 
 const getTenantOperationalStatus = (tenant, todayIso) => {
     const status = resolveTenantOperationalStatus(tenant, todayIso);
@@ -414,6 +415,8 @@ function CustomerWorkspacePage({
 
     // Paket Matrix Modal
     const [isPaketMatrixOpen, setIsPaketMatrixOpen] = useState(false);
+
+    useScrollLock(isPaketMatrixOpen || !!deleteConfirmData);
 
     const paketMatrix = useMemo(() => {
         const rows = allGroups
@@ -1066,7 +1069,7 @@ function CustomerWorkspacePage({
                         </div>
 
                         {/* Table */}
-                        <div className="flex-1 overflow-y-auto overflow-x-auto min-h-0 custom-scrollbar">
+                        <div className="flex-1 overflow-y-auto overflow-x-auto min-h-0 custom-scrollbar overscroll-contain">
                             <table className="w-full border-collapse text-left">
                                 <thead className="sticky top-0 z-10 shadow-[0_1px_0_0_rgba(255,255,255,0.06)] bg-[#0d1117]">
                                     <tr className="border-b border-white/[0.06]">

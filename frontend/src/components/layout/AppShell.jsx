@@ -9,6 +9,7 @@ import {
     requestBrowserNotificationPermission,
     showBrowserNotification,
 } from "../../lib/browser-notifications";
+import { useScrollLock } from "../../hooks/useScrollLock";
 
 const AUTH_TRANSITION_EVENT = "sistem-fo-kima:auth-transition";
 const TRANSITION_STATE_KEY = "__sistemFoKimaTransitionState";
@@ -37,6 +38,9 @@ export default function AppShell({
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isSidebarHoverExpanded, setIsSidebarHoverExpanded] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+    useScrollLock(isEditModalOpen);
+
     const [authUser, setAuthUser] = useState(null);
     const [profileForm, setProfileForm] = useState({
         displayName: "",
