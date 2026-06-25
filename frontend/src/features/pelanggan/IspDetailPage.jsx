@@ -351,6 +351,23 @@ const fileActionButtonClass = "inline-flex h-6 items-center gap-1 cursor-pointer
 const fileActionPrimaryClass = "border border-gold-accent/20 bg-gold-accent/10 text-gold-accent hover:bg-gold-accent hover:text-white";
 const fileActionSuccessClass = "border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white";
 
+const ISP_DOCUMENT_TYPES = [
+    { value: "surat_penawaran", label: "Surat Penawaran" },
+    { value: "po", label: "PO" },
+    { value: "bak", label: "BAK" },
+    { value: "pks", label: "PKS" },
+    { value: "akte", label: "Akte Pendirian Perusahaan" },
+    { value: "izin_isp", label: "Izin ISP" },
+    { value: "nota_dinas", label: "Nota Dinas" },
+];
+
+const ISP_DOCUMENT_TYPE_LABEL_MAP = Object.fromEntries(ISP_DOCUMENT_TYPES.map(t => [t.value, t.label]));
+
+const resolveIspDocumentTypeLabel = (jenisDokumen) => {
+    const raw = typeof jenisDokumen === "string" ? jenisDokumen : String(jenisDokumen ?? "");
+    return ISP_DOCUMENT_TYPE_LABEL_MAP[raw] ?? raw;
+};
+
 function IspDetailPage({
     isp,
     onBack,
@@ -658,6 +675,8 @@ function IspDetailPage({
                 Array.isArray(ispResult?.risalah) && ispResult.risalah.length > 0
                     ? ispResult.risalah.map((row, index) => ({
                         id: row?.id ?? `existing-${isp.id}-${index}`,
+                        jenisDokumen: row?.jenisDokumen ?? row?.jenis_dokumen ?? "surat_penawaran",
+                        nomorDokumen: row?.nomorDokumen ?? row?.nomor_dokumen ?? "",
                         tanggal:
                             row?.tanggal ??
                             row?.meetingDate ??
@@ -841,8 +860,10 @@ function IspDetailPage({
         if (docSearch.trim()) {
             const query = docSearch.toLowerCase();
             result = result.filter(d =>
-                d.fileName.toLowerCase().includes(query) ||
-                d.tanggal.toLowerCase().includes(query)
+                (d.fileName ?? "").toLowerCase().includes(query) ||
+                (d.tanggal ?? "").toLowerCase().includes(query) ||
+                resolveIspDocumentTypeLabel(d.jenisDokumen).toLowerCase().includes(query) ||
+                (d.nomorDokumen ?? "").toLowerCase().includes(query)
             );
         }
 
@@ -1650,8 +1671,8 @@ function IspDetailPage({
         }
     };
 
-    const handleAddRisalah = () => { setError(""); setRisalahEditor({ id: null, tanggal: "", fileUrl: "", fileName: "", uploadedFileName: "" }); };
-    const handleEditRisalah = (row) => { setError(""); setRisalahEditor({ id: row.id, tanggal: row.tanggal ?? "", fileUrl: row.fileUrl ?? "", fileName: row.fileName ?? "", uploadedFileName: row.fileName ?? "" }); };
+    const handleAddRisalah = () => { setError(""); setRisalahEditor({ id: null, jenisDokumen: "surat_penawaran", nomorDokumen: "", tanggal: "", fileUrl: "", fileName: "", uploadedFileName: "" }); };
+    const handleEditRisalah = (row) => { setError(""); setRisalahEditor({ id: row.id, jenisDokumen: row.jenisDokumen ?? "surat_penawaran", nomorDokumen: row.nomorDokumen ?? "", tanggal: row.tanggal ?? "", fileUrl: row.fileUrl ?? "", fileName: row.fileName ?? "", uploadedFileName: row.fileName ?? "" }); };
 
     const handleRisalahEditorFileChange = (file) => {
         if (!file) { setRisalahEditor((p) => p ? { ...p, fileUrl: "", uploadedFileName: "" } : p); return; }
@@ -1660,9 +1681,15 @@ function IspDetailPage({
 
     const handleSaveRisalah = () => {
         if (!risalahEditor) return;
-        if (!String(risalahEditor.fileName ?? "").trim()) { setError("Nama berkas risalah wajib diisi."); return; }
-        if (!String(risalahEditor.fileUrl ?? "").trim()) { setError("Harap unggah berkas risalah terlebih dahulu."); return; }
-        const nextRow = { id: risalahEditor.id ?? `new-${Date.now()}`, tanggal: String(risalahEditor.tanggal ?? "").trim() || new Date().toISOString().slice(0, 10), fileUrl: risalahEditor.fileUrl, fileName: String(risalahEditor.fileName ?? "").trim() };
+        if (!String(risalahEditor.fileUrl ?? "").trim()) { setError("Harap unggah berkas dokumen terlebih dahulu."); return; }
+        const nextRow = {
+            id: risalahEditor.id ?? `new-${Date.now()}`,
+            jenisDokumen: risalahEditor.jenisDokumen ?? "surat_penawaran",
+            nomorDokumen: String(risalahEditor.nomorDokumen ?? "").trim(),
+            tanggal: String(risalahEditor.tanggal ?? "").trim() || new Date().toISOString().slice(0, 10),
+            fileUrl: risalahEditor.fileUrl,
+            fileName: String(risalahEditor.fileName ?? "").trim() || resolveIspDocumentTypeLabel(risalahEditor.jenisDokumen),
+        };
         setError("");
         setRisalahRows((pr) => risalahEditor.id ? pr.map((r) => r.id === risalahEditor.id ? nextRow : r) : [nextRow, ...pr]);
         setRisalahEditor(null);
@@ -4401,7 +4428,9 @@ function IspDetailPage({
                                                 <tr className="bg-white/5 border-b border-white/10">
                                                     <th className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">No</th>
                                                     <th className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Tanggal</th>
-                                                    <th className="px-3 py-2 text-left text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Nama Dokumen</th>
+                                                    <th className="px-3 py-2 text-left text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Jenis Dokumen</th>
+                                                    <th className="px-3 py-2 text-left text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Nomor Ref.</th>
+                                                    <th className="px-3 py-2 text-left text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Nama Berkas</th>
                                                     <th className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40 border-r border-white/10">Berkas</th>
                                                     {!isIsp && <th className="px-3 py-2 text-center text-[9px] font-bold tracking-[0.3em] text-white/40">Aksi</th>}
                                                 </tr>
@@ -4412,6 +4441,12 @@ function IspDetailPage({
                                                         <td className="px-3 py-2.5 text-center text-[11px] font-bold text-white/20 border-r border-white/10">{String(docStartIndex + idx + 1).padStart(2, '0')}</td>
                                                         <td className="px-3 py-2.5 text-center border-r border-white/10">
                                                             <span className="text-[11px] font-bold text-white">{formatDate(row.tanggal)}</span>
+                                                        </td>
+                                                        <td className="px-3 py-2.5 border-r border-white/10 text-left">
+                                                            <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-gold-accent/10 border border-gold-accent/20 text-[8px] font-black uppercase tracking-wider text-gold-accent">{resolveIspDocumentTypeLabel(row.jenisDokumen)}</span>
+                                                        </td>
+                                                        <td className="px-3 py-2.5 border-r border-white/10 text-left">
+                                                            <p className="text-[10px] font-bold text-white/50">{row.nomorDokumen || <span className="text-white/20">—</span>}</p>
                                                         </td>
                                                         <td className="px-3 py-2.5 border-r border-white/10 text-left">
                                                             <p className="text-[11px] font-bold text-white/70 tracking-wide">{row.fileName || "N/A"}</p>
@@ -4445,7 +4480,7 @@ function IspDetailPage({
                                                 ))}
                                                 {filteredDocs.length === 0 && (
                                                     <tr>
-                                                        <td colSpan={isIsp ? "4" : "5"} className="py-10 text-center">
+                                                        <td colSpan={isIsp ? "6" : "7"} className="py-10 text-center">
                                                             <div className="flex flex-col items-center justify-center">
                                                                 <div className="h-12 w-12 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 shadow-inner-glass mb-3 animate-pulse">
                                                                     <span className="material-symbols-outlined text-2xl text-gold-accent/40">folder_off</span>
@@ -4547,19 +4582,24 @@ function IspDetailPage({
                                         {paginatedDocs.map((row) => (
                                             <div
                                                 key={row.id}
-                                                className="glass-card rounded-xl border border-white/10 px-3 py-2 flex items-center justify-between gap-3 shadow-glass-depth transition-all"
+                                                className="glass-card rounded-xl border border-white/10 px-3 py-2.5 flex items-center justify-between gap-3 shadow-glass-depth transition-all hover:border-white/15"
                                             >
                                                 {/* Left: Icon & Info */}
                                                 <div className="flex items-center gap-2.5 min-w-0">
-                                                    <div className="h-[25px] w-[25px] flex items-center justify-center rounded-lg bg-white/5 border border-white/10 text-gold-accent shrink-0">
-                                                        <span className="material-symbols-outlined text-[13px]" style={{ fontSize: '13px' }}>description</span>
+                                                    <div className="h-[30px] w-[30px] flex items-center justify-center rounded-lg bg-gold-accent/10 border border-gold-accent/20 text-gold-accent shrink-0">
+                                                        <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>description</span>
                                                     </div>
                                                     <div className="min-w-0">
-                                                        <p className="text-[10.5px] font-bold text-white/95 truncate" title={row.fileName}>
-                                                            {row.fileName || "N/A"}
+                                                        <div className="flex items-center gap-1.5 mb-0.5">
+                                                            <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-gold-accent/10 border border-gold-accent/20 text-[7.5px] font-black uppercase tracking-wider text-gold-accent shrink-0">
+                                                                {resolveIspDocumentTypeLabel(row.jenisDokumen)}
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-[10px] font-bold text-white/80 truncate" title={row.fileName}>
+                                                            {row.fileName || resolveIspDocumentTypeLabel(row.jenisDokumen)}
                                                         </p>
-                                                        <p className="text-[8.5px] font-medium text-white/45 mt-0.5">
-                                                            {formatDate(row.tanggal)}
+                                                        <p className="text-[8px] font-medium text-white/40 mt-0.5">
+                                                            {row.nomorDokumen ? `${row.nomorDokumen} · ` : ''}{formatDate(row.tanggal)}
                                                         </p>
                                                     </div>
                                                 </div>
@@ -4581,14 +4621,14 @@ function IspDetailPage({
                                                     {!isIsp && (
                                                         <div className="flex items-center gap-1 border-l border-white/10 pl-2">
                                                             <button
-                                                                className="w-6.5 h-6.5 flex items-center justify-center rounded-md bg-white/5 border border-white/10 text-gold-accent hover:bg-gold-accent hover:text-white transition-all shadow-sm"
+                                                                className="w-6 h-6 flex items-center justify-center rounded-md bg-white/5 border border-white/10 text-gold-accent hover:bg-gold-accent hover:text-white transition-all shadow-sm"
                                                                 onClick={() => handleEditRisalah(row)}
                                                                 title="Edit"
                                                             >
                                                                 <span className="material-symbols-outlined" style={{ fontSize: "12px" }}>edit_note</span>
                                                             </button>
                                                             <button
-                                                                className="w-6.5 h-6.5 flex items-center justify-center rounded-md bg-white/5 border border-white/10 text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all shadow-sm"
+                                                                className="w-6 h-6 flex items-center justify-center rounded-md bg-white/5 border border-white/10 text-[#ff2400] hover:bg-[#ff2400] hover:text-white transition-all shadow-sm"
                                                                 onClick={() => handleDeleteRisalah(row.id)}
                                                                 title="Hapus"
                                                             >
@@ -4699,25 +4739,49 @@ function IspDetailPage({
 
                         {risalahEditor && createPortal(
                             <div className="fixed inset-0 z-[200] flex items-center justify-center px-4 backdrop-blur-md bg-black/60 animate-fade-in duration-300">
-                                <div className="w-full max-w-sm rounded-2xl glass-card backdrop-blur-xl p-5 border border-white/20 shadow-[0_0_100px_rgba(0,0,0,0.8)] animate-in zoom-in-95 duration-300 relative overflow-hidden">
+                                <div className="w-full max-w-sm rounded-2xl glass-card backdrop-blur-xl p-5 border border-white/20 shadow-[0_0_100px_rgba(0,0,0,0.8)] animate-in zoom-in-95 duration-300 relative overflow-hidden overscroll-contain">
                                     <div className="absolute top-0 right-0 w-32 h-32 bg-gold-accent/5 blur-3xl pointer-events-none" />
 
-                                    <div className="mb-5 flex items-center justify-between relative z-10">
+                                    <div className="mb-4 flex items-center justify-between relative z-10">
                                         <div className="space-y-0.5">
                                             <h3 className="text-base font-black text-white tracking-widest uppercase">
                                                 {risalahEditor.id ? "Edit Dokumen" : "Tambah Dokumen"}
                                             </h3>
-                                            <p className="text-[9px] font-bold text-gold-accent/40 tracking-[0.3em] uppercase">Arsip Administratif ISP</p>
+                                            <p className="text-[9px] font-bold text-gold-accent/40 tracking-[0.3em] uppercase">Arsip Dokumen ISP</p>
                                         </div>
                                         <button className="w-7 h-7 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white/30 hover:bg-[#ff2400]/10 hover:border-[#ff2400]/40 hover:text-[#ff2400] transition-all duration-300 shadow-sm" onClick={() => setRisalahEditor(null)} type="button">
                                             <span className="material-symbols-outlined text-[14px]">close</span>
                                         </button>
                                     </div>
 
-                                    <div className="space-y-4 relative z-10">
-                                        {/* Nama Dokumen */}
+                                    <div className="space-y-3.5 relative z-10">
+                                        {/* Jenis Dokumen */}
+                                        <GlassCustomSelect
+                                            label="Jenis Dokumen"
+                                            icon="category"
+                                            value={risalahEditor.jenisDokumen}
+                                            onChange={(val) => setRisalahEditor(p => p ? { ...p, jenisDokumen: val } : p)}
+                                            options={ISP_DOCUMENT_TYPES}
+                                        />
+
+                                        {/* Nomor Referensi */}
                                         <div className="space-y-1">
-                                            <label className="block text-[8px] font-black uppercase tracking-[0.3em] text-white/40 ml-1">Nama Dokumen</label>
+                                            <label className="block text-[8px] font-black uppercase tracking-[0.3em] text-white/40 ml-1">Nomor Referensi <span className="text-white/20 normal-case">(Opsional)</span></label>
+                                            <div className="flex items-center gap-2.5 rounded-xl border border-white/10 bg-black/40 px-3 py-2 focus-within:border-gold-accent/50 transition-all">
+                                                <span className="material-symbols-outlined text-[12px] text-white/20 shrink-0">tag</span>
+                                                <input
+                                                    className="flex-1 min-w-0 bg-transparent text-[11px] font-bold text-white outline-none placeholder:text-white/10"
+                                                    onChange={(e) => setRisalahEditor(p => p ? { ...p, nomorDokumen: e.target.value } : p)}
+                                                    type="text"
+                                                    value={risalahEditor.nomorDokumen}
+                                                    placeholder="Contoh: 001/PO/VI/2026"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Nama Berkas */}
+                                        <div className="space-y-1">
+                                            <label className="block text-[8px] font-black uppercase tracking-[0.3em] text-white/40 ml-1">Nama Berkas <span className="text-white/20 normal-case">(Opsional)</span></label>
                                             <div className="flex items-center gap-2.5 rounded-xl border border-white/10 bg-black/40 px-3 py-2 focus-within:border-gold-accent/50 transition-all">
                                                 <span className="material-symbols-outlined text-[12px] text-white/20 shrink-0">edit_note</span>
                                                 <input
@@ -4725,35 +4789,8 @@ function IspDetailPage({
                                                     onChange={(e) => setRisalahEditor(p => p ? { ...p, fileName: e.target.value } : p)}
                                                     type="text"
                                                     value={risalahEditor.fileName}
-                                                    placeholder="Contoh: Risalah Meeting 2026"
+                                                    placeholder="Nama file, misal: PKS ISP 2026"
                                                 />
-                                            </div>
-                                        </div>
-
-                                        {/* Unggah Berkas */}
-                                        <div className="space-y-1">
-                                            <label className="block text-[8px] font-black uppercase tracking-[0.3em] text-white/40 ml-1">Unggah Berkas</label>
-                                            <div className="relative">
-                                                <input
-                                                    id="risalah-file-upload"
-                                                    type="file"
-                                                    className="hidden"
-                                                    onChange={(e) => handleRisalahEditorFileChange(e.target.files?.[0] ?? null)}
-                                                />
-                                                <label
-                                                    htmlFor="risalah-file-upload"
-                                                    className="flex items-center justify-between w-full rounded-xl bg-black/40 border border-white/10 hover:border-gold-accent/40 px-3 py-2 cursor-pointer group transition-all"
-                                                >
-                                                    <div className="flex items-center gap-2.5 min-w-0">
-                                                        <span className="material-symbols-outlined text-[12px] text-white/30 group-hover:text-gold-accent shrink-0">cloud_upload</span>
-                                                        <span className="text-[11px] font-bold text-white/60 group-hover:text-white truncate">
-                                                            {risalahEditor.file ? risalahEditor.file.name : (risalahEditor.fileName || "Pilih berkas...")}
-                                                        </span>
-                                                    </div>
-                                                    <span className="text-[8px] font-black uppercase tracking-widest bg-gold-accent/10 text-gold-accent group-hover:bg-gold-accent group-hover:text-slate-900 px-2 py-1 rounded-md transition-all border border-gold-accent/20 shrink-0 ml-2">
-                                                        Cari
-                                                    </span>
-                                                </label>
                                             </div>
                                         </div>
 
@@ -4770,9 +4807,39 @@ function IspDetailPage({
                                                 />
                                             </div>
                                         </div>
+
+                                        {/* Unggah Berkas */}
+                                        <div className="space-y-1">
+                                            <label className="block text-[8px] font-black uppercase tracking-[0.3em] text-white/40 ml-1">Unggah Berkas <span className="text-[#ff2400]/60">*</span></label>
+                                            <div className="relative">
+                                                <input
+                                                    id="risalah-file-upload"
+                                                    type="file"
+                                                    className="hidden"
+                                                    onChange={(e) => handleRisalahEditorFileChange(e.target.files?.[0] ?? null)}
+                                                />
+                                                <label
+                                                    htmlFor="risalah-file-upload"
+                                                    className="flex items-center justify-between w-full rounded-xl bg-black/40 border border-white/10 hover:border-gold-accent/40 px-3 py-2 cursor-pointer group transition-all"
+                                                >
+                                                    <div className="flex items-center gap-2.5 min-w-0">
+                                                        <span className="material-symbols-outlined text-[12px] text-white/30 group-hover:text-gold-accent shrink-0">cloud_upload</span>
+                                                        <span className="text-[11px] font-bold text-white/60 group-hover:text-white truncate">
+                                                            {risalahEditor.uploadedFileName || (risalahEditor.fileUrl ? "Berkas telah diunggah" : "Pilih berkas...")}
+                                                        </span>
+                                                    </div>
+                                                    {risalahEditor.fileUrl && (
+                                                        <span className="text-[7.5px] font-black uppercase tracking-widest text-emerald-400 border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 rounded-md shrink-0 ml-2">Tersedia</span>
+                                                    )}
+                                                    {!risalahEditor.fileUrl && (
+                                                        <span className="text-[8px] font-black uppercase tracking-widest bg-gold-accent/10 text-gold-accent group-hover:bg-gold-accent group-hover:text-slate-900 px-2 py-1 rounded-md transition-all border border-gold-accent/20 shrink-0 ml-2">Cari</span>
+                                                    )}
+                                                </label>
+                                            </div>
+                                        </div>
                                     </div>
 
-                                    <div className="mt-6 flex justify-end gap-3 relative z-10">
+                                    <div className="mt-5 flex justify-end gap-3 relative z-10">
                                         <button className="px-4 py-2 text-[9px] font-black uppercase tracking-widest text-white/40 hover:text-white transition-all" onClick={() => setRisalahEditor(null)} type="button">Batal</button>
                                         <button className="rounded-xl bg-gold-accent px-6 py-2 text-[9px] font-black uppercase tracking-widest text-slate-900 shadow-gold-glow active:scale-95 transition-all" onClick={handleSaveRisalah} type="button">Simpan</button>
                                     </div>
