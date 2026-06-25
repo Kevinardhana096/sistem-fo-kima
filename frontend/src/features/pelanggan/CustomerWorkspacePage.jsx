@@ -527,13 +527,7 @@ function CustomerWorkspacePage({
                                 Lokasi Baru
                             </button>
                         )}
-                        <button
-                            onClick={() => setIsPaketMatrixOpen(true)}
-                            className="h-10 inline-flex items-center gap-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 px-4 text-[9px] font-black uppercase tracking-[0.2em] text-indigo-400 hover:bg-indigo-500/20 transition-all active:scale-95 shadow-glass-depth backdrop-blur-md"
-                        >
-                            <span className="material-symbols-outlined text-[15px]">analytics</span>
-                            Paket
-                        </button>
+
                         <button
                             onClick={() => void onRefresh()}
                             className="h-10 w-10 inline-flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white/40 hover:bg-white/10 hover:text-white transition-all group active:rotate-180 shadow-glass-depth backdrop-blur-md"
@@ -697,6 +691,13 @@ function CustomerWorkspacePage({
                         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-widest text-white/60 shadow-sm backdrop-blur-md">
                             <span><span className="text-white font-black">{allGroups.length}</span> ISP Terkait</span>
                         </div>
+                        <button
+                            onClick={() => setIsPaketMatrixOpen(true)}
+                            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-[9px] font-black uppercase tracking-widest text-indigo-400 hover:bg-indigo-500/20 transition-all active:scale-95 shadow-sm backdrop-blur-md"
+                        >
+                            <span className="material-symbols-outlined text-[15px]">analytics</span>
+                            Paket
+                        </button>
 
                         {hasMoreCustomers && (
                             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-[9px] font-black uppercase tracking-widest text-blue-200/80 shadow-sm backdrop-blur-md">
