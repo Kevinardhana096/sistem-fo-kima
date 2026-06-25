@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { SummaryCard, StatCard } from "../../components/shared/AppShared";
 import api from "../../lib/api";
 import { getPackageDisplay, normalizeOperationalStatus, isStoppedStatus, resolveTenantOperationalStatus } from "./utils";
@@ -53,6 +54,8 @@ const getCurrentContractNumber = (tenant, todayIso) => {
     const activeContract = contracts.find((contract) => isInPeriod(contract, todayIso));
     return normalizeContractNumber(activeContract?.contractNumber ?? activeContract?.contract_number ?? tenant?.contractNumber);
 };
+
+const RATIO_COLS = ["1/2", "1/4", "1/8", "1/16", "1/32"];
 
 const normalizeSearchable = (value) => String(value ?? "").toLowerCase();
 const getTenantIspNames = (tenant) => Array.isArray(tenant?.ispList) ? tenant.ispList.filter(Boolean) : [];
@@ -409,6 +412,30 @@ function CustomerWorkspacePage({
     const [deletePermanently, setDeletePermanently] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
 
+    // Paket Matrix Modal
+    const [isPaketMatrixOpen, setIsPaketMatrixOpen] = useState(false);
+
+    const paketMatrix = useMemo(() => {
+        const rows = allGroups
+            .filter((g) => !g.isSyntheticGroup)
+            .map((group) => {
+                const counts = { "1/2": 0, "1/4": 0, "1/8": 0, "1/16": 0, "1/32": 0, core: 0 };
+                (group.tenants ?? []).forEach((tenant) => {
+                    const paketVal = String(tenant.packageInfo?.paket ?? tenant.paket ?? "").toLowerCase();
+                    const isSharing = paketVal.includes("shar") || paketVal === "shared";
+                    if (isSharing) {
+                        const rawRatio = String(tenant.packageInfo?.jumlah ?? tenant.contractSharingRatio ?? tenant.jumlah ?? "").replace(":", "/").trim();
+                        const matched = RATIO_COLS.find((r) => r === rawRatio);
+                        if (matched) counts[matched] += 1;
+                    } else if (paketVal === "core" || paketVal === "core_dedicated" || paketVal === "") {
+                        counts.core += 1;
+                    }
+                });
+                return { ispName: group.name, ...counts };
+            });
+        return rows;
+    }, [allGroups]);
+
     const handleDeleteIsp = (group) => {
         setDeletePermanently(false);
         setDeleteConfirmData({ type: 'isp', item: group });
@@ -500,6 +527,13 @@ function CustomerWorkspacePage({
                                 Lokasi Baru
                             </button>
                         )}
+                        <button
+                            onClick={() => setIsPaketMatrixOpen(true)}
+                            className="h-10 inline-flex items-center gap-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 px-4 text-[9px] font-black uppercase tracking-[0.2em] text-indigo-400 hover:bg-indigo-500/20 transition-all active:scale-95 shadow-glass-depth backdrop-blur-md"
+                        >
+                            <span className="material-symbols-outlined text-[15px]">analytics</span>
+                            Paket
+                        </button>
                         <button
                             onClick={() => void onRefresh()}
                             className="h-10 w-10 inline-flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white/40 hover:bg-white/10 hover:text-white transition-all group active:rotate-180 shadow-glass-depth backdrop-blur-md"
@@ -1004,7 +1038,115 @@ function CustomerWorkspacePage({
                 </section>
             </div>
 
-            {deleteConfirmData && (
+            {/* ══════ PAKET MATRIX MODAL ══════ */}
+            {isPaketMatrixOpen && createPortal(
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 md:p-6" onClick={() => setIsPaketMatrixOpen(false)}>
+                    <div
+                        className="flex flex-col w-full max-w-4xl max-h-[90vh] rounded-2xl border border-white/10 bg-[#0d1117] shadow-2xl text-white overflow-hidden"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Header */}
+                        <div className="flex shrink-0 items-center justify-between px-6 py-4 border-b border-white/[0.06]">
+                            <div className="flex items-center gap-3">
+                                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-500/10 border border-indigo-500/20">
+                                    <span className="material-symbols-outlined text-indigo-400" style={{ fontSize: "16px" }}>analytics</span>
+                                </div>
+                                <div>
+                                    <p className="text-[8px] font-black uppercase tracking-[0.4em] text-white/30">Statistik</p>
+                                    <p className="text-sm font-black text-white uppercase tracking-wide">Distribusi Paket per ISP</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setIsPaketMatrixOpen(false)}
+                                className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white/40 hover:bg-white/10 hover:text-white transition-all"
+                            >
+                                <span className="material-symbols-outlined text-base">close</span>
+                            </button>
+                        </div>
+
+                        {/* Table */}
+                        <div className="flex-1 overflow-y-auto overflow-x-auto min-h-0 custom-scrollbar">
+                            <table className="w-full border-collapse text-left">
+                                <thead className="sticky top-0 z-10 shadow-[0_1px_0_0_rgba(255,255,255,0.06)] bg-[#0d1117]">
+                                    <tr className="border-b border-white/[0.06]">
+                                        <th className="px-5 py-3 text-[9px] font-black uppercase tracking-[0.3em] text-white/30 w-[220px] bg-[#0d1117]">ISP</th>
+                                        {RATIO_COLS.map((col) => (
+                                            <th key={col} className="px-4 py-3 text-center text-[9px] font-black uppercase tracking-[0.3em] text-amber-400/70 bg-[#0d1117]">{col}</th>
+                                        ))}
+                                        <th className="px-4 py-3 text-center text-[9px] font-black uppercase tracking-[0.3em] text-indigo-400/70 bg-[#0d1117]">Core</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {paketMatrix.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={7} className="px-5 py-10 text-center text-[10px] font-bold text-white/25 uppercase tracking-widest">
+                                                Tidak ada data ISP
+                                            </td>
+                                        </tr>
+                                    ) : paketMatrix.map((row, idx) => (
+                                        <tr key={row.ispName} className={`border-b border-white/[0.04] transition-colors hover:bg-white/[0.03] ${idx % 2 === 0 ? '' : 'bg-white/[0.01]'}`}>
+                                            <td className="px-5 py-3">
+                                                <p className="text-[11px] font-black text-white uppercase tracking-wide truncate max-w-[200px]">{row.ispName}</p>
+                                            </td>
+                                            {RATIO_COLS.map((col) => (
+                                                <td key={col} className="px-4 py-3 text-center">
+                                                    <span className={`text-[12px] font-black tabular-nums ${row[col] > 0 ? 'text-amber-400' : 'text-white/20'}`}>
+                                                        {row[col]}
+                                                    </span>
+                                                </td>
+                                            ))}
+                                            <td className="px-4 py-3 text-center">
+                                                <span className={`text-[12px] font-black tabular-nums ${row.core > 0 ? 'text-indigo-400' : 'text-white/20'}`}>
+                                                    {row.core}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                                {/* Total row */}
+                                {paketMatrix.length > 0 && (() => {
+                                    const totals = RATIO_COLS.reduce((acc, col) => ({ ...acc, [col]: paketMatrix.reduce((s, r) => s + r[col], 0) }), {});
+                                    const totalCore = paketMatrix.reduce((s, r) => s + r.core, 0);
+                                    return (
+                                        <tfoot>
+                                            <tr className="border-t border-white/[0.1] bg-white/[0.03]">
+                                                <td className="px-5 py-3">
+                                                    <p className="text-[9px] font-black uppercase tracking-[0.3em] text-white/40">Total</p>
+                                                </td>
+                                                {RATIO_COLS.map((col) => (
+                                                    <td key={col} className="px-4 py-3 text-center">
+                                                        <span className={`text-[12px] font-black tabular-nums ${totals[col] > 0 ? 'text-amber-300' : 'text-white/20'}`}>
+                                                            {totals[col]}
+                                                        </span>
+                                                    </td>
+                                                ))}
+                                                <td className="px-4 py-3 text-center">
+                                                    <span className={`text-[12px] font-black tabular-nums ${totalCore > 0 ? 'text-indigo-300' : 'text-white/20'}`}>
+                                                        {totalCore}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        </tfoot>
+                                    );
+                                })()}
+                            </table>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="flex shrink-0 justify-end px-6 py-4 border-t border-white/[0.06] bg-[#0d1117]">
+                            <button
+                                onClick={() => setIsPaketMatrixOpen(false)}
+                                className="h-9 px-5 rounded-xl border border-white/10 bg-white/5 text-[9px] font-black uppercase tracking-widest text-white/75 hover:bg-white/10 hover:text-white transition-all active:scale-95"
+                            >
+                                Tutup
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {deleteConfirmData && createPortal(
                 <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
                     <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#0d1117] p-6 shadow-2xl text-white">
                         <div className="mb-4">
@@ -1057,7 +1199,8 @@ function CustomerWorkspacePage({
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </>
     );

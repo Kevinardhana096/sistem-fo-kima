@@ -403,40 +403,6 @@ function IspAdminFormPage({ initialData = null, mode = "create", onCancel, onSav
                                     />
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="space-y-1.5">
-                                        <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-gold-accent/60 ml-1">
-                                            Paket (Jumlah Core)
-                                        </label>
-                                        <div className="relative group">
-                                            <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold-accent transition-all duration-300 pointer-events-none" style={{ fontSize: "14px" }}>
-                                                hub
-                                            </span>
-                                            <input
-                                                className="w-full h-9 rounded-xl bg-black/20 border border-white/10 pl-9 pr-14 text-[10px] font-bold text-white placeholder:text-white/20 outline-none transition-all focus:bg-black/40 focus:border-gold-accent/40 focus:ring-2 focus:ring-gold-accent/10 shadow-inner-glass backdrop-blur-md"
-                                                onChange={(e) => {
-                                                    const val = e.target.value;
-                                                    if (val === '' || Number(val) >= 0) {
-                                                        setForm(p => ({ ...p, packageQuantity: val }));
-                                                    }
-                                                }}
-                                                onKeyDown={(e) => {
-                                                    if (e.key === '-' || e.key === 'e' || e.key === 'E') e.preventDefault();
-                                                }}
-                                                placeholder="0"
-                                                type="number"
-                                                min="0"
-                                                value={form.packageQuantity}
-                                            />
-                                            <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
-                                                <span className="text-[8px] font-black text-gold-accent uppercase tracking-widest bg-gold-accent/10 px-2 py-1 rounded-md border border-gold-accent/20 shadow-gold-glow backdrop-blur-md">
-                                                    CORE
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
                             </div>
                         </div>
 

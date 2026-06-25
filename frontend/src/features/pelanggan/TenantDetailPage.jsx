@@ -5045,7 +5045,7 @@ function TenantDetailPage({
         </div>
 
         {/* ── ISP POPUP STATE ─────────────────────────────────────── */}
-        {ispPopupOpen && (
+        {ispPopupOpen && createPortal(
           <div
             className="fixed inset-0 z-[200] flex items-center justify-center p-4"
             onClick={() => setIspPopupOpen(false)}
@@ -5156,7 +5156,8 @@ function TenantDetailPage({
                 </p>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
 
         {/* ── PROFILE CARD ─────────────────────────────────────────── */}

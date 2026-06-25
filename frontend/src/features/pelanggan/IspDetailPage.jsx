@@ -24,6 +24,8 @@ import {
     isOperationallyActive,
 } from "./utils";
 
+const ISP_RATIO_COLS = ["1/2", "1/4", "1/8", "1/16", "1/32"];
+
 const getPrimaryIspContractRowId = (ispId) => `primary-isp-contract-${ispId}`;
 
 const getContractRowStatus = (row, todayIso) => {
@@ -408,6 +410,9 @@ function IspDetailPage({
     const [tenantSortMethod, setTenantSortMethod] = useState("lease_remaining");
     const [showTenantFilters, setShowTenantFilters] = useState(false);
 
+    // Paket Stats Modal
+    const [isPaketStatsOpen, setIsPaketStatsOpen] = useState(false);
+
     // Pagination State for Lokasi Table
     const [tenantCurrentPage, setTenantCurrentPage] = useState(1);
     const [tenantItemsPerPage, setTenantItemsPerPage] = useState(10);
@@ -739,6 +744,23 @@ function IspDetailPage({
             : [],
         [detail?.tenants],
     );
+
+    // Paket stats: count by ratio/core for this ISP's tenants
+    const paketStats = useMemo(() => {
+        const counts = { "1/2": 0, "1/4": 0, "1/8": 0, "1/16": 0, "1/32": 0, core: 0 };
+        allTenants.forEach((tenant) => {
+            const paketVal = String(tenant.packageInfo?.paket ?? tenant.paket ?? "").toLowerCase();
+            const isSharing = paketVal.includes("shar") || paketVal === "shared";
+            if (isSharing) {
+                const rawRatio = String(tenant.packageInfo?.jumlah ?? tenant.contractSharingRatio ?? tenant.jumlah ?? "").replace(":", "/").trim();
+                const matched = ISP_RATIO_COLS.find((r) => r === rawRatio);
+                if (matched) counts[matched] += 1;
+            } else {
+                counts.core += 1;
+            }
+        });
+        return counts;
+    }, [allTenants]);
 
     // Filtered & Sorted Tenants
     const filteredTenants = useMemo(() => {
@@ -2118,18 +2140,17 @@ function IspDetailPage({
                                         </div>
                                     </div>
 
-                                    {/* Paket */}
+                                    {/* Paket - Tombol Statistik */}
                                     <div className="space-y-1 sm:space-y-1.5">
                                         <p className="text-[8px] font-black uppercase tracking-[0.35em] text-white/20">Paket</p>
-                                        <div className="flex items-center gap-1 sm:gap-2">
-                                            <span className="material-symbols-outlined text-[10px] sm:text-[12px] scale-[0.75] sm:scale-100 origin-center text-amber-400/60">hub</span>
-                                            <p className="text-[11px] font-black text-white tracking-wide uppercase">
-                                                {(() => {
-                                                    const packageQty = detail?.packageQuantity ?? isp.packageQuantity ?? detail?.jumlah ?? isp.jumlah;
-                                                    return packageQty ? `${packageQty} Core` : "- Core";
-                                                })()}
-                                            </p>
-                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsPaketStatsOpen(true)}
+                                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-amber-500/20 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 active:scale-95 transition-all"
+                                        >
+                                            <span className="material-symbols-outlined" style={{ fontSize: "12px" }}>hub</span>
+                                            <span className="text-[10px] font-black uppercase tracking-wide">Lihat Core</span>
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -4998,7 +5019,7 @@ function IspDetailPage({
                 document.body,
             )}
 
-            {deleteConfirmData && (
+            {deleteConfirmData && createPortal(
                 <div className="fixed inset-0 z-[2200] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
                     <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#0d1117] p-6 shadow-2xl text-white">
                         <div className="mb-4">
@@ -5051,7 +5072,83 @@ function IspDetailPage({
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
+            )}
+
+            {/* ══════ PAKET STATS MODAL (ISP DETAIL) ══════ */}
+            {isPaketStatsOpen && createPortal(
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm px-4" onClick={() => setIsPaketStatsOpen(false)}>
+                    <div
+                        className="w-full max-w-2xl rounded-2xl border border-white/10 bg-[#0d1117] shadow-2xl text-white overflow-hidden"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Header */}
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06]">
+                            <div className="flex items-center gap-3">
+                                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-500/10 border border-amber-500/20">
+                                    <span className="material-symbols-outlined text-amber-400" style={{ fontSize: "16px" }}>hub</span>
+                                </div>
+                                <div>
+                                    <p className="text-[8px] font-black uppercase tracking-[0.4em] text-white/30">Statistik Paket</p>
+                                    <p className="text-sm font-black text-white uppercase tracking-wide truncate max-w-xs">{isp?.name ?? "ISP"}</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setIsPaketStatsOpen(false)}
+                                className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white/40 hover:bg-white/10 hover:text-white transition-all"
+                            >
+                                <span className="material-symbols-outlined text-base">close</span>
+                            </button>
+                        </div>
+
+                        {/* Table */}
+                        <div className="overflow-x-auto">
+                            <table className="w-full border-collapse">
+                                <thead>
+                                    <tr className="border-b border-white/[0.06]">
+                                        {ISP_RATIO_COLS.map((col) => (
+                                            <th key={col} className="px-4 py-3 text-center text-[9px] font-black uppercase tracking-[0.3em] text-amber-400/70">{col}</th>
+                                        ))}
+                                        <th className="px-4 py-3 text-center text-[9px] font-black uppercase tracking-[0.3em] text-indigo-400/70">Core</th>
+                                        <th className="px-4 py-3 text-center text-[9px] font-black uppercase tracking-[0.3em] text-white/30">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors">
+                                        {ISP_RATIO_COLS.map((col) => (
+                                            <td key={col} className="px-4 py-4 text-center">
+                                                <p className={`text-2xl font-black tabular-nums ${paketStats[col] > 0 ? 'text-amber-400' : 'text-white/20'}`}>{paketStats[col]}</p>
+                                                <p className="text-[7px] font-black uppercase tracking-[0.3em] text-amber-400/40 mt-1">Sharing</p>
+                                            </td>
+                                        ))}
+                                        <td className="px-4 py-4 text-center">
+                                            <p className={`text-2xl font-black tabular-nums ${paketStats.core > 0 ? 'text-indigo-400' : 'text-white/20'}`}>{paketStats.core}</p>
+                                            <p className="text-[7px] font-black uppercase tracking-[0.3em] text-indigo-400/40 mt-1">Dedicated</p>
+                                        </td>
+                                        <td className="px-4 py-4 text-center">
+                                            <p className="text-2xl font-black tabular-nums text-white">
+                                                {allTenants.length}
+                                            </p>
+                                            <p className="text-[7px] font-black uppercase tracking-[0.3em] text-white/30 mt-1">Lokasi</p>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="flex justify-end px-6 py-4 border-t border-white/[0.06]">
+                            <button
+                                onClick={() => setIsPaketStatsOpen(false)}
+                                className="h-9 px-5 rounded-xl border border-white/10 bg-white/5 text-[9px] font-black uppercase tracking-widest text-white/75 hover:bg-white/10 hover:text-white transition-all active:scale-95"
+                            >
+                                Tutup
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
             )}
 
         </>
