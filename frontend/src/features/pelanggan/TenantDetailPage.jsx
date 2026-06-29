@@ -395,13 +395,13 @@ function getInvoiceWorkflowMeta(
 function resolveInvoiceStatusMeta(invoice) {
   const workflowMeta = invoice?.workflowMeta ?? getInvoiceWorkflowMeta(invoice);
   const badgeClassByKey = {
-    paid: "bg-emerald-100 text-emerald-700",
-    warning_unpaid: "bg-rose-100 text-rose-700",
-    warning_required_h3: "bg-orange-100 text-orange-700",
-    warning_required_h7: "bg-amber-100 text-amber-700",
-    waiting_payment_confirmation: "bg-blue-100 text-blue-700",
-    pending_setup: "bg-rose-100 text-rose-700",
-    pending: "bg-slate-100 text-slate-700",
+    paid: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+    warning_unpaid: "bg-rose-500/10 text-rose-400 border-rose-500/20",
+    warning_required_h3: "bg-orange-500/10 text-orange-400 border-orange-500/20",
+    warning_required_h7: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+    waiting_payment_confirmation: "bg-sky-500/10 text-sky-400 border-sky-500/20",
+    pending_setup: "bg-white/5 text-white/30 border-white/10",
+    pending: "bg-white/5 text-white/30 border-white/10",
   };
 
   return {
@@ -8099,7 +8099,7 @@ function TenantDetailPage({
                                           (() => {
                                             const statusMeta = invoice.statusMeta ?? resolveInvoiceStatusMeta(invoice);
                                             return (
-                                              <span className={`inline-flex justify-center items-center w-full max-w-[120px] px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-widest border ${statusMeta.badgeClass.includes("emerald") ? "bg-emerald-500/5 text-emerald-500/50 border-emerald-500/10" : "bg-white/5 text-white/25 border-white/5"}`}>
+                                              <span className={`inline-flex justify-center items-center w-full max-w-[120px] px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-widest border ${statusMeta.badgeClass}`}>
                                                 <span className="truncate">{statusMeta.label}</span>
                                               </span>
                                             );

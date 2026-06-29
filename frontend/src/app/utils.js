@@ -1,3 +1,5 @@
+import { invoiceStatusBadgeClass } from "./constants";
+
 const normalizeApiOrigin = (value) => {
     const normalizedValue = value.replace(/\/$/, "");
 
@@ -1017,24 +1019,30 @@ export const mapCustomerToRow = (customer, index) => {
 };
 
 export const getMonthStatusClass = (status) => {
-    if (status === "lunas") {
+    const normalizedStatus = String(status ?? "").trim().toLowerCase();
+
+    if (normalizedStatus === "di_luar_periode") {
+        return "bg-slate-950/60 text-white/10 border border-white/5 opacity-40 cursor-not-allowed";
+    }
+
+    if (normalizedStatus === "lunas") {
         return "bg-[#00c853] text-white shadow-[#00c853]/20";
     }
 
-    if (status === "belum_bayar") {
+    if (normalizedStatus === "belum_bayar") {
         return "bg-[#ffab00] text-white shadow-[#ffab00]/20";
     }
 
-    if (status === "terlambat") {
+    if (normalizedStatus === "terlambat") {
         return "bg-[#ff2400] text-white shadow-[#ff2400]/20";
     }
 
-    if (status === "belum_ditagih") {
+    if (normalizedStatus === "belum_ditagih") {
         return "bg-white/10 text-white/40 border border-white/10";
     }
 
-    if (status === "di_luar_periode") {
-        return "bg-slate-950/60 text-white/10 border border-white/5 opacity-40 cursor-not-allowed";
+    if (invoiceStatusBadgeClass[normalizedStatus]) {
+        return "bg-white/10 text-white/20 border-white/5 opacity-40";
     }
 
     return "bg-slate-100/10 text-white/20 border-white/5 opacity-40";

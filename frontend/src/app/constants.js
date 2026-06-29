@@ -73,9 +73,10 @@ export const invoiceStatusLabelMap = {
 
 export const invoiceStatusBadgeClass = {
     lunas: "bg-emerald-100 text-emerald-700",
-    belum_bayar: "bg-red-100 text-red-700",
-    terlambat: "bg-orange-100 text-orange-700",
-    belum_ditagih: "bg-amber-100 text-amber-700",
+    belum_bayar: "bg-orange-100 text-orange-700",
+    terlambat: "bg-red-100 text-red-700",
+    belum_ditagih: "bg-slate-100 text-slate-700",
+    di_luar_periode: "bg-slate-100 text-slate-500",
 };
 
 export const contractStatusLabelMap = {

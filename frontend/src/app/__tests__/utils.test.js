@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
+import { invoiceStatusBadgeClass } from "../constants";
 import {
     buildInvoiceScheduleReconciliation,
     buildInvoiceScheduleRows,
     formatMonthYear,
     getIspContractRowCoverage,
+    getMonthStatusClass,
     resolveCustomerOperationalStatus,
     resolveInvoiceDueMonthIsoDate,
 } from "../utils";
@@ -219,6 +221,26 @@ describe("getIspContractRowCoverage", () => {
     });
 });
 
+describe("invoice status colors", () => {
+    it("keeps monitoring status colors aligned for every invoice state", () => {
+        expect(getMonthStatusClass("lunas")).toContain("#00c853");
+        expect(getMonthStatusClass("belum_bayar")).toContain("#ffab00");
+        expect(getMonthStatusClass("terlambat")).toContain("#ff2400");
+        expect(getMonthStatusClass("belum_ditagih")).toContain("bg-white/10");
+        expect(getMonthStatusClass("di_luar_periode")).toContain("cursor-not-allowed");
+    });
+
+    it("uses a consistent badge palette for invoice statuses", () => {
+        expect(invoiceStatusBadgeClass).toMatchObject({
+            lunas: "bg-emerald-100 text-emerald-700",
+            belum_bayar: "bg-orange-100 text-orange-700",
+            terlambat: "bg-red-100 text-red-700",
+            belum_ditagih: "bg-slate-100 text-slate-700",
+            di_luar_periode: "bg-slate-100 text-slate-500",
+        });
+    });
+});
+
 describe("resolveCustomerOperationalStatus", () => {
     it("uses active contract version period over stale raw customer status", () => {
         expect(resolveCustomerOperationalStatus({
@@ -241,4 +263,3 @@ describe("resolveCustomerOperationalStatus", () => {
         }, "2026-06-12")).toBe("aktif");
     });
 });
-

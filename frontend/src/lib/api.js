@@ -3244,9 +3244,8 @@ export const monitoringApi = {
       fetchInChunks(customerIds, async (ids) => {
         const { data, error: invoicesError } = await supabase
           .from('invoices')
-          .select('id, customer_id, invoice_number, contract_id, period_year, period_month, period_start_date, due_date, amount, status, schedule_status')
+          .select('id, customer_id, invoice_number, contract_id, contract_version_id, period_year, period_month, period_start_date, period_end_date, due_date, amount, status, schedule_status, paid_at, updated_at, created_at')
           .in('period_year', [selectedYear, selectedYear - 1])
-          .eq('schedule_status', 'active')
           .in('customer_id', ids);
 
         if (invoicesError) throw invoicesError;
@@ -3292,6 +3291,50 @@ export const monitoringApi = {
       return 1;
     };
     const isPaidInvoice = (invoice) => String(invoice?.status ?? '').toLowerCase() === 'lunas';
+    const getDateValue = (value) => {
+      const timestamp = value ? new Date(`${String(value).slice(0, 10)}T00:00:00.000Z`).getTime() : 0;
+      return Number.isFinite(timestamp) ? timestamp : 0;
+    };
+    const normalizeInvoiceStatus = (value) => String(value ?? '').trim().toLowerCase();
+    const getInvoiceStatusPriority = (value) => {
+      switch (normalizeInvoiceStatus(value)) {
+        case 'lunas':
+          return 4;
+        case 'terlambat':
+          return 3;
+        case 'belum_bayar':
+          return 2;
+        case 'belum_ditagih':
+          return 1;
+        case 'di_luar_periode':
+          return 0;
+        default:
+          return -1;
+      }
+    };
+    const compareInvoicePreference = (left, right) => {
+      const leftStatusPriority = getInvoiceStatusPriority(left?.status);
+      const rightStatusPriority = getInvoiceStatusPriority(right?.status);
+      if (leftStatusPriority !== rightStatusPriority) {
+        return leftStatusPriority - rightStatusPriority;
+      }
+
+      const leftPaidPriority = String(left?.paid_at ?? '').trim() ? 1 : 0;
+      const rightPaidPriority = String(right?.paid_at ?? '').trim() ? 1 : 0;
+      if (leftPaidPriority !== rightPaidPriority) {
+        return leftPaidPriority - rightPaidPriority;
+      }
+
+      const leftSchedulePriority = normalizeInvoiceStatus(left?.schedule_status) === 'history' ? 1 : 0;
+      const rightSchedulePriority = normalizeInvoiceStatus(right?.schedule_status) === 'history' ? 1 : 0;
+      if (leftSchedulePriority !== rightSchedulePriority) {
+        return leftSchedulePriority - rightSchedulePriority;
+      }
+
+      const leftUpdatedAt = getDateValue(left?.updated_at ?? left?.paid_at ?? left?.created_at);
+      const rightUpdatedAt = getDateValue(right?.updated_at ?? right?.paid_at ?? right?.created_at);
+      return leftUpdatedAt - rightUpdatedAt;
+    };
 
     const invoiceLookupByCustomerId = new Map();
     invoicesByCustomerId.forEach((customerInvoices, customerId) => {
@@ -3306,12 +3349,17 @@ export const monitoringApi = {
           ? displayDate.getUTCMonth() + 1
           : Number(invoice.period_month ?? 0);
 
-        lookup.set(getInvoiceKey(invoice.contract_id ?? null, displayYear, displayMonth), {
+        const key = getInvoiceKey(invoice.contract_id ?? null, displayYear, displayMonth);
+        const nextInvoice = {
           ...invoice,
           displayYear,
           displayMonth,
           displayDate: displayDateValue || null,
-        });
+        };
+        const currentInvoice = lookup.get(key);
+        if (!currentInvoice || compareInvoicePreference(nextInvoice, currentInvoice) > 0) {
+          lookup.set(key, nextInvoice);
+        }
       });
       invoiceLookupByCustomerId.set(customerId, lookup);
     });
@@ -3325,11 +3373,6 @@ export const monitoringApi = {
 
     const today = new Date().toISOString().slice(0, 10);
     const currentMonth = new Date().getUTCMonth() + 1;
-
-    const getDateValue = (value) => {
-      const timestamp = value ? new Date(`${String(value).slice(0, 10)}T00:00:00.000Z`).getTime() : 0;
-      return Number.isFinite(timestamp) ? timestamp : 0;
-    };
 
     const sortVersions = (versions = []) => [...versions].sort((left, right) => {
       const versionDiff = Number(right.version_number ?? 0) - Number(left.version_number ?? 0);
