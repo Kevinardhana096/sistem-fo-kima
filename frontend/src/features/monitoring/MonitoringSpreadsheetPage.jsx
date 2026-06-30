@@ -4,6 +4,7 @@ import { IssueCountRow } from "../../components/shared/AppShared";
 import { invoiceStatusLabelMap, monitoringMonths } from "../../app/constants";
 import {
     formatCoreAllocation,
+    formatContractPeriod,
     formatCurrency,
     formatDate,
     formatMonthYear,
@@ -94,14 +95,6 @@ const CustomSelect = ({ value, onChange, options, icon, label, variant = "defaul
     );
 };
 
-const formatMonitoringCoreAmount = (row) => {
-    if (row?.coreType === "sharing_core") {
-        return row?.sharingRatio || "-";
-    }
-
-    return row?.coreTotal ?? "-";
-};
-
 const normalizeOperationalStatus = (status) => String(status ?? "").trim().toLowerCase();
 const isStoppedStatus = (status) => ["berhenti", "nonaktif"].includes(normalizeOperationalStatus(status));
 const isPendingOperationalStatus = (status) => ["belum_beroperasi", "belum beroperasi", "belum"].includes(normalizeOperationalStatus(status));
@@ -114,6 +107,13 @@ const normalizeMonitoringYear = (value, fallbackYear) => {
     return Number.isInteger(numericYear) && numericYear >= 2000 && numericYear <= 2100
         ? String(numericYear)
         : String(fallbackYear);
+};
+const formatMonitoringPackageAmount = (row) => {
+    if (row?.coreType === "sharing_core") {
+        return row?.sharingRatio || "-";
+    }
+
+    return row?.coreTotal ?? "-";
 };
 const getRemainingRentalBadgeMeta = (remainingDays) => {
     if (remainingDays === null) {
@@ -163,9 +163,45 @@ const getRemainingRentalBadgeMeta = (remainingDays) => {
     };
 };
 
+const formatRemainingContractText = (remainingDays) => {
+    if (remainingDays === null) {
+        return "-";
+    }
+
+    const absDays = Math.abs(remainingDays);
+    if (absDays === 0) {
+        return "Hari ini";
+    }
+
+    const years = Math.floor(absDays / 365);
+    const months = Math.floor((absDays % 365) / 30);
+    const days = absDays % 30;
+    const segments = [];
+
+    if (years > 0) segments.push(`${years} th`);
+    if (months > 0) segments.push(`${months} bln`);
+    if (days > 0 || segments.length === 0) segments.push(`${days} hari`);
+
+    const text = segments.join(" ");
+    return remainingDays < 0 ? `Lewat ${text}` : text;
+};
+
+const getContractStatusKey = (row) => {
+    const endDate = row?.contractPeriodEnd ?? row?.contractEnd;
+    const remainingDays = getRemainingRentalDays(endDate);
+
+    if (remainingDays !== null && remainingDays < 0) {
+        return "lewat";
+    }
+
+    return "aktif";
+};
+
 function MonitoringSpreadsheetPage({
     ispOptions,
     currentRole = "admin",
+    defaultDataTab = "billing",
+    pageMode = "billing",
     onOpenIsp,
     onOpenCustomerById,
     layout = "shell",
@@ -175,6 +211,7 @@ function MonitoringSpreadsheetPage({
     onCloseTableOnly,
 }) {
     const isTeknisi = currentRole === "teknisi";
+    const isContractPage = pageMode === "contract";
     const currentYear = String(new Date().getUTCFullYear());
     const handleOpenIspDetail = useCallback((ispId) => {
         if (typeof onOpenIsp !== "function") {
@@ -224,7 +261,15 @@ function MonitoringSpreadsheetPage({
 
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(20);
-    const [activeDataTab, setActiveDataTab] = useState("table");
+    const [contractStatusFilter, setContractStatusFilter] = useState("aktif");
+    const [activeDataTab, setActiveDataTab] = useState(() => (
+        pageMode === "contract" || defaultDataTab === "contract" || defaultDataTab === "history"
+            ? defaultDataTab === "history" && pageMode !== "contract"
+                ? "history"
+                : "contract"
+            : "billing"
+    ));
+    const displayedDataTab = isContractPage ? "contract" : activeDataTab;
 
     const [billingRows, setBillingRows] = useState([]);
     const [historyRows, setHistoryRows] = useState([]);
@@ -239,6 +284,21 @@ function MonitoringSpreadsheetPage({
     const supplementaryRequestIdRef = useRef(0);
     const historyRequestIdRef = useRef(0);
     const monitoringTableColSpan = isTeknisi ? 11 : 26;
+
+    useEffect(() => {
+        const normalizedDefaultTab = pageMode === "contract"
+            ? "contract"
+            : defaultDataTab === "contract" || defaultDataTab === "history"
+                ? defaultDataTab
+                : "billing";
+        setActiveDataTab(normalizedDefaultTab);
+    }, [defaultDataTab, pageMode]);
+
+    useEffect(() => {
+        if (pageMode === "contract") {
+            setContractStatusFilter("aktif");
+        }
+    }, [pageMode]);
 
     useScrollLock(!!selectedInvoiceCell);
 
@@ -499,6 +559,16 @@ function MonitoringSpreadsheetPage({
         setCurrentPage(1);
     }, [filters.search, filters.contractStatus, filters.routeStatus, filters.todoStatus, filters.package]);
 
+    useEffect(() => {
+        if (pageMode === "contract") {
+            setCurrentPage(1);
+        }
+    }, [contractStatusFilter, pageMode]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [activeDataTab]);
+
     const filteredRows = useMemo(() => {
         const loweredSearch = filters.search.trim().toLowerCase();
         const alertCustomerIds = new Set(alerts.map(a => a.customerId));
@@ -509,6 +579,8 @@ function MonitoringSpreadsheetPage({
                 row.customerName,
                 row.ispName,
                 row.customerCode,
+                row.contractNumber,
+                row.currentInvoiceNumber,
             ].filter(Boolean).join(" ").toLowerCase();
             const matchesSearch = !loweredSearch || searchableText.includes(loweredSearch);
 
@@ -558,6 +630,49 @@ function MonitoringSpreadsheetPage({
             return leftDays - rightDays;
         });
     }, [billingRows, filters.search, filters.contractStatus, filters.routeStatus, filters.todoStatus, filters.package, alerts]);
+
+    const contractAllRows = useMemo(() => {
+        const mappedRows = billingRows.map((row, index) => {
+            const remainingContractDays = getRemainingRentalDays(row.contractPeriodEnd ?? row.contractEnd);
+            return {
+                ...row,
+                rowNumber: index + 1,
+                contractPeriodText: formatContractPeriod(row.contractPeriodStart ?? row.contractStart, row.contractPeriodEnd ?? row.contractEnd),
+                runningPeriodText: formatContractPeriod(row.runningPeriodStart ?? row.contractStart, row.runningPeriodEnd ?? row.contractEnd),
+                remainingContractDays,
+                remainingContractText: formatRemainingContractText(remainingContractDays),
+                contractStatusKey: getContractStatusKey(row),
+            };
+        });
+
+        return mappedRows.sort((left, right) => {
+            const leftDays = left.remainingContractDays;
+            const rightDays = right.remainingContractDays;
+
+            if (leftDays === null && rightDays === null) return 0;
+            if (leftDays === null) return 1;
+            if (rightDays === null) return -1;
+
+            return leftDays - rightDays;
+        });
+    }, [billingRows]);
+
+    const contractRows = useMemo(() => (
+        contractAllRows.filter((row) => {
+            if (pageMode !== "contract") {
+                return true;
+            }
+
+            return contractStatusFilter === "lewat"
+                ? row.contractStatusKey === "lewat"
+                : row.contractStatusKey === "aktif";
+        })
+    ), [contractAllRows, contractStatusFilter, pageMode]);
+
+    const contractStatusCounts = useMemo(() => ({
+        aktif: contractAllRows.filter((row) => row.contractStatusKey === "aktif").length,
+        lewat: contractAllRows.filter((row) => row.contractStatusKey === "lewat").length,
+    }), [contractAllRows]);
 
     const filteredHistoryRows = useMemo(() => {
         const loweredSearch = filters.search.trim().toLowerCase();
@@ -610,7 +725,9 @@ function MonitoringSpreadsheetPage({
         });
     }, [historyRows, filters.search, filters.contractStatus, filters.routeStatus, filters.todoStatus, filters.package, alerts]);
 
-    const isFilterActive = filters.search !== "" || filters.contractStatus !== "all" || filters.routeStatus !== "all" || filters.todoStatus !== "all" || filters.package !== "all" || filters.year !== currentYear;
+    const isFilterActive = pageMode === "contract"
+        ? contractStatusFilter !== "aktif"
+        : filters.search !== "" || filters.contractStatus !== "all" || filters.routeStatus !== "all" || filters.todoStatus !== "all" || filters.package !== "all" || filters.year !== currentYear;
 
     // Pagination calculations
     const totalPages = Math.ceil(filteredRows.length / itemsPerPage);
@@ -618,6 +735,9 @@ function MonitoringSpreadsheetPage({
     const endIndex = startIndex + itemsPerPage;
     const paginatedRows = filteredRows.slice(startIndex, endIndex);
     const visibleRows = tableOnly ? filteredRows : paginatedRows;
+    const contractTotalPages = Math.max(1, Math.ceil(contractRows.length / itemsPerPage));
+    const contractPaginatedRows = contractRows.slice(startIndex, endIndex);
+    const visibleContractRows = tableOnly ? contractRows : contractPaginatedRows;
 
     const handlePageChange = (newPage) => {
         if (newPage >= 1 && newPage <= totalPages) {
@@ -642,26 +762,80 @@ function MonitoringSpreadsheetPage({
     }, [billingRows]);
 
     const exportToExcel = async () => {
-        if (filteredRows.length === 0) return;
         setIsExporting(true);
 
-        const yieldToBrowser = () => new Promise((resolve) => {
-            if (typeof requestAnimationFrame === "function") {
-                requestAnimationFrame(() => resolve());
+        try {
+            const downloadCsv = (filename, headers, rows) => {
+                const csvContent = [headers.join(","), ...rows].join("\n");
+                const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement("a");
+                link.setAttribute("href", url);
+                link.setAttribute("download", filename);
+                link.style.visibility = "hidden";
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            };
+
+            if (activeDataTab === "contract") {
+                if (contractRows.length === 0) return;
+                const contractHeaders = ["No", "Nomor Kontrak", "Masa Kontrak", "Sisa Kontrak", "Periode Berjalan", "Jumlah Paket"];
+                const contractRowsCsv = contractRows.map((row, index) => (
+                    [
+                        index + 1,
+                        row.contractNumber ?? "-",
+                        row.contractPeriodText,
+                        row.remainingContractText,
+                        row.runningPeriodText,
+                        formatMonitoringPackageAmount(row),
+                    ].map((value) => `"${String(value).replace(/"/g, '""')}"`).join(",")
+                ));
+
+                downloadCsv(`monitoring_kontrak_${appliedFilters.year}.csv`, contractHeaders, contractRowsCsv);
                 return;
             }
-            setTimeout(resolve, 0);
-        });
 
-        const headers = [
-            "No", "Nama ISP", "Nama Pelanggan", "Periode Awal", "Berjalan Awal", "Berjalan Akhir",
-            "Paket", "Jumlah",
-            ...(isTeknisi ? [] : ["No. Kontrak", "No. Invoice"]),
-            "Sisa Sewa", "Status Kontrak", "Status Jalur",
-            ...(isTeknisi ? [] : ["Aktivasi", ...monitoringMonths])
-        ];
+            if (activeDataTab === "history") {
+                if (filteredHistoryRows.length === 0) return;
+                const historyHeaders = ["No", "Mitra ISP", "Unit Lokasi", "Periode Kontrak", "Paket", "Jumlah", "No. Kontrak", "Invoice Terakhir", "Status"];
+                const historyRowsCsv = filteredHistoryRows.map((row, index) => (
+                    [
+                        index + 1,
+                        row.ispName,
+                        row.customerName,
+                        formatContractPeriod(row.contractStart, row.contractEnd),
+                        toTitleCase(row.coreType),
+                        formatMonitoringPackageAmount(row),
+                        row.contractNumber ?? "-",
+                        row.lastInvoiceNumber ?? "-",
+                        invoiceStatusLabelMap[row.lastInvoiceStatus] || row.lastInvoiceStatus || "-",
+                    ].map((value) => `"${String(value).replace(/"/g, '""')}"`).join(",")
+                ));
 
-        try {
+                downloadCsv(`monitoring_history_${appliedFilters.year}.csv`, historyHeaders, historyRowsCsv);
+                return;
+            }
+
+            if (filteredRows.length === 0) return;
+
+            const yieldToBrowser = () => new Promise((resolve) => {
+                if (typeof requestAnimationFrame === "function") {
+                    requestAnimationFrame(() => resolve());
+                    return;
+                }
+                setTimeout(resolve, 0);
+            });
+
+            const headers = [
+                "No", "Nama ISP", "Nama Pelanggan", "Periode Awal", "Berjalan Awal", "Berjalan Akhir",
+                "Paket", "Jumlah",
+                ...(isTeknisi ? [] : ["No. Kontrak", "No. Invoice"]),
+                "Sisa Sewa", "Status Kontrak", "Status Jalur",
+                ...(isTeknisi ? [] : ["Aktivasi", ...monitoringMonths])
+            ];
+
             const csvRows = [];
             const chunkSize = 150;
             for (let index = 0; index < filteredRows.length; index += chunkSize) {
@@ -684,7 +858,7 @@ function MonitoringSpreadsheetPage({
                         formatDate(row.contractStart),
                         formatDate(row.contractEnd),
                         toTitleCase(row.coreType),
-                        formatMonitoringCoreAmount(row),
+                        formatMonitoringPackageAmount(row),
                         ...(isTeknisi ? [] : [row.contractNumber ?? "-", row.currentInvoiceNumber ?? "-"]),
                         getRemainingRentalDays(row.contractEnd) ?? "-",
                         (() => {
@@ -701,21 +875,10 @@ function MonitoringSpreadsheetPage({
                     csvRows.push(data.map(v => `"${String(v).replace(/"/g, '""')}"`).join(","));
                 });
 
-                // Yield to browser so click interaction can paint and INP stays low.
                 await yieldToBrowser();
             }
 
-            const csvContent = [headers.join(","), ...csvRows].join("\n");
-            const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement("a");
-            link.setAttribute("href", url);
-            link.setAttribute("download", `monitoring_billing_${appliedFilters.year}.csv`);
-            link.style.visibility = "hidden";
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
+            downloadCsv(`monitoring_billing_${appliedFilters.year}.csv`, headers, csvRows);
         } finally {
             setIsExporting(false);
         }
@@ -973,7 +1136,7 @@ function MonitoringSpreadsheetPage({
                                         {toTitleCase(row.coreType)}
                                     </td>
                                     <td className="px-4 py-3 text-on-surface-variant font-black text-center transition-colors group-hover:bg-white/5 border-r border-white/5 backdrop-blur-md">
-                                        {formatMonitoringCoreAmount(row)}
+                                        {formatMonitoringPackageAmount(row)}
                                     </td>
                                     {!isTeknisi && (
                                         <>
@@ -1178,7 +1341,7 @@ function MonitoringSpreadsheetPage({
     );
 
     const historyTableSection = (
-        <section className={`glass-card monitoring-card backdrop-blur-xl rounded-premium border-white/40 shadow-glass-depth max-w-full ${tableOnly ? "flex h-full flex-col overflow-hidden" : ""}`}>
+        <section className={`glass-card monitoring-card backdrop-blur-xl rounded-premium border-white/40 shadow-glass-depth max-w-full ${tableOnly ? "flex h-full flex-col overflow-hidden" : ""}`} id="monitoring-table">
             <div className="flex flex-col gap-3 border-b border-white/10 bg-[#0f141e]/60 px-5 py-3.5 backdrop-blur-md md:flex-row md:items-center md:justify-between rounded-t-premium">
                 <div>
                     <p className="text-[9px] font-black uppercase tracking-[0.3em] text-gold-accent/70 leading-none mb-0.5">Arsip Kontrak</p>
@@ -1298,7 +1461,7 @@ function MonitoringSpreadsheetPage({
                                     {toTitleCase(row.coreType)}
                                 </td>
                                 <td className="border-r border-white/5 px-5 py-3 text-center font-black text-on-surface-variant">
-                                    {formatMonitoringCoreAmount(row)}
+                                    {formatMonitoringPackageAmount(row)}
                                 </td>
                                 <td className="border-r border-white/5 px-5 py-3 font-mono text-[10px] font-bold text-on-surface-variant">
                                     {row.contractNumber ?? "-"}
@@ -1319,6 +1482,163 @@ function MonitoringSpreadsheetPage({
         </section>
     );
 
+    const contractTableSection = (
+        <section className={`glass-card monitoring-card backdrop-blur-xl rounded-premium border-white/40 shadow-glass-depth max-w-full ${tableOnly ? "flex h-full flex-col overflow-hidden" : ""}`} id="monitoring-table">
+            <div className="flex flex-col gap-3 border-b border-white/10 bg-[#0f141e]/60 px-5 py-3.5 backdrop-blur-md md:flex-row md:items-center md:justify-between rounded-t-premium">
+                    <div>
+                        <p className="text-[9px] font-black uppercase tracking-[0.3em] text-gold-accent/70 leading-none mb-0.5">Monitoring Kontrak</p>
+                        <h2 className="text-sm font-black uppercase tracking-widest text-white leading-none mb-0.5">Daftar Kontrak</h2>
+                        <p className="max-w-3xl text-[10px] font-medium leading-snug text-white/45">
+                        Tabel ringkas kontrak aktif dan kontrak lewat dengan masa kontrak, sisa kontrak, periode berjalan, dan jumlah paket.
+                        </p>
+                    </div>
+                <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-[9px] font-black uppercase tracking-[0.2em] text-white/50 backdrop-blur-md">
+                    {contractRows.length} Kontrak
+                </div>
+            </div>
+            {!tableOnly && contractRows.length > 0 && (
+                <PaginationControls
+                    currentPage={currentPage}
+                    totalPages={contractTotalPages}
+                    onPageChange={handlePageChange}
+                    itemsPerPage={itemsPerPage}
+                    onItemsPerPageChange={handleItemsPerPageChange}
+                    totalItems={contractRows.length}
+                    startIndex={startIndex}
+                    endIndex={endIndex}
+                    dropdownPosition="bottom"
+                    position="top"
+                />
+            )}
+            <div className={`max-w-full overflow-auto custom-scrollbar rounded-b-premium ${tableOnly ? "flex-1 min-h-0" : ""}`}>
+                <table className={`w-full min-w-[1120px] table-fixed border-separate border-spacing-0 text-[10px] ${tableOnly && (isLoading || contractRows.length === 0) ? "h-full" : ""}`}>
+                    <colgroup>
+                        <col style={{ width: "64px" }} />
+                        <col style={{ width: "280px" }} />
+                        <col style={{ width: "300px" }} />
+                        <col style={{ width: "180px" }} />
+                        <col style={{ width: "260px" }} />
+                        <col style={{ width: "160px" }} />
+                    </colgroup>
+                    <thead>
+                        <tr>
+                            {["NO", "NOMOR KONTRAK", "MASA KONTRAK", "SISA KONTRAK", "PERIODE BERJALAN", "JUMLAH PAKET"].map((header) => (
+                                <th
+                                    key={header}
+                                    className={`sticky top-0 z-20 border-b border-r border-white/10 bg-[#1e293b]/95 px-5 py-2.5 text-center text-[10px] font-black uppercase tracking-widest text-white backdrop-blur-3xl ${
+                                        header === "MASA KONTRAK"
+                                            ? "border-r-2 border-r-white/25"
+                                            : ""
+                                    }`}
+                                >
+                                    {header}
+                                </th>
+                            ))}
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                        {isLoading && (
+                            <tr>
+                                <td className={`px-6 ${tableOnly ? "h-full" : "h-[400px] lg:h-[500px]"} text-center`} colSpan="6">
+                                    <div className="flex flex-col items-center justify-center py-16">
+                                        <div className="relative flex items-center justify-center h-16 w-16 mb-4 z-10">
+                                            <div className="absolute inset-0 bg-gold-accent/10 rounded-full blur-xl animate-pulse"></div>
+                                            <div className="absolute inset-0 rounded-full border-2 border-white/5 border-t-gold-accent/80 animate-[spin_1.5s_linear_infinite]"></div>
+                                            <div className="absolute inset-2 rounded-full border-2 border-white/5 border-b-gold-accent/60 animate-[spin_2s_linear_infinite_reverse]"></div>
+                                            <div className="h-6 w-6 flex items-center justify-center relative z-10">
+                                                <img alt="Kima" className="h-4 w-4 object-contain animate-[pulse_2s_ease-in-out_infinite]" src="/logo-kima.png" />
+                                            </div>
+                                        </div>
+                                        <div className="flex flex-col items-center gap-1.5">
+                                            <p className="text-[9px] font-black uppercase tracking-[0.3em] text-white/80">Menyelaraskan Data</p>
+                                            <div className="flex items-center gap-1 opacity-50">
+                                                <div className="w-1 h-1 rounded-full bg-gold-accent animate-ping" style={{ animationDelay: "0ms" }}></div>
+                                                <div className="w-1 h-1 rounded-full bg-gold-accent animate-ping" style={{ animationDelay: "150ms" }}></div>
+                                                <div className="w-1 h-1 rounded-full bg-gold-accent animate-ping" style={{ animationDelay: "300ms" }}></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        )}
+
+                        {!isLoading && visibleContractRows.length === 0 && (
+                            <tr>
+                                <td className={`px-6 ${tableOnly ? "h-full" : "h-[400px] lg:h-[500px]"} text-center`} colSpan="6">
+                                    {contractRows.length === 0 ? (
+                                        <div className="flex flex-col items-center justify-center animate-in fade-in zoom-in duration-500">
+                                            <div className="h-20 w-20 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center mb-6 shadow-glass-depth">
+                                                <span className="material-symbols-outlined text-white/20" style={{ fontSize: "36px" }}>contract</span>
+                                            </div>
+                                            <h3 className="text-sm font-black text-white uppercase tracking-widest mb-2">Kontrak Kosong</h3>
+                                            <p className="text-[11px] font-bold text-white/30 tracking-wide text-center max-w-[240px] leading-relaxed">Belum ada data kontrak yang sesuai dengan filter saat ini.</p>
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center animate-in fade-in zoom-in duration-500">
+                                            <div className="h-20 w-20 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center mb-6 shadow-glass-depth">
+                                                <span className="material-symbols-outlined text-white/20" style={{ fontSize: "36px" }}>filter_list_off</span>
+                                            </div>
+                                            <h3 className="text-sm font-black text-white uppercase tracking-widest mb-2">Kontrak Tidak Ditemukan</h3>
+                                            <p className="text-[11px] font-bold text-white/30 tracking-wide text-center max-w-[240px] leading-relaxed">Tidak ada kontrak yang cocok dengan filter pencarian Anda saat ini.</p>
+                                        </div>
+                                    )}
+                                </td>
+                            </tr>
+                        )}
+
+                        {!isLoading && visibleContractRows.map((row, rowIndex) => {
+                            const actualRowNumber = tableOnly ? rowIndex + 1 : startIndex + rowIndex + 1;
+                            return (
+                                <tr key={`${row.customerId}-${row.contractNumber}-${rowIndex}`} className="bg-[#0f172a]/40 transition-all group hover:bg-[#1e293b]/60">
+                                    <td className="border-r border-white/5 px-5 py-3 text-center font-black text-white/30 group-hover:text-gold-accent">
+                                        {String(actualRowNumber).padStart(2, "0")}
+                                    </td>
+                                    <td className="border-r border-white/5 px-5 py-3 font-mono text-[10px] font-bold text-white">
+                                        {row.contractNumber ?? "-"}
+                                    </td>
+                                    <td className="border-r border-white/5 px-5 py-3 text-center text-xs font-bold text-on-surface-variant">
+                                        {row.contractPeriodText}
+                                    </td>
+                                    <td className="border-r-2 border-r-white/25 px-5 py-3 text-center">
+                                        {(() => {
+                                            const badgeMeta = getRemainingRentalBadgeMeta(row.remainingContractDays);
+                                            return (
+                                                <span className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[9px] font-black uppercase tracking-widest backdrop-blur-md ${badgeMeta.className}`}>
+                                                    <span className="material-symbols-outlined text-[14px]">{badgeMeta.icon}</span>
+                                                    {row.remainingContractText}
+                                                </span>
+                                            );
+                                        })()}
+                                    </td>
+                                    <td className="border-r border-white/5 px-5 py-3 text-center text-xs font-bold text-on-surface-variant">
+                                        {row.runningPeriodText}
+                                    </td>
+                                    <td className="px-5 py-3 text-center font-black text-on-surface-variant">
+                                        {formatMonitoringPackageAmount(row)}
+                                    </td>
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                </table>
+            </div>
+            {!tableOnly && contractRows.length > 0 && (
+                <PaginationControls
+                    currentPage={currentPage}
+                    totalPages={contractTotalPages}
+                    onPageChange={handlePageChange}
+                    itemsPerPage={itemsPerPage}
+                    onItemsPerPageChange={handleItemsPerPageChange}
+                    totalItems={contractRows.length}
+                    startIndex={startIndex}
+                    endIndex={endIndex}
+                    dropdownPosition="top"
+                    position="bottom"
+                />
+            )}
+        </section>
+    );
+
     if (tableOnly) {
         const tableOnlyContent = (
             <div className="h-full min-h-0 w-full flex flex-col gap-2 p-2">
@@ -1336,127 +1656,172 @@ function MonitoringSpreadsheetPage({
                             <div className="h-6 w-px bg-white/10 mx-2"></div>
                         </div>
 
-                        {/* Quick Filters for Focus Mode */}
-                        <div className="flex-1 flex flex-wrap items-center gap-3">
-                            {/* Search */}
-                            <div className="relative flex-1 min-w-[180px] group">
-                                <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-gold-accent transition-colors" style={{ fontSize: "20px" }}>search</span>
-                                <input
-                                    className="w-full h-9 rounded-xl bg-white/5 border border-white/10 pl-10 pr-3 text-[11px] font-bold text-white placeholder:text-white/20 outline-none transition-all focus:bg-white/10 focus:border-gold-accent/40 focus:ring-4 focus:ring-gold-accent/5 backdrop-blur-md"
-                                    onChange={(e) => setFilters(p => ({ ...p, search: e.target.value }))}
-                                    placeholder="Cari ISP atau Lokasi..."
-                                    type="text"
-                                    value={filters.search}
-                                />
-                            </div>
+                        {isContractPage ? (
+                            <div className="flex-1 flex flex-wrap items-center gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setContractStatusFilter("aktif")}
+                                    className={`h-10 min-w-[220px] flex-1 rounded-xl border px-4 text-left transition-all backdrop-blur-md ${contractStatusFilter === "aktif" ? "border-gold-accent/60 bg-gold-accent/10 text-gold-accent shadow-gold-glow" : "border-white/10 bg-white/5 text-white/70 hover:border-white/20 hover:bg-white/10"}`}
+                                >
+                                    <div className="flex items-center justify-between gap-3">
+                                        <div>
+                                            <div className="text-[9px] font-black uppercase tracking-[0.3em]">Kontrak Aktif</div>
+                                            <div className="mt-0.5 text-[10px] font-bold text-white/45">Termasuk yang hampir habis</div>
+                                        </div>
+                                        <span className="rounded-lg border border-white/10 bg-black/20 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.2em]">
+                                            {contractStatusCounts.aktif}
+                                        </span>
+                                    </div>
+                                </button>
 
-                            <div className="w-36">
-                                <CustomSelect
-                                    variant="compact"
-                                    value={filters.contractStatus}
-                                    onChange={(val) => setFilters(p => ({ ...p, contractStatus: val }))}
-                                    options={[
-                                        { label: "Semua Status", value: "all" },
-                                        { label: "Beroperasi", value: "beroperasi" },
-                                        { label: "Belum Beroperasi", value: "belum_beroperasi" },
-                                        { label: "Belum Diperpanjang", value: "expired" },
-                                    ]}
-                                />
-                            </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setContractStatusFilter("lewat")}
+                                    className={`h-10 min-w-[220px] flex-1 rounded-xl border px-4 text-left transition-all backdrop-blur-md ${contractStatusFilter === "lewat" ? "border-rose-500/60 bg-rose-500/10 text-rose-300 shadow-[0_0_18px_rgba(244,63,94,0.18)]" : "border-white/10 bg-white/5 text-white/70 hover:border-white/20 hover:bg-white/10"}`}
+                                >
+                                    <div className="flex items-center justify-between gap-3">
+                                        <div>
+                                            <div className="text-[9px] font-black uppercase tracking-[0.3em]">Kontrak Lewat</div>
+                                            <div className="mt-0.5 text-[10px] font-bold text-white/45">Sisa kontrak sudah negatif</div>
+                                        </div>
+                                        <span className="rounded-lg border border-white/10 bg-black/20 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.2em]">
+                                            {contractStatusCounts.lewat}
+                                        </span>
+                                    </div>
+                                </button>
 
-                            <div className="w-36">
-                                <CustomSelect
-                                    variant="compact"
-                                    value={filters.routeStatus}
-                                    onChange={(val) => setFilters(p => ({ ...p, routeStatus: val }))}
-                                    options={[
-                                        { label: "Semua Jalur", value: "all" },
-                                        { label: "Aktif", value: "aktif" },
-                                        { label: "Nonaktif", value: "nonaktif" },
-                                        { label: "Gangguan", value: "gangguan" },
-                                        { label: "Perbaikan", value: "perbaikan" },
-                                    ]}
-                                />
+                                <button
+                                    className={`h-10 rounded-xl border px-4 flex items-center gap-1.5 transition-colors shrink-0 backdrop-blur-md ${isFilterActive ? "border-[#ff2400]/40 bg-[#ff2400]/20 text-[#ff2400] hover:bg-[#ff2400] hover:text-white cursor-pointer shadow-[0_0_15px_rgba(255,36,0,0.4)]" : "bg-white/5 border-white/10 text-on-surface-variant opacity-40 cursor-not-allowed"}`}
+                                    disabled={!isFilterActive}
+                                    onClick={() => setContractStatusFilter("aktif")}
+                                    title="Kembali ke Kontrak Aktif"
+                                >
+                                    <span className="material-symbols-outlined" style={{ fontSize: "18px" }}>restart_alt</span>
+                                    <span className="text-[9px] font-black uppercase tracking-[0.2em]">Reset</span>
+                                </button>
                             </div>
+                        ) : (
+                            <div className="flex-1 flex flex-wrap items-center gap-3">
+                                {/* Search */}
+                                <div className="relative flex-1 min-w-[180px] group">
+                                    <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-gold-accent transition-colors" style={{ fontSize: "20px" }}>search</span>
+                                    <input
+                                        className="w-full h-9 rounded-xl bg-white/5 border border-white/10 pl-10 pr-3 text-[11px] font-bold text-white placeholder:text-white/20 outline-none transition-all focus:bg-white/10 focus:border-gold-accent/40 focus:ring-4 focus:ring-gold-accent/5 backdrop-blur-md"
+                                        onChange={(e) => setFilters(p => ({ ...p, search: e.target.value }))}
+                                        placeholder="Cari ISP, Lokasi, atau Nomor Kontrak..."
+                                        type="text"
+                                        value={filters.search}
+                                    />
+                                </div>
 
-                            {!isTeknisi && (
                                 <div className="w-36">
                                     <CustomSelect
                                         variant="compact"
-                                        value={filters.todoStatus}
-                                        onChange={(val) => setFilters(p => ({ ...p, todoStatus: val }))}
+                                        value={filters.contractStatus}
+                                        onChange={(val) => setFilters(p => ({ ...p, contractStatus: val }))}
                                         options={[
-                                            { label: "Semua Tindakan", value: "all" },
-                                            { label: "Perlu Tindakan", value: "perlu_tindakan" },
-                                            { label: "Tidak Perlu", value: "tidak_ada" },
+                                            { label: "Semua Status", value: "all" },
+                                            { label: "Beroperasi", value: "beroperasi" },
+                                            { label: "Belum Beroperasi", value: "belum_beroperasi" },
+                                            { label: "Belum Diperpanjang", value: "expired" },
                                         ]}
                                     />
                                 </div>
-                            )}
 
-                            <div className="w-36">
-                                <CustomSelect
-                                    variant="compact"
-                                    value={filters.package}
-                                    onChange={(val) => setFilters(p => ({ ...p, package: val }))}
-                                    options={[
-                                        { label: "Semua Paket", value: "all" },
-                                        ...availablePackages.map(pkg => ({ label: toTitleCase(String(pkg).replace(/_/g, ' ')), value: pkg }))
-                                    ]}
-                                />
+                                <div className="w-36">
+                                    <CustomSelect
+                                        variant="compact"
+                                        value={filters.routeStatus}
+                                        onChange={(val) => setFilters(p => ({ ...p, routeStatus: val }))}
+                                        options={[
+                                            { label: "Semua Jalur", value: "all" },
+                                            { label: "Aktif", value: "aktif" },
+                                            { label: "Nonaktif", value: "nonaktif" },
+                                            { label: "Gangguan", value: "gangguan" },
+                                            { label: "Perbaikan", value: "perbaikan" },
+                                        ]}
+                                    />
+                                </div>
+
+                                {!isTeknisi && (
+                                    <div className="w-36">
+                                        <CustomSelect
+                                            variant="compact"
+                                            value={filters.todoStatus}
+                                            onChange={(val) => setFilters(p => ({ ...p, todoStatus: val }))}
+                                            options={[
+                                                { label: "Semua Tindakan", value: "all" },
+                                                { label: "Perlu Tindakan", value: "perlu_tindakan" },
+                                                { label: "Tidak Perlu", value: "tidak_ada" },
+                                            ]}
+                                        />
+                                    </div>
+                                )}
+
+                                <div className="w-36">
+                                    <CustomSelect
+                                        variant="compact"
+                                        value={filters.package}
+                                        onChange={(val) => setFilters(p => ({ ...p, package: val }))}
+                                        options={[
+                                            { label: "Semua Paket", value: "all" },
+                                            ...availablePackages.map(pkg => ({ label: toTitleCase(String(pkg).replace(/_/g, ' ')), value: pkg }))
+                                        ]}
+                                    />
+                                </div>
+
+                                <div className="relative w-28 shrink-0 group">
+                                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 transition-colors duration-300 pointer-events-none" style={{ fontSize: "18px", color: filters.year ? "#d4a937" : "rgba(255,255,255,0.3)" }}>calendar_month</span>
+                                    <input
+                                        className={`w-full h-9 rounded-xl border pl-9 pr-3 text-[11px] font-bold outline-none transition-all backdrop-blur-md focus:ring-4 focus:ring-gold-accent/5 focus:border-gold-accent/40 ${filters.year ? "bg-gold-accent/10 border-gold-accent/40 text-gold-accent" : "bg-white/5 border-white/10 text-white placeholder:text-white/20 focus:bg-white/10"}`}
+                                        onChange={(e) => setFilters(p => ({ ...p, year: e.target.value }))}
+                                        placeholder="Tahun..."
+                                        type="number"
+                                        value={filters.year}
+                                    />
+                                </div>
+
+                                <button
+                                    className="h-9 w-9 rounded-xl border border-gold-accent bg-gold-accent/10 shadow-gold-glow flex items-center justify-center transition-colors shrink-0 text-gold-accent hover:bg-gold-accent hover:text-black"
+                                    onClick={() => setAppliedFilters({
+                                        year: normalizeMonitoringYear(filters.year, currentYear),
+                                        contractStatus: filters.contractStatus,
+                                        routeStatus: filters.routeStatus,
+                                        todoStatus: filters.todoStatus,
+                                        package: filters.package,
+                                    })}
+                                    title="Update Data"
+                                >
+                                    <span className="material-symbols-outlined" style={{ fontSize: "20px" }}>sync_alt</span>
+                                </button>
+
+                                <button
+                                    className={`h-9 w-9 rounded-xl border flex items-center justify-center transition-colors shrink-0 backdrop-blur-md ${isFilterActive ? "border-[#ff2400]/40 bg-[#ff2400]/20 text-[#ff2400] hover:bg-[#ff2400] hover:text-white cursor-pointer shadow-[0_0_15px_rgba(255,36,0,0.4)]" : "bg-white/5 border-white/10 text-on-surface-variant opacity-40 cursor-not-allowed"}`}
+                                    disabled={!isFilterActive}
+                                    onClick={() => {
+                                        const reset = {
+                                            search: "",
+                                            year: currentYear,
+                                            contractStatus: "all",
+                                            routeStatus: "all",
+                                            todoStatus: "all",
+                                            package: "all"
+                                        };
+                                        setFilters(reset);
+                                        setAppliedFilters({
+                                            year: currentYear,
+                                            contractStatus: "all",
+                                            routeStatus: "all",
+                                            todoStatus: "all",
+                                            package: "all"
+                                        });
+                                    }}
+                                    title="Hapus Filter"
+                                >
+                                    <span className="material-symbols-outlined" style={{ fontSize: "20px" }}>filter_alt_off</span>
+                                </button>
                             </div>
-
-                            <div className="relative w-28 shrink-0 group">
-                                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 transition-colors duration-300 pointer-events-none" style={{ fontSize: "18px", color: filters.year ? "#d4a937" : "rgba(255,255,255,0.3)" }}>calendar_month</span>
-                                <input
-                                    className={`w-full h-9 rounded-xl border pl-9 pr-3 text-[11px] font-bold outline-none transition-all backdrop-blur-md focus:ring-4 focus:ring-gold-accent/5 focus:border-gold-accent/40 ${filters.year ? "bg-gold-accent/10 border-gold-accent/40 text-gold-accent" : "bg-white/5 border-white/10 text-white placeholder:text-white/20 focus:bg-white/10"}`}
-                                    onChange={(e) => setFilters(p => ({ ...p, year: e.target.value }))}
-                                    placeholder="Tahun..."
-                                    type="number"
-                                    value={filters.year}
-                                />
-                            </div>
-
-                            <button
-                                className="h-9 w-9 rounded-xl border border-gold-accent bg-gold-accent/10 shadow-gold-glow flex items-center justify-center transition-colors shrink-0 text-gold-accent hover:bg-gold-accent hover:text-black"
-                                onClick={() => setAppliedFilters({
-                                    year: normalizeMonitoringYear(filters.year, currentYear),
-                                    contractStatus: filters.contractStatus,
-                                    routeStatus: filters.routeStatus,
-                                    todoStatus: filters.todoStatus,
-                                    package: filters.package,
-                                })}
-                                title="Update Data"
-                            >
-                                <span className="material-symbols-outlined" style={{ fontSize: "20px" }}>sync_alt</span>
-                            </button>
-
-                            <button
-                                className={`h-9 w-9 rounded-xl border flex items-center justify-center transition-colors shrink-0 backdrop-blur-md ${isFilterActive ? "border-[#ff2400]/40 bg-[#ff2400]/20 text-[#ff2400] hover:bg-[#ff2400] hover:text-white cursor-pointer shadow-[0_0_15px_rgba(255,36,0,0.4)]" : "bg-white/5 border-white/10 text-on-surface-variant opacity-40 cursor-not-allowed"}`}
-                                disabled={!isFilterActive}
-                                onClick={() => {
-                                    const reset = {
-                                        search: "",
-                                        year: currentYear,
-                                        contractStatus: "all",
-                                        routeStatus: "all",
-                                        todoStatus: "all",
-                                        package: "all"
-                                    };
-                                    setFilters(reset);
-                                    setAppliedFilters({
-                                        year: currentYear,
-                                        contractStatus: "all",
-                                        routeStatus: "all",
-                                        todoStatus: "all",
-                                        package: "all"
-                                    });
-                                }}
-                                title="Hapus Filter"
-                            >
-                                <span className="material-symbols-outlined" style={{ fontSize: "20px" }}>filter_alt_off</span>
-                            </button>
-                        </div>
+                        )}
                     </div>
                 )}
                 {error && (
@@ -1477,7 +1842,7 @@ function MonitoringSpreadsheetPage({
                     </div>
                 )}
                 <div className="flex-1 min-h-0">
-                    {tableSection}
+                    {isContractPage ? contractTableSection : tableSection}
                 </div>
                 {invoiceDetailModal}
             </div>
@@ -1510,32 +1875,35 @@ function MonitoringSpreadsheetPage({
             <div className="space-y-3 pb-20 pt-2 md:pt-4">
 
                 {/* Premium Header Section */}
-                <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-6">
+                <header className={`flex flex-col ${isContractPage ? "gap-3 mb-4" : "lg:flex-row lg:items-end gap-6 mb-6"}`}>
                     <div>
                         <div className="flex items-center gap-3 mb-2">
                             <span className="h-[2px] w-8 bg-gold-accent shadow-gold-glow"></span>
                             <p className="text-[10px] font-black text-gold-accent uppercase tracking-[0.4em]">Mesin Analitik</p>
                         </div>
                         <h1 className="text-3xl md:text-4xl font-black text-on-surface tracking-tight leading-tight">
-                            Monitoring <span className="text-gold-accent italic">Operasional</span>
+                            Monitoring <span className="text-gold-accent italic">{isContractPage ? "Kontrak" : "Billing"}</span>
                         </h1>
                         <p className="mt-2 text-[11px] font-bold text-white/40 max-w-2xl leading-relaxed">
-                            Pusat kendali informasi operasional, prioritas aksi, dan matriks billing pelanggan.
-                            Gunakan mode spreadsheet untuk pemantauan mendalam.
+                            {isContractPage
+                                ? "Pusat kendali status kontrak aktif dan kontrak lewat. Gunakan filter khusus untuk memantau sisa kontrak."
+                                : "Pusat kendali billing pelanggan, status kontrak, dan prioritas aksi operasional. Gunakan mode spreadsheet untuk pemantauan mendalam."}
                         </p>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-2">
-                        {showEnterTableButton && (
-                            <button
-                                className="h-9 px-3 rounded-lg border border-gold-accent bg-gold-accent/10 text-gold-accent hover:bg-gold-accent hover:text-black transition-all flex items-center gap-1.5 backdrop-blur-md"
-                                onClick={handleEnterTable}
-                            >
-                                <span className="material-symbols-outlined" style={{ fontSize: "20px" }}>table_chart</span>
-                                <span className="text-[9px] font-black uppercase tracking-widest">Masuk ke Tabel</span>
-                            </button>
-                        )}
-                    </div>
+                    {!isContractPage && (
+                        <div className="flex flex-wrap items-center gap-2">
+                            {showEnterTableButton && (
+                                <button
+                                    className="h-9 px-3 rounded-lg border border-gold-accent bg-gold-accent/10 text-gold-accent hover:bg-gold-accent hover:text-black transition-all flex items-center gap-1.5 backdrop-blur-md"
+                                    onClick={handleEnterTable}
+                                >
+                                    <span className="material-symbols-outlined" style={{ fontSize: "20px" }}>table_chart</span>
+                                    <span className="text-[9px] font-black uppercase tracking-widest">Masuk ke Tabel</span>
+                                </button>
+                            )}
+                        </div>
+                    )}
                 </header>
 
                 {error && (
@@ -1556,150 +1924,226 @@ function MonitoringSpreadsheetPage({
 
 
                 {/* Premium Filter Section */}
-                <section className="glass-card monitoring-card backdrop-blur-xl rounded-premium p-5 border-white/40 shadow-glass-depth relative z-[40] !overflow-visible">
-                    <div className="flex flex-col gap-4 mb-4">
-                        <div className="flex items-center gap-2 shrink-0">
-                            <span className="h-4 w-1 bg-gold-accent rounded-full shadow-gold-glow"></span>
-                            <h2 className="text-sm font-black text-on-surface uppercase tracking-widest">Filter Tabel Monitoring</h2>
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-3">
-                            {/* Search Input - Now inside card */}
-                            <div className="relative group flex-grow min-w-[200px]">
-                                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-gold-accent transition-all duration-300" style={{ fontSize: "20px" }}>search</span>
-                                <input
-                                    className="w-full h-9 rounded-xl bg-black/20 border border-white/10 pl-9 pr-3 text-[10px] font-bold text-white placeholder:text-white/20 outline-none transition-all focus:bg-black/40 focus:border-gold-accent/40 focus:ring-2 focus:ring-gold-accent/10 shadow-inner-glass backdrop-blur-md"
-                                    onChange={(e) => setFilters(p => ({ ...p, search: e.target.value }))}
-                                    placeholder="Cari ISP atau Lokasi..."
-                                    type="text"
-                                    value={filters.search}
-                                />
+                {isContractPage ? (
+                    <section className="glass-card monitoring-card backdrop-blur-xl rounded-premium p-5 border-white/40 shadow-glass-depth relative z-[40] !overflow-visible">
+                        <div className="flex flex-col gap-4">
+                            <div className="flex items-center gap-2 shrink-0">
+                                <span className="h-4 w-1 bg-gold-accent rounded-full shadow-gold-glow"></span>
+                                <div>
+                                    <h2 className="text-sm font-black text-on-surface uppercase tracking-widest">Filter Monitoring Kontrak</h2>
+                                    <p className="mt-1 text-[10px] font-bold text-white/35 uppercase tracking-[0.2em]">Pilih status kontrak yang ingin ditampilkan</p>
+                                </div>
                             </div>
 
-                            <button
-                                className={`h-9 w-9 rounded-xl transition-all border flex items-center justify-center backdrop-blur-md ${isFilterActive ? "border-[#ff2400]/40 bg-[#ff2400]/20 text-[#ff2400] hover:bg-[#ff2400] hover:text-white cursor-pointer shadow-[0_0_15px_rgba(255,36,0,0.4)]" : "bg-white/5 border-white/10 text-on-surface-variant opacity-40 cursor-not-allowed"}`}
-                                disabled={!isFilterActive}
-                                onClick={() => {
-                                    setFilters({
-                                        search: "",
-                                        year: currentYear,
-                                        contractStatus: "all",
-                                        routeStatus: "all",
-                                        todoStatus: "all",
-                                        package: "all"
-                                    });
-                                    setAppliedFilters({
-                                        year: currentYear,
-                                        contractStatus: "all",
-                                        routeStatus: "all",
-                                        todoStatus: "all",
-                                        package: "all"
-                                    });
-                                }}
-                                title="Hapus Filter"
-                            >
-                                <span className="material-symbols-outlined" style={{ fontSize: "20px" }}>filter_alt_off</span>
-                            </button>
+                            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setContractStatusFilter("aktif")}
+                                    className={`flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-left transition-all backdrop-blur-md ${
+                                        contractStatusFilter === "aktif"
+                                            ? "border-gold-accent/60 bg-gold-accent/10 text-gold-accent shadow-gold-glow"
+                                            : "border-white/10 bg-white/5 text-white/70 hover:border-white/20 hover:bg-white/10"
+                                    }`}
+                                >
+                                    <div>
+                                        <div className="text-[9px] font-black uppercase tracking-[0.3em]">Kontrak Aktif</div>
+                                        <div className="mt-1 text-[11px] font-bold text-white/45">Termasuk kontrak yang hampir habis</div>
+                                    </div>
+                                    <div className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-[11px] font-black uppercase tracking-[0.2em]">
+                                        {contractStatusCounts.aktif}
+                                    </div>
+                                </button>
 
-                            <button
-                                className="h-9 btn-premium px-4 rounded-xl shadow-gold-glow transition-colors flex items-center gap-1.5"
-                                onClick={() => setAppliedFilters({
-                                    year: normalizeMonitoringYear(filters.year, currentYear),
-                                    contractStatus: filters.contractStatus,
-                                    routeStatus: filters.routeStatus,
-                                    todoStatus: filters.todoStatus,
-                                    package: filters.package,
-                                })}
-                            >
-                                <span className="material-symbols-outlined" style={{ fontSize: "20px" }}>sync_alt</span>
-                                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-white">Terapkan</span>
-                            </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setContractStatusFilter("lewat")}
+                                    className={`flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-left transition-all backdrop-blur-md ${
+                                        contractStatusFilter === "lewat"
+                                            ? "border-rose-500/60 bg-rose-500/10 text-rose-300 shadow-[0_0_18px_rgba(244,63,94,0.18)]"
+                                            : "border-white/10 bg-white/5 text-white/70 hover:border-white/20 hover:bg-white/10"
+                                    }`}
+                                >
+                                    <div>
+                                        <div className="text-[9px] font-black uppercase tracking-[0.3em]">Kontrak Lewat</div>
+                                        <div className="mt-1 text-[11px] font-bold text-white/45">Menampilkan kontrak dengan sisa negatif</div>
+                                    </div>
+                                    <div className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-[11px] font-black uppercase tracking-[0.2em]">
+                                        {contractStatusCounts.lewat}
+                                    </div>
+                                </button>
+                            </div>
+
+                            <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                                <div className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-[9px] font-black uppercase tracking-widest text-white/60 backdrop-blur-md">
+                                    <span><span className="text-white font-black">{contractRows.length}</span> Kontrak Ditampilkan</span>
+                                </div>
+                                <button
+                                    className={`h-9 px-3 rounded-xl border transition-all flex items-center gap-1.5 backdrop-blur-md ${isFilterActive ? "border-[#ff2400]/40 bg-[#ff2400]/20 text-[#ff2400] hover:bg-[#ff2400] hover:text-white shadow-[0_0_15px_rgba(255,36,0,0.4)]" : "bg-white/5 border-white/10 text-on-surface-variant opacity-40 cursor-not-allowed"}`}
+                                    disabled={!isFilterActive}
+                                    onClick={() => setContractStatusFilter("aktif")}
+                                    title="Reset ke Kontrak Aktif"
+                                >
+                                    <span className="material-symbols-outlined" style={{ fontSize: "18px" }}>restart_alt</span>
+                                    <span className="text-[9px] font-black uppercase tracking-[0.2em]">Reset</span>
+                                </button>
+                            </div>
                         </div>
-                    </div>
+                    </section>
+                ) : (
+                    <section className="glass-card monitoring-card backdrop-blur-xl rounded-premium p-5 border-white/40 shadow-glass-depth relative z-[40] !overflow-visible">
+                        <div className="flex flex-col gap-4 mb-4">
+                            <div className="flex items-center gap-2 shrink-0">
+                                <span className="h-4 w-1 bg-gold-accent rounded-full shadow-gold-glow"></span>
+                                <h2 className="text-sm font-black text-on-surface uppercase tracking-widest">Filter Tabel Monitoring Billing</h2>
+                            </div>
 
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-                        <CustomSelect
-                            icon="description"
-                            label="Status Kontrak"
-                            onChange={(val) => setFilters(p => ({ ...p, contractStatus: val }))}
-                            options={[
-                                { label: "Semua Status", value: "all" },
-                                { label: "Beroperasi", value: "beroperasi" },
-                                { label: "Belum Beroperasi", value: "belum_beroperasi" },
-                                { label: "Belum Diperpanjang", value: "expired" },
-                            ]}
-                            value={filters.contractStatus}
-                        />
+                            <div className="flex flex-wrap items-center gap-3">
+                                {/* Search Input - Now inside card */}
+                                <div className="relative group flex-grow min-w-[200px]">
+                                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-gold-accent transition-all duration-300" style={{ fontSize: "20px" }}>search</span>
+                                    <input
+                                        className="w-full h-9 rounded-xl bg-black/20 border border-white/10 pl-9 pr-3 text-[10px] font-bold text-white placeholder:text-white/20 outline-none transition-all focus:bg-black/40 focus:border-gold-accent/40 focus:ring-2 focus:ring-gold-accent/10 shadow-inner-glass backdrop-blur-md"
+                                        onChange={(e) => setFilters(p => ({ ...p, search: e.target.value }))}
+                                        placeholder="Cari ISP atau Lokasi..."
+                                        type="text"
+                                        value={filters.search}
+                                    />
+                                </div>
 
-                        <CustomSelect
-                            icon="lan"
-                            label="Status Jalur"
-                            onChange={(val) => setFilters(p => ({ ...p, routeStatus: val }))}
-                            options={[
-                                { label: "Semua Jalur", value: "all" },
-                                { label: "Aktif", value: "aktif" },
-                                { label: "Nonaktif", value: "nonaktif" },
-                                { label: "Gangguan", value: "gangguan" },
-                                { label: "Perbaikan", value: "perbaikan" },
-                            ]}
-                            value={filters.routeStatus}
-                        />
+                                <button
+                                    className={`h-9 w-9 rounded-xl transition-all border flex items-center justify-center backdrop-blur-md ${isFilterActive ? "border-[#ff2400]/40 bg-[#ff2400]/20 text-[#ff2400] hover:bg-[#ff2400] hover:text-white cursor-pointer shadow-[0_0_15px_rgba(255,36,0,0.4)]" : "bg-white/5 border-white/10 text-on-surface-variant opacity-40 cursor-not-allowed"}`}
+                                    disabled={!isFilterActive}
+                                    onClick={() => {
+                                        setFilters({
+                                            search: "",
+                                            year: currentYear,
+                                            contractStatus: "all",
+                                            routeStatus: "all",
+                                            todoStatus: "all",
+                                            package: "all"
+                                        });
+                                        setAppliedFilters({
+                                            year: currentYear,
+                                            contractStatus: "all",
+                                            routeStatus: "all",
+                                            todoStatus: "all",
+                                            package: "all"
+                                        });
+                                    }}
+                                    title="Hapus Filter"
+                                >
+                                    <span className="material-symbols-outlined" style={{ fontSize: "20px" }}>filter_alt_off</span>
+                                </button>
 
-                        {!isTeknisi && (
+                                <button
+                                    className="h-9 btn-premium px-4 rounded-xl shadow-gold-glow transition-colors flex items-center gap-1.5"
+                                    onClick={() => setAppliedFilters({
+                                        year: normalizeMonitoringYear(filters.year, currentYear),
+                                        contractStatus: filters.contractStatus,
+                                        routeStatus: filters.routeStatus,
+                                        todoStatus: filters.todoStatus,
+                                        package: filters.package,
+                                    })}
+                                >
+                                    <span className="material-symbols-outlined" style={{ fontSize: "20px" }}>sync_alt</span>
+                                    <span className="text-[9px] font-black uppercase tracking-[0.2em] text-white">Terapkan</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
                             <CustomSelect
-                                icon="task_alt"
-                                label="Status Tindakan"
-                                onChange={(val) => setFilters(p => ({ ...p, todoStatus: val }))}
+                                icon="description"
+                                label="Status Kontrak"
+                                onChange={(val) => setFilters(p => ({ ...p, contractStatus: val }))}
                                 options={[
-                                    { label: "Semua Tindakan", value: "all" },
-                                    { label: "Perlu Tindakan", value: "perlu_tindakan" },
-                                    { label: "Tidak Perlu", value: "tidak_ada" },
+                                    { label: "Semua Status", value: "all" },
+                                    { label: "Beroperasi", value: "beroperasi" },
+                                    { label: "Belum Beroperasi", value: "belum_beroperasi" },
+                                    { label: "Belum Diperpanjang", value: "expired" },
                                 ]}
-                                value={filters.todoStatus}
+                                value={filters.contractStatus}
                             />
-                        )}
 
-                        <CustomSelect
-                            icon="inventory_2"
-                            label="Paket"
-                            onChange={(val) => setFilters(p => ({ ...p, package: val }))}
-                            options={[
-                                { label: "Semua Paket", value: "all" },
-                                ...availablePackages.map(pkg => ({ label: toTitleCase(String(pkg).replace(/_/g, ' ')), value: pkg }))
-                            ]}
-                            value={filters.package}
-                        />
+                            <CustomSelect
+                                icon="lan"
+                                label="Status Jalur"
+                                onChange={(val) => setFilters(p => ({ ...p, routeStatus: val }))}
+                                options={[
+                                    { label: "Semua Jalur", value: "all" },
+                                    { label: "Aktif", value: "aktif" },
+                                    { label: "Nonaktif", value: "nonaktif" },
+                                    { label: "Gangguan", value: "gangguan" },
+                                    { label: "Perbaikan", value: "perbaikan" },
+                                ]}
+                                value={filters.routeStatus}
+                            />
 
-                        <div className="space-y-1.5">
-                            <p className="text-[10px] font-black uppercase tracking-[0.3em] pl-1 text-gold-accent/40">Periode Tahun</p>
-                            <div className="relative group">
-                                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 transition-all duration-300" style={{ fontSize: "20px", color: filters.year ? "#d4a937" : "rgba(255,255,255,0.2)" }}>calendar_month</span>
-                                <input
-                                    className={`w-full h-9 rounded-xl pl-9 pr-3 text-[9px] uppercase tracking-widest font-black transition-all outline-none border shadow-inner-glass ${filters.year ? "bg-gold-accent/10 border-gold-accent/60 text-gold-accent shadow-gold-glow" : "bg-black/20 border-white/10 text-white/70 hover:border-white/30"}`}
-                                    onChange={(e) => setFilters(p => ({ ...p, year: e.target.value }))}
-                                    placeholder="Tahun"
-                                    type="number"
-                                    value={filters.year}
+                            {!isTeknisi && (
+                                <CustomSelect
+                                    icon="task_alt"
+                                    label="Status Tindakan"
+                                    onChange={(val) => setFilters(p => ({ ...p, todoStatus: val }))}
+                                    options={[
+                                        { label: "Semua Tindakan", value: "all" },
+                                        { label: "Perlu Tindakan", value: "perlu_tindakan" },
+                                        { label: "Tidak Perlu", value: "tidak_ada" },
+                                    ]}
+                                    value={filters.todoStatus}
                                 />
+                            )}
+
+                            <CustomSelect
+                                icon="inventory_2"
+                                label="Paket"
+                                onChange={(val) => setFilters(p => ({ ...p, package: val }))}
+                                options={[
+                                    { label: "Semua Paket", value: "all" },
+                                    ...availablePackages.map(pkg => ({ label: toTitleCase(String(pkg).replace(/_/g, ' ')), value: pkg }))
+                                ]}
+                                value={filters.package}
+                            />
+
+                            <div className="space-y-1.5">
+                                <p className="text-[10px] font-black uppercase tracking-[0.3em] pl-1 text-gold-accent/40">Periode Tahun</p>
+                                <div className="relative group">
+                                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 transition-all duration-300" style={{ fontSize: "20px", color: filters.year ? "#d4a937" : "rgba(255,255,255,0.2)" }}>calendar_month</span>
+                                    <input
+                                        className={`w-full h-9 rounded-xl pl-9 pr-3 text-[9px] uppercase tracking-widest font-black transition-all outline-none border shadow-inner-glass ${filters.year ? "bg-gold-accent/10 border-gold-accent/60 text-gold-accent shadow-gold-glow" : "bg-black/20 border-white/10 text-white/70 hover:border-white/30"}`}
+                                        onChange={(e) => setFilters(p => ({ ...p, year: e.target.value }))}
+                                        placeholder="Tahun"
+                                        type="number"
+                                        value={filters.year}
+                                    />
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    {/* Result Indicators - Matched with Pelanggan */}
-                    <div className="mt-4 flex flex-wrap items-center gap-3 pt-4 border-t border-white/5">
-                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-widest text-white/60 shadow-sm backdrop-blur-md">
-                            <span><span className="text-white font-black">{filteredRows.length}</span> Lokasi Terpilih</span>
+                        {/* Result Indicators - Matched with Pelanggan */}
+                        <div className="mt-4 flex flex-wrap items-center gap-3 pt-4 border-t border-white/5">
+                            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-widest text-white/60 shadow-sm backdrop-blur-md">
+                                <span><span className="text-white font-black">{filteredRows.length}</span> Lokasi Terpilih</span>
+                            </div>
+                            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-widest text-white/60 shadow-sm backdrop-blur-md">
+                                <span><span className="text-white font-black">{new Set(filteredRows.map(r => r.ispName)).size}</span> ISP Terkait</span>
+                            </div>
+                            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-widest text-white/60 shadow-sm backdrop-blur-md">
+                                <span>
+                                    <span className="text-white font-black">
+                                        {displayedDataTab === "history"
+                                            ? filteredHistoryRows.length
+                                            : displayedDataTab === "contract"
+                                                ? contractRows.length
+                                                : filteredRows.length}
+                                    </span>
+                                    {displayedDataTab === "history" ? " Riwayat" : displayedDataTab === "contract" ? " Kontrak" : " Billing"}
+                                </span>
+                            </div>
                         </div>
-                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-widest text-white/60 shadow-sm backdrop-blur-md">
-                            <span><span className="text-white font-black">{new Set(filteredRows.map(r => r.ispName)).size}</span> ISP Terkait</span>
-                        </div>
-                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-widest text-white/60 shadow-sm backdrop-blur-md">
-                            <span><span className="text-white font-black">{filteredHistoryRows.length}</span> Riwayat</span>
-                        </div>
-                    </div>
-                </section>
+                    </section>
+                )}
 
-                {!isTeknisi && (
+                {!isTeknisi && !isContractPage && (
                     <section className="flex flex-wrap items-center gap-x-8 gap-y-2 rounded-xl glass-premium backdrop-blur-xl px-5 py-2.5 border-white/30">
                         <div className="flex items-center gap-2">
                             <span className="h-2 w-2 rounded-full bg-[#00c853] shadow-[0_0_12px_rgba(0,200,83,0.4)]"></span>
@@ -1727,25 +2171,29 @@ function MonitoringSpreadsheetPage({
                 )}
 
                 <div className="flex flex-wrap items-center justify-between gap-4 w-full">
-                    <section className="flex items-center gap-2 rounded-2xl bg-white/5 border border-white/10 p-1.5 backdrop-blur-md w-fit">
-                        <button
-                            type="button"
-                            onClick={() => setActiveDataTab("table")}
-                            className={`rounded-xl px-4 py-1.5 text-[9px] font-black uppercase tracking-widest transition-all ${activeDataTab === "table" ? "bg-gold-accent text-white shadow-gold-glow" : "text-white/60 hover:text-white hover:bg-white/10"}`}
-                        >
-                            Tabel Aktif
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setActiveDataTab("history")}
-                            className={`rounded-xl px-4 py-1.5 text-[9px] font-black uppercase tracking-widest transition-all ${activeDataTab === "history" ? "bg-gold-accent text-white shadow-gold-glow" : "text-white/60 hover:text-white hover:bg-white/10"}`}
-                        >
-                            Riwayat
-                        </button>
-                        {isLoadingSupplementary && (
-                            <span className="text-[9px] font-bold uppercase tracking-widest text-white/40 px-2">Sync notifikasi...</span>
-                        )}
-                    </section>
+                    {!isContractPage ? (
+                        <section className="flex items-center gap-2 rounded-2xl bg-white/5 border border-white/10 p-1.5 backdrop-blur-md w-fit">
+                            <button
+                                type="button"
+                                onClick={() => setActiveDataTab("billing")}
+                                className={`rounded-xl px-4 py-1.5 text-[9px] font-black uppercase tracking-widest transition-all ${activeDataTab === "billing" ? "bg-gold-accent text-white shadow-gold-glow" : "text-white/60 hover:text-white hover:bg-white/10"}`}
+                            >
+                                Billing
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setActiveDataTab("history")}
+                                className={`rounded-xl px-4 py-1.5 text-[9px] font-black uppercase tracking-widest transition-all ${activeDataTab === "history" ? "bg-gold-accent text-white shadow-gold-glow" : "text-white/60 hover:text-white hover:bg-white/10"}`}
+                            >
+                                Riwayat
+                            </button>
+                            {isLoadingSupplementary && (
+                                <span className="text-[9px] font-bold uppercase tracking-widest text-white/40 px-2">Sync notifikasi...</span>
+                            )}
+                        </section>
+                    ) : (
+                        <div className="h-10" />
+                    )}
 
 
 
@@ -1753,7 +2201,7 @@ function MonitoringSpreadsheetPage({
                         {typeof onOpenTableOnly === "function" && (
                             <button
                                 className="h-8 px-3 rounded-lg border border-white/10 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white transition-all flex items-center gap-1.5 backdrop-blur-md"
-                                onClick={onOpenTableOnly}
+                                onClick={() => onOpenTableOnly(isContractPage ? "contract" : activeDataTab)}
                             >
                                 <span className="material-symbols-outlined" style={{ fontSize: "16px" }}>fullscreen</span>
                                 <span className="text-[9px] font-black uppercase tracking-widest">Mode Fokus</span>
@@ -1777,12 +2225,16 @@ function MonitoringSpreadsheetPage({
                     </div>
                 </div>
 
-                {activeDataTab === "table" ? tableSection : historyTableSection}
+                {isContractPage ? contractTableSection : activeDataTab === "billing" ? tableSection : historyTableSection}
 
-                <div className="rounded-xl bg-amber-500/5 border border-amber-500/10 p-3 mt-4 mb-2">
-                    <p className="text-[10px] leading-relaxed text-amber-200/60 font-medium italic">
-                        <span className="font-black not-italic text-amber-500 mr-1 uppercase">Catatan:</span>
-                        Monitoring ini bersifat informatif. Gunakan Detail Lokasi untuk meninjau data kontrak, invoice, dan dokumen secara terpusat.
+                <div className={`rounded-xl p-3 mt-4 mb-2 border ${isContractPage ? "bg-rose-500/5 border-rose-500/10" : "bg-amber-500/5 border-amber-500/10"}`}>
+                    <p className={`text-[10px] leading-relaxed font-medium italic ${isContractPage ? "text-rose-200/70" : "text-amber-200/60"}`}>
+                        <span className={`font-black not-italic mr-1 uppercase ${isContractPage ? "text-rose-400" : "text-amber-500"}`}>
+                            {isContractPage ? "Catatan:" : "Catatan:"}
+                        </span>
+                        {isContractPage
+                            ? "Kontrak aktif mencakup kontrak yang masih berjalan maupun hampir habis. Gunakan filter Kontrak Lewat untuk melihat data yang sudah melewati masa kontrak."
+                            : "Monitoring ini bersifat informatif. Gunakan Detail Lokasi untuk meninjau data kontrak, invoice, dan dokumen secara terpusat."}
                     </p>
                 </div>
 

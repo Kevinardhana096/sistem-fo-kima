@@ -43,6 +43,23 @@ describe("routing registry", () => {
         expect(route).toEqual({ type: "not-found", sectionKey: "isp-detail" });
         expect(canAccessRoute(APP_ROLES.isp, route)).toBe(true);
     });
+
+    it("maps monitoring kontrak to a dedicated sidebar route while keeping the monitoring section active", () => {
+        const paths = getAppPaths(APP_ROLES.admin);
+
+        expect(paths.monitoringContract).toBe("/monitoring/kontrak");
+        expect(paths.monitoringContractFullscreen).toBe("/monitoring/kontrak/fullscreen");
+        expect(parseAppRoute("/monitoring/kontrak", "", APP_ROLES.admin)).toEqual({
+            type: "section",
+            sectionKey: "monitoring",
+            menuKey: "monitoring-contract",
+        });
+        expect(parseAppRoute("/monitoring/kontrak/fullscreen", "", APP_ROLES.admin)).toEqual({
+            type: "monitoring-fullscreen",
+            sectionKey: "monitoring",
+            menuKey: "monitoring-contract",
+        });
+    });
 });
 
 describe("requestAppNavigation", () => {

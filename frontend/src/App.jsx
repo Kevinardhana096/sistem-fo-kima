@@ -130,8 +130,8 @@ const SECTION_TRANSITION_COPY = {
         description: "Menyiapkan data tenant dan ISP...",
     },
     monitoring: {
-        title: "Membuka Monitoring",
-        description: "Menyiapkan tampilan monitoring operasional...",
+        title: "Membuka Monitoring Billing",
+        description: "Menyiapkan tampilan monitoring billing...",
     },
     trash: {
         title: "Membuka Tempat Sampah",
@@ -168,8 +168,8 @@ function getPageTransitionCopy(targetPath, currentRole) {
 
         if (route.type === "monitoring-fullscreen") {
             return {
-                title: "Membuka Monitoring",
-                description: "Menyiapkan tampilan monitoring penuh...",
+                title: "Membuka Monitoring Billing",
+                description: "Menyiapkan tampilan monitoring billing penuh...",
             };
         }
 
@@ -1003,6 +1003,7 @@ function App() {
     }, [customers]);
 
     const activeSection = route.sectionKey ?? "customers";
+    const activeMenuKey = route.menuKey ?? activeSection;
     const fallbackSection = roleConfig.defaultSection;
     const selectedCustomer = route.type === "customer-detail"
         || route.type === "customer-edit"
@@ -1143,6 +1144,7 @@ function App() {
             dashboard: appPaths.dashboard,
             customers: appPaths.customers,
             monitoring: appPaths.monitoring,
+            "monitoring-contract": appPaths.monitoringContract,
             trash: appPaths.trash,
             activity: appPaths.activity,
             todos: appPaths.todos,
@@ -1469,34 +1471,40 @@ function App() {
         }
     
         if (route.type === "section" && route.sectionKey === "monitoring") {
+            const monitoringMode = route.menuKey === "monitoring-contract" ? "kontrak" : "billing";
             return (
-                <Suspense fallback={<RouteLoadingPage activeSection={activeSection} currentRole={currentRole} onNavigate={handleNavigate} onLogout={handleLogout} message="Memuat monitoring..." />}>
+                <Suspense fallback={<RouteLoadingPage activeSection={activeSection} currentRole={currentRole} onNavigate={handleNavigate} onLogout={handleLogout} message={`Memuat monitoring ${monitoringMode}...`} />}>
                     <MonitoringSpreadsheetPage
                         activeSection={activeSection}
+                        defaultDataTab={route.menuKey === "monitoring-contract" ? "contract" : "billing"}
+                        pageMode={route.menuKey === "monitoring-contract" ? "contract" : "billing"}
                         ispOptions={ispOptions}
                         currentRole={currentRole}
                         onNavigate={handleNavigate}
                         onLogout={handleLogout}
                         onOpenIsp={handleOpenIspDetail}
                         onOpenCustomerById={handleOpenCustomerById}
-                        onOpenTableOnly={() => navigateTo(appPaths.monitoringFullscreen)}
+                        onOpenTableOnly={(dataTab) => navigateTo(dataTab === "contract" ? appPaths.monitoringContractFullscreen : appPaths.monitoringFullscreen)}
                     />
                 </Suspense>
             );
         }
-    
+
         if (route.type === "monitoring-fullscreen") {
+            const monitoringMode = route.menuKey === "monitoring-contract" ? "kontrak" : "billing";
             return (
-                <Suspense fallback={<RouteLoadingPage activeSection="monitoring" currentRole={currentRole} onNavigate={handleNavigate} onLogout={handleLogout} message="Memuat monitoring..." />}>
+                <Suspense fallback={<RouteLoadingPage activeSection="monitoring" currentRole={currentRole} onNavigate={handleNavigate} onLogout={handleLogout} message={`Memuat monitoring ${monitoringMode}...`} />}>
                     <MonitoringSpreadsheetPage
                         ispOptions={ispOptions}
                         currentRole={currentRole}
+                        defaultDataTab={route.menuKey === "monitoring-contract" ? "contract" : "billing"}
+                        pageMode={route.menuKey === "monitoring-contract" ? "contract" : "billing"}
                         layout="plain"
                         onLogout={handleLogout}
                         onOpenIsp={handleOpenIspDetail}
                         onOpenCustomerById={handleOpenCustomerById}
                         tableOnly
-                        onCloseTableOnly={() => navigateTo(appPaths.monitoring)}
+                        onCloseTableOnly={() => navigateTo(route.menuKey === "monitoring-contract" ? appPaths.monitoringContract : appPaths.monitoring)}
                     />
                 </Suspense>
             );
@@ -2051,6 +2059,7 @@ function App() {
         return (
             <AppShell
                 activeSection={activeSection}
+                activeMenuKey={activeMenuKey}
                 currentRole={currentRole}
                 onNavigate={handleNavigate}
                 onNavigatePath={navigateTo}

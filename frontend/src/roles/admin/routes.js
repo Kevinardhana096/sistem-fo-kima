@@ -17,7 +17,9 @@ export const ADMIN_PATHS = {
     customers: "/customers",
     customerCreate: "/customers/new",
     monitoring: "/monitoring",
+    monitoringContract: "/monitoring/kontrak",
     monitoringFullscreen: "/monitoring/fullscreen",
+    monitoringContractFullscreen: "/monitoring/kontrak/fullscreen",
     trash: "/trash",
     activity: "/activity-log",
     todos: "/todos",
@@ -58,6 +60,7 @@ export function getAdminSectionPath(sectionKey) {
         dashboard: ADMIN_PATHS.dashboard,
         customers: ADMIN_PATHS.customers,
         monitoring: ADMIN_PATHS.monitoring,
+        "monitoring-contract": ADMIN_PATHS.monitoringContract,
         trash: ADMIN_PATHS.trash,
         activity: ADMIN_PATHS.activity,
         todos: ADMIN_PATHS.todos,
@@ -97,8 +100,16 @@ export function parseAdminRoute(pathname, search) {
         return { type: "section", sectionKey: "monitoring" };
     }
 
+    if (normalizedPath === ADMIN_PATHS.monitoringContract) {
+        return { type: "section", sectionKey: "monitoring", menuKey: "monitoring-contract" };
+    }
+
     if (normalizedPath === ADMIN_PATHS.monitoringFullscreen) {
         return { type: "monitoring-fullscreen", sectionKey: "monitoring" };
+    }
+
+    if (normalizedPath === ADMIN_PATHS.monitoringContractFullscreen) {
+        return { type: "monitoring-fullscreen", sectionKey: "monitoring", menuKey: "monitoring-contract" };
     }
 
     if (normalizedPath === ADMIN_PATHS.trash) {

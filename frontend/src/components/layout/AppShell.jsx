@@ -26,6 +26,7 @@ function getRuntimeTransitionState() {
 
 export default function AppShell({
     activeSection,
+    activeMenuKey = activeSection,
     onNavigate,
     onLogout,
     children,
@@ -201,6 +202,7 @@ export default function AppShell({
                 onNavigate={handleMobileNavigate}
                 onNavigatePath={onNavigatePath}
                 activeSection={activeSection}
+                activeMenuKey={activeMenuKey}
                 onLogout={onLogout}
                 roleConfig={roleConfig}
                 profileDisplayName={profileDisplayName}
@@ -216,6 +218,7 @@ export default function AppShell({
             {!hideSidebar && (
                 <Sidebar
                     activeSection={activeSection}
+                    activeMenuKey={activeMenuKey}
                     onNavigate={safeNavigate}
                     roleConfig={roleConfig}
                 />
@@ -386,6 +389,7 @@ function TopNav({
     onNavigate,
     onNavigatePath,
     activeSection,
+    activeMenuKey = activeSection,
     onLogout,
     roleConfig,
     profileDisplayName,
@@ -508,7 +512,7 @@ function TopNav({
                                     </div>
                                     <nav className="space-y-1">
                                         {roleConfig.menuItems.map((item) => {
-                                            const isActive = activeSection === item.key;
+                                            const isActive = activeMenuKey === item.key;
                                             return (
                                                 <button
                                                     key={item.key}
@@ -729,7 +733,7 @@ function TopNav({
     );
 }
 
-function Sidebar({ activeSection, onNavigate, roleConfig }) {
+function Sidebar({ activeSection, activeMenuKey = activeSection, onNavigate, roleConfig }) {
     const [isPointerHovered, setIsPointerHovered] = useState(false);
     const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
     const lastInputWasKeyboardRef = useRef(false);
@@ -805,7 +809,7 @@ function Sidebar({ activeSection, onNavigate, roleConfig }) {
 
                 <nav className="flex-grow px-2 lg:px-3 space-y-1 mt-1 overflow-y-auto no-scrollbar">
                     {roleConfig.menuItems.map((item) => {
-                        const isActive = activeSection === item.key;
+                        const isActive = activeMenuKey === item.key;
                         const href = getSectionPath(item.key, roleConfig.key);
                         return (
                             <a
