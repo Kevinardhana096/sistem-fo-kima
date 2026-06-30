@@ -1582,7 +1582,7 @@ function MonitoringSpreadsheetPage({
                 />
             )}
             <div className={`max-w-full overflow-auto custom-scrollbar rounded-b-premium ${tableOnly ? "flex-1 min-h-0" : ""}`}>
-                <table className={`w-full min-w-[1320px] table-fixed border-separate border-spacing-0 text-[10px] ${tableOnly && (isLoading || contractRows.length === 0) ? "h-full" : ""}`}>
+                <table className={`w-full min-w-[1480px] table-fixed border-separate border-spacing-0 text-[10px] ${tableOnly && (isLoading || contractRows.length === 0) ? "h-full" : ""}`}>
                     <colgroup>
                         <col style={{ width: "64px" }} />
                         <col style={{ width: "280px" }} />
@@ -1591,16 +1591,17 @@ function MonitoringSpreadsheetPage({
                         <col style={{ width: "160px" }} />
                         <col style={{ width: "160px" }} />
                         <col style={{ width: "180px" }} />
+                        <col style={{ width: "160px" }} />
                     </colgroup>
                     <thead>
                         <tr>
-                            {["NO", "NOMOR KONTRAK", "SISA KONTRAK", "PERIODE BERJALAN", "JUMLAH PAKET", "PENDAPATAN", "REALISASI PEMBAYARAN"].map((header) => (
+                            {["NO", "NOMOR KONTRAK", "SISA KONTRAK", "PERIODE BERJALAN", "JUMLAH PAKET", "PENDAPATAN", "REALISASI PEMBAYARAN", "NAVIGASI"].map((header) => (
                                 <th
                                     key={header}
                                     className={`sticky top-0 z-20 border-b border-r border-white/10 bg-[#1e293b]/95 px-5 py-2.5 text-center text-[10px] font-black uppercase tracking-widest text-white backdrop-blur-3xl ${
                                         header === "SISA KONTRAK"
                                             ? "border-r-2 border-r-white/25"
-                                            : header === "PENDAPATAN" || header === "REALISASI PEMBAYARAN"
+                                            : header === "PENDAPATAN" || header === "REALISASI PEMBAYARAN" || header === "NAVIGASI"
                                                 ? "border-l border-l-white/10"
                                             : ""
                                     }`}
@@ -1613,7 +1614,7 @@ function MonitoringSpreadsheetPage({
                     <tbody className="divide-y divide-white/5">
                         {isLoading && (
                             <tr>
-                                <td className={`px-6 ${tableOnly ? "h-full" : "h-[400px] lg:h-[500px]"} text-center`} colSpan="7">
+                                <td className={`px-6 ${tableOnly ? "h-full" : "h-[400px] lg:h-[500px]"} text-center`} colSpan="8">
                                     <div className="flex flex-col items-center justify-center py-16">
                                         <div className="relative flex items-center justify-center h-16 w-16 mb-4 z-10">
                                             <div className="absolute inset-0 bg-gold-accent/10 rounded-full blur-xl animate-pulse"></div>
@@ -1638,7 +1639,7 @@ function MonitoringSpreadsheetPage({
 
                         {!isLoading && visibleContractRows.length === 0 && (
                             <tr>
-                                <td className={`px-6 ${tableOnly ? "h-full" : "h-[400px] lg:h-[500px]"} text-center`} colSpan="7">
+                                <td className={`px-6 ${tableOnly ? "h-full" : "h-[400px] lg:h-[500px]"} text-center`} colSpan="8">
                                     {contractRows.length === 0 ? (
                                         <div className="flex flex-col items-center justify-center animate-in fade-in zoom-in duration-500">
                                             <div className="h-20 w-20 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center mb-6 shadow-glass-depth">
@@ -1704,6 +1705,21 @@ function MonitoringSpreadsheetPage({
                                     </td>
                                     <td className="border-l border-l-white/10 px-5 py-3 text-center font-black text-on-surface-variant">
                                         {formatMonitoringPaymentRealizationAmount(row)}
+                                    </td>
+                                    <td className="border-l border-l-white/10 px-5 py-3 text-center">
+                                        {canOpenDetail ? (
+                                            <button
+                                                className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gold-accent/20 bg-gold-accent/10 px-3 py-1.5 text-[8px] font-black uppercase tracking-widest text-gold-accent transition-all hover:bg-gold-accent hover:text-[#0f141e]"
+                                                onClick={() => onOpenCustomerById(Number(row.customerId), "payment-realizations")}
+                                                title={`Buka realisasi pembayaran ${row.customerName ?? ""}`.trim()}
+                                                type="button"
+                                            >
+                                                <span className="material-symbols-outlined text-[12px]">payments</span>
+                                                Buka Tab
+                                            </button>
+                                        ) : (
+                                            <span className="text-[8px] font-black uppercase tracking-widest text-white/20">-</span>
+                                        )}
                                     </td>
                                 </tr>
                             );
