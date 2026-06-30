@@ -71,10 +71,6 @@ BEGIN
       ('CUST-ICON-CHAROEN-001', 'PT Charoen Pokphand Indonesia (ICON+)', DATE '2022-11-20', DATE '2024-11-20', DATE '2025-11-19', 'sharing_core', 0, '1/16', 'SP2K No. 4500022178', 'INV-004/KIMA/FO/I/2025', 'lunas', 500000::numeric, 6000000::numeric, NULL::numeric),
       ('CUST-ICON-CHAROEN-001', 'PT Charoen Pokphand Indonesia (ICON+)', DATE '2022-11-20', DATE '2025-11-25', DATE '2026-11-24', 'sharing_core', 0, '1/16', 'SP2K No. 4500026821', '004/FO/1/26', 'lunas', 550000::numeric, 6600000::numeric, NULL::numeric),
 
-      ('CUST-ICON-INDOMARCO-001', 'PT Indomarco Prismatama (ICON+)', DATE '2023-12-28', DATE '2023-12-28', DATE '2024-12-27', 'sharing_core', 0, '1/16', 'KIMA.BAK-36/DBO/FO/VIII/2023', '177/INV.FO/IX/2023', 'lunas', 500000::numeric, 6000000::numeric, 2500000::numeric),
-      ('CUST-ICON-INDOMARCO-001', 'PT Indomarco Prismatama (ICON+)', DATE '2023-12-28', DATE '2024-12-28', DATE '2025-12-27', 'sharing_core', 0, '1/16', 'KIMA.BAK-48/DBO/FO/VII/2024', 'INV-081/KIMA/FO/X/2024', 'lunas', 550000::numeric, 6600000::numeric, NULL::numeric),
-      ('CUST-ICON-INDOMARCO-001', 'PT Indomarco Prismatama (ICON+)', DATE '2023-12-28', DATE '2025-12-28', DATE '2026-12-27', 'sharing_core', 0, '1/16', 'SP2K No.4500026783', '002/FO/1/26', 'lunas', 550000::numeric, 6600000::numeric, NULL::numeric),
-
       ('CUST-ICON-IDMKASIR-001', 'PT Indomarco Prismatama (IDM Kasir)', DATE '2024-05-17', DATE '2024-05-17', DATE '2025-05-16', 'sharing_core', 0, '1/16', 'KIMA.BAK-14/DBO/FO/V/2024', 'INV-066/KIMA/FO/VII/2024', 'lunas', 500000::numeric, 6000000::numeric, 2500000::numeric),
       ('CUST-ICON-IDMKASIR-001', 'PT Indomarco Prismatama (IDM Kasir)', DATE '2024-05-17', DATE '2025-05-17', DATE '2026-05-16', 'sharing_core', 0, '1/16', 'SP2K. No. 4500023043', 'INV.042/KIMA/FO/VI/2025', 'lunas', 500000::numeric, 6000000::numeric, NULL::numeric),
 

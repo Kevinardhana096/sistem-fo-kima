@@ -87,34 +87,70 @@ function CustomDropdown({ value, options, onChange, align = "left", position = "
     );
 }
 
-export default function TodoListPage({ onNavigatePath, currentRole = "admin" }) {
-    const [notifications, setNotifications] = useState([]);
+export default function TodoListPage({
+    onNavigatePath,
+    currentRole = "admin",
+    notifications: sharedNotifications = null,
+    hasLoadedNotifications = false,
+    notificationError = "",
+    onRefreshNotifications = null,
+    useSharedNotifications = false,
+}) {
+    const [localNotifications, setLocalNotifications] = useState([]);
     const [search, setSearch] = useState("");
     const [type, setType] = useState("all");
     const [status, setStatus] = useState("active");
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
     const [isLoading, setIsLoading] = useState(false);
+    const [isRefreshing, setIsRefreshing] = useState(false);
     const [error, setError] = useState("");
+
+    const notifications = useMemo(() => (
+        useSharedNotifications
+            ? (Array.isArray(sharedNotifications) ? sharedNotifications : [])
+            : localNotifications
+    ), [localNotifications, sharedNotifications, useSharedNotifications]);
+
+    const isInitialLoading = useSharedNotifications
+        ? !hasLoadedNotifications && !notificationError
+        : isLoading;
+    const visibleError = error || notificationError;
 
     const paginationRef = useRef(null);
     const isScrollingProgrammatically = useRef(false);
 
 
     const loadNotifications = useCallback(async () => {
+        if (useSharedNotifications) {
+            if (typeof onRefreshNotifications !== "function") {
+                return [];
+            }
+            setIsRefreshing(true);
+            try {
+                return await onRefreshNotifications();
+            } finally {
+                setIsRefreshing(false);
+            }
+        }
+
         setIsLoading(true);
         setError("");
         try {
             const data = await api.notifications.list({ limit: 200, includeResolved: true });
-            setNotifications(Array.isArray(data) ? data : []);
+            setLocalNotifications(Array.isArray(data) ? data : []);
         } catch (err) {
             setError(err instanceof Error ? err.message : "Gagal memuat To Do List.");
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [onRefreshNotifications, useSharedNotifications]);
 
-    useEffect(() => { loadNotifications(); }, [loadNotifications]);
+    useEffect(() => {
+        if (!useSharedNotifications) {
+            void loadNotifications();
+        }
+    }, [loadNotifications, useSharedNotifications]);
 
     const roleFilteredNotifications = useMemo(() => {
         if (currentRole === "teknisi") {
@@ -235,9 +271,9 @@ export default function TodoListPage({ onNavigatePath, currentRole = "admin" }) 
                     </div>
                     <button
                         className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white/40 hover:bg-white/10 hover:text-white transition-all active:scale-95 group disabled:opacity-50 backdrop-blur-md"
-                        onClick={loadNotifications} disabled={isLoading} type="button" title="Refresh"
+                        onClick={loadNotifications} disabled={isInitialLoading || isRefreshing} type="button" title="Refresh"
                     >
-                        <span className={`material-symbols-outlined text-base group-hover:rotate-180 transition-transform duration-500 ${isLoading ? "animate-spin" : ""}`}>sync</span>
+                        <span className={`material-symbols-outlined text-base group-hover:rotate-180 transition-transform duration-500 ${(isInitialLoading || isRefreshing) ? "animate-spin" : ""}`}>sync</span>
                     </button>
                 </header>
 
@@ -311,11 +347,11 @@ export default function TodoListPage({ onNavigatePath, currentRole = "admin" }) 
                         </div>
                     </div>
 
-                    {error && (
-                        <div className="mb-4 rounded-xl border border-[#ff2400]/20 bg-[#ff2400]/10 p-3 text-xs font-bold text-[#ff2400]">{error}</div>
+                    {visibleError && (
+                        <div className="mb-4 rounded-xl border border-[#ff2400]/20 bg-[#ff2400]/10 p-3 text-xs font-bold text-[#ff2400]">{visibleError}</div>
                     )}
 
-                    {isLoading ? (
+                    {isInitialLoading ? (
                         <div className="flex flex-col items-center justify-center py-16">
                             <div className="relative flex items-center justify-center h-16 w-16 mb-4 z-10">
                                 <div className="absolute inset-0 bg-gold-accent/10 rounded-full blur-xl animate-pulse"></div>

@@ -59,6 +59,7 @@ export default function DashboardPage({
     const [growthType, setGrowthType] = useState("tenant");
     const [coreChartType, setCoreChartType] = useState("sharing");
     const [coreTrendTimeMode, setCoreTrendTimeMode] = useState("yearly");
+    const [isChartContentReady, setIsChartContentReady] = useState(false);
     const [coreTrendFilter, setCoreTrendFilter] = useState({
         mode: "range_years",
         year: String(new Date().getUTCFullYear()),
@@ -68,6 +69,16 @@ export default function DashboardPage({
     });
 
     const coreTrendChartRef = useRef(null);
+
+    useEffect(() => {
+        const frameId = window.requestAnimationFrame(() => {
+            setIsChartContentReady(true);
+        });
+
+        return () => {
+            window.cancelAnimationFrame(frameId);
+        };
+    }, []);
 
     const currentYear = String(new Date().getUTCFullYear());
     const coreTrendModeOptions = [
@@ -387,26 +398,32 @@ export default function DashboardPage({
                             </div>
                         )}
                         <div ref={coreTrendChartRef} className="flex-1 w-full min-w-[1px] min-h-[220px] md:min-h-[240px] -ml-2 pb-0">
-                            <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1} debounce={100}>
-                                <LineChart data={coreChartType === "sharing" ? visibleSharingTrendData : visibleCoreTrendData} margin={compactChartMargin}>
-                                    <CartesianGrid strokeDasharray="0" vertical={false} stroke="rgba(255,255,255,0.08)" />
-                                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 8, fontWeight: 900, fill: 'rgba(255,255,255,0.6)' }} dy={10} />
-                                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 8, fontWeight: 900, fill: 'rgba(255,255,255,0.6)' }} allowDecimals={false} />
-                                    <Tooltip contentStyle={chartTooltipContentStyle} itemStyle={chartTooltipItemStyle} labelStyle={chartTooltipLabelStyle} />
+                            {isChartContentReady ? (
+                                <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1} debounce={100}>
+                                    <LineChart data={coreChartType === "sharing" ? visibleSharingTrendData : visibleCoreTrendData} margin={compactChartMargin}>
+                                        <CartesianGrid strokeDasharray="0" vertical={false} stroke="rgba(255,255,255,0.08)" />
+                                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 8, fontWeight: 900, fill: 'rgba(255,255,255,0.6)' }} dy={10} />
+                                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 8, fontWeight: 900, fill: 'rgba(255,255,255,0.6)' }} allowDecimals={false} />
+                                        <Tooltip contentStyle={chartTooltipContentStyle} itemStyle={chartTooltipItemStyle} labelStyle={chartTooltipLabelStyle} />
 
-                                    {coreChartType === "sharing" ? (
-                                        <>
-                                            <Line type="monotone" dataKey="1:2" stroke="#d4a937" strokeWidth={3} dot={{ r: 3, fill: '#fff', strokeWidth: 2, stroke: "#d4a937" }} />
-                                            <Line type="monotone" dataKey="1:4" stroke="#00687b" strokeWidth={3} dot={{ r: 3, fill: '#fff', strokeWidth: 2, stroke: "#00687b" }} />
-                                            <Line type="monotone" dataKey="1:8" stroke="#10b981" strokeWidth={3} dot={{ r: 3, fill: '#fff', strokeWidth: 2, stroke: "#10b981" }} />
-                                            <Line type="monotone" dataKey="1:16" stroke="#8b5cf6" strokeWidth={3} dot={{ r: 3, fill: '#fff', strokeWidth: 2, stroke: "#8b5cf6" }} />
-                                            <Line type="monotone" dataKey="1:32" stroke="#f43f5e" strokeWidth={3} dot={{ r: 3, fill: '#fff', strokeWidth: 2, stroke: "#f43f5e" }} />
-                                        </>
-                                    ) : (
-                                        <Line type="monotone" dataKey="count" stroke="#00687b" strokeWidth={4} dot={{ r: 4, fill: '#fff', strokeWidth: 2, stroke: "#00687b" }} />
-                                    )}
-                                </LineChart>
-                            </ResponsiveContainer>
+                                        {coreChartType === "sharing" ? (
+                                            <>
+                                                <Line type="monotone" dataKey="1:2" stroke="#d4a937" strokeWidth={3} dot={{ r: 3, fill: '#fff', strokeWidth: 2, stroke: "#d4a937" }} />
+                                                <Line type="monotone" dataKey="1:4" stroke="#00687b" strokeWidth={3} dot={{ r: 3, fill: '#fff', strokeWidth: 2, stroke: "#00687b" }} />
+                                                <Line type="monotone" dataKey="1:8" stroke="#10b981" strokeWidth={3} dot={{ r: 3, fill: '#fff', strokeWidth: 2, stroke: "#10b981" }} />
+                                                <Line type="monotone" dataKey="1:16" stroke="#8b5cf6" strokeWidth={3} dot={{ r: 3, fill: '#fff', strokeWidth: 2, stroke: "#8b5cf6" }} />
+                                                <Line type="monotone" dataKey="1:32" stroke="#f43f5e" strokeWidth={3} dot={{ r: 3, fill: '#fff', strokeWidth: 2, stroke: "#f43f5e" }} />
+                                            </>
+                                        ) : (
+                                            <Line type="monotone" dataKey="count" stroke="#00687b" strokeWidth={4} dot={{ r: 4, fill: '#fff', strokeWidth: 2, stroke: "#00687b" }} />
+                                        )}
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            ) : (
+                                <div className="flex h-full min-h-[220px] items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-[10px] font-black uppercase tracking-[0.25em] text-white/45 backdrop-blur-md">
+                                    Menyiapkan grafik...
+                                </div>
+                            )}
                         </div>
 
 
@@ -483,15 +500,21 @@ export default function DashboardPage({
                             </div>
                         </div>
                         <div className="flex-1 w-full min-w-[1px] min-h-[220px] -ml-2 pb-2">
-                            <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1} debounce={100}>
-                                <LineChart data={growthData[growthType]} margin={compactChartMargin}>
-                                    <CartesianGrid strokeDasharray="0" vertical={false} stroke="rgba(255,255,255,0.08)" />
-                                    <XAxis dataKey="year" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 900, fill: 'rgba(255,255,255,0.6)' }} dy={15} />
-                                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 900, fill: 'rgba(255,255,255,0.6)' }} allowDecimals={false} />
-                                    <Tooltip contentStyle={chartTooltipContentStyle} itemStyle={chartTooltipItemStyle} labelStyle={chartTooltipLabelStyle} />
-                                    <Line type="monotone" dataKey="count" name={growthType === "tenant" ? "Lokasi" : "ISP"} stroke={growthType === "tenant" ? "#d4a937" : "#00687b"} strokeWidth={5} dot={{ r: 6, fill: '#fff', strokeWidth: 4, stroke: growthType === "tenant" ? "#d4a937" : "#00687b" }} activeDot={{ r: 8, fill: growthType === "tenant" ? "#d4a937" : "#00687b", stroke: '#fff', strokeWidth: 3 }} />
-                                </LineChart>
-                            </ResponsiveContainer>
+                            {isChartContentReady ? (
+                                <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1} debounce={100}>
+                                    <LineChart data={growthData[growthType]} margin={compactChartMargin}>
+                                        <CartesianGrid strokeDasharray="0" vertical={false} stroke="rgba(255,255,255,0.08)" />
+                                        <XAxis dataKey="year" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 900, fill: 'rgba(255,255,255,0.6)' }} dy={15} />
+                                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 900, fill: 'rgba(255,255,255,0.6)' }} allowDecimals={false} />
+                                        <Tooltip contentStyle={chartTooltipContentStyle} itemStyle={chartTooltipItemStyle} labelStyle={chartTooltipLabelStyle} />
+                                        <Line type="monotone" dataKey="count" name={growthType === "tenant" ? "Lokasi" : "ISP"} stroke={growthType === "tenant" ? "#d4a937" : "#00687b"} strokeWidth={5} dot={{ r: 6, fill: '#fff', strokeWidth: 4, stroke: growthType === "tenant" ? "#d4a937" : "#00687b" }} activeDot={{ r: 8, fill: growthType === "tenant" ? "#d4a937" : "#00687b", stroke: '#fff', strokeWidth: 3 }} />
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            ) : (
+                                <div className="flex h-full min-h-[220px] items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-[10px] font-black uppercase tracking-[0.25em] text-white/45 backdrop-blur-md">
+                                    Menyiapkan grafik...
+                                </div>
+                            )}
                         </div>
                     </div>
 

@@ -35,6 +35,14 @@
         "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD": "1"
       }
     },
+    "excel": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "excel-mcp-server",
+        "stdio"
+      ]
+    },
     "sequential-thinking": {
       "type": "stdio",
       "command": "npx",

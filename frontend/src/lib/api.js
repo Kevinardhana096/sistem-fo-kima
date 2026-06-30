@@ -1161,13 +1161,16 @@ const notificationsApi = {
         let stateByKey = new Map();
 
         if (user?.id && notificationKeys.length > 0) {
-          const { data: states, error: statesError } = await supabase
-            .from('notification_states')
-            .select('notification_key,read_at,resolved_at')
-            .eq('actor_user_id', user.id)
-            .in('notification_key', notificationKeys);
+          const states = await fetchInChunks(notificationKeys, async (notificationKeyChunk) => {
+            const { data, error } = await supabase
+              .from('notification_states')
+              .select('notification_key,read_at,resolved_at')
+              .eq('actor_user_id', user.id)
+              .in('notification_key', notificationKeyChunk);
 
-          if (statesError) throw statesError;
+            if (error) throw error;
+            return data || [];
+          });
           stateByKey = new Map((states || []).map((state) => [state.notification_key, state]));
         }
 

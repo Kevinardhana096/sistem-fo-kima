@@ -58,6 +58,7 @@ Dokumen dikelompokkan ke dalam tiga tingkat agar jelas mana yang masih berlaku d
 | --- | --- |
 | [guides/supabase-setup-guide.md](guides/supabase-setup-guide.md) | Setup Supabase Auth dan RLS. |
 | [operations/panduan-insert-production.md](operations/panduan-insert-production.md) | Panduan insert data production. |
+| [operations/panduan-format-data-ai.md](operations/panduan-format-data-ai.md) | Format standar pemberian data ke AI agar tidak salah tafsir ISP, lokasi, kontrak, dan invoice. |
 | [operations/TESTING_CHECKLIST.md](operations/TESTING_CHECKLIST.md) | Checklist pengujian manual. |
 | [operations/BUG_TRACKING.md](operations/BUG_TRACKING.md) | Catatan bug dan tracking. |
 | [operations/kredensial-admin.md](operations/kredensial-admin.md) | Catatan kredensial admin untuk operasional. |

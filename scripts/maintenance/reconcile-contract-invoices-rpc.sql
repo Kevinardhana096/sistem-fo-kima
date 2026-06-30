@@ -65,7 +65,7 @@ BEGIN
     end_date = CASE WHEN p_version_payload ? 'end_date' THEN (p_version_payload->>'end_date')::date ELSE end_date END,
     contract_number = CASE WHEN p_version_payload ? 'contract_number' THEN p_version_payload->>'contract_number' ELSE contract_number END,
     version_number = CASE WHEN p_version_payload ? 'version_number' THEN (p_version_payload->>'version_number')::int ELSE version_number END,
-    core_type = CASE WHEN p_version_payload ? 'core_type' THEN p_version_payload->>'core_type' ELSE core_type END,
+    core_type = CASE WHEN p_version_payload ? 'core_type' THEN (p_version_payload->>'core_type')::core_allocation_type ELSE core_type END,
     core_total = CASE WHEN p_version_payload ? 'core_total' THEN (p_version_payload->>'core_total')::int ELSE core_total END,
     shared_core_ratio = CASE WHEN p_version_payload ? 'shared_core_ratio' THEN p_version_payload->>'shared_core_ratio' ELSE shared_core_ratio END,
     bak_document_id = CASE WHEN p_version_payload ? 'bak_document_id' THEN (p_version_payload->>'bak_document_id')::bigint ELSE bak_document_id END,

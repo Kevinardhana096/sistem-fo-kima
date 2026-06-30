@@ -27,16 +27,16 @@
 
   /* Fixed Background Image Layer - PROFESSIONAL MATTE */
   #bg-image-layer {
-    content: "";
     position: fixed;
-    inset: -24px;
+    inset: 0;
     z-index: -2;
-    background-image: url('/kima2.jpeg');
+    background-image:
+      linear-gradient(135deg, rgba(6, 10, 20, 0.92) 0%, rgba(8, 12, 24, 0.86) 45%, rgba(10, 17, 30, 0.82) 100%),
+      url('/kima2.jpeg');
     background-size: cover;
     background-position: center;
-    background-attachment: fixed;
-    filter: blur(4px) brightness(0.45) saturate(0.9) contrast(1.05);
-    transform: scale(1.03);
+    background-attachment: scroll;
+    opacity: 0.9;
   }
 
   /* Soft Steel-Slate Mask Overlay */
@@ -44,10 +44,8 @@
     position: fixed;
     inset: 0;
     z-index: -1;
-    background: rgba(10, 15, 30, 0.55);
+    background: rgba(10, 15, 30, 0.48);
     pointer-events: none;
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
   }
 
   /* Subtle Warm Decorative Glows */
@@ -206,9 +204,10 @@
   }
 
   .anim-layout-sidebar {
-    transition-property: width, left, margin-left;
-    transition-duration: 420ms;
+    transition-property: width;
+    transition-duration: 340ms;
     transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: width;
   }
 
   .anim-popover {

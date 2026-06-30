@@ -75,6 +75,17 @@ function lazyRoute(importer) {
     );
 }
 
+function withTimeout(promise, timeoutMs, message) {
+    let timeoutId;
+    const timeoutPromise = new Promise((_, reject) => {
+        timeoutId = window.setTimeout(() => reject(new Error(message)), timeoutMs);
+    });
+
+    return Promise.race([promise, timeoutPromise]).finally(() => {
+        window.clearTimeout(timeoutId);
+    });
+}
+
 // Lazy load heavy components
 const DashboardPage = lazyRoute(() => import("./features/dashboard/DashboardPage"));
 const MonitoringSpreadsheetPage = lazyRoute(() => import("./features/monitoring/MonitoringSpreadsheetPage"));
@@ -95,11 +106,18 @@ import {
     resolveCustomerByIdentifier,
     resolveIspByIdentifier,
 } from "./app/routes";
+import {
+    canNavigateBackInApp,
+    recordNavigationHistory,
+    syncNavigationHistoryAfterPopState,
+    syncNavigationHistoryForCurrentLocation,
+} from "./app/navigation-history";
 import { APP_ROLES, canAccessRoute, getRoleConfig } from "./roles";
 import { getStoredRole, normalizeAppRole, persistRole } from "./app/session/role-session";
 import "./App.css";
 
 const CUSTOMER_PAGE_SIZE = 500;
+const NOTIFICATION_LOAD_TIMEOUT_MS = 15_000;
 const PUBLIC_ROUTE_TYPES = new Set(["login", "admin-register"]);
 
 const SECTION_TRANSITION_COPY = {
@@ -167,7 +185,7 @@ function getPageTransitionCopy(targetPath, currentRole) {
                 title: "Membuka Detail ISP",
                 description: "Menyiapkan data ISP...",
             };
-        }
+        }   
 
         if (route.type === "customer-create") {
             return {
@@ -325,7 +343,18 @@ function App() {
     const [hasRequestedCurrentIspAccount, setHasRequestedCurrentIspAccount] = useState(false);
     const [currentIspAccountError, setCurrentIspAccountError] = useState("");
     const [notifications, setNotifications] = useState([]);
+    const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
+    const [hasLoadedNotifications, setHasLoadedNotifications] = useState(false);
+    const [notificationError, setNotificationError] = useState("");
     const hasInitializedBrowserNotificationBaselineRef = useRef(false);
+    const startupRequestTrackerRef = useRef({
+        startedAt: typeof performance !== "undefined" ? performance.now() : Date.now(),
+        authSession: 0,
+        customers: 0,
+        isps: 0,
+        currentIspAccount: 0,
+        notifications: 0,
+    });
     const [dashboardRefreshToken, setDashboardRefreshToken] = useState(0);
     const [customerDetailRecord, setCustomerDetailRecord] = useState(null);
     const [customerDetailLoading, setCustomerDetailLoading] = useState(false);
@@ -354,6 +383,63 @@ function App() {
         [currentRole, route],
     );
     const isLoggedIn = Boolean(authSession?.user);
+    const routeNeedsCustomerData = useMemo(() => {
+        if (route.type === "login" || route.type === "admin-register" || route.type === "redirect") {
+            return false;
+        }
+
+        if (route.type === "section") {
+            return ["dashboard", "customers", "monitoring"].includes(route.sectionKey);
+        }
+
+        return [
+            "customer-create",
+            "customer-detail",
+            "customer-edit",
+            "customer-jalur",
+            "customer-jalur-planner",
+            "customer-jalur-fullscreen",
+            "isp-detail",
+            "isp-edit",
+        ].includes(route.type);
+    }, [route.sectionKey, route.type]);
+    const routeNeedsIspData = useMemo(() => {
+        if (route.type === "login" || route.type === "admin-register" || route.type === "redirect") {
+            return false;
+        }
+
+        if (route.type === "section") {
+            return ["dashboard", "customers", "monitoring"].includes(route.sectionKey);
+        }
+
+        return [
+            "customer-create",
+            "customer-detail",
+            "customer-edit",
+            "customer-jalur",
+            "customer-jalur-planner",
+            "customer-jalur-fullscreen",
+            "isp-detail",
+            "isp-edit",
+        ].includes(route.type);
+    }, [route.sectionKey, route.type]);
+
+    const recordStartupRequest = useCallback((key) => {
+        if (!import.meta.env.DEV) {
+            return;
+        }
+
+        const tracker = startupRequestTrackerRef.current;
+        const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+        if (now - tracker.startedAt > 10_000) {
+            return;
+        }
+
+        tracker[key] += 1;
+        if (tracker[key] > 1) {
+            console.warn(`[perf] duplicate startup ${key} request`, tracker);
+        }
+    }, []);
 
     useEffect(() => {
         let isActive = true;
@@ -373,13 +459,25 @@ function App() {
                     offset: 0,
                 });
                 setHasRequestedCustomers(false);
+                setIsLoadingCustomers(false);
+                setCustomersError("");
                 setIsps([]);
                 setHasRequestedIsps(false);
+                setIsLoadingIsps(false);
+                setIspsError("");
                 setNotifications([]);
+                setIsLoadingNotifications(false);
+                setHasLoadedNotifications(false);
+                setNotificationError("");
                 setCustomerDetailRecord(null);
+                setCustomerDetailLoading(false);
+                setCustomerDetailError("");
                 setIspDetailRecord(null);
+                setIspDetailLoading(false);
+                setIspDetailError("");
                 setCurrentIspAccount(null);
                 setHasRequestedCurrentIspAccount(false);
+                setIsLoadingCurrentIspAccount(false);
                 setCurrentIspAccountError("");
             }
             const nextRole = nextSession?.user
@@ -390,6 +488,7 @@ function App() {
             persistRole(nextRole);
         };
 
+        recordStartupRequest("authSession");
         void supabase.auth.getSession()
             .then(({ data }) => {
                 applySession(data?.session ?? null);
@@ -416,9 +515,10 @@ function App() {
             isActive = false;
             authListener?.subscription?.unsubscribe();
         };
-    }, []);
+    }, [recordStartupRequest]);
 
     const loadCustomers = useCallback(async ({ append = false, offset = 0 } = {}) => {
+        recordStartupRequest("customers");
         setHasRequestedCustomers(true);
         setIsLoadingCustomers(true);
         setCustomersError("");
@@ -463,7 +563,7 @@ function App() {
         } finally {
             setIsLoadingCustomers(false);
         }
-    }, []);
+    }, [recordStartupRequest]);
 
     const loadMoreCustomers = useCallback(async () => {
         if (isLoadingCustomers || !customersPageInfo.hasMore) return [];
@@ -479,7 +579,7 @@ function App() {
         if (
             hasCheckedAuth
             && isLoggedIn
-            && route.type !== "login"
+            && routeNeedsCustomerData
             && customers.length === 0
             && !isLoadingCustomers
             && !customersError
@@ -487,9 +587,10 @@ function App() {
         ) {
             void loadCustomers();
         }
-    }, [customers.length, customersError, hasCheckedAuth, hasRequestedCustomers, isLoadingCustomers, isLoggedIn, loadCustomers, route.type]);
+    }, [customers.length, customersError, hasCheckedAuth, hasRequestedCustomers, isLoadingCustomers, isLoggedIn, loadCustomers, routeNeedsCustomerData]);
 
     const loadIsps = useCallback(async () => {
+        recordStartupRequest("isps");
         setHasRequestedIsps(true);
         setIsLoadingIsps(true);
         setIspsError("");
@@ -508,9 +609,10 @@ function App() {
         } finally {
             setIsLoadingIsps(false);
         }
-    }, []);
+    }, [recordStartupRequest]);
 
     const loadCurrentIspAccount = useCallback(async () => {
+        recordStartupRequest("currentIspAccount");
         setHasRequestedCurrentIspAccount(true);
         setIsLoadingCurrentIspAccount(true);
         setCurrentIspAccountError("");
@@ -539,28 +641,28 @@ function App() {
         } finally {
             setIsLoadingCurrentIspAccount(false);
         }
-    }, []);
+    }, [recordStartupRequest]);
 
     useEffect(() => {
-        if (hasCheckedAuth && isLoggedIn && currentRole === APP_ROLES.isp && !hasRequestedCurrentIspAccount && !isLoadingCurrentIspAccount) {
+        if (hasCheckedAuth && isLoggedIn && currentRole === APP_ROLES.isp && routeNeedsIspData && !hasRequestedCurrentIspAccount && !isLoadingCurrentIspAccount) {
             void loadCurrentIspAccount();
             return;
         }
 
-        if (hasCheckedAuth && (!isLoggedIn || currentRole !== APP_ROLES.isp)) {
+        if (hasCheckedAuth && (!isLoggedIn || currentRole !== APP_ROLES.isp || !routeNeedsIspData)) {
             setCurrentIspAccount(null);
             setCurrentIspAccountError("");
             setHasRequestedCurrentIspAccount(false);
             setIsLoadingCurrentIspAccount(false);
         }
-    }, [currentRole, hasCheckedAuth, hasRequestedCurrentIspAccount, isLoadingCurrentIspAccount, isLoggedIn, loadCurrentIspAccount]);
+    }, [currentRole, hasCheckedAuth, hasRequestedCurrentIspAccount, isLoadingCurrentIspAccount, isLoggedIn, loadCurrentIspAccount, routeNeedsIspData]);
 
     // Only load ISPs when user is authenticated (not on login page)
     useEffect(() => {
         if (
             hasCheckedAuth
             && isLoggedIn
-            && route.type !== "login"
+            && routeNeedsIspData
             && isps.length === 0
             && !isLoadingIsps
             && !ispsError
@@ -568,15 +670,45 @@ function App() {
         ) {
             void loadIsps();
         }
-    }, [hasCheckedAuth, hasRequestedIsps, isLoadingIsps, isLoggedIn, isps.length, ispsError, loadIsps, route.type]);
+    }, [hasCheckedAuth, hasRequestedIsps, isLoadingIsps, isLoggedIn, isps.length, ispsError, loadIsps, routeNeedsIspData]);
 
     const loadNotifications = useCallback(async () => {
+        recordStartupRequest("notifications");
+        setIsLoadingNotifications(true);
+        setNotificationError("");
         try {
-            const result = await api.notifications.list({ limit: 500 });
+            const result = await withTimeout(
+                api.notifications.list({ limit: 500 }),
+                NOTIFICATION_LOAD_TIMEOUT_MS,
+                "Memuat tindak lanjut terlalu lama. Coba refresh."
+            );
             setNotifications(Array.isArray(result) ? result : []);
-        } catch {
+            return Array.isArray(result) ? result : [];
+        } catch (err) {
+            setNotificationError(err instanceof Error ? err.message : "Gagal memuat tindak lanjut.");
             setNotifications([]);
+            return [];
         }
+        finally {
+            setIsLoadingNotifications(false);
+            setHasLoadedNotifications(true);
+        }
+    }, [recordStartupRequest]);
+
+    const handleMarkNotificationRead = useCallback(async (notificationId) => {
+        const notificationKey = String(notificationId);
+        const result = await api.notifications.markRead(notificationKey);
+        const readAt = result?.read_at ?? new Date().toISOString();
+
+        setNotifications((previousNotifications) => (
+            previousNotifications.map((notification) => (
+                String(notification.id) === notificationKey
+                    ? { ...notification, readAt }
+                    : notification
+            ))
+        ));
+
+        return result;
     }, []);
 
     const refreshDashboardMetrics = useCallback(() => {
@@ -589,13 +721,13 @@ function App() {
     }, [loadCustomers, loadIsps, loadNotifications, refreshDashboardMetrics]);
 
     useEffect(() => {
-        if (hasCheckedAuth && isLoggedIn && route.type !== "login") {
+        if (hasCheckedAuth && isLoggedIn && route.type !== "login" && route.type !== "admin-register") {
             void loadNotifications();
         }
     }, [hasCheckedAuth, isLoggedIn, loadNotifications, route.type]);
 
     useEffect(() => {
-        if (!hasCheckedAuth || !isLoggedIn || route.type === "login") {
+        if (!hasCheckedAuth || !isLoggedIn || route.type === "login" || route.type === "admin-register") {
             return undefined;
         }
 
@@ -694,16 +826,12 @@ function App() {
                 description: transitionDescription || fallbackTransition.description,
             });
         }
+        recordNavigationHistory(targetPath, { replace });
+
         const nextState = {
             pathname: nextUrl.pathname,
             search: nextUrl.search,
         };
-
-        if (replace) {
-            window.history.replaceState({}, "", `${nextUrl.pathname}${nextUrl.search}`);
-        } else {
-            window.history.pushState({}, "", `${nextUrl.pathname}${nextUrl.search}`);
-        }
 
         setLocationState(nextState);
     }, [currentRole]);
@@ -730,7 +858,10 @@ function App() {
             return undefined;
         }
 
+        syncNavigationHistoryForCurrentLocation();
+
         const handlePopState = () => {
+            syncNavigationHistoryAfterPopState();
             setLocationState({
                 pathname: window.location.pathname,
                 search: window.location.search,
@@ -1025,6 +1156,17 @@ function App() {
         }
     }, [appPaths, authSession?.user, currentRole, navigateTo, resolvedCurrentIspId]);
 
+    const navigateBackOrFallback = useCallback((fallbackPath) => {
+        if (typeof window !== "undefined" && canNavigateBackInApp()) {
+            window.history.back();
+            return;
+        }
+
+        if (fallbackPath) {
+            navigateTo(fallbackPath, { replace: true });
+        }
+    }, [navigateTo]);
+
     const handleOpenTenantDetail = useCallback((customer, initialTab = "overview", contextIsp = null) => {
         const resolvedCustomerId = Number(customer?.id);
         if (!Number.isFinite(resolvedCustomerId) || resolvedCustomerId <= 0) {
@@ -1089,38 +1231,22 @@ function App() {
 
     const handleCancelCreate = useCallback(() => {
         if (route.type === "customer-edit" && resolvedCustomerDetail) {
-            navigateTo(appPaths.customerDetail(resolvedCustomerDetail.id), {
-                replace: true,
-                transitionTitle: "Kembali ke Detail Tenant",
-                transitionDescription: "Menampilkan detail tenant sebelumnya...",
-            });
+            navigateBackOrFallback(appPaths.customerDetail(resolvedCustomerDetail.id));
             return;
         }
 
         if (route.type === "isp-edit" && resolvedIspDetail) {
-            navigateTo(appPaths.ispDetail(resolvedIspDetail.id), {
-                replace: true,
-                transitionTitle: "Kembali ke Detail ISP",
-                transitionDescription: "Menampilkan detail ISP sebelumnya...",
-            });
+            navigateBackOrFallback(appPaths.ispDetail(resolvedIspDetail.id));
             return;
         }
 
         if (currentRole === APP_ROLES.isp && resolvedCurrentIspId) {
-            navigateTo(appPaths.ispDetail(resolvedCurrentIspId), {
-                replace: true,
-                transitionTitle: "Kembali ke Detail ISP",
-                transitionDescription: "Menampilkan detail ISP sebelumnya...",
-            });
+            navigateBackOrFallback(appPaths.ispDetail(resolvedCurrentIspId));
             return;
         }
 
-        navigateTo(appPaths.customers, {
-            replace: true,
-            transitionTitle: "Kembali ke Daftar Tenant",
-            transitionDescription: "Menampilkan daftar tenant...",
-        });
-    }, [appPaths, currentRole, navigateTo, resolvedCurrentIspId, resolvedCustomerDetail, resolvedIspDetail, route.type]);
+        navigateBackOrFallback(appPaths.customers);
+    }, [appPaths, currentRole, navigateBackOrFallback, resolvedCurrentIspId, resolvedCustomerDetail, resolvedIspDetail, route.type]);
 
     const handleOpenEditIsp = useCallback((isp) => {
         const resolvedIspId = Number(isp?.id);
@@ -1310,7 +1436,6 @@ function App() {
                             setCustomersError("");
                             setIspsError("");
                             navigateTo(landingPath, { replace: true });
-                            void refreshAppData();
                         }}
                     />
                 </Suspense>
@@ -1320,7 +1445,7 @@ function App() {
         if (route.type === "admin-register") {
             return (
                 <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-[#0a0c12]"><div className="text-sm text-white/60">Memuat...</div></div>}>
-                    <AdminRegisterPage onBackToLogin={() => navigateTo(appPaths.login, { replace: true })} />
+                    <AdminRegisterPage onBackToLogin={() => navigateBackOrFallback(appPaths.login)} />
                 </Suspense>
             );
         }
@@ -1412,6 +1537,12 @@ function App() {
                         onNavigate={handleNavigate}
                         onNavigatePath={navigateTo}
                         onLogout={handleLogout}
+                        notifications={notifications}
+                        isLoadingNotifications={isLoadingNotifications}
+                        hasLoadedNotifications={hasLoadedNotifications}
+                        notificationError={notificationError}
+                        onRefreshNotifications={loadNotifications}
+                        useSharedNotifications
                     />
                 </Suspense>
             );
@@ -1594,7 +1725,7 @@ function App() {
                             const fallbackPath = currentRole === APP_ROLES.isp
                                 ? appPaths.ispDetail(resolvedIspDetail.id)
                                 : appPaths.customers;
-                            navigateTo(fallbackPath, { replace: true });
+                            navigateBackOrFallback(fallbackPath);
                         }}
                         onEditIsp={handleOpenEditIsp}
                         onNavigate={handleNavigate}
@@ -1667,11 +1798,11 @@ function App() {
                         backLabel={currentRole === APP_ROLES.isp ? "Kembali ke Halaman ISP" : "Kembali ke Daftar Tenant"}
                         onBack={() => {
                             if (currentRole === APP_ROLES.isp && resolvedCurrentIspId) {
-                                navigateTo(appPaths.ispDetail(resolvedCurrentIspId), { replace: true });
+                                navigateBackOrFallback(appPaths.ispDetail(resolvedCurrentIspId));
                                 return;
                             }
-    
-                            navigateTo(appPaths.customers, { replace: true });
+
+                            navigateBackOrFallback(appPaths.customers);
                         }}
                         onEditTenant={handleOpenEditTenant}
                         onCreateIsp={handleOpenCreateIsp}
@@ -1744,7 +1875,7 @@ function App() {
                         currentRole={currentRole}
                         backLabel="Kembali ke Detail Tenant"
                         onBack={() => {
-                            navigateTo(appPaths.customerDetail(resolvedCustomerDetail.id), { replace: true });
+                            navigateBackOrFallback(appPaths.customerDetail(resolvedCustomerDetail.id));
                         }}
                         onEditTenant={handleOpenEditTenant}
                         onNavigate={handleNavigate}
@@ -1798,7 +1929,7 @@ function App() {
                         currentRole={currentRole}
                         backLabel="Kembali ke Detail Tenant"
                         onBack={() => {
-                            navigateTo(appPaths.customerDetail(resolvedCustomerDetail.id), { replace: true });
+                            navigateBackOrFallback(appPaths.customerDetail(resolvedCustomerDetail.id));
                         }}
                         onEditTenant={handleOpenEditTenant}
                         onNavigate={handleNavigate}
@@ -1855,7 +1986,7 @@ function App() {
                         currentRole={currentRole}
                         backLabel="Kembali ke Halaman Jalur"
                         onBack={() => {
-                            navigateTo(appPaths.customerJalur(resolvedCustomerDetail.id), { replace: true });
+                            navigateBackOrFallback(appPaths.customerJalur(resolvedCustomerDetail.id));
                         }}
                         onEditTenant={handleOpenEditTenant}
                         onNavigate={handleNavigate}
@@ -1918,7 +2049,19 @@ function App() {
 
     if (needsAppShell) {
         return (
-            <AppShell activeSection={activeSection} currentRole={currentRole} onNavigate={handleNavigate} onNavigatePath={navigateTo} onLogout={handleLogout} hideSidebar={currentRole === "isp"}>
+            <AppShell
+                activeSection={activeSection}
+                currentRole={currentRole}
+                onNavigate={handleNavigate}
+                onNavigatePath={navigateTo}
+                onLogout={handleLogout}
+                hideSidebar={currentRole === "isp"}
+                authUser={authSession?.user ?? null}
+                notifications={notifications}
+                isLoadingNotifications={isLoadingNotifications}
+                onRefreshNotifications={loadNotifications}
+                onMarkNotificationRead={handleMarkNotificationRead}
+            >
                 {content}
             </AppShell>
         );

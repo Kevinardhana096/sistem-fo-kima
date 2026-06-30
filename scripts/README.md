@@ -68,6 +68,7 @@ Urutan setup environment baru (ringkas): **auth users → RLS → kolom/feature 
 | [maintenance/fix-merapi-duplicate-customer.sql](maintenance/fix-merapi-duplicate-customer.sql) | Memisahkan PT Merapi untuk PT Medialink Global Mandiri / koreksi duplikat (bertanggal). |
 | [maintenance/fix-merapi-move-contracts.sql](maintenance/fix-merapi-move-contracts.sql) | Memindahkan kontrak PT Merapi ke customer yang benar (bertanggal). |
 | [maintenance/fix-wastec-active-contract-number.sql](maintenance/fix-wastec-active-contract-number.sql) | Memperbaiki nomor kontrak aktif customer Wastec. |
+| [maintenance/migrate-indomarco-prismatama.sql](maintenance/migrate-indomarco-prismatama.sql) | Migrasi nama customer PT Indomarco Prismatama dan perapihan data existing. |
 | [maintenance/backfill-btn-monthly-invoices.sql](maintenance/backfill-btn-monthly-invoices.sql) | Backfill invoice bulanan untuk customer BTN. |
 | [maintenance/check-and-fix-stale-invoices.sql](maintenance/check-and-fix-stale-invoices.sql) | Script dan RPC `fix_out_of_sync_invoices` — Memeriksa dan merekonsiliasi jadwal invoice lama yang tidak sinkron secara aman. |
 
@@ -90,6 +91,7 @@ Semua script `insert-*-production.sql` bersifat **upsert idempotent** dari data 
 | [seed/insert-cendikia-additional-customers-production.sql](seed/insert-cendikia-additional-customers-production.sql) | PT Cendikia Global Solusi (customer tambahan) |
 | [seed/insert-charoen-pokphand-production.sql](seed/insert-charoen-pokphand-production.sql) | PT Charoen Pokphand Indonesia |
 | [seed/insert-citra-prima-media-production.sql](seed/insert-citra-prima-media-production.sql) | PT Citra Prima Media |
+| [seed/insert-indomarco-prismatama-icon-production.sql](seed/insert-indomarco-prismatama-icon-production.sql) | PT Indomarco Prismatama |
 | [seed/insert-icon-plus-customers-production.sql](seed/insert-icon-plus-customers-production.sql) | PT Indonesia Comnets Plus (ICON+) |
 | [seed/insert-iforte-telkom-moratel-jenius-production.sql](seed/insert-iforte-telkom-moratel-jenius-production.sql) | iForte, Telkom, Moratel, Jenius |
 | [seed/insert-lado-indosat-fni-production.sql](seed/insert-lado-indosat-fni-production.sql) | PT Lado Tekno Parkir, Indosat, FNI |

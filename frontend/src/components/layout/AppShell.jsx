@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { getSectionPath } from "../../app/routes";
 import { getRoleConfig } from "../../roles";
-import api from "../../lib/api";
 import { requestAppNavigation } from "../../app/navigation-events";
-import { getStoredSessionSnapshot, isNetworkError, supabase, updateCurrentUserProfile } from "../../lib/supabase";
+import { updateCurrentUserProfile } from "../../lib/supabase";
 import {
     getBrowserNotificationSupport,
     requestBrowserNotificationPermission,
@@ -34,14 +33,18 @@ export default function AppShell({
     full = false,
     currentRole = "admin",
     onNavigatePath,
+    authUser = null,
+    notifications = [],
+    isLoadingNotifications = false,
+    onRefreshNotifications,
+    onMarkNotificationRead,
 }) {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const [isSidebarHoverExpanded, setIsSidebarHoverExpanded] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
     useScrollLock(isEditModalOpen);
 
-    const [authUser, setAuthUser] = useState(null);
+    const [localAuthUser, setLocalAuthUser] = useState(authUser);
     const [profileForm, setProfileForm] = useState({
         displayName: "",
         currentPassword: "",
@@ -57,9 +60,8 @@ export default function AppShell({
     const isTransitioningAuth = isLogoutTransitioning || isPageTransitioning;
 
     const roleConfig = getRoleConfig(currentRole);
-    const isSidebarExpanded = !hideSidebar && isSidebarHoverExpanded;
-    const profileDisplayName = authUser?.user_metadata?.display_name
-        || authUser?.user_metadata?.username
+    const profileDisplayName = localAuthUser?.user_metadata?.display_name
+        || localAuthUser?.user_metadata?.username
         || roleConfig.profileTitle;
     const profileAvatarName = profileDisplayName || roleConfig.profileTitle;
 
@@ -83,6 +85,10 @@ export default function AppShell({
     };
 
     useEffect(() => {
+        setLocalAuthUser(authUser);
+    }, [authUser]);
+
+    useEffect(() => {
         const syncAuthTransition = (event) => {
             const transitionState = event?.detail ?? getRuntimeTransitionState();
 
@@ -95,32 +101,6 @@ export default function AppShell({
         syncAuthTransition();
         window.addEventListener(AUTH_TRANSITION_EVENT, syncAuthTransition);
         return () => window.removeEventListener(AUTH_TRANSITION_EVENT, syncAuthTransition);
-    }, []);
-
-    useEffect(() => {
-        let isActive = true;
-
-        void supabase.auth.getSession()
-            .then(({ data }) => {
-                if (isActive) setAuthUser(data?.session?.user ?? null);
-            })
-            .catch((error) => {
-                if (!isActive) return;
-                if (isNetworkError(error)) {
-                    setAuthUser(getStoredSessionSnapshot()?.user ?? null);
-                    return;
-                }
-                setAuthUser(null);
-            });
-
-        const { data: authListener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-            setAuthUser(nextSession?.user ?? null);
-        });
-
-        return () => {
-            isActive = false;
-            authListener?.subscription?.unsubscribe();
-        };
     }, []);
 
     const openEditProfile = () => {
@@ -169,11 +149,11 @@ export default function AppShell({
         try {
             const { user } = await updateCurrentUserProfile({
                 displayName,
-                email: authUser?.email,
+                email: localAuthUser?.email,
                 currentPassword: hasPasswordChange ? profileForm.currentPassword : "",
                 password: hasPasswordChange ? profileForm.newPassword : "",
             });
-            setAuthUser(user ?? null);
+            setLocalAuthUser(user ?? null);
             setProfileForm((previous) => ({
                 ...previous,
                 displayName,
@@ -214,7 +194,7 @@ export default function AppShell({
 
             <TopNav
                 hasSidebar={!hideSidebar}
-                isSidebarCollapsed={!isSidebarExpanded}
+                isSidebarCollapsed={true}
                 isMobileMenuOpen={isMobileMenuOpen}
                 onToggleMenu={() => setIsMobileMenuOpen((prev) => !prev)}
                 onCloseMenu={() => setIsMobileMenuOpen(false)}
@@ -227,11 +207,14 @@ export default function AppShell({
                 profileAvatarName={profileAvatarName}
                 onEditProfile={openEditProfile}
                 isTransitioningAuth={isTransitioningAuth}
+                notifications={notifications}
+                isLoadingNotifications={isLoadingNotifications}
+                onRefreshNotifications={onRefreshNotifications}
+                onMarkNotificationRead={onMarkNotificationRead}
             />
 
             {!hideSidebar && (
                 <Sidebar
-                    onExpandedChange={setIsSidebarHoverExpanded}
                     activeSection={activeSection}
                     onNavigate={safeNavigate}
                     roleConfig={roleConfig}
@@ -239,8 +222,7 @@ export default function AppShell({
             )}
 
             <main
-                className={`relative z-10 min-h-screen anim-layout-sidebar px-4 sm:px-6 md:px-8 lg:px-10 pb-10 pt-16 lg:pt-20 ${hideSidebar ? "" : (isSidebarExpanded ? "lg:ml-60" : "lg:ml-24")
-                    }`}
+                className={`relative z-10 min-h-screen px-4 sm:px-6 md:px-8 lg:px-10 pb-10 pt-16 lg:pt-20 ${hideSidebar ? "" : "lg:ml-24"}`}
             >
                 <div className="mx-auto max-w-[1600px]">
                     {children}
@@ -270,7 +252,7 @@ export default function AppShell({
             )}
 
             {isPageTransitioning && !isLogoutTransitioning && (
-                <div className={`fixed top-0 right-0 bottom-0 z-[120] flex flex-col items-center justify-center bg-[#050914]/80 backdrop-blur-sm anim-layout-sidebar pointer-events-auto animate-fade-in duration-300 ${hideSidebar ? "left-0" : (isSidebarExpanded ? "left-0 lg:left-60" : "left-0 lg:left-24")}`}>
+                <div className={`fixed top-0 right-0 bottom-0 z-[120] flex flex-col items-center justify-center bg-[#050914]/80 backdrop-blur-sm pointer-events-auto animate-fade-in duration-300 ${hideSidebar ? "left-0" : "left-0 lg:left-24"}`}>
                     <div className="relative flex items-center justify-center h-24 w-24 mb-6">
                         <div className="absolute inset-0 bg-gold-accent/20 rounded-full blur-xl animate-pulse"></div>
                         <div className="absolute inset-0 rounded-full border-2 border-white/5 border-t-gold-accent/80 animate-[spin_1.5s_linear_infinite]"></div>
@@ -410,29 +392,17 @@ function TopNav({
     profileAvatarName,
     onEditProfile,
     isTransitioningAuth = false,
+    notifications = [],
+    isLoadingNotifications = false,
+    onRefreshNotifications,
+    onMarkNotificationRead,
 }) {
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-    const [notifications, setNotifications] = useState([]);
-    const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
     const [browserNotificationStatus, setBrowserNotificationStatus] = useState(() => getBrowserNotificationSupport());
     const [isEnablingBrowserNotifications, setIsEnablingBrowserNotifications] = useState(false);
-
-    const loadNotifications = async () => {
-        setIsLoadingNotifications(true);
-        try {
-            const data = await api.notifications.list({ limit: 20 });
-            setNotifications(Array.isArray(data) ? data : []);
-        } catch {
-            setNotifications([]);
-        } finally {
-            setIsLoadingNotifications(false);
-        }
-    };
-
-    useEffect(() => {
-        loadNotifications();
-    }, []);
+    const notificationsPopoverRef = useRef(null);
+    const profilePopoverRef = useRef(null);
 
     useEffect(() => {
         const syncPermission = () => {
@@ -444,6 +414,24 @@ function TopNav({
             window.removeEventListener("focus", syncPermission);
         };
     }, []);
+
+    useEffect(() => {
+        const handlePointerDown = (event) => {
+            const notificationsPopover = notificationsPopoverRef.current;
+            const profilePopover = profilePopoverRef.current;
+
+            if (isNotificationsOpen && notificationsPopover && !notificationsPopover.contains(event.target)) {
+                setIsNotificationsOpen(false);
+            }
+
+            if (isProfileOpen && profilePopover && !profilePopover.contains(event.target)) {
+                setIsProfileOpen(false);
+            }
+        };
+
+        document.addEventListener("pointerdown", handlePointerDown);
+        return () => document.removeEventListener("pointerdown", handlePointerDown);
+    }, [isNotificationsOpen, isProfileOpen]);
 
     const handleEnableBrowserNotifications = async () => {
         setIsEnablingBrowserNotifications(true);
@@ -466,7 +454,7 @@ function TopNav({
     const handleOpenNotification = async (notification) => {
         if (!notification.readAt) {
             try {
-                await api.notifications.markRead(notification.id);
+                await onMarkNotificationRead?.(notification.id);
             } catch (error) {
                 console.error("Failed to mark notification as read:", error);
             }
@@ -487,7 +475,7 @@ function TopNav({
 
     return (
         <nav
-            className={`fixed top-4 md:top-5 right-4 md:right-6 z-[2020] flex items-start justify-between anim-layout-sidebar pointer-events-none ${!hasSidebar
+            className={`fixed top-4 md:top-5 right-4 md:right-6 z-[2020] flex items-start justify-between pointer-events-none ${!hasSidebar
                     ? "left-4"
                     : isSidebarCollapsed
                     ? "left-4 lg:left-24"
@@ -547,13 +535,12 @@ function TopNav({
             </div>
 
             <div className="absolute right-0 top-0 z-[2020] flex items-start gap-3 pointer-events-auto">
-                <div className="relative shrink-0">
+                <div ref={notificationsPopoverRef} className="relative shrink-0">
                     <button
                         className="relative group flex h-11 w-11 md:h-10 md:w-10 shrink-0 items-center justify-center rounded-xl bg-white/10 backdrop-blur-md border border-white/15 shadow-sm anim-surface hover:bg-white/20"
                         onClick={() => {
                             setIsNotificationsOpen((previous) => !previous);
                             setIsProfileOpen(false);
-                            if (!isNotificationsOpen) loadNotifications();
                         }}
                         type="button"
                     >
@@ -565,10 +552,8 @@ function TopNav({
                         )}
                     </button>
 
-                    {isNotificationsOpen && (
-                        <>
-                            <div className="fixed inset-0 z-[2025] bg-black/25 backdrop-blur-sm" onClick={() => setIsNotificationsOpen(false)}></div>
-                            <div className="!fixed left-6 right-6 max-w-md mx-auto top-[72px] md:!absolute md:right-0 md:left-auto md:mx-0 md:top-full md:mt-3 md:w-[24rem] md:max-w-none z-[2030] origin-top md:origin-top-right rounded-2xl glass-popover p-0 shadow-glass-depth animate-in fade-in slide-in-from-top-3 duration-300 ease-out">
+                        {isNotificationsOpen && (
+                        <div className="!fixed left-6 right-6 max-w-md mx-auto top-[72px] md:!absolute md:right-0 md:left-auto md:mx-0 md:top-full md:mt-3 md:w-[24rem] md:max-w-none z-[2030] origin-top md:origin-top-right rounded-2xl glass-popover p-0 shadow-glass-depth animate-in fade-in slide-in-from-top-3 duration-300 ease-out">
                                 <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
                                     <div>
                                         <p className="text-sm font-black text-on-surface">Notifikasi</p>
@@ -576,7 +561,7 @@ function TopNav({
                                     </div>
                                     <button
                                         className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/5 text-on-surface-variant anim-surface hover:bg-white/10 backdrop-blur-md"
-                                        onClick={loadNotifications}
+                                        onClick={onRefreshNotifications}
                                         disabled={isLoadingNotifications}
                                         type="button"
                                     >
@@ -678,11 +663,10 @@ function TopNav({
                                     </div>
                                 </div>
                             </div>
-                        </>
-                    )}
+                        )}
                 </div>
 
-                <div className="relative shrink-0">
+                <div ref={profilePopoverRef} className="relative shrink-0">
                     <button
                         className="flex h-11 w-11 md:h-10 md:w-auto shrink-0 items-center justify-center md:justify-start gap-2 rounded-xl bg-white/10 backdrop-blur-md border border-white/15 shadow-sm p-1.5 md:p-1 md:pr-4 anim-surface hover:bg-white/20"
                         onClick={() => {
@@ -707,9 +691,7 @@ function TopNav({
                     </button>
 
                     {isProfileOpen && (
-                        <>
-                            <div className="fixed inset-0 z-[2025] bg-black/25 backdrop-blur-sm" onClick={() => setIsProfileOpen(false)}></div>
-                            <div className="!absolute right-0 top-full z-[2030] mt-3 w-52 origin-top-right rounded-2xl glass-popover anim-popover p-2 shadow-glass-depth animate-in fade-in zoom-in duration-300 md:w-56">
+                        <div className="!absolute right-0 top-full z-[2030] mt-3 w-52 origin-top-right rounded-2xl glass-popover anim-popover p-2 shadow-glass-depth animate-in fade-in zoom-in duration-300 md:w-56">
                                 <div className="px-3 py-3 border-b border-white/10 mb-1.5">
                                     <p className="text-xs font-black text-on-surface truncate">{profileDisplayName}</p>
                                     <p className="text-[9px] font-bold text-on-surface-variant uppercase mt-0.5 truncate">{roleConfig.profileSubtitle}</p>
@@ -735,12 +717,11 @@ function TopNav({
                                     }}
                                     disabled={isTransitioningAuth}
                                     type="button"
-                                >
-                                    <span className="material-symbols-outlined text-base opacity-80">logout</span>
-                                    <span>Keluar Sesi</span>
-                                </button>
+                                    >
+                                        <span className="material-symbols-outlined text-base opacity-80">logout</span>
+                                        <span>Keluar Sesi</span>
+                                    </button>
                             </div>
-                        </>
                     )}
                 </div>
             </div>
@@ -748,14 +729,33 @@ function TopNav({
     );
 }
 
-function Sidebar({ onExpandedChange, activeSection, onNavigate, roleConfig }) {
-    const [isHoverExpanded, setIsHoverExpanded] = useState(false);
-    const isExpanded = isHoverExpanded;
+function Sidebar({ activeSection, onNavigate, roleConfig }) {
+    const [isPointerHovered, setIsPointerHovered] = useState(false);
+    const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
+    const lastInputWasKeyboardRef = useRef(false);
+    const isExpanded = isPointerHovered || isKeyboardFocused;
 
     useEffect(() => {
-        onExpandedChange?.(isHoverExpanded);
-        return () => onExpandedChange?.(false);
-    }, [isHoverExpanded, onExpandedChange]);
+        const handlePointerDown = () => {
+            lastInputWasKeyboardRef.current = false;
+        };
+
+        const handleKeyDown = (event) => {
+            if (event.metaKey || event.ctrlKey || event.altKey) {
+                return;
+            }
+
+            lastInputWasKeyboardRef.current = true;
+        };
+
+        window.addEventListener("pointerdown", handlePointerDown);
+        window.addEventListener("keydown", handleKeyDown);
+
+        return () => {
+            window.removeEventListener("pointerdown", handlePointerDown);
+            window.removeEventListener("keydown", handleKeyDown);
+        };
+    }, []);
 
     const handleSectionClick = (event, sectionKey) => {
         if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
@@ -765,56 +765,72 @@ function Sidebar({ onExpandedChange, activeSection, onNavigate, roleConfig }) {
 
     return (
         <aside
-            className={`fixed left-4 lg:left-6 top-4 md:top-5 bottom-4 md:bottom-5 z-[2010] hidden lg:flex flex-col rounded-[20px] glass-sidebar shadow-glass-depth anim-layout-sidebar ${isExpanded ? "w-52" : "w-16"
-                }`}
-            onMouseEnter={() => setIsHoverExpanded(true)}
-            onMouseLeave={() => setIsHoverExpanded(false)}
-            onFocusCapture={() => setIsHoverExpanded(true)}
-            onBlurCapture={(event) => {
-                if (!event.currentTarget.contains(event.relatedTarget)) {
-                    setIsHoverExpanded(false);
-                }
-            }}
+            className="fixed left-4 lg:left-6 top-4 md:top-5 bottom-4 md:bottom-5 z-[2010] hidden lg:block w-52 pointer-events-none"
         >
             <div
-                className={`w-full py-5 transition-[padding] duration-300 flex items-center ${isExpanded ? "px-4 lg:px-5" : "justify-center px-0"}`}
-                aria-label="KIMA Archive"
+                className={`pointer-events-auto flex h-full flex-col rounded-[20px] glass-sidebar shadow-glass-depth anim-layout-sidebar overflow-hidden ${isExpanded ? "w-52" : "w-16"}`}
+                aria-expanded={isExpanded}
+                onMouseEnter={() => setIsPointerHovered(true)}
+                onMouseLeave={() => setIsPointerHovered(false)}
+                onFocusCapture={() => {
+                    if (lastInputWasKeyboardRef.current) {
+                        setIsKeyboardFocused(true);
+                    }
+                }}
+                onBlurCapture={(event) => {
+                    if (!event.currentTarget.contains(event.relatedTarget)) {
+                        setIsKeyboardFocused(false);
+                    }
+                }}
             >
-                <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 flex items-center justify-center rounded-xl bg-gold-accent shadow-gold-glow shrink-0">
-                        <img alt="" className="h-5 w-5 object-contain" src="/logo-kima.png" />
-                    </div>
-                    {isExpanded && (
-                        <div className="overflow-hidden whitespace-nowrap text-left animate-in fade-in slide-in-from-left-4 duration-500">
-                            <p className="text-lg font-black text-on-surface tracking-tighter leading-none">KIMA</p>
-                            <p className="text-[8px] font-bold text-gold-accent uppercase tracking-[0.2em] mt-1">ARCHIVE</p>
+                <div
+                    className={`w-full py-5 transition-[padding] duration-300 flex items-center ${isExpanded ? "px-4 lg:px-5" : "justify-center px-0"}`}
+                    aria-label="KIMA Archive"
+                >
+                    <div className="flex items-center gap-3">
+                        <div className="h-8 w-8 flex items-center justify-center rounded-xl bg-gold-accent shadow-gold-glow shrink-0">
+                            <img alt="" className="h-5 w-5 object-contain" src="/logo-kima.png" />
                         </div>
-                    )}
-                </div>
-            </div>
-
-            <nav className="flex-grow px-2 lg:px-3 space-y-1 mt-1 overflow-y-auto no-scrollbar">
-                {roleConfig.menuItems.map((item) => {
-                    const isActive = activeSection === item.key;
-                    const href = getSectionPath(item.key, roleConfig.key);
-                    return (
-                        <a
-                            key={item.key}
-                            href={href}
-                            title={isExpanded ? "" : item.label}
-                            className={`flex items-center rounded-lg anim-surface group ${isExpanded ? "gap-3 px-3 py-2" : "justify-center h-10 w-10 mx-auto"
-                                } ${isActive
-                                    ? "active-glow-gold text-on-surface font-black"
-                                    : "text-on-surface-variant hover:text-on-surface hover:bg-black/5"
-                                }`}
-                            onClick={(event) => handleSectionClick(event, item.key)}
+                        <div
+                            className={`overflow-hidden whitespace-nowrap text-left transition-all duration-300 ease-out ${isExpanded ? "max-w-32 opacity-100 translate-x-0" : "max-w-0 opacity-0 -translate-x-2"}`}
+                            aria-hidden={!isExpanded}
                         >
-                            <span className={`material-symbols-outlined text-lg transition-transform duration-200 ${isActive ? "text-gold-accent" : "group-hover:scale-110"}`}>{item.icon}</span>
-                            {isExpanded && <span className="text-[10px] font-bold uppercase tracking-widest whitespace-nowrap animate-in fade-in duration-500">{item.label}</span>}
-                        </a>
-                    );
-                })}
-            </nav>
+                            <div className="pr-2">
+                                <p className="text-lg font-black text-on-surface tracking-tighter leading-none">KIMA</p>
+                                <p className="text-[8px] font-bold text-gold-accent uppercase tracking-[0.2em] mt-1">ARCHIVE</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <nav className="flex-grow px-2 lg:px-3 space-y-1 mt-1 overflow-y-auto no-scrollbar">
+                    {roleConfig.menuItems.map((item) => {
+                        const isActive = activeSection === item.key;
+                        const href = getSectionPath(item.key, roleConfig.key);
+                        return (
+                            <a
+                                key={item.key}
+                                href={href}
+                                title={isExpanded ? "" : item.label}
+                                className={`flex items-center rounded-lg anim-surface transition-all duration-300 ease-out group ${isExpanded ? "gap-3 px-3 py-2" : "justify-center h-10 w-10 mx-auto"
+                                    } ${isActive
+                                        ? "active-glow-gold text-on-surface font-black"
+                                        : "text-on-surface-variant hover:text-on-surface hover:bg-black/5"
+                                    }`}
+                                onClick={(event) => handleSectionClick(event, item.key)}
+                            >
+                                <span className={`material-symbols-outlined text-lg transition-transform duration-200 ${isActive ? "text-gold-accent" : "group-hover:scale-110"}`}>{item.icon}</span>
+                                <span
+                                    className={`overflow-hidden whitespace-nowrap text-[10px] font-bold uppercase tracking-widest transition-all duration-300 ease-out ${isExpanded ? "max-w-28 opacity-100 translate-x-0" : "max-w-0 opacity-0 -translate-x-2"}`}
+                                    aria-hidden={!isExpanded}
+                                >
+                                    {item.label}
+                                </span>
+                            </a>
+                        );
+                    })}
+                </nav>
+            </div>
         </aside>
     );
 }
