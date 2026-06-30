@@ -788,12 +788,12 @@ function Sidebar({ activeSection, activeMenuKey = activeSection, onNavigate, rol
                 }}
             >
                 <div
-                    className={`w-full py-5 transition-[padding] duration-300 flex items-center ${isExpanded ? "px-4 lg:px-5" : "justify-center px-0"}`}
+                    className={`w-full py-5 transition-[padding] duration-300 flex items-center ${isExpanded ? "px-4 lg:px-5 justify-start" : "px-0 justify-center"}`}
                     aria-label="KIMA Archive"
                 >
-                    <div className="flex items-center gap-3">
+                    <div className={`flex w-full items-center ${isExpanded ? "justify-start gap-3" : "justify-center"}`}>
                         <div className="h-8 w-8 flex items-center justify-center rounded-xl bg-gold-accent shadow-gold-glow shrink-0">
-                            <img alt="" className="h-5 w-5 object-contain" src="/logo-kima.png" />
+                            <img alt="" className="h-5 w-5 object-contain object-center" src="/logo-kima.png" />
                         </div>
                         <div
                             className={`overflow-hidden whitespace-nowrap text-left transition-all duration-300 ease-out ${isExpanded ? "max-w-32 opacity-100 translate-x-0" : "max-w-0 opacity-0 -translate-x-2"}`}

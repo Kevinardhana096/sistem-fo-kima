@@ -186,6 +186,8 @@ const formatRemainingContractText = (remainingDays) => {
     return remainingDays < 0 ? `Lewat ${text}` : text;
 };
 
+const CONTRACT_PACKAGE_RATIO_COLS = ["1/2", "1/4", "1/8", "1/16", "1/32"];
+
 const getContractStatusKey = (row) => {
     const endDate = row?.contractPeriodEnd ?? row?.contractEnd;
     const remainingDays = getRemainingRentalDays(endDate);
@@ -672,6 +674,56 @@ function MonitoringSpreadsheetPage({
         aktif: contractAllRows.filter((row) => row.contractStatusKey === "aktif").length,
         lewat: contractAllRows.filter((row) => row.contractStatusKey === "lewat").length,
     }), [contractAllRows]);
+
+    const packageMatrixRows = useMemo(() => {
+        const matrixMap = new Map();
+
+        billingRows.forEach((row) => {
+            const ispName = String(row.ispName ?? "").trim();
+            if (!ispName) {
+                return;
+            }
+
+            const currentRow = matrixMap.get(ispName) ?? {
+                ispName,
+                "1/2": 0,
+                "1/4": 0,
+                "1/8": 0,
+                "1/16": 0,
+                "1/32": 0,
+                core: 0,
+            };
+
+            const packageType = String(row.packageInfo?.paket ?? row.paket ?? row.coreType ?? "").toLowerCase();
+            const looksSharing = packageType.includes("shar")
+                || packageType === "shared"
+                || Boolean(row.sharingRatio ?? row.contractSharingRatio)
+                || CONTRACT_PACKAGE_RATIO_COLS.includes(String(row.packageInfo?.ratio ?? "").trim());
+
+            if (looksSharing) {
+                const rawRatio = String(row.packageInfo?.jumlah ?? row.sharingRatio ?? row.contractSharingRatio ?? row.jumlah ?? "").replace(/:/g, "/").trim();
+                const ratioKey = CONTRACT_PACKAGE_RATIO_COLS.find((ratio) => ratio === rawRatio);
+                if (ratioKey) {
+                    currentRow[ratioKey] += 1;
+                }
+            } else {
+                currentRow.core += 1;
+            }
+
+            matrixMap.set(ispName, currentRow);
+        });
+
+        return [...matrixMap.values()].sort((left, right) => left.ispName.localeCompare(right.ispName));
+    }, [billingRows]);
+
+    const packageMatrixTotals = useMemo(() => {
+        const totals = CONTRACT_PACKAGE_RATIO_COLS.reduce((accumulator, ratio) => {
+            accumulator[ratio] = packageMatrixRows.reduce((sum, row) => sum + row[ratio], 0);
+            return accumulator;
+        }, {});
+        totals.core = packageMatrixRows.reduce((sum, row) => sum + row.core, 0);
+        return totals;
+    }, [packageMatrixRows]);
 
     const filteredHistoryRows = useMemo(() => {
         const loweredSearch = filters.search.trim().toLowerCase();
@@ -1633,6 +1685,90 @@ function MonitoringSpreadsheetPage({
         </section>
     );
 
+    const contractPackageStatsSection = (
+        <section className="glass-card monitoring-card backdrop-blur-xl rounded-premium border-white/40 shadow-glass-depth max-w-full" id="monitoring-package-stats">
+            <div className="flex flex-col gap-3 border-b border-white/10 bg-[#0f141e]/60 px-5 py-3.5 backdrop-blur-md md:flex-row md:items-center md:justify-between rounded-t-premium">
+                <div>
+                    <p className="text-[9px] font-black uppercase tracking-[0.3em] text-gold-accent/70 leading-none mb-0.5">Statistik</p>
+                    <h2 className="text-sm font-black uppercase tracking-widest text-white leading-none mb-0.5">Distribusi Paket per ISP</h2>
+                    <p className="max-w-3xl text-[10px] font-medium leading-snug text-white/45">
+                        Ringkasan distribusi paket Core dan Sharing Core per ISP dari data monitoring yang sedang aktif.
+                    </p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-[9px] font-black uppercase tracking-[0.2em] text-white/50 backdrop-blur-md">
+                    {packageMatrixRows.length} ISP
+                </div>
+            </div>
+            <div className="max-w-full overflow-auto custom-scrollbar rounded-b-premium">
+                <table className="w-full min-w-[760px] border-separate border-spacing-0 text-[10px]">
+                    <thead>
+                        <tr>
+                            <th className="sticky top-0 z-20 border-b border-r border-white/10 bg-[#1e293b]/95 px-5 py-2.5 text-left text-[10px] font-black uppercase tracking-widest text-white backdrop-blur-3xl w-[240px]">ISP</th>
+                            {CONTRACT_PACKAGE_RATIO_COLS.map((ratio) => (
+                                <th key={ratio} className="sticky top-0 z-20 border-b border-r border-white/10 bg-[#1e293b]/95 px-4 py-2.5 text-center text-[10px] font-black uppercase tracking-widest text-amber-300/80 backdrop-blur-3xl">
+                                    {ratio}
+                                </th>
+                            ))}
+                            <th className="sticky top-0 z-20 border-b border-white/10 bg-[#1e293b]/95 px-4 py-2.5 text-center text-[10px] font-black uppercase tracking-widest text-indigo-300/80 backdrop-blur-3xl">
+                                Core
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                        {packageMatrixRows.length === 0 ? (
+                            <tr>
+                                <td className="px-5 py-10 text-center text-[10px] font-bold text-white/30 uppercase tracking-widest" colSpan={CONTRACT_PACKAGE_RATIO_COLS.length + 2}>
+                                    Tidak ada data paket
+                                </td>
+                            </tr>
+                        ) : packageMatrixRows.map((row, index) => (
+                            <tr key={row.ispName} className={`bg-[#0f172a]/40 transition-colors group hover:bg-[#1e293b]/60 ${index % 2 === 0 ? "" : "bg-[#0f172a]/25"}`}>
+                                <td className="border-r border-white/5 px-5 py-3">
+                                    <p className="truncate text-left text-[11px] font-black uppercase tracking-wide text-white">
+                                        {row.ispName}
+                                    </p>
+                                </td>
+                                {CONTRACT_PACKAGE_RATIO_COLS.map((ratio) => (
+                                    <td key={ratio} className="border-r border-white/5 px-4 py-3 text-center">
+                                        <span className={`text-[12px] font-black tabular-nums ${row[ratio] > 0 ? "text-amber-400" : "text-white/20"}`}>
+                                            {row[ratio]}
+                                        </span>
+                                    </td>
+                                ))}
+                                <td className="px-4 py-3 text-center">
+                                    <span className={`text-[12px] font-black tabular-nums ${row.core > 0 ? "text-indigo-400" : "text-white/20"}`}>
+                                        {row.core}
+                                    </span>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                    {packageMatrixRows.length > 0 && (
+                        <tfoot>
+                            <tr className="border-t border-white/10 bg-white/[0.03]">
+                                <td className="px-5 py-3">
+                                    <p className="text-[9px] font-black uppercase tracking-[0.3em] text-white/40">Total</p>
+                                </td>
+                                {CONTRACT_PACKAGE_RATIO_COLS.map((ratio) => (
+                                    <td key={ratio} className="px-4 py-3 text-center">
+                                        <span className={`text-[12px] font-black tabular-nums ${packageMatrixTotals[ratio] > 0 ? "text-amber-300" : "text-white/20"}`}>
+                                            {packageMatrixTotals[ratio]}
+                                        </span>
+                                    </td>
+                                ))}
+                                <td className="px-4 py-3 text-center">
+                                    <span className={`text-[12px] font-black tabular-nums ${packageMatrixTotals.core > 0 ? "text-indigo-300" : "text-white/20"}`}>
+                                        {packageMatrixTotals.core}
+                                    </span>
+                                </td>
+                            </tr>
+                        </tfoot>
+                    )}
+                </table>
+            </div>
+        </section>
+    );
+
     if (tableOnly) {
         const tableOnlyContent = (
             <div className="h-full min-h-0 w-full flex flex-col gap-2 p-2">
@@ -1835,8 +1971,13 @@ function MonitoringSpreadsheetPage({
                         </div>
                     </div>
                 )}
-                <div className="flex-1 min-h-0">
-                    {isContractPage ? contractTableSection : tableSection}
+                <div className="flex-1 min-h-0 space-y-3">
+                    {isContractPage ? (
+                        <>
+                            {contractTableSection}
+                            {contractPackageStatsSection}
+                        </>
+                    ) : tableSection}
                 </div>
                 {invoiceDetailModal}
             </div>
@@ -2219,7 +2360,12 @@ function MonitoringSpreadsheetPage({
                     </div>
                 </div>
 
-                {isContractPage ? contractTableSection : activeDataTab === "billing" ? tableSection : historyTableSection}
+                {isContractPage ? (
+                    <>
+                        {contractTableSection}
+                        {contractPackageStatsSection}
+                    </>
+                ) : activeDataTab === "billing" ? tableSection : historyTableSection}
 
                 <div className={`rounded-xl p-3 mt-4 mb-2 border ${isContractPage ? "bg-rose-500/5 border-rose-500/10" : "bg-amber-500/5 border-amber-500/10"}`}>
                     <p className={`text-[10px] leading-relaxed font-medium italic ${isContractPage ? "text-rose-200/70" : "text-amber-200/60"}`}>

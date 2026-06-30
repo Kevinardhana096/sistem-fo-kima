@@ -1,6 +1,6 @@
 export const teknisiMenuItems = [
-    { key: "monitoring", label: "Monitoring Billing", icon: "monitor_heart" },
     { key: "monitoring-contract", label: "Monitoring Kontrak", icon: "description" },
+    { key: "monitoring", label: "Monitoring Billing", icon: "monitor_heart" },
     { key: "customers", label: "Pelanggan", icon: "groups" },
     { key: "todos", label: "Tindak Lanjut", icon: "task_alt" },
     { key: "trash", label: "Tempat Sampah", icon: "delete", separated: true },

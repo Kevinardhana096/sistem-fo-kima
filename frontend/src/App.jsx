@@ -307,6 +307,10 @@ function getLandingPathForRole(roleKey, paths, user, resolvedIspId = null) {
         return paths.ispDetail(ispId ?? "me");
     }
 
+    if (paths.monitoringContract && roleKey !== APP_ROLES.guest) {
+        return paths.monitoringContract;
+    }
+
     const roleConfig = getRoleConfig(roleKey);
     return paths[roleConfig.defaultSection] ?? paths.customers ?? paths.login;
 }

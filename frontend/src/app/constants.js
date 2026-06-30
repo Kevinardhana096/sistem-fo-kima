@@ -4,8 +4,8 @@ export const sectionMeta = {
         description: "Ringkasan performa tenant, kontrak aktif, dan indikator operasional harian.",
     },
     monitoring: {
-        title: "Monitoring Billing",
-        description: "Pantau billing tenant, status kontrak, serta notifikasi anomali secara real-time.",
+        title: "Monitoring",
+        description: "Pantau billing tenant, kontrak, serta notifikasi anomali secara real-time.",
     },
     trash: {
         title: "Tempat Sampah",
