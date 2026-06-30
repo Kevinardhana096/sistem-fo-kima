@@ -52,6 +52,39 @@ const INVOICE_STATUS_OPTIONS = [
   { value: "lunas", label: "Lunas" },
 ];
 
+function useMinWidthQuery(minWidth) {
+  const getMatches = () => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+      return false;
+    }
+
+    return window.matchMedia(`(min-width: ${minWidth}px)`).matches;
+  };
+
+  const [matches, setMatches] = useState(getMatches);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+      return undefined;
+    }
+
+    const mediaQueryList = window.matchMedia(`(min-width: ${minWidth}px)`);
+    const handleChange = (event) => {
+      setMatches(event.matches);
+    };
+
+    if (typeof mediaQueryList.addEventListener === "function") {
+      mediaQueryList.addEventListener("change", handleChange);
+      return () => mediaQueryList.removeEventListener("change", handleChange);
+    }
+
+    mediaQueryList.addListener(handleChange);
+    return () => mediaQueryList.removeListener(handleChange);
+  }, [minWidth]);
+
+  return matches;
+}
+
 function encodeRoutePlannerMeta(routeMeta) {
   if (!routeMeta || typeof routeMeta !== "object") {
     return "";
@@ -595,6 +628,34 @@ const parseRupiahInput = (value) => {
   return Number(numberString) || 0;
 };
 
+const createInitialPaymentRealizationDraft = () => ({
+  periodStartMonth: "",
+  periodEndMonth: "",
+  amount: "",
+  notes: "",
+  uploadedFileName: "",
+  uploadedFile: null,
+});
+
+const formatPaymentRealizationPeriod = (startMonth, endMonth) => {
+  const normalizedStartMonth = String(startMonth ?? "").slice(0, 10);
+  const normalizedEndMonth = String(endMonth ?? "").slice(0, 10);
+
+  if (!normalizedStartMonth && !normalizedEndMonth) {
+    return "-";
+  }
+  if (normalizedStartMonth && normalizedEndMonth && normalizedStartMonth === normalizedEndMonth) {
+    return formatMonthYear(normalizedStartMonth);
+  }
+  if (!normalizedStartMonth) {
+    return formatMonthYear(normalizedEndMonth);
+  }
+  if (!normalizedEndMonth) {
+    return formatMonthYear(normalizedStartMonth);
+  }
+  return `${formatMonthYear(normalizedStartMonth)} - ${formatMonthYear(normalizedEndMonth)}`;
+};
+
 const isValidIsoDate = (value) => {
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
     return false;
@@ -683,6 +744,7 @@ function TenantDetailPage({
     canManageTenantContracts,
   } = resolveTenantDetailAccess(currentRole);
   const [activeTab, setActiveTab] = useState(initialTab);
+  const isDesktopViewport = useMinWidthQuery(1280);
   const [detail, setDetail] = useState(null);
   const [timeline, setTimeline] = useState([]);
   const [error, setError] = useState("");
@@ -761,8 +823,20 @@ function TenantDetailPage({
   const [settlementFeedback, setSettlementFeedback] = useState("");
   const [settlementError, setSettlementError] = useState("");
   const [isMarkingActivationFeePaid, setIsMarkingActivationFeePaid] = useState(false);
+  const [paymentRealizationDraft, setPaymentRealizationDraft] = useState(createInitialPaymentRealizationDraft);
+  const [paymentRealizationError, setPaymentRealizationError] = useState("");
+  const [paymentRealizationFeedback, setPaymentRealizationFeedback] = useState("");
+  const [isPaymentRealizationModalOpen, setIsPaymentRealizationModalOpen] = useState(false);
+  const [isSavingPaymentRealization, setIsSavingPaymentRealization] = useState(false);
 
-  useScrollLock(deleteModalOpen || ispPopupOpen || !!billingEditor || !!versionEditor || !!renewalConfirmData);
+  useScrollLock(
+    deleteModalOpen
+    || ispPopupOpen
+    || !!billingEditor
+    || !!versionEditor
+    || !!renewalConfirmData
+    || isPaymentRealizationModalOpen,
+  );
   const [contractNumberInputs, setContractNumberInputs] = useState({});
   const [isSavingContractNumber, setIsSavingContractNumber] = useState(false);
   const [emptyContractNumberRows, setEmptyContractNumberRows] = useState({});
@@ -775,6 +849,8 @@ function TenantDetailPage({
   const [draftRoutePoints, setDraftRoutePoints] = useState([]);
   const [draftRouteStatus, setDraftRouteStatus] = useState("aktif");
   const [selectedEntryPointIds, setSelectedEntryPointIds] = useState([]);
+  const isInvoicesTabActive = activeTab === "invoices";
+  const isRouteTabActive = activeTab === "jalur";
 
   // Pagination State for Kelengkapan Berkas
   const [berkasCurrentPage, setBerkasCurrentPage] = useState(1);
@@ -983,6 +1059,18 @@ function TenantDetailPage({
   const invoices = useMemo(
     () => (Array.isArray(detail?.invoices) ? detail.invoices : []),
     [detail?.invoices],
+  );
+  const paymentRealizationRows = useMemo(
+    () => (
+      Array.isArray(detail?.paymentRealizations)
+        ? [...detail.paymentRealizations].sort((left, right) => {
+          const leftPeriod = String(left?.periodStartMonth ?? left?.period_start_month ?? left?.createdAt ?? left?.created_at ?? "");
+          const rightPeriod = String(right?.periodStartMonth ?? right?.period_start_month ?? right?.createdAt ?? right?.created_at ?? "");
+          return rightPeriod.localeCompare(leftPeriod);
+        })
+        : []
+    ),
+    [detail?.paymentRealizations],
   );
   const contractsList = useMemo(
     () => (Array.isArray(detail?.contracts) ? detail.contracts : []),
@@ -1683,16 +1771,25 @@ function TenantDetailPage({
   }, [sortedInvoices, todayIso]);
 
   const historyInvoiceRows = useMemo(
-    () =>
-      sortedHistoryInvoices.map((invoice, index) => ({
+    () => {
+      if (!isInvoicesTabActive) {
+        return [];
+      }
+
+      return sortedHistoryInvoices.map((invoice, index) => ({
         ...invoice,
         paymentOrder: index + 1,
         statusMeta: resolveInvoiceStatusMeta(invoice),
-      })),
-    [sortedHistoryInvoices],
+      }));
+    },
+    [isInvoicesTabActive, sortedHistoryInvoices],
   );
 
   const displayInvoiceRows = useMemo(() => {
+    if (!isInvoicesTabActive) {
+      return [];
+    }
+
     const items = [...invoiceRows];
     items.sort((left, right) => {
       if (invoicePaymentOrderSort === "desc") {
@@ -1702,7 +1799,7 @@ function TenantDetailPage({
       return left.paymentOrder - right.paymentOrder;
     });
     return items;
-  }, [invoiceRows, invoicePaymentOrderSort]);
+  }, [invoiceRows, invoicePaymentOrderSort, isInvoicesTabActive]);
 
   const displayHistoryInvoiceRows = useMemo(() => {
     const items = [...historyInvoiceRows];
@@ -1711,6 +1808,10 @@ function TenantDetailPage({
   }, [historyInvoiceRows]);
 
   const settlementPeriodGroups = useMemo(() => {
+    if (!isInvoicesTabActive) {
+      return [];
+    }
+
     const groups = new Map();
 
     displayHistoryInvoiceRows.forEach((invoice) => {
@@ -1781,7 +1882,7 @@ function TenantDetailPage({
         };
       })
       .sort((left, right) => String(right.periodStart ?? "").localeCompare(String(left.periodStart ?? "")));
-  }, [contractById, contractVersionById, displayHistoryInvoiceRows]);
+  }, [contractById, contractVersionById, displayHistoryInvoiceRows, isInvoicesTabActive]);
 
   const toggleSettlementPeriod = (periodKey) => {
     setExpandedSettlementPeriods((previous) => ({
@@ -1791,6 +1892,10 @@ function TenantDetailPage({
   };
 
   useEffect(() => {
+    if (!isInvoicesTabActive) {
+      return;
+    }
+
     setSettlementDrafts((previousDrafts) => {
       const nextDrafts = {};
       historyInvoiceRows.forEach((invoice) => {
@@ -1807,7 +1912,7 @@ function TenantDetailPage({
       });
       return nextDrafts;
     });
-  }, [historyInvoiceRows]);
+  }, [historyInvoiceRows, isInvoicesTabActive]);
 
   const handleSaveSettlementRow = async (invoice) => {
     const draft = settlementDrafts[invoice.id];
@@ -1855,6 +1960,10 @@ function TenantDetailPage({
   };
 
   useEffect(() => {
+    if (!isInvoicesTabActive) {
+      return;
+    }
+
     setInvoiceDrafts((previousDrafts) => {
       const nextDrafts = {};
 
@@ -1896,7 +2005,7 @@ function TenantDetailPage({
 
       return nextDrafts;
     });
-  }, [invoiceRows]);
+  }, [invoiceRows, isInvoicesTabActive]);
 
   const workflowInvoiceRows = useMemo(
     () =>
@@ -3460,6 +3569,81 @@ function TenantDetailPage({
     }
   };
 
+  const closePaymentRealizationModal = () => {
+    setIsPaymentRealizationModalOpen(false);
+    setPaymentRealizationError("");
+    setPaymentRealizationDraft(createInitialPaymentRealizationDraft());
+  };
+
+  const openPaymentRealizationModal = () => {
+    setPaymentRealizationError("");
+    setPaymentRealizationFeedback("");
+    setPaymentRealizationDraft(createInitialPaymentRealizationDraft());
+    setIsPaymentRealizationModalOpen(true);
+  };
+
+  const handleCreatePaymentRealization = async (event) => {
+    event.preventDefault();
+
+    const periodStartMonth = String(paymentRealizationDraft.periodStartMonth ?? "").slice(0, 10);
+    const periodEndMonth = String(paymentRealizationDraft.periodEndMonth ?? "").slice(0, 10);
+    const amount = parseRupiahInput(paymentRealizationDraft.amount);
+
+    if (!periodStartMonth || !periodEndMonth) {
+      setPaymentRealizationError("Periode pembayaran wajib diisi lengkap.");
+      return;
+    }
+    if (periodEndMonth < periodStartMonth) {
+      setPaymentRealizationError("Periode akhir tidak boleh lebih awal dari periode awal.");
+      return;
+    }
+    if (amount <= 0) {
+      setPaymentRealizationError("Nominal pembayaran wajib lebih dari Rp 0.");
+      return;
+    }
+    if (!(paymentRealizationDraft.uploadedFile instanceof File)) {
+      setPaymentRealizationError("Berkas pembayaran wajib dipilih terlebih dahulu.");
+      return;
+    }
+
+    setIsSavingPaymentRealization(true);
+    setPaymentRealizationError("");
+    setPaymentRealizationFeedback("");
+
+    try {
+      const paymentFileUrl = await uploadWithProgress(paymentRealizationDraft.uploadedFile, ["customers", customer.id, "payment-realizations"]);
+      const activeContractId = Number(activeBillingPeriod?.contractId ?? contract?.id);
+      const activeContractVersionId = Number(activeBillingPeriod?.versionId);
+
+      await tenantDetailData.paymentRealizations.create({
+        customer_id: customer.id,
+        contract_id: Number.isFinite(activeContractId) ? activeContractId : null,
+        contract_version_id: Number.isFinite(activeContractVersionId) && activeContractVersionId > 0
+          ? activeContractVersionId
+          : null,
+        period_start_month: periodStartMonth,
+        period_end_month: periodEndMonth,
+        amount,
+        payment_file_url: paymentFileUrl,
+        payment_file_name: paymentRealizationDraft.uploadedFile.name ?? paymentRealizationDraft.uploadedFileName ?? null,
+        notes: String(paymentRealizationDraft.notes ?? "").trim() || null,
+      });
+
+      setPaymentRealizationFeedback("Realisasi pembayaran berhasil ditambahkan.");
+      setPaymentRealizationDraft(createInitialPaymentRealizationDraft());
+      setIsPaymentRealizationModalOpen(false);
+      await Promise.all([loadDetail(), onRefreshAll?.()]);
+    } catch (requestError) {
+      setPaymentRealizationError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Terjadi kesalahan saat menambahkan realisasi pembayaran.",
+      );
+    } finally {
+      setIsSavingPaymentRealization(false);
+    }
+  };
+
   const handleDeleteTenant = async () => {
     setIsDeletingTenant(true);
     setDeleteError("");
@@ -3510,6 +3694,10 @@ function TenantDetailPage({
   };
 
   const routeHistoryRows = useMemo(() => {
+    if (!isRouteTabActive) {
+      return [];
+    }
+
     // Urutkan dari terlama ke terbaru dulu agar changeNumber bisa dihitung benar
     const sorted = [...routeHistory].sort((a, b) => {
       const tA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
@@ -3558,7 +3746,7 @@ function TenantDetailPage({
 
     // Tampilkan terbaru di atas (descending) — changeNumber tetap benar
     return mapped.reverse();
-  }, [routeHistory]);
+  }, [isRouteTabActive, routeHistory]);
 
   const toggleHistoryExpand = (id) => {
     setExpandedHistoryIds((prev) =>
@@ -4958,6 +5146,7 @@ function TenantDetailPage({
                     { id: "overview", label: "Ringkasan" },
                     { id: "contracts", label: "Kontrak" },
                     { id: "invoices", label: "Invoice" },
+                    { id: "payment-realizations", label: "Realisasi" },
                     { id: "jalur", label: "Jalur" },
                     { id: "documents", label: "Dokumen" },
                     { id: "timeline", label: "Timeline" }
@@ -4973,6 +5162,7 @@ function TenantDetailPage({
                       { id: "overview", label: "Ringkasan", icon: "dashboard" },
                       { id: "contracts", label: "Kontrak", icon: "description" },
                       { id: "invoices", label: "Invoice", icon: "receipt_long" },
+                      { id: "payment-realizations", label: "Realisasi", icon: "payments" },
                       { id: "jalur", label: "Jalur", icon: "map" },
                       { id: "documents", label: "Dokumen", icon: "inventory_2" },
                       { id: "timeline", label: "Timeline", icon: "history" }
@@ -5394,6 +5584,7 @@ function TenantDetailPage({
                 { id: "overview", label: "Ringkasan", icon: "dashboard" },
                 { id: "contracts", label: "Kontrak", icon: "description" },
                 { id: "invoices", label: "Invoice", icon: "receipt_long" },
+                { id: "payment-realizations", label: "Realisasi", icon: "payments" },
                 { id: "jalur", label: "Jalur", icon: "map" },
                 { id: "documents", label: "Dokumen", icon: "inventory_2" },
                 { id: "timeline", label: "Timeline", icon: "history" },
@@ -5876,9 +6067,8 @@ function TenantDetailPage({
                       );
                     }
 
-                    return (
-                      <>
-                        <div className="hidden xl:block w-full">
+                    return isDesktopViewport ? (
+                      <div className="w-full">
                           <table className="w-full text-left">
                             <thead className="bg-white/[0.03] border-b border-white/5">
                               <tr>
@@ -6006,10 +6196,9 @@ function TenantDetailPage({
                               })}
                             </tbody>
                           </table>
-                        </div>
-
-                        {/* MOBILE CARDS VIEW */}
-                        <div className="xl:hidden flex flex-col gap-1.5 relative z-10 px-2.5 mt-0 pb-2.5">
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-1.5 relative z-10 px-2.5 mt-0 pb-2.5">
                           {combinedItems.map((item, index) => {
                             if (item._rowType === 'point') {
                               const point = item;
@@ -6059,8 +6248,7 @@ function TenantDetailPage({
                               );
                             }
                           })}
-                        </div>
-                      </>
+                      </div>
                     );
                   })()}
                 </div>
@@ -7149,7 +7337,8 @@ function TenantDetailPage({
                 </div>
               </div>
               <div className="overflow-x-auto no-scrollbar px-3 md:px-5 pt-3 md:pt-4">
-                <table className="w-full text-left min-w-[1200px] border-collapse hidden xl:table">
+                {isDesktopViewport ? (
+                <table className="w-full text-left min-w-[1200px] border-collapse">
                   <thead>
                     <tr className="bg-white/[0.02]">
                       {!isIsp && (
@@ -7576,9 +7765,8 @@ function TenantDetailPage({
                     })}
                   </tbody>
                 </table>
-
-                {/* MOBILE CARDS VIEW */}
-                <div className="xl:hidden flex flex-col gap-2 relative z-10 pt-0">
+                ) : (
+                <div className="flex flex-col gap-2 relative z-10 pt-0">
                   {displayInvoiceRows.length === 0 && (
                     <div className="px-4 py-6 text-center text-[10px] text-white/30 italic tracking-wider border border-white/5 rounded-xl bg-white/[0.02]">Belum ada invoice aktif.</div>
                   )}
@@ -7890,6 +8078,7 @@ function TenantDetailPage({
                     );
                   })}
                 </div>
+                )}
               </div>
             </section>
 
@@ -8171,6 +8360,154 @@ function TenantDetailPage({
                   })}
                 </div>
               )}
+            </section>
+          </div>
+        )}
+
+        {activeTab === "payment-realizations" && (
+          <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <section className="glass-card backdrop-blur-xl rounded-xl border-white/10 shadow-glass-depth overflow-hidden">
+              <div className="flex flex-col gap-3 border-b border-white/5 bg-white/[0.01] px-5 py-4 md:flex-row md:items-center md:justify-between">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-gold-accent" style={{ fontSize: "18px" }}>payments</span>
+                    <h3 className="text-[10px] md:text-[11px] font-black uppercase tracking-[0.2em] text-white/60">Realisasi Pembayaran</h3>
+                  </div>
+                  <p className="text-[10px] font-bold text-white/35">
+                    Total realisasi di tab ini akan otomatis tersinkron ke kolom monitoring kontrak untuk kontrak aktif tenant.
+                  </p>
+                </div>
+                {!isIsp && (
+                  <button
+                    className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-gold-accent px-4 text-[10px] font-black uppercase tracking-widest text-[#0f141e] shadow-gold-glow transition-all hover:scale-[1.01] active:scale-[0.98]"
+                    onClick={openPaymentRealizationModal}
+                    type="button"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">add_circle</span>
+                    Tambah Realisasi
+                  </button>
+                )}
+              </div>
+
+              <div className="grid gap-3 border-b border-white/5 px-4 py-4 md:grid-cols-2">
+                <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
+                  <p className="text-[8px] font-black uppercase tracking-[0.25em] text-white/35">Total Realisasi</p>
+                  <p className="mt-1 text-[18px] font-black text-white">
+                    {formatCurrency(
+                      paymentRealizationRows.reduce((total, row) => total + Number(row?.amount ?? 0), 0),
+                    )}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
+                  <p className="text-[8px] font-black uppercase tracking-[0.25em] text-white/35">Kontrak Sinkron</p>
+                  <p className="mt-1 text-[11px] font-black uppercase tracking-widest text-white">
+                    {activeBillingPeriod?.contractNumber ?? contract?.contractNumber ?? contract?.contract_number ?? "-"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-3 p-4">
+                {paymentRealizationError && (
+                  <div className="rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-[10px] font-bold text-rose-300">
+                    {paymentRealizationError}
+                  </div>
+                )}
+                {paymentRealizationFeedback && (
+                  <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-[10px] font-bold text-emerald-300">
+                    {paymentRealizationFeedback}
+                  </div>
+                )}
+
+                <div className="hidden overflow-x-auto rounded-xl border border-white/10 xl:block">
+                  <table className="w-full min-w-[920px] text-left">
+                    <thead className="bg-white/[0.03]">
+                      <tr>
+                        {["NO", "PERIODE PEMBAYARAN", "BESARAN PEMBAYARAN", "BERKAS PEMBAYARAN"].map((header) => (
+                          <th
+                            key={header}
+                            className="border-b border-r border-white/10 px-4 py-3 text-center text-[9px] font-black uppercase tracking-[0.2em] text-white/60 last:border-r-0"
+                          >
+                            {header}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {paymentRealizationRows.length === 0 ? (
+                        <tr>
+                          <td className="px-4 py-8 text-center text-[10px] font-bold text-white/25" colSpan={4}>
+                            Belum ada realisasi pembayaran yang dicatat.
+                          </td>
+                        </tr>
+                      ) : (
+                        paymentRealizationRows.map((row, index) => (
+                          <tr key={row?.id ?? `${row?.periodStartMonth}-${index}`} className="bg-black/10 transition-colors hover:bg-white/[0.03]">
+                            <td className="border-r border-t border-white/5 px-4 py-3 text-center text-[10px] font-black text-white/40">
+                              {String(index + 1).padStart(2, "0")}
+                            </td>
+                            <td className="border-r border-t border-white/5 px-4 py-3 text-center text-[10px] font-bold text-white">
+                              {formatPaymentRealizationPeriod(row?.periodStartMonth, row?.periodEndMonth)}
+                            </td>
+                            <td className="border-r border-t border-white/5 px-4 py-3 text-center text-[10px] font-black text-gold-accent">
+                              {formatCurrency(row?.amount ?? 0)}
+                            </td>
+                            <td className="border-t border-white/5 px-4 py-3 text-center">
+                              {isOpenableFileUrl(row?.paymentFileUrl) ? (
+                                <button
+                                  className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-[8px] font-black uppercase tracking-widest text-emerald-300 transition-all hover:text-white"
+                                  onClick={() => openSafeFile(row.paymentFileUrl)}
+                                  type="button"
+                                >
+                                  <span className="material-symbols-outlined text-[12px]">attach_file</span>
+                                  {row?.paymentFileName ? "Buka Berkas" : "Buka"}
+                                </button>
+                              ) : (
+                                <span className="text-[9px] font-black uppercase tracking-widest text-white/20">Kosong</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="space-y-2 xl:hidden">
+                  {paymentRealizationRows.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-white/10 bg-white/[0.02] px-4 py-8 text-center text-[10px] font-bold text-white/25">
+                      Belum ada realisasi pembayaran yang dicatat.
+                    </div>
+                  ) : (
+                    paymentRealizationRows.map((row, index) => (
+                      <div key={row?.id ?? `${row?.periodStartMonth}-${index}`} className="rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-[8px] font-black uppercase tracking-[0.2em] text-white/35">Baris {String(index + 1).padStart(2, "0")}</p>
+                            <p className="mt-1 text-[10px] font-black text-white">
+                              {formatPaymentRealizationPeriod(row?.periodStartMonth, row?.periodEndMonth)}
+                            </p>
+                          </div>
+                          <p className="text-[10px] font-black text-gold-accent">{formatCurrency(row?.amount ?? 0)}</p>
+                        </div>
+                        <div className="mt-3">
+                          {isOpenableFileUrl(row?.paymentFileUrl) ? (
+                            <button
+                              className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-[8px] font-black uppercase tracking-widest text-emerald-300 transition-all hover:text-white"
+                              onClick={() => openSafeFile(row.paymentFileUrl)}
+                              type="button"
+                            >
+                              <span className="material-symbols-outlined text-[12px]">attach_file</span>
+                              Buka Berkas
+                            </button>
+                          ) : (
+                            <span className="text-[8px] font-black uppercase tracking-widest text-white/20">Berkas belum tersedia</span>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
             </section>
           </div>
         )}
@@ -8875,6 +9212,127 @@ function TenantDetailPage({
             </div>
           </div>,
           document.body
+        )}
+
+        {isPaymentRealizationModalOpen && createPortal(
+          <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
+            <div className="w-full max-w-2xl rounded-2xl border border-white/10 bg-[#0f141e]/95 shadow-glass-depth">
+              <div className="flex items-start justify-between gap-4 border-b border-white/10 px-5 py-4">
+                <div className="space-y-1">
+                  <p className="text-[10px] font-black uppercase tracking-[0.25em] text-gold-accent">Tambah Realisasi</p>
+                  <h3 className="text-lg font-black uppercase tracking-tight text-white">Input Pembayaran Tenant</h3>
+                  <p className="text-[10px] font-bold text-white/35">
+                    Data nominal di modal ini akan tersinkron ke monitoring kontrak untuk
+                    {" "}
+                    {activeBillingPeriod?.contractNumber ?? contract?.contractNumber ?? contract?.contract_number ?? "kontrak aktif tenant"}.
+                  </p>
+                </div>
+                <button
+                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/40 transition-all hover:bg-white/10 hover:text-white"
+                  onClick={closePaymentRealizationModal}
+                  type="button"
+                >
+                  <span className="material-symbols-outlined text-[16px]">close</span>
+                </button>
+              </div>
+
+              <form className="space-y-4 px-5 py-5" onSubmit={handleCreatePaymentRealization}>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-white/70">Periode Dari Bulan</p>
+                    <DateInput
+                      value={paymentRealizationDraft.periodStartMonth}
+                      onChange={(value) => setPaymentRealizationDraft((previous) => ({ ...previous, periodStartMonth: value }))}
+                      displayMode="month-year"
+                      className="h-11 w-full rounded-xl border border-white/10 bg-white/[0.03] focus-within:border-gold-accent/40"
+                      inputClass="h-full w-full bg-transparent px-3 text-[10px] font-bold text-white outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-white/70">Periode Sampai Bulan</p>
+                    <DateInput
+                      value={paymentRealizationDraft.periodEndMonth}
+                      onChange={(value) => setPaymentRealizationDraft((previous) => ({ ...previous, periodEndMonth: value }))}
+                      displayMode="month-year"
+                      className="h-11 w-full rounded-xl border border-white/10 bg-white/[0.03] focus-within:border-gold-accent/40"
+                      inputClass="h-full w-full bg-transparent px-3 text-[10px] font-bold text-white outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-white/70">Besaran Pembayaran</p>
+                  <input
+                    className="h-11 w-full rounded-xl border border-white/10 bg-white/[0.03] px-3 text-[11px] font-black text-white outline-none transition-all focus:border-gold-accent/40"
+                    onChange={(event) => setPaymentRealizationDraft((previous) => ({
+                      ...previous,
+                      amount: formatRupiahInput(event.target.value),
+                    }))}
+                    placeholder="MASUKKAN NOMINAL PEMBAYARAN"
+                    value={paymentRealizationDraft.amount}
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-white/70">Berkas Pembayaran</p>
+                  <div className="relative rounded-xl border border-dashed border-white/10 bg-white/[0.03] px-4 py-5">
+                    <input
+                      type="file"
+                      className="absolute inset-0 z-10 cursor-pointer opacity-0"
+                      onChange={(event) => {
+                        const file = event.target.files?.[0] ?? null;
+                        setPaymentRealizationDraft((previous) => ({
+                          ...previous,
+                          uploadedFileName: file?.name ?? "",
+                          uploadedFile: file,
+                        }));
+                      }}
+                    />
+                    <div className="flex flex-col items-center gap-2 text-center">
+                      <span className="material-symbols-outlined text-[24px] text-white/15">cloud_upload</span>
+                      <p className="text-[9px] font-black uppercase tracking-widest text-white/30">
+                        {paymentRealizationDraft.uploadedFileName || "Klik untuk memilih berkas pembayaran"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-white/70">Catatan</p>
+                  <textarea
+                    className="min-h-[96px] w-full rounded-xl border border-white/10 bg-white/[0.03] px-3 py-3 text-[10px] font-bold text-white outline-none transition-all focus:border-gold-accent/40"
+                    onChange={(event) => setPaymentRealizationDraft((previous) => ({ ...previous, notes: event.target.value }))}
+                    placeholder="Catatan tambahan pembayaran (opsional)"
+                    value={paymentRealizationDraft.notes}
+                  />
+                </div>
+
+                {paymentRealizationError && (
+                  <div className="rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-[10px] font-bold text-rose-300">
+                    {paymentRealizationError}
+                  </div>
+                )}
+
+                <div className="flex flex-col gap-2 border-t border-white/10 pt-4 sm:flex-row sm:justify-end">
+                  <button
+                    className="h-10 rounded-xl border border-white/10 bg-white/5 px-4 text-[10px] font-black uppercase tracking-widest text-white/50 transition-all hover:bg-white/10 hover:text-white"
+                    onClick={closePaymentRealizationModal}
+                    type="button"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    className="h-10 rounded-xl bg-gold-accent px-4 text-[10px] font-black uppercase tracking-widest text-[#0f141e] shadow-gold-glow transition-all hover:scale-[1.01] active:scale-[0.98] disabled:opacity-50"
+                    disabled={isSavingPaymentRealization}
+                    type="submit"
+                  >
+                    {isSavingPaymentRealization ? "Menyimpan..." : "Simpan Realisasi"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>,
+          document.body,
         )}
 
          {renewalConfirmData && createPortal(

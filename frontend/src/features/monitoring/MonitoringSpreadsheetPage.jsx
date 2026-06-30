@@ -115,6 +115,18 @@ const formatMonitoringPackageAmount = (row) => {
 
     return row?.coreTotal ?? "-";
 };
+const formatMonitoringRevenueAmount = (row) => {
+    const monthlyAmount = Number(row?.monthlyAmount ?? 0);
+    return Number.isFinite(monthlyAmount) && monthlyAmount > 0
+        ? formatCurrency(monthlyAmount)
+        : "-";
+};
+const formatMonitoringPaymentRealizationAmount = (row) => {
+    const paymentRealizationAmount = Number(row?.paymentRealizationAmount ?? 0);
+    return Number.isFinite(paymentRealizationAmount) && paymentRealizationAmount > 0
+        ? formatCurrency(paymentRealizationAmount)
+        : "-";
+};
 const getRemainingRentalBadgeMeta = (remainingDays) => {
     if (remainingDays === null) {
         return {
@@ -188,8 +200,15 @@ const formatRemainingContractText = (remainingDays) => {
 
 const CONTRACT_PACKAGE_RATIO_COLS = ["1/2", "1/4", "1/8", "1/16", "1/32"];
 
+const getMonitoringContractEndDate = (row) => (
+    row?.runningPeriodEnd
+    ?? row?.contractEnd
+    ?? row?.contractPeriodEnd
+    ?? null
+);
+
 const getContractStatusKey = (row) => {
-    const endDate = row?.contractPeriodEnd ?? row?.contractEnd;
+    const endDate = getMonitoringContractEndDate(row);
     const remainingDays = getRemainingRentalDays(endDate);
 
     if (remainingDays !== null && remainingDays < 0) {
@@ -635,7 +654,7 @@ function MonitoringSpreadsheetPage({
 
     const contractAllRows = useMemo(() => {
         const mappedRows = billingRows.map((row, index) => {
-            const remainingContractDays = getRemainingRentalDays(row.contractPeriodEnd ?? row.contractEnd);
+            const remainingContractDays = getRemainingRentalDays(getMonitoringContractEndDate(row));
             return {
                 ...row,
                 rowNumber: index + 1,
@@ -832,7 +851,7 @@ function MonitoringSpreadsheetPage({
 
             if (activeDataTab === "contract") {
                 if (contractRows.length === 0) return;
-                const contractHeaders = ["No", "Nomor Kontrak", "Sisa Kontrak", "Periode Berjalan", "Jumlah Paket"];
+                const contractHeaders = ["No", "Nomor Kontrak", "Sisa Kontrak", "Periode Berjalan", "Jumlah Paket", "Pendapatan", "Realisasi Pembayaran"];
                 const contractRowsCsv = contractRows.map((row, index) => (
                     [
                         index + 1,
@@ -840,6 +859,8 @@ function MonitoringSpreadsheetPage({
                         row.remainingContractText,
                         row.runningPeriodText,
                         formatMonitoringPackageAmount(row),
+                        formatMonitoringRevenueAmount(row),
+                        formatMonitoringPaymentRealizationAmount(row),
                     ].map((value) => `"${String(value).replace(/"/g, '""')}"`).join(",")
                 ));
 
@@ -1539,7 +1560,7 @@ function MonitoringSpreadsheetPage({
                         <p className="text-[9px] font-black uppercase tracking-[0.3em] text-gold-accent/70 leading-none mb-0.5">Monitoring Kontrak</p>
                         <h2 className="text-sm font-black uppercase tracking-widest text-white leading-none mb-0.5">Daftar Kontrak</h2>
                         <p className="max-w-3xl text-[10px] font-medium leading-snug text-white/45">
-                            Tabel ringkas kontrak aktif dan kontrak lewat dengan sisa kontrak, periode berjalan, dan jumlah paket.
+                            Tabel ringkas kontrak aktif dan kontrak lewat dengan sisa kontrak, periode berjalan, paket, pendapatan, dan realisasi pembayaran.
                         </p>
                     </div>
                 <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-[9px] font-black uppercase tracking-[0.2em] text-white/50 backdrop-blur-md">
@@ -1561,22 +1582,26 @@ function MonitoringSpreadsheetPage({
                 />
             )}
             <div className={`max-w-full overflow-auto custom-scrollbar rounded-b-premium ${tableOnly ? "flex-1 min-h-0" : ""}`}>
-                <table className={`w-full min-w-[980px] table-fixed border-separate border-spacing-0 text-[10px] ${tableOnly && (isLoading || contractRows.length === 0) ? "h-full" : ""}`}>
+                <table className={`w-full min-w-[1320px] table-fixed border-separate border-spacing-0 text-[10px] ${tableOnly && (isLoading || contractRows.length === 0) ? "h-full" : ""}`}>
                     <colgroup>
                         <col style={{ width: "64px" }} />
                         <col style={{ width: "280px" }} />
                         <col style={{ width: "220px" }} />
                         <col style={{ width: "260px" }} />
                         <col style={{ width: "160px" }} />
+                        <col style={{ width: "160px" }} />
+                        <col style={{ width: "180px" }} />
                     </colgroup>
                     <thead>
                         <tr>
-                            {["NO", "NOMOR KONTRAK", "SISA KONTRAK", "PERIODE BERJALAN", "JUMLAH PAKET"].map((header) => (
+                            {["NO", "NOMOR KONTRAK", "SISA KONTRAK", "PERIODE BERJALAN", "JUMLAH PAKET", "PENDAPATAN", "REALISASI PEMBAYARAN"].map((header) => (
                                 <th
                                     key={header}
                                     className={`sticky top-0 z-20 border-b border-r border-white/10 bg-[#1e293b]/95 px-5 py-2.5 text-center text-[10px] font-black uppercase tracking-widest text-white backdrop-blur-3xl ${
                                         header === "SISA KONTRAK"
                                             ? "border-r-2 border-r-white/25"
+                                            : header === "PENDAPATAN" || header === "REALISASI PEMBAYARAN"
+                                                ? "border-l border-l-white/10"
                                             : ""
                                     }`}
                                 >
@@ -1588,7 +1613,7 @@ function MonitoringSpreadsheetPage({
                     <tbody className="divide-y divide-white/5">
                         {isLoading && (
                             <tr>
-                                <td className={`px-6 ${tableOnly ? "h-full" : "h-[400px] lg:h-[500px]"} text-center`} colSpan="5">
+                                <td className={`px-6 ${tableOnly ? "h-full" : "h-[400px] lg:h-[500px]"} text-center`} colSpan="7">
                                     <div className="flex flex-col items-center justify-center py-16">
                                         <div className="relative flex items-center justify-center h-16 w-16 mb-4 z-10">
                                             <div className="absolute inset-0 bg-gold-accent/10 rounded-full blur-xl animate-pulse"></div>
@@ -1613,7 +1638,7 @@ function MonitoringSpreadsheetPage({
 
                         {!isLoading && visibleContractRows.length === 0 && (
                             <tr>
-                                <td className={`px-6 ${tableOnly ? "h-full" : "h-[400px] lg:h-[500px]"} text-center`} colSpan="5">
+                                <td className={`px-6 ${tableOnly ? "h-full" : "h-[400px] lg:h-[500px]"} text-center`} colSpan="7">
                                     {contractRows.length === 0 ? (
                                         <div className="flex flex-col items-center justify-center animate-in fade-in zoom-in duration-500">
                                             <div className="h-20 w-20 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center mb-6 shadow-glass-depth">
@@ -1637,13 +1662,25 @@ function MonitoringSpreadsheetPage({
 
                         {!isLoading && visibleContractRows.map((row, rowIndex) => {
                             const actualRowNumber = tableOnly ? rowIndex + 1 : startIndex + rowIndex + 1;
+                            const canOpenDetail = typeof onOpenCustomerById === "function" && Number.isFinite(Number(row.customerId));
                             return (
                                 <tr key={`${row.customerId}-${row.contractNumber}-${rowIndex}`} className="bg-[#0f172a]/40 transition-all group hover:bg-[#1e293b]/60">
                                     <td className="border-r border-white/5 px-5 py-3 text-center font-black text-white/30 group-hover:text-gold-accent">
                                         {String(actualRowNumber).padStart(2, "0")}
                                     </td>
                                     <td className="border-r border-white/5 px-5 py-3 font-mono text-[10px] font-bold text-white">
-                                        {row.contractNumber ?? "-"}
+                                        {canOpenDetail && row.contractNumber ? (
+                                            <button
+                                                className="max-w-full truncate text-left font-black text-white transition-colors hover:text-gold-accent"
+                                                onClick={() => onOpenCustomerById(Number(row.customerId), "overview")}
+                                                title={`Buka detail lokasi ${row.customerName ?? ""}`.trim()}
+                                                type="button"
+                                            >
+                                                {row.contractNumber}
+                                            </button>
+                                        ) : (
+                                            row.contractNumber ?? "-"
+                                        )}
                                     </td>
                                     <td className="border-r-2 border-r-white/25 px-5 py-3 text-center">
                                         {(() => {
@@ -1661,6 +1698,12 @@ function MonitoringSpreadsheetPage({
                                     </td>
                                     <td className="px-5 py-3 text-center font-black text-on-surface-variant">
                                         {formatMonitoringPackageAmount(row)}
+                                    </td>
+                                    <td className="border-l border-l-white/10 px-5 py-3 text-center font-black text-on-surface-variant">
+                                        {formatMonitoringRevenueAmount(row)}
+                                    </td>
+                                    <td className="border-l border-l-white/10 px-5 py-3 text-center font-black text-on-surface-variant">
+                                        {formatMonitoringPaymentRealizationAmount(row)}
                                     </td>
                                 </tr>
                             );

@@ -3,6 +3,7 @@ import api from "../../lib/api";
 export const tenantDetailData = Object.freeze({
   customers: api.customers,
   invoices: api.invoices,
+  paymentRealizations: api.paymentRealizations,
   contracts: api.contracts,
   contractVersions: api.contractVersions,
   documents: api.documents,

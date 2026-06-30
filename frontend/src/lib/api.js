@@ -1375,6 +1375,19 @@ const mapCustomerDocument = (document) => ({
   fileName: document.fileName ?? document.file_name ?? null,
 });
 
+const mapCustomerPaymentRealization = (paymentRealization) => ({
+  ...paymentRealization,
+  customerId: paymentRealization.customerId ?? paymentRealization.customer_id ?? null,
+  contractId: paymentRealization.contractId ?? paymentRealization.contract_id ?? null,
+  contractVersionId: paymentRealization.contractVersionId ?? paymentRealization.contract_version_id ?? null,
+  periodStartMonth: paymentRealization.periodStartMonth ?? paymentRealization.period_start_month ?? null,
+  periodEndMonth: paymentRealization.periodEndMonth ?? paymentRealization.period_end_month ?? null,
+  amount: Number(paymentRealization.amount ?? 0),
+  paymentFileUrl: paymentRealization.paymentFileUrl ?? paymentRealization.payment_file_url ?? null,
+  paymentFileName: paymentRealization.paymentFileName ?? paymentRealization.payment_file_name ?? null,
+  notes: paymentRealization.notes ?? null,
+});
+
 const mapRoutePoint = (point) => ({
   ...point,
   routeVersionId: point.routeVersionId ?? point.route_version_id ?? null,
@@ -1636,6 +1649,20 @@ const mapContractVersionPayload = (versionData = {}) => {
   return payload;
 };
 
+const mapPaymentRealizationPayload = (paymentRealizationData = {}) => {
+  const payload = {};
+  assignIfPresent(payload, paymentRealizationData, ['customer_id', 'customerId'], 'customer_id');
+  assignIfPresent(payload, paymentRealizationData, ['contract_id', 'contractId'], 'contract_id');
+  assignIfPresent(payload, paymentRealizationData, ['contract_version_id', 'contractVersionId'], 'contract_version_id');
+  assignIfPresent(payload, paymentRealizationData, ['period_start_month', 'periodStartMonth'], 'period_start_month');
+  assignIfPresent(payload, paymentRealizationData, ['period_end_month', 'periodEndMonth'], 'period_end_month');
+  assignIfPresent(payload, paymentRealizationData, ['amount'], 'amount', (value) => Number(value || 0));
+  assignIfPresent(payload, paymentRealizationData, ['payment_file_url', 'paymentFileUrl'], 'payment_file_url');
+  assignIfPresent(payload, paymentRealizationData, ['payment_file_name', 'paymentFileName'], 'payment_file_name');
+  assignIfPresent(payload, paymentRealizationData, ['notes'], 'notes', (value) => value || null);
+  return payload;
+};
+
 const mapIspContractRowPayload = (rowData = {}) => {
   const payload = {};
   assignIfPresent(payload, rowData, ['isp_id', 'ispId'], 'isp_id');
@@ -1751,6 +1778,9 @@ const mapCustomerDetail = (customer) => {
         : []
     )),
     invoices: Array.isArray(customer.invoices) ? customer.invoices.map(mapCustomerInvoice) : [],
+    paymentRealizations: Array.isArray(customer.paymentRealizations)
+      ? customer.paymentRealizations.map(mapCustomerPaymentRealization)
+      : [],
     latestDocuments: Array.isArray(customer.documents) ? customer.documents.map(mapCustomerDocument) : [],
     route: {
       activeFlowStatus: activeRouteVersion?.flowStatus ?? 'aktif',
@@ -2135,11 +2165,23 @@ export const customersApi = {
         return Array.isArray(mappedDetail.invoices) ? mappedDetail.invoices : [];
       }
     };
+    const refreshPaymentRealizations = async () => {
+      try {
+        return await paymentRealizationsApi.getByCustomerId(id);
+      } catch (paymentRealizationError) {
+        if (isMissingTableError(paymentRealizationError)) {
+          return [];
+        }
+        console.warn('Failed to refresh customer payment realizations after detail fetch:', paymentRealizationError);
+        return Array.isArray(mappedDetail.paymentRealizations) ? mappedDetail.paymentRealizations : [];
+      }
+    };
 
     if (!didSyncStaleInvoices) {
       return {
         ...mappedDetail,
         invoices: await refreshInvoices(),
+        paymentRealizations: await refreshPaymentRealizations(),
       };
     }
 
@@ -2153,6 +2195,7 @@ export const customersApi = {
     return {
       ...mapCustomerDetail(refreshedData),
       invoices: await refreshInvoices(),
+      paymentRealizations: await refreshPaymentRealizations(),
     };
   },
 
@@ -3208,7 +3251,26 @@ export const monitoringApi = {
 
     const customerIds = customers.map((customer) => customer.id).filter(Boolean);
 
-    const [contracts, invoices, routeVersions] = await Promise.all([
+    const loadPaymentRealizations = async () => {
+      try {
+        return await fetchInChunks(customerIds, async (ids) => {
+          const { data, error: paymentRealizationsError } = await supabase
+            .from('customer_payment_realizations')
+            .select('id, customer_id, contract_id, contract_version_id, period_start_month, period_end_month, amount')
+            .in('customer_id', ids);
+
+          if (paymentRealizationsError) throw paymentRealizationsError;
+          return data || [];
+        });
+      } catch (paymentRealizationsError) {
+        if (isMissingTableError(paymentRealizationsError)) {
+          return [];
+        }
+        throw paymentRealizationsError;
+      }
+    };
+
+    const [contracts, invoices, routeVersions, paymentRealizations] = await Promise.all([
       fetchInChunks(customerIds, async (ids) => {
         const { data, error: contractsError } = await supabase
           .from('contracts')
@@ -3263,6 +3325,7 @@ export const monitoringApi = {
         if (routesError) throw routesError;
         return data || [];
       }),
+      loadPaymentRealizations(),
     ]);
 
     const contractsByCustomerId = new Map();
@@ -3373,9 +3436,17 @@ export const monitoringApi = {
       list.push(routeVersion);
       routeVersionsByCustomerId.set(routeVersion.customer_id, list);
     });
+    const paymentRealizationsByCustomerId = new Map();
+    paymentRealizations.forEach((paymentRealization) => {
+      const list = paymentRealizationsByCustomerId.get(paymentRealization.customer_id) || [];
+      list.push(mapCustomerPaymentRealization(paymentRealization));
+      paymentRealizationsByCustomerId.set(paymentRealization.customer_id, list);
+    });
 
     const today = new Date().toISOString().slice(0, 10);
     const currentMonth = new Date().getUTCMonth() + 1;
+    const selectedYearStart = `${selectedYear}-01-01`;
+    const selectedYearEnd = `${selectedYear}-12-31`;
 
     const sortVersions = (versions = []) => [...versions].sort((left, right) => {
       const versionDiff = Number(right.version_number ?? 0) - Number(left.version_number ?? 0);
@@ -3478,6 +3549,35 @@ export const monitoringApi = {
         return getDateValue(right.created_at) - getDateValue(left.created_at);
       })[0] ?? null
     );
+    const paymentRealizationOverlapsSelectedYear = (paymentRealization) => {
+      const startDate = String(paymentRealization?.periodStartMonth ?? paymentRealization?.period_start_month ?? '').slice(0, 10);
+      const endDate = String(paymentRealization?.periodEndMonth ?? paymentRealization?.period_end_month ?? '').slice(0, 10);
+      if (!startDate || !endDate) return false;
+      return startDate <= selectedYearEnd && endDate >= selectedYearStart;
+    };
+    const getPaymentRealizationAmount = (customerId, currentContract) => {
+      const rows = paymentRealizationsByCustomerId.get(customerId) || [];
+      if (rows.length === 0) return 0;
+
+      const currentContractId = Number(currentContract?.id);
+      return rows.reduce((total, paymentRealization) => {
+        if (!paymentRealizationOverlapsSelectedYear(paymentRealization)) {
+          return total;
+        }
+
+        const amount = Number(paymentRealization?.amount ?? 0);
+        if (!Number.isFinite(amount) || amount <= 0) {
+          return total;
+        }
+
+        if (Number.isFinite(currentContractId) && currentContractId > 0) {
+          const paymentContractId = Number(paymentRealization?.contractId ?? paymentRealization?.contract_id);
+          return paymentContractId === currentContractId ? total + amount : total;
+        }
+
+        return total + amount;
+      }, 0);
+    };
 
     // Transform data to match backend format
     const rows = customers.map(customer => {
@@ -3567,6 +3667,7 @@ export const monitoringApi = {
         sharingRatio: effectiveVersion?.shared_core_ratio || currentContract?.sharing_ratio || null,
         monthlyAmount: Number(effectiveVersion?.monthly_amount || 0),
         yearlyAmount: Number(effectiveVersion?.yearly_amount || 0),
+        paymentRealizationAmount: getPaymentRealizationAmount(customer.id, currentContract),
         notes: customer.notes || null,
         contractRemarks: effectiveVersion?.remarks || null,
         months,
@@ -4385,6 +4486,48 @@ export const invoicesApi = {
 };
 
 // ============================================================================
+// PAYMENT REALIZATIONS API
+// ============================================================================
+
+export const paymentRealizationsApi = {
+  async getByCustomerId(customerId) {
+    const { data, error } = await supabase
+      .from('customer_payment_realizations')
+      .select(`
+        id,
+        customer_id,
+        contract_id,
+        contract_version_id,
+        period_start_month,
+        period_end_month,
+        amount,
+        payment_file_url,
+        payment_file_name,
+        notes,
+        created_at,
+        updated_at
+      `)
+      .eq('customer_id', customerId)
+      .order('period_start_month', { ascending: false })
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return Array.isArray(data) ? data.map(mapCustomerPaymentRealization) : [];
+  },
+
+  async create(paymentRealizationData) {
+    const { data, error } = await supabase
+      .from('customer_payment_realizations')
+      .insert(withUpdatedAt(mapPaymentRealizationPayload(paymentRealizationData)))
+      .select()
+      .single();
+
+    if (error) throw error;
+    return mapCustomerPaymentRealization(data);
+  },
+};
+
+// ============================================================================
 // CONTRACTS API
 // ============================================================================
 
@@ -4944,6 +5087,18 @@ function isUnknownColumnError(error) {
     code === '42703' ||
     (message.includes('column') &&
       (message.includes('schema cache') || message.includes('does not exist')))
+  );
+}
+
+function isMissingTableError(error) {
+  if (!error) return false;
+  const code = String(error.code ?? '');
+  const message = String(error.message ?? '').toLowerCase();
+  return (
+    code === '42P01'
+    || code === 'PGRST205'
+    || (message.includes('relation') && message.includes('does not exist'))
+    || (message.includes('could not find') && message.includes('table'))
   );
 }
 
@@ -6058,6 +6213,7 @@ export default {
   monitoring: monitoringApi,
   documents: documentsApi,
   invoices: invoicesApi,
+  paymentRealizations: paymentRealizationsApi,
   contracts: contractsApi,
   contractVersions: contractVersionsApi,
   customerRoutes: customerRoutesApi,
