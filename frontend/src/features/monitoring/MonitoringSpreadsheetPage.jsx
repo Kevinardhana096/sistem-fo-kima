@@ -637,7 +637,6 @@ function MonitoringSpreadsheetPage({
             return {
                 ...row,
                 rowNumber: index + 1,
-                contractPeriodText: formatContractPeriod(row.contractPeriodStart ?? row.contractStart, row.contractPeriodEnd ?? row.contractEnd),
                 runningPeriodText: formatContractPeriod(row.runningPeriodStart ?? row.contractStart, row.runningPeriodEnd ?? row.contractEnd),
                 remainingContractDays,
                 remainingContractText: formatRemainingContractText(remainingContractDays),
@@ -781,12 +780,11 @@ function MonitoringSpreadsheetPage({
 
             if (activeDataTab === "contract") {
                 if (contractRows.length === 0) return;
-                const contractHeaders = ["No", "Nomor Kontrak", "Masa Kontrak", "Sisa Kontrak", "Periode Berjalan", "Jumlah Paket"];
+                const contractHeaders = ["No", "Nomor Kontrak", "Sisa Kontrak", "Periode Berjalan", "Jumlah Paket"];
                 const contractRowsCsv = contractRows.map((row, index) => (
                     [
                         index + 1,
                         row.contractNumber ?? "-",
-                        row.contractPeriodText,
                         row.remainingContractText,
                         row.runningPeriodText,
                         formatMonitoringPackageAmount(row),
@@ -1489,7 +1487,7 @@ function MonitoringSpreadsheetPage({
                         <p className="text-[9px] font-black uppercase tracking-[0.3em] text-gold-accent/70 leading-none mb-0.5">Monitoring Kontrak</p>
                         <h2 className="text-sm font-black uppercase tracking-widest text-white leading-none mb-0.5">Daftar Kontrak</h2>
                         <p className="max-w-3xl text-[10px] font-medium leading-snug text-white/45">
-                        Tabel ringkas kontrak aktif dan kontrak lewat dengan masa kontrak, sisa kontrak, periode berjalan, dan jumlah paket.
+                            Tabel ringkas kontrak aktif dan kontrak lewat dengan sisa kontrak, periode berjalan, dan jumlah paket.
                         </p>
                     </div>
                 <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-[9px] font-black uppercase tracking-[0.2em] text-white/50 backdrop-blur-md">
@@ -1511,22 +1509,21 @@ function MonitoringSpreadsheetPage({
                 />
             )}
             <div className={`max-w-full overflow-auto custom-scrollbar rounded-b-premium ${tableOnly ? "flex-1 min-h-0" : ""}`}>
-                <table className={`w-full min-w-[1120px] table-fixed border-separate border-spacing-0 text-[10px] ${tableOnly && (isLoading || contractRows.length === 0) ? "h-full" : ""}`}>
+                <table className={`w-full min-w-[980px] table-fixed border-separate border-spacing-0 text-[10px] ${tableOnly && (isLoading || contractRows.length === 0) ? "h-full" : ""}`}>
                     <colgroup>
                         <col style={{ width: "64px" }} />
                         <col style={{ width: "280px" }} />
-                        <col style={{ width: "300px" }} />
-                        <col style={{ width: "180px" }} />
+                        <col style={{ width: "220px" }} />
                         <col style={{ width: "260px" }} />
                         <col style={{ width: "160px" }} />
                     </colgroup>
                     <thead>
                         <tr>
-                            {["NO", "NOMOR KONTRAK", "MASA KONTRAK", "SISA KONTRAK", "PERIODE BERJALAN", "JUMLAH PAKET"].map((header) => (
+                            {["NO", "NOMOR KONTRAK", "SISA KONTRAK", "PERIODE BERJALAN", "JUMLAH PAKET"].map((header) => (
                                 <th
                                     key={header}
                                     className={`sticky top-0 z-20 border-b border-r border-white/10 bg-[#1e293b]/95 px-5 py-2.5 text-center text-[10px] font-black uppercase tracking-widest text-white backdrop-blur-3xl ${
-                                        header === "MASA KONTRAK"
+                                        header === "SISA KONTRAK"
                                             ? "border-r-2 border-r-white/25"
                                             : ""
                                     }`}
@@ -1539,7 +1536,7 @@ function MonitoringSpreadsheetPage({
                     <tbody className="divide-y divide-white/5">
                         {isLoading && (
                             <tr>
-                                <td className={`px-6 ${tableOnly ? "h-full" : "h-[400px] lg:h-[500px]"} text-center`} colSpan="6">
+                                <td className={`px-6 ${tableOnly ? "h-full" : "h-[400px] lg:h-[500px]"} text-center`} colSpan="5">
                                     <div className="flex flex-col items-center justify-center py-16">
                                         <div className="relative flex items-center justify-center h-16 w-16 mb-4 z-10">
                                             <div className="absolute inset-0 bg-gold-accent/10 rounded-full blur-xl animate-pulse"></div>
@@ -1564,7 +1561,7 @@ function MonitoringSpreadsheetPage({
 
                         {!isLoading && visibleContractRows.length === 0 && (
                             <tr>
-                                <td className={`px-6 ${tableOnly ? "h-full" : "h-[400px] lg:h-[500px]"} text-center`} colSpan="6">
+                                <td className={`px-6 ${tableOnly ? "h-full" : "h-[400px] lg:h-[500px]"} text-center`} colSpan="5">
                                     {contractRows.length === 0 ? (
                                         <div className="flex flex-col items-center justify-center animate-in fade-in zoom-in duration-500">
                                             <div className="h-20 w-20 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center mb-6 shadow-glass-depth">
@@ -1595,9 +1592,6 @@ function MonitoringSpreadsheetPage({
                                     </td>
                                     <td className="border-r border-white/5 px-5 py-3 font-mono text-[10px] font-bold text-white">
                                         {row.contractNumber ?? "-"}
-                                    </td>
-                                    <td className="border-r border-white/5 px-5 py-3 text-center text-xs font-bold text-on-surface-variant">
-                                        {row.contractPeriodText}
                                     </td>
                                     <td className="border-r-2 border-r-white/25 px-5 py-3 text-center">
                                         {(() => {
