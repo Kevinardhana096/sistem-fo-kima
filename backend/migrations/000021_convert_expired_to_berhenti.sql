@@ -1,0 +1,5 @@
+-- Tidak ada perubahan data pada skrip ini.
+--
+-- Status 'Proses Perpanjangan' adalah status bisnis yang valid. Sinkronisasi
+-- kontrak kedaluwarsa dilakukan oleh backend tanpa mengubah kontrak histori
+-- yang sudah berstatus 'Berhenti'.
